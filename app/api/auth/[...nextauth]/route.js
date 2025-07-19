@@ -6,11 +6,11 @@ import clientPromise from "../../../../lib/mongodb";
 const handler = NextAuth({
   providers: [
     GoogleProvider({
-      secret: process.env.NEXTAUTH_SECRET,
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
+  secret: process.env.NEXTAUTH_SECRET, // ✅ Đúng vị trí
   adapter: MongoDBAdapter(clientPromise),
   session: { strategy: "jwt" },
   callbacks: {
