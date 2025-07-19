@@ -1,6 +1,5 @@
 "use client"
-
-  const [isPortrait, setIsPortrait] = useState(false);
+const [isPortrait, setIsPortrait] = useState(false);
   useEffect(() => {
     function checkOrientation() {
       if (window.innerHeight > window.innerWidth) {
@@ -17,7 +16,6 @@
       window.removeEventListener('orientationchange', checkOrientation);
     };
   }, []);
-
 
 import { useEffect, useRef, useState } from "react";
   // Xác định thiết bị mobile
