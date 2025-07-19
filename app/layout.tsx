@@ -1,4 +1,4 @@
-import SessionProviderWrapper from "./SessionProviderWrapper";
+// ...existing code...
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -30,9 +30,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SessionProviderWrapper>
+        {/* Bỏ SessionProviderWrapper, render children trực tiếp */}
           {children}
-        </SessionProviderWrapper>
+        {/* end SessionProviderWrapper */}
       </body>
     </html>
   );
