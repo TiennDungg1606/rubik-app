@@ -1,4 +1,5 @@
-  // Kiểm tra orientation và cảnh báo nếu portrait
+"use client"
+
   const [isPortrait, setIsPortrait] = useState(false);
   useEffect(() => {
     function checkOrientation() {
@@ -16,7 +17,7 @@
       window.removeEventListener('orientationchange', checkOrientation);
     };
   }, []);
-"use client"
+
 
 import { useEffect, useRef, useState } from "react";
   // Xác định thiết bị mobile
