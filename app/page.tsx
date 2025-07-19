@@ -2,7 +2,7 @@
 
 
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { v4 as uuidv4 } from "uuid"
 import AuthForm from "@/components/AuthForm";
 
@@ -10,7 +10,19 @@ export default function HomePage() {
   const router = useRouter();
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  // TODO: Kiểm tra cookie hoặc gọi API /api/user/me để xác định đăng nhập
+  // Kiểm tra đăng nhập khi load trang
+  useEffect(() => {
+    async function checkLogin() {
+      try {
+        const res = await fetch("/api/user/me", { credentials: "include" });
+        if (res.ok) setIsLoggedIn(true);
+        else setIsLoggedIn(false);
+      } catch {
+        setIsLoggedIn(false);
+      }
+    }
+    checkLogin();
+  }, []);
 
   const handleCreateRoom = () => {
     const roomId = uuidv4().slice(0, 6).toUpperCase();
