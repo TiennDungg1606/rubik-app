@@ -12,10 +12,10 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   // Kiểm tra đăng nhập khi load trang
   useEffect(() => {
-    async function checkLogin() {
+    async function checkLogin() { 
       try {
         const res = await fetch("/api/user/me", { credentials: "include" });
-        if (res.ok) setIsLoggedIn(true);
+        if (res.ok) setIsLoggedIn(true);  
         else setIsLoggedIn(false);
       } catch {
         setIsLoggedIn(false);
