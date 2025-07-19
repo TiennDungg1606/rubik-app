@@ -4,12 +4,13 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { signIn, signOut, useSession } from "next-auth/react"
+import AuthForm from "@/components/AuthForm";
 
 export default function HomePage() {
   const router = useRouter();
   const [joinRoomCode, setJoinRoomCode] = useState("");
-  const { data: session, status } = useSession();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // TODO: Kiểm tra cookie hoặc gọi API /api/user/me để xác định đăng nhập
 
   const handleCreateRoom = () => {
     const roomId = uuidv4().slice(0, 6).toUpperCase();
@@ -35,19 +36,9 @@ export default function HomePage() {
           <div className="text-gray-400 text-sm text-center">Giải đấu Rubik 3x3 trực tuyến, solo 1v1, giao diện hiện đại</div>
         </div>
 
-        {session ? (
+        {isLoggedIn ? (
           <>
-            <div className="absolute top-4 right-4 flex items-center gap-3">
-              <img src={session.user?.image || "/user.png"} alt="avatar" className="w-9 h-9 rounded-full border-2 border-blue-400 shadow" />
-              <div className="flex flex-col text-right">
-                <span className="font-semibold text-white text-base leading-tight">{session.user?.name}</span>
-                <span className="text-xs text-gray-300 leading-tight">{session.user?.email}</span>
-                <button
-                  onClick={() => signOut()}
-                  className="mt-1 text-xs text-red-400 hover:text-red-600 font-semibold transition-colors"
-                >Đăng xuất</button>
-              </div>
-            </div>
+            {/* Thông tin user sẽ hiển thị ở đây nếu đã đăng nhập */}
             <button
               onClick={handleCreateRoom}
               className="w-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-3 rounded-xl mb-5 text-lg shadow-lg transition-all duration-200"
@@ -77,13 +68,7 @@ export default function HomePage() {
             </div>
           </>
         ) : (
-          <button
-            onClick={() => signIn("google")}
-            className="w-full flex items-center justify-center gap-3 bg-white text-black font-bold py-3 rounded-xl text-lg shadow-lg hover:bg-gray-100 transition-all border border-gray-300"
-          >
-            <img src="/google.svg" alt="Google" className="w-6 h-6" />
-            Đăng nhập bằng Google
-          </button>
+          <AuthForm type="login" />
         )}
       </div>
     </main>

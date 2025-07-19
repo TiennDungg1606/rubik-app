@@ -1,5 +1,2 @@
 "use client";
-import { SessionProvider } from "next-auth/react";
-export default function SessionProviderWrapper({ children }: { children: React.ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>;
-}
+// Đã loại bỏ SessionProviderWrapper vì không còn dùng next-auth
