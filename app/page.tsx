@@ -68,7 +68,7 @@ export default function HomePage() {
             </div>
           </>
         ) : (
-          <AuthForm type="login" />
+          <AuthForm />
         )}
       </div>
     </main>
