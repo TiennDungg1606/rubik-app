@@ -27,11 +27,39 @@ export default function HomePage() {
 
 
   return (
-    <main className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-800 px-4">
-      <div className="absolute inset-0 opacity-10 bg-[url('/bg-cube.svg')] bg-center bg-no-repeat bg-cover pointer-events-none" />
+    <main className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-800 px-4 overflow-hidden">
+      {/* Background Rubik động */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <svg width="100%" height="100%" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <g opacity="0.08">
+            <rect x="200" y="200" width="180" height="180" rx="24" fill="#F59E42"/>
+            <rect x="400" y="400" width="180" height="180" rx="24" fill="#3B82F6"/>
+            <rect x="800" y="300" width="180" height="180" rx="24" fill="#F43F5E"/>
+            <rect x="1200" y="500" width="180" height="180" rx="24" fill="#22D3EE"/>
+            <rect x="1500" y="200" width="180" height="180" rx="24" fill="#FDE047"/>
+            <rect x="1000" y="700" width="180" height="180" rx="24" fill="#22C55E"/>
+            <rect x="600" y="800" width="180" height="180" rx="24" fill="#F43F5E"/>
+            <rect x="300" y="700" width="180" height="180" rx="24" fill="#3B82F6"/>
+            <rect x="1400" y="800" width="180" height="180" rx="24" fill="#F59E42"/>
+          </g>
+        </svg>
+      </div>
       <div className="z-10 w-full max-w-md bg-black/80 rounded-2xl shadow-2xl p-8 flex flex-col items-center border border-gray-700">
         <div className="flex flex-col items-center mb-8">
-          <img src="/cube-logo.png" alt="Rubik Logo" className="w-16 h-16 mb-2" />
+          {/* Logo Rubik SVG */}
+          <span className="mb-2">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="2" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
+              <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
+              <rect x="44" y="2" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
+              <rect x="2" y="23" width="18" height="18" rx="3" fill="#FDE047" stroke="#222" strokeWidth="2"/>
+              <rect x="23" y="23" width="18" height="18" rx="3" fill="#22D3EE" stroke="#222" strokeWidth="2"/>
+              <rect x="44" y="23" width="18" height="18" rx="3" fill="#22C55E" stroke="#222" strokeWidth="2"/>
+              <rect x="2" y="44" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
+              <rect x="23" y="44" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
+              <rect x="44" y="44" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
+            </svg>
+          </span>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-center tracking-tight text-white drop-shadow mb-1">Rubik 1v1 Online</h1>
           <div className="text-gray-400 text-sm text-center">Giải đấu Rubik 3x3 trực tuyến, solo 1v1, giao diện hiện đại</div>
         </div>
