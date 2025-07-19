@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function AuthForm() {
+  const router = useRouter();
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -39,7 +41,10 @@ export default function AuthForm() {
         }, 1500);
       } else {
         setSuccess("Đăng nhập thành công!");
-        window.location.reload();
+        // Chuyển hướng sang trang chủ hoặc trang mong muốn ngay sau khi đăng nhập
+        setTimeout(() => {
+          router.push("/");
+        }, 500);
       }
     }
   };

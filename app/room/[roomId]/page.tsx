@@ -1,30 +1,9 @@
-"use client"
-const [isPortrait, setIsPortrait] = useState(false);
-  useEffect(() => {
-    function checkOrientation() {
-      if (window.innerHeight > window.innerWidth) {
-        setIsPortrait(true);
-      } else {
-        setIsPortrait(false);
-      }
-    }
-    checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-    return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
-    };
-  }, []);
 
+"use client";
 import { useEffect, useRef, useState } from "react";
-  // Xác định thiết bị mobile
-  const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
 import Peer from "simple-peer";
 import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
-// import { fetchWcaScramble } from "@/lib/scramble";
-
 import { generateWcaScramble } from "@/lib/wcaScramble";
 
 
@@ -64,6 +43,23 @@ function calcStats(times: (number|null)[]) {
 }
 
 export default function RoomPage() {
+  // Xác định thiết bị mobile
+  const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+  // Xác định xoay dọc màn hình
+  const [isPortrait, setIsPortrait] = useState(false);
+  useEffect(() => {
+    function checkOrientation() {
+      if (window.innerHeight > window.innerWidth) setIsPortrait(true);
+      else setIsPortrait(false);
+    }
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
   const router = useRouter();
   // Webcam/mic state
   const [camOn, setCamOn] = useState(true);
