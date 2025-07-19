@@ -10,7 +10,7 @@ const handler = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
-  secret: process.env.NEXTAUTH_SECRET, // ✅ Đúng vị trí
+  secret: process.env.NEXTAUTH_SECRET, 
   adapter: MongoDBAdapter(clientPromise),
   session: { strategy: "jwt" },
   callbacks: {
