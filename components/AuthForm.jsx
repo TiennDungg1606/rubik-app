@@ -27,9 +27,21 @@ export default function AuthForm() {
       body: JSON.stringify(body),
     });
     const data = await res.json();
-    if (!res.ok) setError(data.error || "Có lỗi xảy ra");
-    else setSuccess(tab === "register" ? "Đăng ký thành công!" : "Đăng nhập thành công!");
-    if (tab === "login" && res.ok) window.location.reload();
+    if (!res.ok) {
+      setError(data.error || "Có lỗi xảy ra");
+    } else {
+      if (tab === "register") {
+        setSuccess("Đăng ký thành công! Bạn có thể đăng nhập ngay.");
+        setForm({ email: "", password: "", firstName: "", lastName: "", birthday: "" });
+        setTimeout(() => {
+          setTab("login");
+          setSuccess("");
+        }, 1500);
+      } else {
+        setSuccess("Đăng nhập thành công!");
+        window.location.reload();
+      }
+    }
   };
 
   return (
