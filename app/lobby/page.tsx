@@ -58,7 +58,7 @@ export default function Lobby() {
         return;
       }
       const users = await res.json();
-      if (!Array.isArray(users) || users.length <= 1) {
+      if (!Array.isArray(users) || users.length ==0) {
         setJoinError("Phòng đã đóng hoặc không tồn tại.");
         return;
       }
