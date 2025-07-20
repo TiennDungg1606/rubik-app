@@ -143,7 +143,10 @@ export default function HomePage() {
             >Đăng xuất</button>
           </>
         ) : (
-          <AuthForm />
+          <AuthForm onLogin={() => {
+            setIsLoggedIn(true);
+            setCheckingLogin(false);
+          }} />
         )}
       </div>
     </main>
