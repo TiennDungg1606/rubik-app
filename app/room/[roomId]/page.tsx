@@ -136,7 +136,6 @@ export default function RoomPage() {
   useEffect(() => {
     let cleanup: (() => void) | undefined;
     let socket: any;
-    let peer: any;
     if (!camOn && myVideoRef.current) {
       myVideoRef.current.srcObject = null;
       if (mediaStreamRef.current) {
@@ -156,29 +155,27 @@ export default function RoomPage() {
           mediaStreamRef.current = stream;
           socket = getSocket();
           // Đăng ký signaling
-          socket.emit("ready-for-peer", { roomId, userName });
+          let peerCreated = false;
+          const createPeer = (initiator: boolean) => {
+            if (peerRef.current) return;
+            peerRef.current = new Peer({ initiator, trickle: false, stream });
+            peerRef.current.on("signal", (signal: any) => {
+              socket.emit("peer-signal", { roomId, signal, from: userName });
+            });
+            peerRef.current.on("stream", (remoteStream: MediaStream) => {
+              if (opponentVideoRef.current) opponentVideoRef.current.srcObject = remoteStream;
+            });
+          };
           // Khi có người khác ready, chủ động tạo peer (người vào sau)
           socket.on("ready-for-peer", ({ userName: otherName }: { userName: string }) => {
             if (otherName !== userName && !peerRef.current) {
-              peerRef.current = new Peer({ initiator: true, trickle: false, stream });
-              peerRef.current.on("signal", (signal: any) => {
-                socket.emit("peer-signal", { roomId, signal, from: userName });
-              });
-              peerRef.current.on("stream", (remoteStream: MediaStream) => {
-                if (opponentVideoRef.current) opponentVideoRef.current.srcObject = remoteStream;
-              });
+              createPeer(true);
             }
           });
           // Khi nhận được peer-initiate, tạo peer (người vào trước)
           socket.on("peer-initiate", ({ from }: { from: string }) => {
             if (from !== userName && !peerRef.current) {
-              peerRef.current = new Peer({ initiator: false, trickle: false, stream });
-              peerRef.current.on("signal", (signal: any) => {
-                socket.emit("peer-signal", { roomId, signal, from: userName });
-              });
-              peerRef.current.on("stream", (remoteStream: MediaStream) => {
-                if (opponentVideoRef.current) opponentVideoRef.current.srcObject = remoteStream;
-              });
+              createPeer(false);
             }
           });
           // Khi nhận được peer-signal, chuyển tiếp cho peer
@@ -187,13 +184,10 @@ export default function RoomPage() {
               peerRef.current.signal(signal);
             }
           });
-          // Khi ready, nếu đã có 2 người thì gửi peer-initiate cho người còn lại
+          // Khi room đủ 2 người, cả 2 đều gửi ready-for-peer
           socket.on("room-users", (roomUsers: string[]) => {
-            if (roomUsers.length === 2 && !peerRef.current) {
-              const otherName = roomUsers.find(u => u !== userName);
-              if (otherName) {
-                socket.emit("peer-initiate", { roomId, from: userName });
-              }
+            if (roomUsers.length === 2) {
+              socket.emit("ready-for-peer", { roomId, userName });
             }
           });
           cleanup = () => {
