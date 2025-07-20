@@ -6,7 +6,7 @@ let socket: Socket;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io("https://rubik-socket-server-production.up.railway.app", {
+    socket = io("https://rubik-socket-server-production-3b21.up.railway.app", {
       transports: ["websocket"], // required if Railway blocks polling
     });
 
