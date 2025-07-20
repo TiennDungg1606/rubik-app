@@ -57,9 +57,10 @@ export default function HomePage() {
                 <circle cx="24" cy="24" r="20" stroke="#3B82F6" strokeWidth="6" strokeDasharray="60 40"/>
               </svg>
             </span>
-            <div className="text-lg text-white font-semibold">Đang kiểm tra đăng nhập...</div>
+            <div className="text-lg text-gray-200 font-semibold">Đang kiểm tra đăng nhập...</div>
             <div className="text-gray-400 text-sm mt-1">Nếu đã lưu cookie, bạn sẽ được tự động đăng nhập.</div>
           </div>
+          {/* Đã bỏ lặp tiêu đề và label kiểm tra đăng nhập ở đây */}
         </div>
       </main>
     );
@@ -68,8 +69,8 @@ export default function HomePage() {
     <main className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-800 px-4 overflow-hidden">
       {/* Background Rubik động */}
       <div className="absolute inset-0 pointer-events-none z-0">
-        <svg width="100%" height="100%" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-          <g opacity="0.08">
+        <svg width="100%" height="100%" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full opacity-20">
+          <g opacity="0.06">
             <rect x="200" y="200" width="180" height="180" rx="24" fill="#F59E42"/>
             <rect x="400" y="400" width="180" height="180" rx="24" fill="#3B82F6"/>
             <rect x="800" y="300" width="180" height="180" rx="24" fill="#F43F5E"/>
@@ -82,7 +83,7 @@ export default function HomePage() {
           </g>
         </svg>
       </div>
-      <div className="z-10 w-full max-w-md bg-black/80 rounded-2xl shadow-2xl p-8 flex flex-col items-center border border-gray-700">
+      <div className="z-10 w-full max-w-md bg-black/90 rounded-2xl shadow-2xl p-8 flex flex-col items-center border border-gray-700">
         <div className="flex flex-col items-center mb-8">
           {/* Logo Rubik SVG */}
           <span className="mb-2">
@@ -98,7 +99,7 @@ export default function HomePage() {
               <rect x="44" y="44" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
             </svg>
           </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-center tracking-tight text-white drop-shadow mb-1">Rubik 1v1 Online</h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-center tracking-tight text-gray-200 drop-shadow mb-1">Rubik 1v1 Online</h1>
           <div className="text-gray-400 text-sm text-center">Giải đấu Rubik 3x3 trực tuyến, solo 1v1, giao diện hiện đại</div>
         </div>
 
