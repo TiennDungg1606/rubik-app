@@ -57,10 +57,24 @@ export default function HomePage() {
                 <circle cx="24" cy="24" r="20" stroke="#3B82F6" strokeWidth="6" strokeDasharray="60 40"/>
               </svg>
             </span>
+            {/* Logo Rubik SVG */}
+            <span className="mb-2">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
+                <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
+                <rect x="44" y="2" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
+                <rect x="2" y="23" width="18" height="18" rx="3" fill="#FDE047" stroke="#222" strokeWidth="2"/>
+                <rect x="23" y="23" width="18" height="18" rx="3" fill="#22D3EE" stroke="#222" strokeWidth="2"/>
+                <rect x="44" y="23" width="18" height="18" rx="3" fill="#22C55E" stroke="#222" strokeWidth="2"/>
+                <rect x="2" y="44" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
+                <rect x="23" y="44" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
+                <rect x="44" y="44" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
+              </svg>
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-center tracking-tight text-gray-200 drop-shadow mb-1">Rubik 1v1 Online</h1>
             <div className="text-lg text-gray-200 font-semibold">Đang kiểm tra đăng nhập...</div>
             <div className="text-gray-400 text-sm mt-1">Nếu đã lưu cookie, bạn sẽ được tự động đăng nhập.</div>
           </div>
-          {/* Đã bỏ lặp tiêu đề và label kiểm tra đăng nhập ở đây */}
         </div>
       </main>
     );
