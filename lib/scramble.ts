@@ -1,9 +1,9 @@
 // lib/scramble.ts
-// Hàm tạo scramble Rubik 3x3 chuẩn WCA sử dụng thư viện scrambler
-// Nếu chưa cài: npm install scrambler
+// Function to generate WCA-standard 3x3 Rubik's Cube scramble using the scrambler library
+// If not installed: npm install scrambler
 
 
-// Lấy scramble chuẩn từ API cubing.net (cstimer không có public API chính thức)
+// Get standard scramble from cubing.net API (cstimer does not have an official public API)
 // API: https://scramble.cubing.net/api/v0/scramble/333
 export async function fetchWcaScramble(): Promise<string> {
   const res = await fetch("https://scramble.cubing.net/api/v0/scramble/333");

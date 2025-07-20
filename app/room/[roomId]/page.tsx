@@ -14,13 +14,13 @@ function calcStats(times: (number|null)[]) {
   const sorted = [...valid].sort((a, b) => a - b);
   const best = sorted[0];
   const worst = sorted[sorted.length - 1];
-  // mean3: trung bình 3 giá trị giữa (nếu đủ 3)
+// mean3: average of the 3 middle values (if at least 3)
   let mean3 = null;
   if (valid.length >= 3) {
     const m3 = [...valid].sort((a, b) => a - b).slice(1, 4);
     mean3 = m3.reduce((a, b) => a + b, 0) / 3;
   }
-  // avg5: trung bình 5 lần, nếu có DNF thì là DNF
+// avg5: average of 5 solves, if any DNF then result is DNF
   let avg5 = null;
   if (times.length === 5) {
     if (times.some(t => t === null)) {
@@ -29,7 +29,7 @@ function calcStats(times: (number|null)[]) {
       avg5 = (times as number[]).reduce((a, b) => a + b, 0) / 5;
     }
   }
-  // ao5: loại best, worst, trung bình 3 giá trị còn lại, nếu có DNF thì là DNF
+// ao5: exclude best and worst, average the remaining 3 values, if any DNF then result is DNF
   let ao5 = null;
   if (times.length === 5) {
     if (times.some(t => t === null)) {

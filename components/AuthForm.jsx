@@ -21,6 +21,21 @@ export default function AuthForm({ onLogin }) {
   const handleSubmit = async e => {
     e.preventDefault();
     setError(""); setSuccess("");
+    if (tab === "register") {
+      const hasNumber = /\d/;
+      if (!form.firstName.trim() || hasNumber.test(form.firstName)) {
+        setError("Họ không được chứa ký tự số");
+        return;
+      }
+      if (!form.lastName.trim() || hasNumber.test(form.lastName)) {
+        setError("First name must not contain numbers");
+        return;
+      }
+      if (!form.password || form.password.length < 8) {
+        setError("Password must be at least 8 characters");
+        return;
+      }
+    }
     const url = tab === "register" ? "/api/user/register" : "/api/user/login";
     const body = tab === "register"
       ? { ...form }
@@ -35,14 +50,14 @@ export default function AuthForm({ onLogin }) {
       setError(data.error || "Có lỗi xảy ra");
     } else {
       if (tab === "register") {
-        setSuccess("Đăng ký thành công! Bạn có thể đăng nhập ngay.");
+          setSuccess("Registration successful! You can now log in.");
         setForm({ email: "", password: "", firstName: "", lastName: "", birthday: "" });
         setTimeout(() => {
           setTab("login");
           setSuccess("");
         }, 1500);
       } else {
-        setSuccess("Đăng nhập thành công!");
+          setSuccess("Login successful!");
         if (onLogin) onLogin();
       }
     }
@@ -50,19 +65,6 @@ export default function AuthForm({ onLogin }) {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-start pt-32">
-      {/* Video background */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="fixed inset-0 w-full h-full object-cover z-0"
-        style={{ objectFit: 'cover' }}
-      >
-        <source src="/rubik-bg.mp4" type="video/mp4" />
-      </video>
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/60 z-10" />
       <div className="w-full max-w-sm mx-auto bg-white/90 rounded-2xl shadow-2xl px-4 py-8 flex flex-col items-center border border-gray-200 relative z-20 mt-0">
         <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">Sign in to your account</h2>
         <form onSubmit={handleSubmit} className="w-full">

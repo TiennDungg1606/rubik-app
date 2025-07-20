@@ -53,7 +53,7 @@ export default function Timer() {
       >
         Reset
       </button>
-      <div className="text-gray-400 text-sm">Nhấn <span className="font-bold">Space</span> để bắt đầu/dừng</div>
+      <div className="text-gray-400 text-sm">Press <span className="font-bold">Space</span> to start/stop</div>
     </div>
   );
 }
