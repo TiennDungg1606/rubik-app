@@ -110,6 +110,18 @@ export default function RoomPage() {
     }
     return 'Bạn';
   });
+  // Kiểm tra nếu là người tạo phòng (tức là vừa tạo phòng mới)
+  const [isCreator] = useState(() => {
+    if (typeof window !== 'undefined') {
+      // Nếu vừa chuyển từ /lobby sang với action tạo phòng, lưu flag vào sessionStorage
+      const flag = sessionStorage.getItem('justCreatedRoom');
+      if (flag === roomId) {
+        sessionStorage.removeItem('justCreatedRoom');
+        return true;
+      }
+    }
+    return false;
+  });
   const [opponentName, setOpponentName] = useState('Đối thủ');
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
@@ -212,7 +224,7 @@ export default function RoomPage() {
     socket.emit("join-room", { roomId, userName });
     let checked = false;
     const timeout = setTimeout(() => {
-      if (!checked && users.length === 0) {
+      if (!checked && users.length === 0 && !isCreator) {
         setRoomError("Mã phòng không tồn tại hoặc đã bị xóa!");
       }
     }, 2000);
@@ -223,7 +235,7 @@ export default function RoomPage() {
       // Xác định tên đối thủ
       const opp = roomUsers.find(u => u !== userName);
       if (opp) setOpponentName(opp);
-      if (roomUsers.length === 0) {
+      if (roomUsers.length === 0 && !isCreator) {
         setRoomError("Mã phòng không tồn tại hoặc đã bị xóa!");
       } else {
         setRoomError(null);
@@ -239,7 +251,7 @@ export default function RoomPage() {
       socket.off("room-users");
       socket.off("opponent-solve");
     };
-  }, [roomId, userName]);
+  }, [roomId, userName, isCreator]);
 
   // Khi vào phòng, tạo scramble chuẩn WCA
   useEffect(() => {

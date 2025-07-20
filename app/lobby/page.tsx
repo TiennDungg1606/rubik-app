@@ -37,6 +37,9 @@ export default function Lobby() {
 
   const handleCreateRoom = () => {
     const roomId = generateRoomId();
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('justCreatedRoom', roomId);
+    }
     router.push(`/room/${roomId}`);
   };
 
