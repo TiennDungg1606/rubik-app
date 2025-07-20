@@ -49,7 +49,7 @@ export default function AuthForm({ onLogin }) {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center">
+    <div className="relative min-h-screen flex flex-col items-center justify-start pt-32">
       {/* Video background */}
       <video
         autoPlay
@@ -59,11 +59,11 @@ export default function AuthForm({ onLogin }) {
         className="fixed inset-0 w-full h-full object-cover z-0"
         style={{ objectFit: 'cover' }}
       >
-        <source src="/Backgound/[XT3] Rubik 3x3 QiYi XT3 V1 M XMD X-Man 2024 Flagship Rubic Nam Châm Đồ Chơi Trí Tuệ Trẻ Em - Shopee Việt Nam.mp4" type="video/mp4" />
+        <source src="/rubik-bg.mp4" type="video/mp4" />
       </video>
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/60 z-10" />
-      <div className="w-full max-w-sm mx-auto bg-white/90 rounded-2xl shadow-2xl px-4 py-8 flex flex-col items-center border border-gray-200 relative z-20">
+      <div className="w-full max-w-sm mx-auto bg-white/90 rounded-2xl shadow-2xl px-4 py-8 flex flex-col items-center border border-gray-200 relative z-20 mt-0">
         <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">Sign in to your account</h2>
         <form onSubmit={handleSubmit} className="w-full">
           <div className="mb-3">
