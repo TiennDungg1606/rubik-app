@@ -82,7 +82,7 @@ export default function RoomPage() {
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [users, setUsers] = useState<string[]>([]); // users trong phòng
   const [waiting, setWaiting] = useState(true); // true nếu <2 người
-  const [roomError, setRoomError] = useState<string|null>(null);
+  // const [roomError, setRoomError] = useState<string|null>(null);
   const [turn, setTurn] = useState<'me'|'opponent'>("me");
   const [myResults, setMyResults] = useState<(number|null)[]>([]);
   const [opponentResults, setOpponentResults] = useState<(number|null)[]>([]);
@@ -222,24 +222,12 @@ export default function RoomPage() {
   useEffect(() => {
     const socket = getSocket();
     socket.emit("join-room", { roomId, userName });
-    let checked = false;
-    const timeout = setTimeout(() => {
-      if (!checked && users.length === 0 && !isCreator) {
-        setRoomError("Mã phòng không tồn tại hoặc đã bị xóa!");
-      }
-    }, 2000);
     socket.on("room-users", (roomUsers: string[]) => {
-      checked = true;
       setUsers(roomUsers);
       setWaiting(roomUsers.length < 2);
       // Xác định tên đối thủ
       const opp = roomUsers.find(u => u !== userName);
       if (opp) setOpponentName(opp);
-      if (roomUsers.length === 0 && !isCreator) {
-        setRoomError("Mã phòng không tồn tại hoặc đã bị xóa!");
-      } else {
-        setRoomError(null);
-      }
     });
     socket.on("opponent-solve", ({ userName: oppName, time }: { userName: string, time: number|null }) => {
       setOpponentResults(r => [...r, time]);
@@ -247,11 +235,10 @@ export default function RoomPage() {
       setScramble(generateWcaScramble());
     });
     return () => {
-      clearTimeout(timeout);
       socket.off("room-users");
       socket.off("opponent-solve");
     };
-  }, [roomId, userName, isCreator]);
+  }, [roomId, userName]);
 
   // Khi vào phòng, tạo scramble chuẩn WCA
   useEffect(() => {
@@ -488,14 +475,6 @@ export default function RoomPage() {
     return `${sec}.${msR.toString().padStart(3, "0")}`;
   }
 
-  if (roomError) {
-    return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
-        <div className="text-2xl font-bold text-red-400 mb-4">{roomError}</div>
-        <button className="mt-4 px-6 py-2 bg-blue-600 rounded-lg text-white font-semibold" onClick={() => router.push("/lobby")}>Quay lại</button>
-      </div>
-    );
-  }
   if (isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">

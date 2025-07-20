@@ -45,27 +45,12 @@ export default function Lobby() {
 
   const [joinError, setJoinError] = useState("");
 
-  // Hàm kiểm tra phòng tồn tại và có nhiều hơn 1 user
-  const handleJoinRoom = async () => {
+  // Hàm join phòng: không kiểm tra phòng, luôn cho phép vào
+  const handleJoinRoom = () => {
     const code = roomInput.trim().toUpperCase();
     if (!code) return;
     setJoinError("");
-    // Giả sử có API /api/room/[roomId]/users trả về danh sách user trong phòng
-    try {
-      const res = await fetch(`/api/room/${code}/users`);
-      if (!res.ok) {
-        setJoinError("Không thể kiểm tra phòng. Vui lòng thử lại.");
-        return;
-      }
-      const users = await res.json();
-      if (!Array.isArray(users) || users.length ==0) {
-        setJoinError("Phòng đã đóng hoặc không tồn tại.");
-        return;
-      }
-      router.push(`/room/${code}`);
-    } catch (e) {
-      setJoinError("Lỗi kết nối. Vui lòng thử lại.");
-    }
+    router.push(`/room/${code}`);
   };
 
   return (
