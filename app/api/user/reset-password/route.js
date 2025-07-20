@@ -18,7 +18,7 @@ export async function POST(req) {
   if (!user) {
     return NextResponse.json({ error: "Không tìm thấy người dùng." }, { status: 404 });
   }
-  user.password = await bcrypt.hash(password, 10);
+  user.password = password;
   await user.save();
   await ResetToken.deleteOne({ token });
   return NextResponse.json({ ok: true });
