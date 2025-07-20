@@ -10,15 +10,24 @@ export default function HomePage() {
   const router = useRouter();
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkingLogin, setCheckingLogin] = useState(true);
   // Kiểm tra đăng nhập khi load trang
   useEffect(() => {
     async function checkLogin() { 
       try {
         const res = await fetch("/api/user/me", { credentials: "include" });
-        if (res.ok) setIsLoggedIn(true);  
-        else setIsLoggedIn(false);
+        if (res.ok) {
+          setIsLoggedIn(true);
+          setTimeout(() => {
+            setCheckingLogin(false);
+          }, 800); // Hiện thông báo 0.8s rồi vào app
+        } else {
+          setIsLoggedIn(false);
+          setCheckingLogin(false);
+        }
       } catch {
         setIsLoggedIn(false);
+        setCheckingLogin(false);
       }
     }
     checkLogin();
@@ -38,6 +47,23 @@ export default function HomePage() {
 
 
 
+  if (checkingLogin) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-800 px-4">
+        <div className="bg-black/80 rounded-2xl shadow-2xl p-8 flex flex-col items-center border border-gray-700">
+          <div className="flex flex-col items-center mb-4">
+            <span className="mb-2 animate-spin-slow">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="24" cy="24" r="20" stroke="#3B82F6" strokeWidth="6" strokeDasharray="60 40"/>
+              </svg>
+            </span>
+            <div className="text-lg text-white font-semibold">Đang kiểm tra đăng nhập...</div>
+            <div className="text-gray-400 text-sm mt-1">Nếu đã lưu cookie, bạn sẽ được tự động đăng nhập.</div>
+          </div>
+        </div>
+      </main>
+    );
+  }
   return (
     <main className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-800 px-4 overflow-hidden">
       {/* Background Rubik động */}
@@ -106,6 +132,15 @@ export default function HomePage() {
                 </span>
               </button>
             </div>
+            <button
+              onClick={() => {
+                fetch("/api/user/logout", { method: "POST" }).then(() => {
+                  setIsLoggedIn(false);
+                  router.push("/");
+                });
+              }}
+              className="w-full mt-2 bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 rounded-lg text-base shadow transition-all duration-150"
+            >Đăng xuất</button>
           </>
         ) : (
           <AuthForm />
