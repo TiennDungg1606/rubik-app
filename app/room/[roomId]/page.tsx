@@ -52,6 +52,7 @@ export default function RoomPage() {
     if (!router) return;
     // Next.js app router không expose beforePopState, nên dùng popstate nhưng delay reload để chắc chắn
     const handlePopState = () => {
+      console.clear(); // Xóa sạch console trước khi reload
       setTimeout(() => {
         window.location.reload();
       }, 50);
