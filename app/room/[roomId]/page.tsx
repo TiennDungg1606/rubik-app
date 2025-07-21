@@ -46,14 +46,49 @@ function calcStats(times: (number|null)[]) {
 }
 
 export default function RoomPage() {
-  // Hàm rời phòng: clear console và chuyển hướng về lobby
+  // All hooks and refs declared ONCE at the top
   const router = useRouter();
+  const [isMobile, setIsMobile] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+  const [camOn, setCamOn] = useState(true);
+  const [micOn, setMicOn] = useState(true);
+  const myVideoRef = useRef<HTMLVideoElement>(null);
+  const opponentVideoRef = useRef<HTMLVideoElement>(null);
+  const mediaStreamRef = useRef<MediaStream|null>(null);
+  const peerRef = useRef<any>(null);
+  const [roomId, setRoomId] = useState<string>("");
+  const [scramble, setScramble] = useState(generateWcaScramble());
+  const [timer, setTimer] = useState(0);
+  const timerRef = useRef(0);
+  const [running, setRunning] = useState(false);
+  const [prep, setPrep] = useState(false);
+  const [prepTime, setPrepTime] = useState(15);
+  const [canStart, setCanStart] = useState(false);
+  const [spaceHeld, setSpaceHeld] = useState(false);
+  const [users, setUsers] = useState<string[]>([]);
+  const [waiting, setWaiting] = useState(true);
+  // const [roomError, setRoomError] = useState<string|null>(null);
+  const [turn, setTurn] = useState<'me'|'opponent'>("me");
+  const [myResults, setMyResults] = useState<(number|null)[]>([]);
+  const [opponentResults, setOpponentResults] = useState<(number|null)[]>([]);
+  const [dnf, setDnf] = useState(false);
+  const [opponentTime, setOpponentTime] = useState<number|null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [isCreator, setIsCreator] = useState(false);
+  const [opponentName, setOpponentName] = useState('Đối thủ');
+  const intervalRef = useRef<NodeJS.Timeout|null>(null);
+  const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
+
+  // --- Effects and logic below ---
+
+  // Hàm rời phòng: clear console và chuyển hướng về lobby
   function handleLeaveRoom() {
     router.push('/lobby');
     setTimeout(() => {
       window.location.reload();
     }, 100);
   }
+
   // Reload khi rời phòng bằng nút back (popstate)
   useEffect(() => {
     function handlePopState() {
@@ -64,6 +99,7 @@ export default function RoomPage() {
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);
+
   // Đảm bảo userName luôn đúng khi vào phòng (nếu window.userName chưa có)
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.userName) {
@@ -109,15 +145,15 @@ export default function RoomPage() {
     // eslint-disable-next-line
   }, []);
 
+
   // Xác định thiết bị mobile (hydration-safe)
-  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setIsMobile(/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent));
     }
   }, []);
+
   // Xác định xoay dọc màn hình
-  const [isPortrait, setIsPortrait] = useState(false);
   useEffect(() => {
     function checkOrientation() {
       if (window.innerHeight > window.innerWidth) setIsPortrait(true);
@@ -131,16 +167,8 @@ export default function RoomPage() {
       window.removeEventListener('orientationchange', checkOrientation);
     };
   }, []);
-  // ...existing code...
-  // Webcam/mic state
-  const [camOn, setCamOn] = useState(true);
-  const [micOn, setMicOn] = useState(true);
-  const myVideoRef = useRef<HTMLVideoElement>(null);
-  const opponentVideoRef = useRef<HTMLVideoElement>(null);
-  const mediaStreamRef = useRef<MediaStream|null>(null);
-  const peerRef = useRef<any>(null);
+
   // Lấy roomId từ URL client-side để tránh lỗi build
-  const [roomId, setRoomId] = useState<string>("");
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // URL dạng /room/ROOMID
@@ -148,20 +176,6 @@ export default function RoomPage() {
       if (match && match[1]) setRoomId(match[1]);
     }
   }, []);
-  const [scramble, setScramble] = useState(generateWcaScramble());
-  const [timer, setTimer] = useState(0);
-  const timerRef = useRef(0); // always latest timer value
-  const [running, setRunning] = useState(false);
-  const [prep, setPrep] = useState(false);
-  const [prepTime, setPrepTime] = useState(15);
-  const [canStart, setCanStart] = useState(false);
-  const [spaceHeld, setSpaceHeld] = useState(false);
-  const [users, setUsers] = useState<string[]>([]); // users trong phòng
-  const [waiting, setWaiting] = useState(true); // true nếu <2 người
-  // const [roomError, setRoomError] = useState<string|null>(null);
-  const [turn, setTurn] = useState<'me'|'opponent'>("me");
-  const [myResults, setMyResults] = useState<(number|null)[]>([]);
-  const [opponentResults, setOpponentResults] = useState<(number|null)[]>([]);
 
   // Luôn khôi phục kết quả từ localStorage khi roomId thay đổi
   useEffect(() => {
@@ -173,31 +187,29 @@ export default function RoomPage() {
       setOpponentResults(savedOpp ? JSON.parse(savedOpp) : []);
     }
   }, [roomId]);
-  const [dnf, setDnf] = useState(false);
-  const [opponentTime, setOpponentTime] = useState<number|null>(null);
-// userName luôn phải lấy từ DB, không được rỗng
-const [userName, setUserName] = useState<string | null>(null);
-useEffect(() => {
-  if (typeof window !== 'undefined') {
-    if (window.userName) {
-      setUserName(window.userName);
-    } else {
-      fetch('/api/user/me', { credentials: 'include' })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => {
-          if (data && data.user && data.user.firstName && data.user.lastName) {
-            const name = data.user.firstName + ' ' + data.user.lastName;
-            window.userName = name;
-            setUserName(name);
-          } else {
-            setUserName('Không xác định');
-          }
-        });
+
+  // userName luôn phải lấy từ DB, không được rỗng
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.userName) {
+        setUserName(window.userName);
+      } else {
+        fetch('/api/user/me', { credentials: 'include' })
+          .then(res => res.ok ? res.json() : null)
+          .then(data => {
+            if (data && data.user && data.user.firstName && data.user.lastName) {
+              const name = data.user.firstName + ' ' + data.user.lastName;
+              window.userName = name;
+              setUserName(name);
+            } else {
+              setUserName('Không xác định');
+            }
+          });
+      }
     }
-  }
-}, []);
+  }, []);
+
   // Kiểm tra nếu là người tạo phòng (tức là vừa tạo phòng mới) (hydration-safe)
-  const [isCreator, setIsCreator] = useState(false);
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const flag = sessionStorage.getItem('justCreatedRoom');
@@ -209,13 +221,6 @@ useEffect(() => {
       }
     }
   }, [roomId]);
-  const [opponentName, setOpponentName] = useState('Đối thủ');
-  const intervalRef = useRef<NodeJS.Timeout|null>(null);
-  const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
-  // Giả lập tên
-
-  // Đã có opponentName bằng useState ở trên
-
 
   // always keep timerRef in sync
   useEffect(() => { timerRef.current = timer; }, [timer]);
