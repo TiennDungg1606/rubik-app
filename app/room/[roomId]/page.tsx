@@ -195,16 +195,46 @@ export default function RoomPage() {
       cleanupPeer(); // Always clean up before creating new peer
       const sorted = [...roomUsers].sort();
       const isInitiator = sorted[0] === userName;
+      // Bổ sung TURN/STUN server vào cấu hình peer
       const peer = new Peer({
         initiator: isInitiator,
         trickle: false,
         stream: mediaStreamRef.current || undefined,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            // Thêm TURN server thật sự ở đây nếu có:
+            // { urls: 'turn:your.turn.server:3478', username: 'user', credential: 'pass' }
+            { urls: [
+                    'turn:openrelay.metered.ca:80',
+                    'turn:openrelay.metered.ca:443'
+                    ],username: 'openrelayproject',credential: 'openrelayproject'}
+          ]
+        }
       });
       peerRef.current = peer;
+      // Log các sự kiện signal, connect, error, iceState
       peer.on('signal', (data: any) => {
+        console.log('SIGNAL', data);
         socket.emit('signal', { roomId, userName, signal: data });
       });
+      peer.on('connect', () => {
+        console.log('Peer connected!');
+      });
+      peer.on('error', (err: any) => {
+        console.error('Peer error:', err);
+      });
+      // Log ICE candidate (nếu truy cập được _pc)
+      if (peer._pc) {
+        peer._pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
+          console.log('ICE candidate:', event.candidate);
+        };
+        peer._pc.oniceconnectionstatechange = () => {
+          console.log('ICE state:', peer._pc.iceConnectionState);
+        };
+      }
       peer.on('stream', (stream: MediaStream) => {
+        console.log('Received remote stream', stream);
         if (opponentVideoRef.current) {
           opponentVideoRef.current.srcObject = stream;
         }
