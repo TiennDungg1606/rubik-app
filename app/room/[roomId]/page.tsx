@@ -81,13 +81,40 @@ export default function RoomPage() {
 
   // --- Effects and logic below ---
 
-  // Hàm rời phòng: clear console và chuyển hướng về lobby
+  // Hàm rời phòng: cleanup và chuyển hướng về lobby
+  function cleanupResources() {
+    // Cleanup peer
+    if (peerRef.current) {
+      peerRef.current.destroy();
+      peerRef.current = null;
+    }
+    // Cleanup local stream
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    // Cleanup video element
+    if (myVideoRef.current) myVideoRef.current.srcObject = null;
+    if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
+  }
   function handleLeaveRoom() {
+    cleanupResources();
     router.push('/lobby');
     setTimeout(() => {
       window.location.reload();
     }, 100);
   }
+
+  // Cleanup khi đóng tab hoặc reload
+  useEffect(() => {
+    function handleBeforeUnload() {
+      cleanupResources();
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   // Reload khi rời phòng bằng nút back (popstate)
   useEffect(() => {
@@ -135,13 +162,7 @@ export default function RoomPage() {
       }
     }
     getMedia();
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-      if (myVideoRef.current) myVideoRef.current.srcObject = null;
-      mediaStreamRef.current = null;
-    };
+    return () => {};
     // eslint-disable-next-line
   }, []);
 
