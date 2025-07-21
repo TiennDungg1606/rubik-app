@@ -49,8 +49,10 @@ export default function RoomPage() {
   // Hàm rời phòng: clear console và chuyển hướng về lobby
   const router = useRouter();
   function handleLeaveRoom() {
-    console.clear();
     router.push('/lobby');
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   }
   // Reload khi rời phòng bằng nút back (popstate)
   useEffect(() => {
