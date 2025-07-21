@@ -203,12 +203,11 @@ export default function RoomPage() {
         config: {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            // Thêm TURN server thật sự ở đây nếu có:
-            // { urls: 'turn:your.turn.server:3478', username: 'user', credential: 'pass' }
-            { urls: [
-                    'turn:openrelay.metered.ca:80',
-                    'turn:openrelay.metered.ca:443'
-                    ],username: 'openrelayproject',credential: 'openrelayproject'}
+            {
+              urls: ['turn:relay1.expressturn.com:3480'],
+              username: '000000002068444929',
+              credential: 'PSQbgJBKw42DQIq7h4pAH98dMQ8='
+            }
           ]
         }
       });
