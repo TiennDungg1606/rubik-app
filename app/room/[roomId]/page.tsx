@@ -46,39 +46,22 @@ function calcStats(times: (number|null)[]) {
 }
 
 export default function RoomPage() {
-  // Reload khi rời phòng bằng nút back (popstate) - dùng router.beforePopState cho Next.js
+  // Hàm rời phòng: clear console và chuyển hướng về lobby
   const router = useRouter();
+  function handleLeaveRoom() {
+    console.clear();
+    router.push('/lobby');
+  }
+  // Reload khi rời phòng bằng nút back (popstate)
   useEffect(() => {
-    if (!router) return;
-    // Cleanup peer & socket trước khi reload để tránh lỗi không nhận webcam đối phương
-    const handlePopState = () => {
-      try {
-        // Cleanup peer
-        if (peerRef.current) {
-          peerRef.current.destroy();
-          peerRef.current = null;
-        }
-        // Cleanup opponent video
-        if (opponentVideoRef.current) {
-          opponentVideoRef.current.srcObject = null;
-        }
-        // Cleanup socket listeners
-        const socket = getSocket();
-        socket.off && socket.off(); // Xóa toàn bộ listeners nếu có
-        // socket.disconnect && socket.disconnect(); // Nếu muốn disconnect hoàn toàn
-      } catch (e) {
-        // ignore
-      }
-      console.clear();
-      setTimeout(() => {
-        window.location.reload();
-      }, 50);
-    };
+    function handlePopState() {
+      window.location.reload();
+    }
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [router]);
+  }, []);
   // Đảm bảo userName luôn đúng khi vào phòng (nếu window.userName chưa có)
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.userName) {
@@ -95,6 +78,7 @@ export default function RoomPage() {
   }, []);
 
   // ...existing code...
+
   // All variable and hook declarations must be above this line
   // (removed duplicate/old peer connection effect)
   // Lấy camera/mic và gán vào myVideoRef khi vào phòng
@@ -145,7 +129,7 @@ export default function RoomPage() {
       window.removeEventListener('orientationchange', checkOrientation);
     };
   }, []);
-  // const router = useRouter(); // Đã khai báo ở trên, không cần khai báo lại
+  // ...existing code...
   // Webcam/mic state
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
@@ -627,6 +611,12 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center bg-black text-white py-4 overflow-y-auto">
+      {/* Nút rời phòng */}
+      <button
+        onClick={handleLeaveRoom}
+        className="fixed top-4 left-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg"
+        type="button"
+      >Rời phòng</button>
       {/* Tên phòng */}
       <h2 className="text-3xl font-bold mb-2">Phòng: <span className="text-blue-400">{roomId}</span></h2>
       {/* Scramble */}
