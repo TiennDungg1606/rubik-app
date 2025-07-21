@@ -202,12 +202,10 @@ useEffect(() => {
   // always keep timerRef in sync
   useEffect(() => { timerRef.current = timer; }, [timer]);
 
-  // --- WebRTC peer connection effect: must be after all hooks/vars and after userName is set ---
+  // --- WebRTC peer connection effect: only create peer when users.length === 2, always cleanup otherwise ---
   useEffect(() => {
-    // Only run if all required values are set
     if (!mediaStreamRef.current || !userName || !roomId) return;
-    let socket: any = null;
-    let cleanup: (() => void) | undefined;
+    const socket = getSocket();
 
     function cleanupPeer() {
       if (peerRef.current) {
@@ -221,32 +219,22 @@ useEffect(() => {
       }
     }
 
-    function setupPeer(roomUsers: string[]) {
-      // Lọc bỏ null/undefined và chỉ giữ string hợp lệ
-      const filteredUsers = (roomUsers || []).filter(u => typeof u === 'string' && u);
-      cleanupPeer(); // Always clean up before creating new peer
-      // Always create peer if 2 users in room, destroy if <2
-      if (filteredUsers.length < 2) {
+    function setupPeer(filteredUsers: string[]) {
+      cleanupPeer();
+      if (filteredUsers.length !== 2) {
         console.log('Not enough users for peer connection');
         return;
       }
-      // Kiểm tra MediaStream trước khi tạo peer
       if (!mediaStreamRef.current) {
         console.warn('[WebRTC] No local media stream, cannot create peer');
         return;
       }
-      if (!mediaStreamRef.current.getVideoTracks().length && !mediaStreamRef.current.getAudioTracks().length) {
-        console.warn('[WebRTC] Local media stream has no tracks');
-      }
-      // Initiator: the user whose name is at index 1 in filteredUsers (the second to join)
-      // This ensures only one initiator, and both sides always create a peer
       const isInitiator = (filteredUsers[1] === userName);
-      const socket = getSocket();
       console.log('setupPeer called', filteredUsers, 'userName:', userName, 'initiator:', isInitiator);
       const peer = new Peer({
         initiator: isInitiator,
         trickle: false,
-        stream: mediaStreamRef.current || undefined,
+        stream: mediaStreamRef.current,
         config: {
           iceServers: [
             { url: "stun:global.stun.twilio.com:3478", urls: "stun:global.stun.twilio.com:3478" },
@@ -257,9 +245,7 @@ useEffect(() => {
         }
       });
       peerRef.current = peer;
-      // Log các sự kiện signal, connect, error, iceState
       peer.on('signal', (data: any) => {
-        console.log('SIGNAL', data);
         socket.emit('signal', { roomId, userName, signal: data });
       });
       peer.on('connect', () => {
@@ -268,45 +254,27 @@ useEffect(() => {
       peer.on('error', (err: any) => {
         console.error('Peer error:', err);
       });
-      // Log ICE candidate (nếu truy cập được _pc)
-      if (peer._pc) {
-        peer._pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
-          console.log('ICE candidate:', event.candidate);
-        };
-        peer._pc.oniceconnectionstatechange = () => {
-          console.log('ICE state:', peer._pc.iceConnectionState);
-        };
-      }
-      let gotStream = false;
       peer.on('stream', (stream: MediaStream) => {
-        gotStream = true;
-        console.log('[WebRTC] Received remote stream', stream);
         if (opponentVideoRef.current) {
           opponentVideoRef.current.srcObject = stream;
           console.log('[WebRTC] Set remote stream to opponent video');
-        } else {
-          console.warn('[WebRTC] opponentVideoRef.current is null');
         }
       });
       peer.on('close', () => {
-        console.log('[WebRTC] Peer closed');
         if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
       });
-      // Nếu sau 5s không có stream thì log cảnh báo
-      setTimeout(() => {
-        if (!gotStream) {
-          console.warn('[WebRTC] Did not receive remote stream after 5s');
-        }
-      }, 5000);
     }
 
-    socket = getSocket();
-    socket.emit('join-room', { roomId, userName }); // Ensure join-room is sent
-
+    // Lắng nghe users thay đổi từ socket
     const handleRoomUsers = (roomUsers: string[]) => {
-      if (roomUsers.length === 2) {
-        // Luôn cleanup và tạo lại peer mỗi lần roomUsers thay đổi
-        setupPeer(roomUsers);
+      const filteredUsers = (roomUsers || []).filter((u: string) => typeof u === 'string' && u);
+      setUsers(filteredUsers);
+      setWaiting(filteredUsers.length < 2);
+      // Xác định tên đối thủ
+      const opp = filteredUsers.find((u: string) => u !== userName);
+      if (opp) setOpponentName(opp);
+      if (filteredUsers.length === 2) {
+        setupPeer(filteredUsers);
       } else {
         cleanupPeer();
       }
@@ -316,17 +284,15 @@ useEffect(() => {
         peerRef.current.signal(signal);
       }
     };
+    socket.emit('join-room', { roomId, userName });
     socket.on('room-users', handleRoomUsers);
     socket.on('signal', handleSignal);
-
-    cleanup = () => {
+    // Cleanup khi effect unmount hoặc dependency thay đổi
+    return () => {
       cleanupPeer();
-      if (socket) {
-        socket.off('room-users', handleRoomUsers);
-        socket.off('signal', handleSignal);
-      }
+      socket.off('room-users', handleRoomUsers);
+      socket.off('signal', handleSignal);
     };
-    return () => { if (cleanup) cleanup(); };
     // eslint-disable-next-line
   }, [roomId, userName, mediaStreamRef.current]);
 
