@@ -181,12 +181,11 @@ export default function RoomPage() {
             return pc;
           }
 
-          // Khi room đủ 2 người, một bên sẽ tạo offer
+          // Khi room đủ 2 người, cả hai phía đều tạo PeerConnection, chỉ creator mới tạo offer
           socket.on("room-users", (roomUsers: string[]) => {
             if (roomUsers.length === 2 && !peerRef.current) {
-              // Nếu là người tạo phòng thì chủ động gọi
+              const pc = createPeerConnection();
               if (isCreator) {
-                const pc = createPeerConnection();
                 makingOffer = true;
                 pc.createOffer().then((offer: RTCSessionDescriptionInit) => {
                   return pc.setLocalDescription(offer);
@@ -217,7 +216,7 @@ export default function RoomPage() {
               } catch (e) { /* ignore */ }
             }
           });
-          // Khi room đủ 2 người, cả 2 đều gửi ready-for-peer
+          // Khi room đủ 2 người, cả 2 đều gửi ready-for-peer (nếu cần, nhưng không tạo peer ở đây nữa)
           socket.on("room-users", (roomUsers: string[]) => {
             if (roomUsers.length === 2 && !peerCreated) {
               socket.emit("ready-for-peer", { roomId, userName });
