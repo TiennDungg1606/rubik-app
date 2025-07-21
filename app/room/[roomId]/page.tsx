@@ -1,10 +1,4 @@
-// Stringee SDK global declarations for TypeScript
-declare global {
-  interface Window {
-    StringeeClient?: any;
-    StringeeCall?: any;
-  }
-}
+
 
 "use client";
 import { useEffect, useRef, useState } from "react";
@@ -12,7 +6,6 @@ import Peer from "simple-peer";
 import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { generateWcaScramble } from "@/lib/wcaScramble";
-
 
 // Helper for stats (all in ms)
 function calcStats(times: (number|null)[]) {
@@ -50,8 +43,50 @@ function calcStats(times: (number|null)[]) {
 }
 
 export default function RoomPage() {
-  // Xác định thiết bị mobile
-  const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+
+  // ...existing code...
+
+  // ...existing code...
+
+  // ...existing code...
+
+  // ...existing code...
+
+  // All variable and hook declarations must be above this line
+  // (removed duplicate/old peer connection effect)
+  // Lấy camera/mic và gán vào myVideoRef khi vào phòng
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    async function getMedia() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        if (myVideoRef.current) {
+          myVideoRef.current.srcObject = stream;
+        }
+        mediaStreamRef.current = stream;
+      } catch (err) {
+        // eslint-disable-next-line no-alert
+        alert('Không truy cập được camera/mic. Vui lòng kiểm tra lại quyền trình duyệt!');
+      }
+    }
+    getMedia();
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (myVideoRef.current) myVideoRef.current.srcObject = null;
+      mediaStreamRef.current = null;
+    };
+    // eslint-disable-next-line
+  }, []);
+
+  // Xác định thiết bị mobile (hydration-safe)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsMobile(/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent));
+    }
+  }, []);
   // Xác định xoay dọc màn hình
   const [isPortrait, setIsPortrait] = useState(false);
   useEffect(() => {
@@ -105,30 +140,31 @@ export default function RoomPage() {
   }, [roomId]);
   const [dnf, setDnf] = useState(false);
   const [opponentTime, setOpponentTime] = useState<number|null>(null);
-  // userName lấy từ localStorage hoặc prompt
-  const [userName] = useState(() => {
+  // userName lấy từ localStorage hoặc prompt (hydration-safe)
+  const [userName, setUserName] = useState('Bạn');
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       let n = localStorage.getItem('userName');
       if (!n) {
         n = prompt('Nhập tên của bạn:') || 'Bạn';
         localStorage.setItem('userName', n);
       }
-      return n;
+      setUserName(n);
     }
-    return 'Bạn';
-  });
-  // Kiểm tra nếu là người tạo phòng (tức là vừa tạo phòng mới)
-  const [isCreator] = useState(() => {
+  }, []);
+  // Kiểm tra nếu là người tạo phòng (tức là vừa tạo phòng mới) (hydration-safe)
+  const [isCreator, setIsCreator] = useState(false);
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Nếu vừa chuyển từ /lobby sang với action tạo phòng, lưu flag vào sessionStorage
       const flag = sessionStorage.getItem('justCreatedRoom');
       if (flag === roomId) {
         sessionStorage.removeItem('justCreatedRoom');
-        return true;
+        setIsCreator(true);
+      } else {
+        setIsCreator(false);
       }
     }
-    return false;
-  });
+  }, [roomId]);
   const [opponentName, setOpponentName] = useState('Đối thủ');
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
@@ -136,161 +172,81 @@ export default function RoomPage() {
   const myName = "Bạn";
   // Đã có opponentName bằng useState ở trên
 
+
   // always keep timerRef in sync
   useEffect(() => { timerRef.current = timer; }, [timer]);
 
-  // Stringee video call logic
+  // --- WebRTC peer connection effect: must be after all hooks/vars and after userName is set ---
   useEffect(() => {
-    let client: any = null;
-    let call: any = null;
-    let joinedRoom = false;
+    // Only run if all required values are set
+    if (!mediaStreamRef.current || !userName || !roomId) return;
     let socket: any = null;
     let cleanup: (() => void) | undefined;
 
-    // Lấy accessToken động từ backend
-    async function getAccessToken(userId: string): Promise<string> {
-      const res = await fetch(`/api/stringee-token?userId=${encodeURIComponent(userId)}`);
-      if (!res.ok) throw new Error('Lấy accessToken thất bại');
-      const data = await res.json();
-      return data.accessToken;
-    }
-
-    // Lấy media trước khi gọi hoặc trả lời
-    async function getMediaStream() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (myVideoRef.current) {
-          myVideoRef.current.srcObject = stream;
-        }
-        mediaStreamRef.current = stream;
-        return stream;
-      } catch (err) {
-        alert('Không truy cập được camera/mic. Vui lòng kiểm tra lại quyền trình duyệt!');
-        throw err;
+    function cleanupPeer() {
+      if (peerRef.current) {
+        peerRef.current.destroy();
+        peerRef.current = null;
       }
+      if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
     }
 
-    async function startStringeeWithToken() {
-      try {
-        const accessToken = await getAccessToken(userName);
-        if (!window.StringeeClient || !window.StringeeCall) {
-          console.error("Stringee SDK not loaded");
-          return;
+    function setupPeer(roomUsers: string[]) {
+      cleanupPeer(); // Always clean up before creating new peer
+      const sorted = [...roomUsers].sort();
+      const isInitiator = sorted[0] === userName;
+      const peer = new Peer({
+        initiator: isInitiator,
+        trickle: false,
+        stream: mediaStreamRef.current || undefined,
+      });
+      peerRef.current = peer;
+      peer.on('signal', (data: any) => {
+        socket.emit('signal', { roomId, userName, signal: data });
+      });
+      peer.on('stream', (stream: MediaStream) => {
+        if (opponentVideoRef.current) {
+          opponentVideoRef.current.srcObject = stream;
         }
-        client = new window.StringeeClient();
-        client.connect(accessToken);
-        client.on('authen', (res: any) => {
-          if (res.r === 0) {
-            // Auth success
-            socket = getSocket();
-            socket.emit("join-room", { roomId, userName });
-            socket.on("room-users", async (roomUsers: string[]) => {
-              setUsers(roomUsers);
-              setWaiting(roomUsers.length < 2);
-              // Xác định tên đối thủ
-              const opp = roomUsers.find(u => u !== userName);
-              if (opp) setOpponentName(opp);
-              if (roomUsers.length === 2 && !joinedRoom) {
-                joinedRoom = true;
-                // Initiate call if userName is lexicographically first
-                const sorted = [...roomUsers].sort();
-                const isCaller = sorted[0] === userName;
-                if (isCaller) {
-                  try {
-                    await getMediaStream(); // Đảm bảo đã có quyền và stream
-                  } catch {
-                    return;
-                  }
-                  call = new window.StringeeCall(client, userName, opp);
-                  call.on('addstream', (event: any) => {
-                    if (opponentVideoRef.current) {
-                      opponentVideoRef.current.srcObject = event.stream;
-                    }
-                  });
-                  call.on('localstream', (event: any) => {
-                    if (myVideoRef.current) {
-                      myVideoRef.current.srcObject = event.stream;
-                    }
-                    mediaStreamRef.current = event.stream;
-                  });
-                  call.on('signalingstate', (e: any) => {
-                    if (e.code !== 6 && e.reason) {
-                      console.log('Signaling state:', e);
-                    }
-                  });
-                  call.makeCall();
-                }
-              }
-            });
-            // Listen for incoming call
-            client.on('incomingcall', async (incomingCall: any) => {
-              call = incomingCall;
-              try {
-                await getMediaStream(); // Đảm bảo đã có quyền và stream
-              } catch {
-                return;
-              }
-              call.on('addstream', (event: any) => {
-                if (opponentVideoRef.current) {
-                  opponentVideoRef.current.srcObject = event.stream;
-                }
-              });
-              call.on('localstream', (event: any) => {
-                if (myVideoRef.current) {
-                  myVideoRef.current.srcObject = event.stream;
-                }
-                mediaStreamRef.current = event.stream;
-              });
-              call.on('signalingstate', (e: any) => {
-                if (e.code !== 6 && e.reason) {
-                  console.log('Signaling state:', e);
-                }
-              });
-              call.answer();
-            });
-          } else {
-            console.error("Stringee auth failed", res);
-          }
-        });
-      } catch (err) {
-        console.error('Không lấy được accessToken Stringee:', err);
+      });
+      peer.on('close', () => {
+        if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
+      });
+    }
+
+    socket = getSocket();
+    socket.emit('join-room', { roomId, userName }); // Ensure join-room is sent
+
+    const handleRoomUsers = (roomUsers: string[]) => {
+      if (roomUsers.length === 2) {
+        // Only create peer if not already created for this pair
+        if (!peerRef.current) {
+          setupPeer(roomUsers);
+        }
+      } else {
+        cleanupPeer();
       }
-    }
-
-    // Chỉ chạy khi SDK đã load (window.stringeeLoaded === true)
-    if (typeof window !== 'undefined' && (window as any).stringeeLoaded && window.StringeeClient && window.StringeeCall) {
-      startStringeeWithToken();
-    } else {
-      // Wait for SDK to load
-      const checkInterval = setInterval(() => {
-        if ((window as any).stringeeLoaded && window.StringeeClient && window.StringeeCall) {
-          clearInterval(checkInterval);
-          startStringeeWithToken();
-        }
-      }, 200);
-    }
+    };
+    const handleSignal = ({ userName: from, signal }: { userName: string, signal: any }) => {
+      if (from !== userName && peerRef.current) {
+        peerRef.current.signal(signal);
+      }
+    };
+    socket.on('room-users', handleRoomUsers);
+    socket.on('signal', handleSignal);
 
     cleanup = () => {
-      if (call) {
-        call.hangup && call.hangup();
-        call = null;
-      }
-      if (client) {
-        client.disconnect && client.disconnect();
-        client = null;
-      }
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
-        mediaStreamRef.current = null;
-      }
+      cleanupPeer();
       if (socket) {
-        socket.off("room-users");
+        socket.off('room-users', handleRoomUsers);
+        socket.off('signal', handleSignal);
       }
-      if (myVideoRef.current) myVideoRef.current.srcObject = null;
-      if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
     };
     return () => { if (cleanup) cleanup(); };
-  }, [roomId, userName]);
+    // eslint-disable-next-line
+  }, [roomId, userName, mediaStreamRef.current]);
+
+
 
   // Khi bật/tắt cam/mic chỉ enable/disable track, không tạo lại peer/stream
   useEffect(() => {
@@ -769,3 +725,4 @@ export default function RoomPage() {
     </div>
   );
 }
+
