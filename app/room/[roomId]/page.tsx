@@ -205,10 +205,10 @@ export default function RoomPage() {
             { urls: 'stun:stun.l.google.com:19302' },
             // Thêm TURN server thật sự ở đây nếu có:
             // { urls: 'turn:your.turn.server:3478', username: 'user', credential: 'pass' }
-            // { urls: [
-            //         'turn:openrelay.metered.ca:80',
-            //         'turn:openrelay.metered.ca:443'
-            //         ],username: 'openrelayproject',credential: 'openrelayproject'}
+            { urls: [
+                    'turn:openrelay.metered.ca:80',
+                    'turn:openrelay.metered.ca:443'
+                    ],username: 'openrelayproject',credential: 'openrelayproject'}
           ]
         }
       });
@@ -296,6 +296,7 @@ export default function RoomPage() {
     socket.emit("join-room", { roomId, userName });
     socket.on("room-users", (roomUsers: string[]) => {
       setUsers(roomUsers);
+      // Chỉ set waiting=false khi thực sự có 2 người
       setWaiting(roomUsers.length < 2);
       // Xác định tên đối thủ
       const opp = roomUsers.find(u => u !== userName);
@@ -311,6 +312,14 @@ export default function RoomPage() {
       socket.off("opponent-solve");
     };
   }, [roomId, userName]);
+
+  // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
+  useEffect(() => {
+    if (isCreator) {
+      setUsers([userName]);
+      setWaiting(true);
+    }
+  }, [isCreator, userName]);
 
   // Khi vào phòng, tạo scramble chuẩn WCA
   useEffect(() => {
