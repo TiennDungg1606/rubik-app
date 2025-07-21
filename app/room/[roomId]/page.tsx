@@ -209,17 +209,10 @@ export default function RoomPage() {
         stream: mediaStreamRef.current || undefined,
         config: {
           iceServers: [
-            { urls: ["stun:hk-turn1.xirsys.com"] },
-            { urls: [
-                "turn:hk-turn1.xirsys.com:80?transport=udp",
-                "turn:hk-turn1.xirsys.com:3478?transport=udp",
-                "turn:hk-turn1.xirsys.com:80?transport=tcp",
-                "turn:hk-turn1.xirsys.com:3478?transport=tcp",
-                "turns:hk-turn1.xirsys.com:443?transport=tcp",
-                "turns:hk-turn1.xirsys.com:5349?transport=tcp"
-              ],   username: "81BrpJgfmrBj72gv0cO93fWrQjJNKaOmBpOr57xGi307Yi_DgLamZrVgS_HcN1DvAAAAAGh99l5kdW5naGFmY2hvaTM=",
-              credential: "68e28f40-660a-11f0-94c7-0242ac120004"
-            }
+            { url: "stun:global.stun.twilio.com:3478", urls: "stun:global.stun.twilio.com:3478" },
+            { url: "turn:global.turn.twilio.com:3478?transport=udp", urls: "turn:global.turn.twilio.com:3478?transport=udp", username: "4b757b5987da950233c0bc0a94ca3fbddfa375bc53e816b0184d958e0f09f49f", credential: "jf58N0MnDLhVKIacvs9xqp7i90LQf6FetFM0rY734fg=" },
+            { url: "turn:global.turn.twilio.com:3478?transport=tcp", urls: "turn:global.turn.twilio.com:3478?transport=tcp", username: "4b757b5987da950233c0bc0a94ca3fbddfa375bc53e816b0184d958e0f09f49f", credential: "jf58N0MnDLhVKIacvs9xqp7i90LQf6FetFM0rY734fg=" },
+            { url: "turn:global.turn.twilio.com:443?transport=tcp", urls: "turn:global.turn.twilio.com:443?transport=tcp", username: "4b757b5987da950233c0bc0a94ca3fbddfa375bc53e816b0184d958e0f09f49f", credential: "jf58N0MnDLhVKIacvs9xqp7i90LQf6FetFM0rY734fg=" }
           ]
         }
       });
