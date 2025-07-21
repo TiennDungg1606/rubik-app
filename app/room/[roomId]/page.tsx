@@ -167,8 +167,8 @@ useEffect(() => {
       fetch('/api/user/me', { credentials: 'include' })
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data && data.firstName && data.lastName) {
-            const name = data.firstName + ' ' + data.lastName;
+          if (data && data.user && data.user.firstName && data.user.lastName) {
+            const name = data.user.firstName + ' ' + data.user.lastName;
             window.userName = name;
             setUserName(name);
           } else {
