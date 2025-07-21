@@ -275,6 +275,8 @@ useEffect(() => {
       });
     }
 
+    // Track previous users length to detect transition from 2 -> 1
+    const prevUsersLenRef = useRef<number>(0);
     // Lắng nghe users thay đổi từ socket
     const handleRoomUsers = (roomUsers: string[]) => {
       const filteredUsers = (roomUsers || []).filter((u: string) => typeof u === 'string' && u);
@@ -283,11 +285,15 @@ useEffect(() => {
       // Xác định tên đối thủ
       const opp = filteredUsers.find((u: string) => u !== userName);
       if (opp) setOpponentName(opp);
+      // Only setup peer if exactly 2 users and no peer exists
       if (filteredUsers.length === 2) {
         setupPeer(filteredUsers);
-      } else {
+      }
+      // Only cleanup peer if going from 2 users to 1 (or 0)
+      if (prevUsersLenRef.current === 2 && filteredUsers.length < 2) {
         cleanupPeer();
       }
+      prevUsersLenRef.current = filteredUsers.length;
     };
     const handleSignal = ({ userName: from, signal }: { userName: string, signal: any }) => {
       if (from !== userName && peerRef.current) {
