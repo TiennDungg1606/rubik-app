@@ -193,9 +193,31 @@ export default function RoomPage() {
 
     function setupPeer(roomUsers: string[]) {
       cleanupPeer(); // Always clean up before creating new peer
-      const sorted = [...roomUsers].sort();
-      const isInitiator = sorted[0] === userName;
-      // Bổ sung TURN/STUN server vào cấu hình peer
+      // Lấy socket id của mình và đối thủ từ server (giả sử server trả về users dạng [{userName, socketId}])
+      // Nếu chưa có, tạm thời dùng logic: ai join phòng sau sẽ là initiator
+      // Để làm được, cần truyền socket.id từ client lên khi join-room
+      // Ta sẽ lấy socket.id từ getSocket().id
+      const socket = getSocket();
+      const myId = socket.id;
+      // Đảm bảo roomUsers là mảng userName, nên dùng thêm 1 biến joinOrder lưu trong sessionStorage
+      let isInitiator = false;
+      if (typeof window !== 'undefined') {
+        // Lưu joinOrder: lần đầu vào phòng sẽ lưu số thứ tự
+        let joinOrder = sessionStorage.getItem('joinOrder_' + roomId);
+        if (!joinOrder) {
+          // Nếu chưa có, gán là 1 (người vào đầu tiên)
+          sessionStorage.setItem('joinOrder_' + roomId, '1');
+          joinOrder = '1';
+        } else if (roomUsers.length === 2 && joinOrder === '1') {
+          // Nếu đã có 2 người và mình là người vào đầu tiên
+          isInitiator = true;
+        } else if (roomUsers.length === 2 && joinOrder !== '1') {
+          // Người vào sau không phải initiator
+          isInitiator = false;
+        }
+      }
+      // Nếu chỉ có 1 user thì không tạo peer
+      if (roomUsers.length < 2) return;
       const peer = new Peer({
         initiator: isInitiator,
         trickle: false,
@@ -210,13 +232,13 @@ export default function RoomPage() {
                 "turn:hk-turn1.xirsys.com:3478?transport=tcp",
                 "turns:hk-turn1.xirsys.com:443?transport=tcp",
                 "turns:hk-turn1.xirsys.com:5349?transport=tcp"
-              ]  ,   username: "81BrpJgfmrBj72gv0cO93fWrQjJNKaOmBpOr57xGi307Yi_DgLamZrVgS_HcN1DvAAAAAGh99l5kdW5naGFmY2hvaTM=",
+              ],   username: "81BrpJgfmrBj72gv0cO93fWrQjJNKaOmBpOr57xGi307Yi_DgLamZrVgS_HcN1DvAAAAAGh99l5kdW5naGFmY2hvaTM=",
               credential: "68e28f40-660a-11f0-94c7-0242ac120004"
             }
           ]
         }
       });
-      console.log('setupPeer called', roomUsers);
+      console.log('setupPeer called', roomUsers, 'initiator:', isInitiator);
       peerRef.current = peer;
       // Log các sự kiện signal, connect, error, iceState
       peer.on('signal', (data: any) => {
