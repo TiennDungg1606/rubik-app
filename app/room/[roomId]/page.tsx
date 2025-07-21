@@ -1,3 +1,10 @@
+// Stringee SDK global declarations for TypeScript
+declare global {
+  interface Window {
+    StringeeClient?: any;
+    StringeeCall?: any;
+  }
+}
 
 "use client";
 import { useEffect, useRef, useState } from "react";
@@ -132,123 +139,125 @@ export default function RoomPage() {
   // always keep timerRef in sync
   useEffect(() => { timerRef.current = timer; }, [timer]);
 
-  // Webcam/mic: lấy stream local và truyền peer-to-peer
-  // Chỉ tạo peer connection và stream một lần khi vào phòng
+  // Stringee video call logic
   useEffect(() => {
+    let client: any = null;
+    let call: any = null;
+    let localStream: MediaStream | null = null;
+    let joinedRoom = false;
+    let socket: any = null;
     let cleanup: (() => void) | undefined;
-    let socket: any;
-    let localStream: MediaStream;
-    let peerCreated = false;
-    if (navigator.mediaDevices && myVideoRef.current) {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-          myVideoRef.current!.srcObject = stream;
-          mediaStreamRef.current = stream;
-          localStream = stream;
-          socket = getSocket();
-          // WebRTC thuần
-          let pc: RTCPeerConnection | null = null;
-          let makingOffer = false;
-          let ignoreOffer = false;
-          const iceServers = [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
-            { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
-            { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
-          ];
-          function createPeerConnection() {
-            if (peerRef.current) return peerRef.current;
-            pc = new RTCPeerConnection({ iceServers });
-            peerRef.current = pc;
-            // Add local tracks
-            localStream.getTracks().forEach(track => pc!.addTrack(track, localStream));
-            // On remote track
-            pc.ontrack = (event) => {
-              if (opponentVideoRef.current) {
-                if (!opponentVideoRef.current.srcObject) {
-                  opponentVideoRef.current.srcObject = new MediaStream();
-                }
-                const remoteStream = opponentVideoRef.current.srcObject as MediaStream;
-                remoteStream.addTrack(event.track);
-              }
-            };
-            // On ICE candidate
-            pc.onicecandidate = (event) => {
-              if (event.candidate) {
-                socket.emit("peer-signal", { roomId, signal: { candidate: event.candidate }, from: userName });
-              }
-            };
-            return pc;
-          }
 
-          // Khi room đủ 2 người, cả hai phía đều tạo PeerConnection, chỉ creator mới tạo offer
-          socket.on("room-users", (roomUsers: string[]) => {
-            if (roomUsers.length === 2 && !peerRef.current) {
-              const pc = createPeerConnection();
-              if (isCreator) {
-                makingOffer = true;
-                pc.createOffer().then((offer: RTCSessionDescriptionInit) => {
-                  return pc.setLocalDescription(offer);
-                }).then(() => {
-                  socket.emit("peer-signal", { roomId, signal: { sdp: pc!.localDescription }, from: userName });
-                }).finally(() => { makingOffer = false; });
-              }
-            }
-          });
-
-          // Nhận signal từ đối thủ
-          socket.on("peer-signal", async ({ signal, from }: { signal: any, from: string }) => {
-            if (from === userName) return;
-            const pc = createPeerConnection();
-            if (signal.sdp) {
-              const desc = new RTCSessionDescription(signal.sdp);
-              const readyForOffer = !makingOffer && (pc.signalingState === "stable" || pc.signalingState === "have-local-offer");
-              ignoreOffer = !isCreator && desc.type === "offer" && !readyForOffer;
-              if (ignoreOffer) return;
-              await pc.setRemoteDescription(desc);
-              if (desc.type === "offer") {
-                await pc.setLocalDescription(await pc.createAnswer());
-                socket.emit("peer-signal", { roomId, signal: { sdp: pc.localDescription }, from: userName });
-              }
-            } else if (signal.candidate) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-              } catch (e) { /* ignore */ }
-            }
-          });
-          // Khi room đủ 2 người, cả 2 đều gửi ready-for-peer (nếu cần, nhưng không tạo peer ở đây nữa)
-          socket.on("room-users", (roomUsers: string[]) => {
-            if (roomUsers.length === 2 && !peerCreated) {
-              socket.emit("ready-for-peer", { roomId, userName });
-              peerCreated = true;
-            }
-          });
-          // Khi nhận được ready-for-peer từ đối thủ, nếu chưa có peer thì tạo peer (initiator=true)
-          socket.on("ready-for-peer", ({ userName: otherName }: { userName: string }) => {
-            // Không cần xử lý, logic offer/answer đã nằm ở room-users và peer-signal
-          });
-          // Khi nhận được peer-signal, nếu chưa có peer thì tạo peer (initiator=false), sau đó signal
-          socket.on("peer-signal", ({ signal, from }: { signal: any, from: string }) => {
-            // Đã xử lý ở trên, không cần gọi createPeer nữa
-          });
-          cleanup = () => {
-            if (mediaStreamRef.current) {
-              mediaStreamRef.current.getTracks().forEach(track => track.stop());
-              mediaStreamRef.current = null;
-            }
-            if (peerRef.current) {
-              peerRef.current.destroy();
-              peerRef.current = null;
-            }
-            if (socket) {
-              socket.off("peer-signal");
-              socket.off("ready-for-peer");
-              socket.off("room-users");
-            }
-          };
-        })
-        .catch(() => {});
+    // Lấy accessToken động từ backend
+    async function getAccessToken(userId: string): Promise<string> {
+      const res = await fetch(`/api/stringee-token?userId=${encodeURIComponent(userId)}`);
+      if (!res.ok) throw new Error('Lấy accessToken thất bại');
+      const data = await res.json();
+      return data.accessToken;
     }
+
+    async function startStringeeWithToken() {
+      try {
+        const accessToken = await getAccessToken(userName);
+        if (!window.StringeeClient || !window.StringeeCall) {
+          console.error("Stringee SDK not loaded");
+          return;
+        }
+        client = new window.StringeeClient();
+        client.connect(accessToken);
+        client.on('authen', (res: any) => {
+          if (res.r === 0) {
+            // Auth success
+            socket = getSocket();
+            socket.emit("join-room", { roomId, userName });
+            socket.on("room-users", (roomUsers: string[]) => {
+              setUsers(roomUsers);
+              setWaiting(roomUsers.length < 2);
+              // Xác định tên đối thủ
+              const opp = roomUsers.find(u => u !== userName);
+              if (opp) setOpponentName(opp);
+              if (roomUsers.length === 2 && !joinedRoom) {
+                joinedRoom = true;
+                // Initiate call if userName is lexicographically first
+                const sorted = [...roomUsers].sort();
+                const isCaller = sorted[0] === userName;
+                if (isCaller) {
+                  call = new window.StringeeCall(client, userName, opp);
+                  call.on('addstream', (event: any) => {
+                    if (opponentVideoRef.current) {
+                      opponentVideoRef.current.srcObject = event.stream;
+                    }
+                  });
+                  call.on('localstream', (event: any) => {
+                    if (myVideoRef.current) {
+                      myVideoRef.current.srcObject = event.stream;
+                    }
+                    localStream = event.stream;
+                    mediaStreamRef.current = event.stream;
+                  });
+                  call.makeCall();
+                }
+              }
+            });
+            // Listen for incoming call
+            client.on('incomingcall', (incomingCall: any) => {
+              call = incomingCall;
+              call.on('addstream', (event: any) => {
+                if (opponentVideoRef.current) {
+                  opponentVideoRef.current.srcObject = event.stream;
+                }
+              });
+              call.on('localstream', (event: any) => {
+                if (myVideoRef.current) {
+                  myVideoRef.current.srcObject = event.stream;
+                }
+                localStream = event.stream;
+                mediaStreamRef.current = event.stream;
+              });
+              call.answer();
+            });
+          } else {
+            console.error("Stringee auth failed", res);
+          }
+        });
+      } catch (err) {
+        console.error('Không lấy được accessToken Stringee:', err);
+      }
+    }
+
+    if (typeof window !== 'undefined' && window.StringeeClient && window.StringeeCall) {
+      startStringeeWithToken();
+    } else {
+      // Wait for SDK to load
+      const checkInterval = setInterval(() => {
+        if (window.StringeeClient && window.StringeeCall) {
+          clearInterval(checkInterval);
+          startStringeeWithToken();
+        }
+      }, 200);
+    }
+
+    cleanup = () => {
+      if (call) {
+        call.hangup && call.hangup();
+        call = null;
+      }
+      if (client) {
+        client.disconnect && client.disconnect();
+        client = null;
+      }
+      if (localStream) {
+        localStream.getTracks().forEach((track: any) => track.stop());
+        localStream = null;
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
+      if (socket) {
+        socket.off("room-users");
+      }
+    };
     return () => { if (cleanup) cleanup(); };
   }, [roomId, userName]);
 
