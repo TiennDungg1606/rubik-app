@@ -48,17 +48,6 @@ function calcStats(times: (number|null)[]) {
 export default function RoomPage() {
   // Đảm bảo userName luôn đúng khi vào phòng (nếu window.userName chưa có)
   useEffect(() => {
-    function cleanupPeer() {
-      if (peerRef.current) {
-        console.log('[CLEANUP] Destroying peer');
-        peerRef.current.destroy();
-        peerRef.current = null;
-      }
-      if (opponentVideoRef.current) {
-        console.log('[CLEANUP] Clearing opponent video srcObject');
-        opponentVideoRef.current.srcObject = null;
-      }
-    }
     if (typeof window !== 'undefined' && !window.userName) {
       fetch('/api/user/me', { credentials: 'include' })
         .then(res => res.ok ? res.json() : null)
@@ -132,8 +121,6 @@ export default function RoomPage() {
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream|null>(null);
   const peerRef = useRef<any>(null);
-  // Track previous users length to detect transition from 2 -> 1
-  const prevUsersLenRef = useRef<number>(0);
   // Lấy roomId từ URL client-side để tránh lỗi build
   const [roomId, setRoomId] = useState<string>("");
   useEffect(() => {
@@ -233,6 +220,7 @@ useEffect(() => {
     }
 
     function setupPeer(filteredUsers: string[]) {
+      cleanupPeer();
       if (filteredUsers.length !== 2) {
         console.log('Not enough users for peer connection');
         return;
@@ -285,15 +273,11 @@ useEffect(() => {
       // Xác định tên đối thủ
       const opp = filteredUsers.find((u: string) => u !== userName);
       if (opp) setOpponentName(opp);
-      // Only setup peer if exactly 2 users and no peer exists
       if (filteredUsers.length === 2) {
         setupPeer(filteredUsers);
-      }
-      // Only cleanup peer if going from 2 users to 1 (or 0)
-      if (prevUsersLenRef.current === 2 && filteredUsers.length < 2) {
+      } else {
         cleanupPeer();
       }
-      prevUsersLenRef.current = filteredUsers.length;
     };
     const handleSignal = ({ userName: from, signal }: { userName: string, signal: any }) => {
       if (from !== userName && peerRef.current) {
