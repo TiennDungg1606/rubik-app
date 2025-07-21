@@ -143,7 +143,6 @@ export default function RoomPage() {
   useEffect(() => {
     let client: any = null;
     let call: any = null;
-    let localStream: MediaStream | null = null;
     let joinedRoom = false;
     let socket: any = null;
     let cleanup: (() => void) | undefined;
@@ -154,6 +153,21 @@ export default function RoomPage() {
       if (!res.ok) throw new Error('Lấy accessToken thất bại');
       const data = await res.json();
       return data.accessToken;
+    }
+
+    // Lấy media trước khi gọi hoặc trả lời
+    async function getMediaStream() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        if (myVideoRef.current) {
+          myVideoRef.current.srcObject = stream;
+        }
+        mediaStreamRef.current = stream;
+        return stream;
+      } catch (err) {
+        alert('Không truy cập được camera/mic. Vui lòng kiểm tra lại quyền trình duyệt!');
+        throw err;
+      }
     }
 
     async function startStringeeWithToken() {
@@ -170,7 +184,7 @@ export default function RoomPage() {
             // Auth success
             socket = getSocket();
             socket.emit("join-room", { roomId, userName });
-            socket.on("room-users", (roomUsers: string[]) => {
+            socket.on("room-users", async (roomUsers: string[]) => {
               setUsers(roomUsers);
               setWaiting(roomUsers.length < 2);
               // Xác định tên đối thủ
@@ -182,6 +196,11 @@ export default function RoomPage() {
                 const sorted = [...roomUsers].sort();
                 const isCaller = sorted[0] === userName;
                 if (isCaller) {
+                  try {
+                    await getMediaStream(); // Đảm bảo đã có quyền và stream
+                  } catch {
+                    return;
+                  }
                   call = new window.StringeeCall(client, userName, opp);
                   call.on('addstream', (event: any) => {
                     if (opponentVideoRef.current) {
@@ -192,16 +211,25 @@ export default function RoomPage() {
                     if (myVideoRef.current) {
                       myVideoRef.current.srcObject = event.stream;
                     }
-                    localStream = event.stream;
                     mediaStreamRef.current = event.stream;
+                  });
+                  call.on('signalingstate', (e: any) => {
+                    if (e.code !== 6 && e.reason) {
+                      console.log('Signaling state:', e);
+                    }
                   });
                   call.makeCall();
                 }
               }
             });
             // Listen for incoming call
-            client.on('incomingcall', (incomingCall: any) => {
+            client.on('incomingcall', async (incomingCall: any) => {
               call = incomingCall;
+              try {
+                await getMediaStream(); // Đảm bảo đã có quyền và stream
+              } catch {
+                return;
+              }
               call.on('addstream', (event: any) => {
                 if (opponentVideoRef.current) {
                   opponentVideoRef.current.srcObject = event.stream;
@@ -211,8 +239,12 @@ export default function RoomPage() {
                 if (myVideoRef.current) {
                   myVideoRef.current.srcObject = event.stream;
                 }
-                localStream = event.stream;
                 mediaStreamRef.current = event.stream;
+              });
+              call.on('signalingstate', (e: any) => {
+                if (e.code !== 6 && e.reason) {
+                  console.log('Signaling state:', e);
+                }
               });
               call.answer();
             });
@@ -246,10 +278,6 @@ export default function RoomPage() {
         client.disconnect && client.disconnect();
         client = null;
       }
-      if (localStream) {
-        localStream.getTracks().forEach((track: any) => track.stop());
-        localStream = null;
-      }
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => track.stop());
         mediaStreamRef.current = null;
@@ -257,6 +285,8 @@ export default function RoomPage() {
       if (socket) {
         socket.off("room-users");
       }
+      if (myVideoRef.current) myVideoRef.current.srcObject = null;
+      if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
     };
     return () => { if (cleanup) cleanup(); };
   }, [roomId, userName]);
