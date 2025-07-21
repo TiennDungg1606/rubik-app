@@ -1,4 +1,26 @@
 
+// Đảm bảo window.userName luôn có giá trị đúng khi vào phòng
+declare global {
+  interface Window { userName?: string }
+}
+
+// ...existing code...
+
+// Đảm bảo userName luôn đúng khi vào phòng
+useEffect(() => {
+  if (typeof window !== 'undefined' && !window.userName) {
+    fetch('/api/user/me', { credentials: 'include' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.firstName && data.lastName) {
+          window.userName = data.firstName + ' ' + data.lastName;
+          // Reload lại trang để lấy đúng userName
+          window.location.reload();
+        }
+      });
+  }
+}, []);
+
 
 "use client";
 import { useEffect, useRef, useState } from "react";
@@ -140,10 +162,27 @@ export default function RoomPage() {
   }, [roomId]);
   const [dnf, setDnf] = useState(false);
   const [opponentTime, setOpponentTime] = useState<number|null>(null);
-  // userName đã có từ lúc đăng ký tài khoản, lấy từ context hoặc props
-  // Giả sử có biến global window.userName hoặc truyền qua props/context
-  // Nếu dùng context, thay thế dòng dưới bằng lấy từ context
-  const userName = (typeof window !== 'undefined' && (window as any).userName) || 'Bạn';
+// userName luôn phải lấy từ DB, không được rỗng
+const [userName, setUserName] = useState<string | null>(null);
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    if (window.userName) {
+      setUserName(window.userName);
+    } else {
+      fetch('/api/user/me', { credentials: 'include' })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && data.firstName && data.lastName) {
+            const name = data.firstName + ' ' + data.lastName;
+            window.userName = name;
+            setUserName(name);
+          } else {
+            setUserName('Không xác định');
+          }
+        });
+    }
+  }
+}, []);
   // Kiểm tra nếu là người tạo phòng (tức là vừa tạo phòng mới) (hydration-safe)
   const [isCreator, setIsCreator] = useState(false);
   useEffect(() => {
@@ -574,6 +613,13 @@ export default function RoomPage() {
     return `${sec}.${msR.toString().padStart(3, "0")}`;
   }
 
+  if (!userName) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-black text-white">
+        <div className="text-xl font-semibold">Đang tải thông tin người dùng...</div>
+      </div>
+    );
+  }
   if (isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
