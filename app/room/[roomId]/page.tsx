@@ -25,7 +25,7 @@ useEffect(() => {
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { generateWcaScramble } from "@/lib/wcaScramble";
 
@@ -132,10 +132,15 @@ export default function RoomPage() {
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream|null>(null);
   const peerRef = useRef<any>(null);
-  // Fix: useParams returns Record<string, string | string[]>, so extract roomId as string
-  const params = useParams() || {};
-  const roomIdRaw = (params as Record<string, string | string[]>).roomId;
-  const roomId = Array.isArray(roomIdRaw) ? roomIdRaw[0] : roomIdRaw || "";
+  // Lấy roomId từ URL client-side để tránh lỗi build
+  const [roomId, setRoomId] = useState<string>("");
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // URL dạng /room/ROOMID
+      const match = window.location.pathname.match(/\/room\/([^/]+)/);
+      if (match && match[1]) setRoomId(match[1]);
+    }
+  }, []);
   const [scramble, setScramble] = useState(generateWcaScramble());
   const [timer, setTimer] = useState(0);
   const timerRef = useRef(0); // always latest timer value
@@ -153,6 +158,7 @@ export default function RoomPage() {
 
   // Luôn khôi phục kết quả từ localStorage khi roomId thay đổi
   useEffect(() => {
+    if (!roomId) return;
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(`myResults_${roomId}`);
       setMyResults(saved ? JSON.parse(saved) : []);
@@ -613,7 +619,7 @@ useEffect(() => {
     return `${sec}.${msR.toString().padStart(3, "0")}`;
   }
 
-  if (!userName) {
+  if (!userName || !roomId) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-black text-white">
         <div className="text-xl font-semibold">Đang tải thông tin người dùng...</div>
