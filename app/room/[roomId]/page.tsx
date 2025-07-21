@@ -347,11 +347,12 @@ useEffect(() => {
     const socket = getSocket();
     socket.emit("join-room", { roomId, userName });
     socket.on("room-users", (roomUsers: string[]) => {
-      setUsers(roomUsers);
-      // Chỉ set waiting=false khi thực sự có 2 người
-      setWaiting(roomUsers.length < 2);
+      // Lọc bỏ null/undefined và chỉ giữ string hợp lệ
+      const filteredUsers = (roomUsers || []).filter(u => typeof u === 'string' && u);
+      setUsers(filteredUsers);
+      setWaiting(filteredUsers.length < 2);
       // Xác định tên đối thủ
-      const opp = roomUsers.find(u => u !== userName);
+      const opp = filteredUsers.find(u => u !== userName);
       if (opp) setOpponentName(opp);
     });
     socket.on("opponent-solve", ({ userName: oppName, time }: { userName: string, time: number|null }) => {
