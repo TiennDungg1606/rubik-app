@@ -149,7 +149,7 @@ export default function RoomPage() {
       return;
     }
     if (camOn && navigator.mediaDevices && myVideoRef.current) {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: micOn })
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
           myVideoRef.current!.srcObject = stream;
           mediaStreamRef.current = stream;
