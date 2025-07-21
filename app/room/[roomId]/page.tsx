@@ -50,9 +50,26 @@ export default function RoomPage() {
   const router = useRouter();
   useEffect(() => {
     if (!router) return;
-    // Next.js app router không expose beforePopState, nên dùng popstate nhưng delay reload để chắc chắn
+    // Cleanup peer & socket trước khi reload để tránh lỗi không nhận webcam đối phương
     const handlePopState = () => {
-      console.clear(); // Xóa sạch console trước khi reload
+      try {
+        // Cleanup peer
+        if (peerRef.current) {
+          peerRef.current.destroy();
+          peerRef.current = null;
+        }
+        // Cleanup opponent video
+        if (opponentVideoRef.current) {
+          opponentVideoRef.current.srcObject = null;
+        }
+        // Cleanup socket listeners
+        const socket = getSocket();
+        socket.off && socket.off(); // Xóa toàn bộ listeners nếu có
+        // socket.disconnect && socket.disconnect(); // Nếu muốn disconnect hoàn toàn
+      } catch (e) {
+        // ignore
+      }
+      console.clear();
       setTimeout(() => {
         window.location.reload();
       }, 50);
