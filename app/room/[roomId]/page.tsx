@@ -208,11 +208,11 @@ export default function RoomPage() {
           // Nếu chưa có, gán là 1 (người vào đầu tiên)
           sessionStorage.setItem('joinOrder_' + roomId, '1');
           joinOrder = '1';
-        } else if (roomUsers.length === 2 && joinOrder === '1') {
-          // Nếu đã có 2 người và mình là người vào đầu tiên
+        }
+        // Phía vào sau (joinOrder !== '1') sẽ luôn là initiator
+        if (roomUsers.length === 2 && joinOrder !== '1') {
           isInitiator = true;
-        } else if (roomUsers.length === 2 && joinOrder !== '1') {
-          // Người vào sau không phải initiator
+        } else {
           isInitiator = false;
         }
       }
