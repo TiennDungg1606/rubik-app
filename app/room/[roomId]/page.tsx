@@ -257,12 +257,13 @@ export default function RoomPage() {
       }
     }
 
-    if (typeof window !== 'undefined' && window.StringeeClient && window.StringeeCall) {
+    // Chỉ chạy khi SDK đã load (window.stringeeLoaded === true)
+    if (typeof window !== 'undefined' && (window as any).stringeeLoaded && window.StringeeClient && window.StringeeCall) {
       startStringeeWithToken();
     } else {
       // Wait for SDK to load
       const checkInterval = setInterval(() => {
-        if (window.StringeeClient && window.StringeeCall) {
+        if ((window as any).stringeeLoaded && window.StringeeClient && window.StringeeCall) {
           clearInterval(checkInterval);
           startStringeeWithToken();
         }

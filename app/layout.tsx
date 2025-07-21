@@ -29,10 +29,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          src="https://cdn.stringee.com/sdk/web/latest/stringee-web-sdk.min.js"
+          onLoad={() => { (window as any).stringeeLoaded = true; }}
+        ></script>
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* Bỏ SessionProviderWrapper, render children trực tiếp */}
-          {children}
-        <script src="https://cdn.stringee.com/sdk/web/latest/stringee-web-sdk.min.js"></script>
+        {children}
       </body>
     </html>
   );
