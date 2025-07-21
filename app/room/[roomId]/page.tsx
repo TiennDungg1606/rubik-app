@@ -207,20 +207,7 @@ useEffect(() => {
     if (!mediaStreamRef.current || !userName || !roomId) return;
     const socket = getSocket();
 
-    function cleanupPeer() {
-      if (peerRef.current) {
-        console.log('[CLEANUP] Destroying peer');
-        peerRef.current.destroy();
-        peerRef.current = null;
-      }
-      if (opponentVideoRef.current) {
-        console.log('[CLEANUP] Clearing opponent video srcObject');
-        opponentVideoRef.current.srcObject = null;
-      }
-    }
-
     function setupPeer(filteredUsers: string[]) {
-      cleanupPeer();
       if (filteredUsers.length !== 2) {
         console.log('Not enough users for peer connection');
         return;
@@ -275,8 +262,6 @@ useEffect(() => {
       if (opp) setOpponentName(opp);
       if (filteredUsers.length === 2) {
         setupPeer(filteredUsers);
-      } else {
-        cleanupPeer();
       }
     };
     const handleSignal = ({ userName: from, signal }: { userName: string, signal: any }) => {
@@ -289,7 +274,6 @@ useEffect(() => {
     socket.on('signal', handleSignal);
     // Cleanup khi effect unmount hoặc dependency thay đổi
     return () => {
-      cleanupPeer();
       socket.off('room-users', handleRoomUsers);
       socket.off('signal', handleSignal);
     };
