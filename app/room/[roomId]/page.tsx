@@ -166,6 +166,13 @@ export default function RoomPage() {
     // eslint-disable-next-line
   }, []);
 
+  // Đảm bảo luôn gán lại stream cho myVideoRef khi stream đã sẵn sàng (fix lỗi không hiện webcam bản thân)
+  useEffect(() => {
+    if (mediaStreamRef.current && myVideoRef.current) {
+      myVideoRef.current.srcObject = mediaStreamRef.current;
+    }
+  }, [mediaStreamRef.current]);
+
 
   // Xác định thiết bị mobile (hydration-safe)
   useEffect(() => {
