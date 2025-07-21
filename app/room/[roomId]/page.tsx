@@ -133,26 +133,18 @@ export default function RoomPage() {
   useEffect(() => { timerRef.current = timer; }, [timer]);
 
   // Webcam/mic: lấy stream local và truyền peer-to-peer
+  // Chỉ tạo peer connection và stream một lần khi vào phòng
   useEffect(() => {
     let cleanup: (() => void) | undefined;
     let socket: any;
-    if (!camOn && myVideoRef.current) {
-      myVideoRef.current.srcObject = null;
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
-        mediaStreamRef.current = null;
-      }
-      if (peerRef.current) {
-        peerRef.current.destroy();
-        peerRef.current = null;
-      }
-      return;
-    }
-    if (camOn && navigator.mediaDevices && myVideoRef.current) {
+    let localStream: MediaStream;
+    let peerCreated = false;
+    if (navigator.mediaDevices && myVideoRef.current) {
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
           myVideoRef.current!.srcObject = stream;
           mediaStreamRef.current = stream;
+          localStream = stream;
           socket = getSocket();
           // Đăng ký signaling
           const createPeer = (initiator: boolean) => {
@@ -167,8 +159,9 @@ export default function RoomPage() {
           };
           // Khi room đủ 2 người, cả 2 đều gửi ready-for-peer
           socket.on("room-users", (roomUsers: string[]) => {
-            if (roomUsers.length === 2) {
+            if (roomUsers.length === 2 && !peerCreated) {
               socket.emit("ready-for-peer", { roomId, userName });
+              peerCreated = true;
             }
           });
           // Khi nhận được ready-for-peer từ đối thủ, nếu chưa có peer thì tạo peer (initiator=true)
@@ -205,7 +198,19 @@ export default function RoomPage() {
         .catch(() => {});
     }
     return () => { if (cleanup) cleanup(); };
-  }, [camOn, micOn, waiting]);
+  }, [roomId, userName]);
+
+  // Khi bật/tắt cam/mic chỉ enable/disable track, không tạo lại peer/stream
+  useEffect(() => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getVideoTracks().forEach(track => {
+        track.enabled = camOn;
+      });
+      mediaStreamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = micOn;
+      });
+    }
+  }, [camOn, micOn]);
 
   // Kết nối socket, join room, lắng nghe users và kết quả đối thủ
   useEffect(() => {
