@@ -260,10 +260,8 @@ export default function RoomPage() {
 
     const handleRoomUsers = (roomUsers: string[]) => {
       if (roomUsers.length === 2) {
-        // Only create peer if not already created for this pair
-        if (!peerRef.current) {
-          setupPeer(roomUsers);
-        }
+        // Luôn cleanup và tạo lại peer mỗi lần roomUsers thay đổi
+        setupPeer(roomUsers);
       } else {
         cleanupPeer();
       }
