@@ -251,12 +251,16 @@ export default function RoomPage() {
     if (!mediaStreamRef.current || !userName || !roomId) return;
     const socket = getSocket();
 
-    function cleanupPeer() {
-      if (peerRef.current) {
+    function cleanupPeer(shouldDestroy = true) {
+      if (shouldDestroy && peerRef.current) {
         console.log('[CLEANUP] Destroying peer');
         peerRef.current.destroy();
         peerRef.current = null;
       }
+      // Không clear opponentVideoRef ở đây nữa
+    }
+
+    function clearOpponentVideo() {
       if (opponentVideoRef.current) {
         console.log('[CLEANUP] Clearing opponent video srcObject');
         opponentVideoRef.current.srcObject = null;
@@ -264,11 +268,13 @@ export default function RoomPage() {
     }
 
     function setupPeer(filteredUsers: string[]) {
-      cleanupPeer();
+      // Chỉ destroy peer khi đủ 2 user, còn thiếu user thì giữ nguyên peer
       if (filteredUsers.length !== 2) {
         console.log('Not enough users for peer connection');
+        cleanupPeer(false); // Không destroy peer
         return;
       }
+      cleanupPeer(true); // Đủ 2 user thì destroy peer cũ trước khi tạo mới
       if (!mediaStreamRef.current) {
         console.warn('[WebRTC] No local media stream, cannot create peer');
         return;
@@ -305,7 +311,7 @@ export default function RoomPage() {
         }
       });
       peer.on('close', () => {
-        if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
+        clearOpponentVideo();
       });
     }
 
@@ -317,11 +323,7 @@ export default function RoomPage() {
       // Xác định tên đối thủ
       const opp = filteredUsers.find((u: string) => u !== userName);
       if (opp) setOpponentName(opp);
-      if (filteredUsers.length === 2) {
-        setupPeer(filteredUsers);
-      } else {
-        cleanupPeer();
-      }
+      setupPeer(filteredUsers);
     };
     const handleSignal = ({ userName: from, signal }: { userName: string, signal: any }) => {
       if (from !== userName && peerRef.current) {
