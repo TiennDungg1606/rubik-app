@@ -1,29 +1,12 @@
 
 "use client";
+import { useEffect, useRef, useState } from "react";
+import Peer from "simple-peer";
+import { useRouter } from "next/navigation";
 // Đảm bảo window.userName luôn có giá trị đúng khi vào phòng
 declare global {
   interface Window { userName?: string }
 }
-
-// ...existing code...
-
-// Đảm bảo userName luôn đúng khi vào phòng
-useEffect(() => {
-  if (typeof window !== 'undefined' && !window.userName) {
-    fetch('/api/user/me', { credentials: 'include' })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data && data.firstName && data.lastName) {
-          window.userName = data.firstName + ' ' + data.lastName;
-          // Reload lại trang để lấy đúng userName
-          window.location.reload();
-        }
-      });
-  }
-}, []);
-import { useEffect, useRef, useState } from "react";
-import Peer from "simple-peer";
-import { useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { generateWcaScramble } from "@/lib/wcaScramble";
 
@@ -63,12 +46,20 @@ function calcStats(times: (number|null)[]) {
 }
 
 export default function RoomPage() {
-
-  // ...existing code...
-
-  // ...existing code...
-
-  // ...existing code...
+  // Đảm bảo userName luôn đúng khi vào phòng (nếu window.userName chưa có)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.userName) {
+      fetch('/api/user/me', { credentials: 'include' })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && data.firstName && data.lastName) {
+            window.userName = data.firstName + ' ' + data.lastName;
+            // Reload lại trang để lấy đúng userName
+            window.location.reload();
+          }
+        });
+    }
+  }, []);
 
   // ...existing code...
 
