@@ -132,6 +132,8 @@ export default function RoomPage() {
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream|null>(null);
   const peerRef = useRef<any>(null);
+  // Track previous users length to detect transition from 2 -> 1
+  const prevUsersLenRef = useRef<number>(0);
   // Lấy roomId từ URL client-side để tránh lỗi build
   const [roomId, setRoomId] = useState<string>("");
   useEffect(() => {
@@ -275,8 +277,6 @@ useEffect(() => {
       });
     }
 
-    // Track previous users length to detect transition from 2 -> 1
-    const prevUsersLenRef = useRef<number>(0);
     // Lắng nghe users thay đổi từ socket
     const handleRoomUsers = (roomUsers: string[]) => {
       const filteredUsers = (roomUsers || []).filter((u: string) => typeof u === 'string' && u);
