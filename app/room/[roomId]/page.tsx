@@ -46,16 +46,21 @@ function calcStats(times: (number|null)[]) {
 }
 
 export default function RoomPage() {
-  // Reload khi rời phòng bằng nút back (popstate)
+  // Reload khi rời phòng bằng nút back (popstate) - dùng router.beforePopState cho Next.js
+  const router = useRouter();
   useEffect(() => {
-    function handlePopState() {
-      window.location.reload();
-    }
+    if (!router) return;
+    // Next.js app router không expose beforePopState, nên dùng popstate nhưng delay reload để chắc chắn
+    const handlePopState = () => {
+      setTimeout(() => {
+        window.location.reload();
+      }, 50);
+    };
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [router]);
   // Đảm bảo userName luôn đúng khi vào phòng (nếu window.userName chưa có)
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.userName) {
@@ -72,7 +77,6 @@ export default function RoomPage() {
   }, []);
 
   // ...existing code...
-
   // All variable and hook declarations must be above this line
   // (removed duplicate/old peer connection effect)
   // Lấy camera/mic và gán vào myVideoRef khi vào phòng
@@ -123,7 +127,7 @@ export default function RoomPage() {
       window.removeEventListener('orientationchange', checkOrientation);
     };
   }, []);
-  const router = useRouter();
+  // const router = useRouter(); // Đã khai báo ở trên, không cần khai báo lại
   // Webcam/mic state
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
