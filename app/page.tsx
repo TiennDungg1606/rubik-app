@@ -1,3 +1,6 @@
+declare global {
+  interface Window { userName?: string }
+}
 "use client"
 
 
@@ -14,6 +17,12 @@ export default function HomePage() {
       try {
         const res = await fetch("/api/user/me", { credentials: "include" });
         if (res.ok) {
+          const data = await res.json();
+          if (data && data.firstName && data.lastName) {
+            window.userName = data.firstName + " " + data.lastName;
+          } else {
+            window.userName = undefined;
+          }
           setTimeout(() => {
             window.location.href = "/lobby";
           }, 5000); // Độ trễ 5 giây
