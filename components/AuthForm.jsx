@@ -57,7 +57,14 @@ export default function AuthForm({ onLogin }) {
           setSuccess("");
         }, 1500);
       } else {
-          setSuccess("Login successful!");
+        setSuccess("Login successful!");
+        // Nếu là login, lấy firstName và lastName từ API trả về
+        if (tab === "login" && data.user) {
+          const userName = `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim();
+          if (typeof window !== 'undefined') {
+            window.userName = userName;
+          }
+        }
         if (onLogin) onLogin();
       }
     }

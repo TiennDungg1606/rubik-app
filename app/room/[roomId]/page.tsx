@@ -140,18 +140,10 @@ export default function RoomPage() {
   }, [roomId]);
   const [dnf, setDnf] = useState(false);
   const [opponentTime, setOpponentTime] = useState<number|null>(null);
-  // userName lấy từ localStorage hoặc prompt (hydration-safe)
-  const [userName, setUserName] = useState('Bạn');
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      let n = localStorage.getItem('userName');
-      if (!n) {
-        n = prompt('Nhập tên của bạn:') || 'Bạn';
-        localStorage.setItem('userName', n);
-      }
-      setUserName(n);
-    }
-  }, []);
+  // userName đã có từ lúc đăng ký tài khoản, lấy từ context hoặc props
+  // Giả sử có biến global window.userName hoặc truyền qua props/context
+  // Nếu dùng context, thay thế dòng dưới bằng lấy từ context
+  const userName = (typeof window !== 'undefined' && (window as any).userName) || 'Bạn';
   // Kiểm tra nếu là người tạo phòng (tức là vừa tạo phòng mới) (hydration-safe)
   const [isCreator, setIsCreator] = useState(false);
   useEffect(() => {
@@ -169,7 +161,7 @@ export default function RoomPage() {
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
   // Giả lập tên
-  const myName = "Bạn";
+
   // Đã có opponentName bằng useState ở trên
 
 
@@ -185,10 +177,14 @@ export default function RoomPage() {
 
     function cleanupPeer() {
       if (peerRef.current) {
+        console.log('[CLEANUP] Destroying peer');
         peerRef.current.destroy();
         peerRef.current = null;
       }
-      if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
+      if (opponentVideoRef.current) {
+        console.log('[CLEANUP] Clearing opponent video srcObject');
+        opponentVideoRef.current.srcObject = null;
+      }
     }
 
     function setupPeer(roomUsers: string[]) {
@@ -197,6 +193,14 @@ export default function RoomPage() {
       if (roomUsers.length < 2) {
         console.log('Not enough users for peer connection');
         return;
+      }
+      // Kiểm tra MediaStream trước khi tạo peer
+      if (!mediaStreamRef.current) {
+        console.warn('[WebRTC] No local media stream, cannot create peer');
+        return;
+      }
+      if (!mediaStreamRef.current.getVideoTracks().length && !mediaStreamRef.current.getAudioTracks().length) {
+        console.warn('[WebRTC] Local media stream has no tracks');
       }
       // Initiator: the user whose name is at index 1 in roomUsers (the second to join)
       // This ensures only one initiator, and both sides always create a peer
@@ -237,15 +241,27 @@ export default function RoomPage() {
           console.log('ICE state:', peer._pc.iceConnectionState);
         };
       }
+      let gotStream = false;
       peer.on('stream', (stream: MediaStream) => {
-        console.log('Received remote stream', stream);
+        gotStream = true;
+        console.log('[WebRTC] Received remote stream', stream);
         if (opponentVideoRef.current) {
           opponentVideoRef.current.srcObject = stream;
+          console.log('[WebRTC] Set remote stream to opponent video');
+        } else {
+          console.warn('[WebRTC] opponentVideoRef.current is null');
         }
       });
       peer.on('close', () => {
+        console.log('[WebRTC] Peer closed');
         if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
       });
+      // Nếu sau 5s không có stream thì log cảnh báo
+      setTimeout(() => {
+        if (!gotStream) {
+          console.warn('[WebRTC] Did not receive remote stream after 5s');
+        }
+      }, 5000);
     }
 
     socket = getSocket();
