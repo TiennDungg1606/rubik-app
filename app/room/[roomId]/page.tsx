@@ -372,7 +372,7 @@ useEffect(() => {
 
   // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
   useEffect(() => {
-    if (isCreator) {
+    if (isCreator && typeof userName === 'string') {
       setUsers([userName]);
       setWaiting(true);
     }
