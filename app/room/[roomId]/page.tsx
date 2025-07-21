@@ -212,6 +212,7 @@ export default function RoomPage() {
           ]
         }
       });
+      console.log('setupPeer called', roomUsers);
       peerRef.current = peer;
       // Log các sự kiện signal, connect, error, iceState
       peer.on('signal', (data: any) => {
