@@ -1,4 +1,5 @@
 
+"use client";
 // Đảm bảo window.userName luôn có giá trị đúng khi vào phòng
 declare global {
   interface Window { userName?: string }
@@ -20,9 +21,6 @@ useEffect(() => {
       });
   }
 }, []);
-
-
-"use client";
 import { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer";
 import { useRouter } from "next/navigation";
