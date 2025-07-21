@@ -149,7 +149,19 @@ export default function RoomPage() {
           // Đăng ký signaling
           const createPeer = (initiator: boolean) => {
             if (peerRef.current) return;
-            peerRef.current = new Peer({ initiator, trickle: false, stream });
+            peerRef.current = new Peer({
+              initiator,
+              trickle: false,
+              stream,
+              config: {
+                iceServers: [
+                  { urls: "stun:stun.l.google.com:19302" },
+                  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+                  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+                  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+                ]
+              }
+            });
             peerRef.current.on("signal", (signal: any) => {
               socket.emit("peer-signal", { roomId, signal, from: userName });
             });
