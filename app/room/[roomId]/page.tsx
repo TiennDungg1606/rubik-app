@@ -46,23 +46,13 @@ function calcStats(times: (number|null)[]) {
 }
 
 export default function RoomPage() {
-  // Tự động reload khi mất kết nối socket hoặc nhấn nút trở về (back button)
+  // Reload khi rời phòng bằng nút back (popstate)
   useEffect(() => {
-    // Reload khi mất kết nối socket
-    const socket = getSocket();
-    function handleDisconnect() {
-      window.location.reload();
-    }
-    socket.on('disconnect', handleDisconnect);
-
-    // Reload khi nhấn nút trở về (back button)
     function handlePopState() {
       window.location.reload();
     }
     window.addEventListener('popstate', handlePopState);
-
     return () => {
-      socket.off('disconnect', handleDisconnect);
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);
@@ -105,7 +95,7 @@ export default function RoomPage() {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
-      // Không set myVideoRef.current.srcObject = null để luôn giữ webcam bản thân khi reload/vào lại phòng
+      if (myVideoRef.current) myVideoRef.current.srcObject = null;
       mediaStreamRef.current = null;
     };
     // eslint-disable-next-line
