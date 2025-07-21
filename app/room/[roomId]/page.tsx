@@ -193,31 +193,16 @@ export default function RoomPage() {
 
     function setupPeer(roomUsers: string[]) {
       cleanupPeer(); // Always clean up before creating new peer
-      // Lấy socket id của mình và đối thủ từ server (giả sử server trả về users dạng [{userName, socketId}])
-      // Nếu chưa có, tạm thời dùng logic: ai join phòng sau sẽ là initiator
-      // Để làm được, cần truyền socket.id từ client lên khi join-room
-      // Ta sẽ lấy socket.id từ getSocket().id
-      const socket = getSocket();
-      const myId = socket.id;
-      // Đảm bảo roomUsers là mảng userName, nên dùng thêm 1 biến joinOrder lưu trong sessionStorage
-      let isInitiator = false;
-      if (typeof window !== 'undefined') {
-        // Lưu joinOrder: lần đầu vào phòng sẽ lưu số thứ tự
-        let joinOrder = sessionStorage.getItem('joinOrder_' + roomId);
-        if (!joinOrder) {
-          // Nếu chưa có, gán là 1 (người vào đầu tiên)
-          sessionStorage.setItem('joinOrder_' + roomId, '1');
-          joinOrder = '1';
-        }
-        // Phía vào sau (joinOrder !== '1') sẽ luôn là initiator
-        if (roomUsers.length === 2 && joinOrder !== '1') {
-          isInitiator = true;
-        } else {
-          isInitiator = false;
-        }
+      // Always create peer if 2 users in room, destroy if <2
+      if (roomUsers.length < 2) {
+        console.log('Not enough users for peer connection');
+        return;
       }
-      // Nếu chỉ có 1 user thì không tạo peer
-      if (roomUsers.length < 2) return;
+      // Initiator: the user whose name is at index 1 in roomUsers (the second to join)
+      // This ensures only one initiator, and both sides always create a peer
+      const isInitiator = (roomUsers[1] === userName);
+      const socket = getSocket();
+      console.log('setupPeer called', roomUsers, 'userName:', userName, 'initiator:', isInitiator);
       const peer = new Peer({
         initiator: isInitiator,
         trickle: false,
@@ -238,7 +223,6 @@ export default function RoomPage() {
           ]
         }
       });
-      console.log('setupPeer called', roomUsers, 'initiator:', isInitiator);
       peerRef.current = peer;
       // Log các sự kiện signal, connect, error, iceState
       peer.on('signal', (data: any) => {
