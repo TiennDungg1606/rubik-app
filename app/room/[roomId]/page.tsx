@@ -222,9 +222,11 @@ useEffect(() => {
     }
 
     function setupPeer(roomUsers: string[]) {
+      // Lọc bỏ null/undefined và chỉ giữ string hợp lệ
+      const filteredUsers = (roomUsers || []).filter(u => typeof u === 'string' && u);
       cleanupPeer(); // Always clean up before creating new peer
       // Always create peer if 2 users in room, destroy if <2
-      if (roomUsers.length < 2) {
+      if (filteredUsers.length < 2) {
         console.log('Not enough users for peer connection');
         return;
       }
@@ -236,11 +238,11 @@ useEffect(() => {
       if (!mediaStreamRef.current.getVideoTracks().length && !mediaStreamRef.current.getAudioTracks().length) {
         console.warn('[WebRTC] Local media stream has no tracks');
       }
-      // Initiator: the user whose name is at index 1 in roomUsers (the second to join)
+      // Initiator: the user whose name is at index 1 in filteredUsers (the second to join)
       // This ensures only one initiator, and both sides always create a peer
-      const isInitiator = (roomUsers[1] === userName);
+      const isInitiator = (filteredUsers[1] === userName);
       const socket = getSocket();
-      console.log('setupPeer called', roomUsers, 'userName:', userName, 'initiator:', isInitiator);
+      console.log('setupPeer called', filteredUsers, 'userName:', userName, 'initiator:', isInitiator);
       const peer = new Peer({
         initiator: isInitiator,
         trickle: false,
