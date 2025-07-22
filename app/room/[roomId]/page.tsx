@@ -8,7 +8,25 @@ declare global {
   interface Window { userName?: string }
 }
 import { getSocket } from "@/lib/socket";
-import { generateWcaScramble } from "@/lib/wcaScramble";
+
+// Scramble giống TimerTab.tsx
+function generateScramble() {
+  const moves = ["U", "D", "L", "R", "F", "B"];
+  const suffix = ["", "'", "2"];
+  let scramble = [];
+  let prev = "";
+  let prev2 = "";
+  for (let i = 0; i < 20; i++) {
+    let m;
+    do {
+      m = moves[Math.floor(Math.random() * moves.length)];
+    } while (m === prev || (prev2 && m[0] === prev2[0]));
+    prev2 = prev;
+    prev = m;
+    scramble.push(m + suffix[Math.floor(Math.random() * 3)]);
+  }
+  return scramble.join(" ");
+}
 
 // Helper for stats (all in ms)
 function calcStats(times: (number|null)[]) {
@@ -57,7 +75,7 @@ export default function RoomPage() {
   const mediaStreamRef = useRef<MediaStream|null>(null);
   const peerRef = useRef<any>(null);
   const [roomId, setRoomId] = useState<string>("");
-  const [scramble, setScramble] = useState(generateWcaScramble());
+  const [scramble, setScramble] = useState(generateScramble());
   const [timer, setTimer] = useState(0);
   const timerRef = useRef(0);
   const [running, setRunning] = useState(false);
@@ -379,7 +397,7 @@ export default function RoomPage() {
     socket.on("opponent-solve", ({ userName: oppName, time }: { userName: string, time: number|null }) => {
       setOpponentResults(r => [...r, time]);
       setTurn('me');
-      setScramble(generateWcaScramble());
+      setScramble(generateScramble());
     });
     return () => {
       socket.off("room-users");
@@ -395,9 +413,9 @@ export default function RoomPage() {
     }
   }, [isCreator, userName]);
 
-  // Khi vào phòng, tạo scramble chuẩn WCA
+  // Khi vào phòng, tạo scramble mới
   useEffect(() => {
-    setScramble(generateWcaScramble());
+    setScramble(generateScramble());
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
@@ -641,23 +659,89 @@ export default function RoomPage() {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
         <div className="text-2xl font-bold text-red-400 mb-4">Vui lòng xoay ngang màn hình để sử dụng ứng dụng!</div>
-        <div className="text-lg text-gray-300">Ứng dụng sẽ tự động tiếp tục khi bạn xoay ngang.</div>
+        <div className="text-lg text-gray-300">Nếu bạn dùng điện thoại, hãy bật "Trang web cho máy tính" trong trình duyệt để sử dụng đầy đủ chức năng.</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center bg-black text-white py-4 overflow-y-auto">
+    <div
+      className="min-h-screen w-full flex flex-col items-center text-white py-4 overflow-hidden relative"
+      style={{
+        backgroundImage: "url('/images.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#000',
+      }}
+    >
       {/* Nút rời phòng */}
       <button
         onClick={handleLeaveRoom}
         className="fixed top-4 left-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg"
         type="button"
       >Rời phòng</button>
+      {/* Dải chỉ số tổng hợp của cả 2 người ở góc trên trái */}
+      <div className="fixed top-30 left-16 z-50 bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white p-0 m-0 rounded-xl">
+        <table className="text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg border-collapse" style={{ border: '1px solid #374151', margin: 0 }}>
+          <thead className="bg-gray-800">
+            <tr>
+              <th className="px-3 py-1 border border-gray-700 font-bold">Tên</th>
+              <th className="px-3 py-1 border border-gray-700 font-bold">Best</th>
+              <th className="px-3 py-1 border border-gray-700 font-bold">Worst</th>
+              <th className="px-3 py-1 border border-gray-700 font-bold">Mean3</th>
+              <th className="px-3 py-1 border border-gray-700 font-bold">Avg5</th>
+              <th className="px-3 py-1 border border-gray-700 font-bold">Ao5</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="px-3 py-1 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>{userName}</td>
+              <td className="px-3 py-1 border border-gray-700 text-green-300">{myStats.best !== null ? (myStats.best/1000).toFixed(2) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700 text-red-300">{myStats.worst !== null ? (myStats.worst/1000).toFixed(2) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{myStats.mean3 !== null ? (myStats.mean3/1000).toFixed(2) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{myStats.avg5 !== null ? (myStats.avg5/1000).toFixed(2) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{myStats.ao5 !== null ? (myStats.ao5/1000).toFixed(2) : ""}</td>
+            </tr>
+            <tr>
+              <td className="px-3 py-1 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>{opponentName}</td>
+              <td className="px-3 py-1 border border-gray-700 text-green-300">{oppStats.best !== null ? (oppStats.best/1000).toFixed(2) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700 text-red-300">{oppStats.worst !== null ? (oppStats.worst/1000).toFixed(2) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{oppStats.mean3 !== null ? (oppStats.mean3/1000).toFixed(2) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{oppStats.avg5 !== null ? (oppStats.avg5/1000).toFixed(2) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{oppStats.ao5 !== null ? (oppStats.ao5/1000).toFixed(2) : ""}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {/* Bảng kết quả ở góc phải trên */}
+      <div
+        className="absolute top-13 right-15 z-40 w-[340px] max-w-xs"
+        style={{ minWidth: 260 }}
+      >
+        <table className="w-full text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg">
+          <thead className="bg-gray-800">
+            <tr>
+              <th className="py-2 border border-gray-700">STT</th>
+              <th className="py-2 border border-gray-700" style={{ color: '#60a5fa' }}>{userName}</th>
+              <th className="py-2 border border-gray-700" style={{ color: '#f472b6' }}>{opponentName}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[0,1,2,3,4].map(i => (
+              <tr key={i} className="border-b border-gray-700">
+                <td className="py-1 border border-gray-700">{i+1}</td>
+                <td className="py-1 border border-gray-700">{myResults[i] === null ? 'DNF' : (myResults[i] ? (myResults[i]/1000).toFixed(2) : "")}</td>
+                <td className="py-1 border border-gray-700">{opponentResults[i] === null ? 'DNF' : (opponentResults[i] ? (opponentResults[i]/1000).toFixed(2) : "")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {/* Tên phòng */}
       <h2 className="text-3xl font-bold mb-2">Phòng: <span className="text-blue-400">{roomId}</span></h2>
       {/* Scramble */}
-      <div className="mb-2 px-4 py-2 bg-gray-800 rounded-xl text-lg font-mono tracking-widest select-all">
+      <div className="mb-5 px-2 py-1 bg-gray-800 rounded-xl text-base font-mono tracking-widest select-all">
         {scramble}
       </div>
       {/* Thanh trạng thái */}
@@ -667,56 +751,41 @@ export default function RoomPage() {
         ) : (
           <span className="text-green-400 text-lg font-semibold">Đã đủ 2 người, sẵn sàng thi đấu!</span>
         )}
-      </div>
-      {/* Timer Display - mobile: thao tác toàn màn hình, desktop: chỉ vùng timer */}
-      {isMobile ? (
-        <div
-          className="fixed inset-0 z-30"
-          style={{ pointerEvents: 'auto' }}
-          onTouchStart={e => {
-            // Nếu chạm vào webcam thì bỏ qua
-            const webcamEls = document.querySelectorAll('.webcam-area');
-            for (let i = 0; i < webcamEls.length; i++) {
-              if (webcamEls[i].contains(e.target as Node)) return;
-            }
-            if (waiting || myResults.length >= 5) return;
-            if (!prep && !running && turn === 'me') {
-              setPrep(true);
-              setPrepTime(15);
-              setDnf(false);
-            } else if (prep && !running) {
-              setPrep(false);
-              setCanStart(true);
-            } else if (running) {
-              setRunning(false);
-              if (intervalRef.current) clearInterval(intervalRef.current);
-              setMyResults(r => {
-                const newR = [...r, timerRef.current];
-                const socket = getSocket();
-                socket.emit("solve", { roomId, userName, time: timerRef.current });
-                return newR;
-              });
-              setCanStart(false);
-              setTurn('opponent');
-            }
-          }}
-        >
-          <div className="mb-4 flex flex-col items-center pt-8">
-            <div className="text-6xl font-mono font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg">
-              {prep ? (
-                <span>Chuẩn bị: {prepTime}s</span>
-              ) : dnf ? (
-                <span className="text-red-400">DNF</span>
-              ) : (
-                <span>{(timer/1000).toFixed(2)}s</span>
-              )}
-            </div>
-            {running && <div className="text-sm text-gray-400 mt-1">Chạm hoặc nhấn giữ/thả bất kỳ đâu (trừ webcam) để dừng</div>}
-            {prep && <div className="text-sm text-gray-400 mt-1">Chạm hoặc nhấn giữ/thả bất kỳ đâu (trừ webcam) để bắt đầu</div>}
+      </div>  
+      {/* Đã xóa Timer phía trên, chỉ giữ lại Timer nằm ngang giữa hai webcam */}
+      {/* Webcam + Timer ngang hàng */}
+      <div
+        className="w-full mb-0 max-w-5xl flex flex-row gap-24 justify-center items-center mt-28"
+        style={{ maxWidth: '100vw' }}
+      >
+        {/* Webcam của bạn */}
+        <div className="flex flex-col items-center webcam-area" style={isMobile ? { width: '100vw', maxWidth: 420 } : {}}>
+          <div
+            className="bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"
+            style={isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+          >
+            <video
+              ref={myVideoRef}
+              autoPlay
+              muted={true}
+              className="w-full h-full object-cover rounded-2xl bg-black border-4 border-blue-400"
+              style={isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
+            />
+            <button
+              className={`absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
+              onClick={() => setCamOn(v => !v)}
+              type="button"
+            >{camOn ? 'Tắt camera' : 'Bật camera'}</button>
+            <button
+              className={`absolute bottom-3 right-3 px-3 py-1 rounded text-base ${micOn ? 'bg-gray-700' : 'bg-red-600'}`}
+              onClick={() => setMicOn(v => !v)}
+              type="button"
+            >{micOn ? 'Tắt mic' : 'Bật mic'}</button>
           </div>
+          <span className="font-semibold text-lg text-blue-300">{userName}</span>
         </div>
-      ) : (
-        <div className="mb-4 flex flex-col items-center">
+        {/* Timer ở giữa */}
+        <div className="flex flex-col items-center justify-center">
           <div
             className="text-6xl font-mono font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg"
             onClick={() => {
@@ -747,51 +816,18 @@ export default function RoomPage() {
             ) : dnf ? (
               <span className="text-red-400">DNF</span>
             ) : (
-              <span>{(timer/1000).toFixed(2)}s</span>
+              <span>{(timer/1000).toFixed(3)}s</span>
             )}
           </div>
           {running && <div className="text-sm text-gray-400 mt-1">Chạm hoặc bấm phím bất kỳ để dừng</div>}
           {prep && <div className="text-sm text-gray-400 mt-1">Chạm hoặc bấm phím Space để bắt đầu</div>}
         </div>
-      )}
-
-      {/* Webcam + mic (responsive for mobile) */}
-      <div
-        className={`w-full mb-4 max-w-5xl flex ${isMobile ? 'flex-col gap-4 items-center' : 'flex-row gap-8 justify-center'}`}
-        style={isMobile ? { maxWidth: '100vw' } : {}}
-      >
+        {/* Webcam đối thủ */}
         <div className="flex flex-col items-center webcam-area" style={isMobile ? { width: '100vw', maxWidth: 420 } : {}}>
           <div
             className="bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"
             style={isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
-            {/* Webcam của bạn */}
-            <video
-              ref={myVideoRef}
-              autoPlay
-              muted={true}
-              className="w-full h-full object-cover rounded-2xl bg-black border-4 border-blue-400"
-              style={isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
-            />
-            <button
-              className={`absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
-              onClick={() => setCamOn(v => !v)}
-              type="button"
-            >{camOn ? 'Tắt camera' : 'Bật camera'}</button>
-            <button
-              className={`absolute bottom-3 right-3 px-3 py-1 rounded text-base ${micOn ? 'bg-gray-700' : 'bg-red-600'}`}
-              onClick={() => setMicOn(v => !v)}
-              type="button"
-            >{micOn ? 'Tắt mic' : 'Bật mic'}</button>
-          </div>
-          <span className="font-semibold text-lg text-blue-300">{userName}</span>
-        </div>
-        <div className="flex flex-col items-center webcam-area" style={isMobile ? { width: '100vw', maxWidth: 420 } : {}}>
-          <div
-            className="bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"
-            style={isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
-          >
-            {/* Webcam đối thủ */}
             <video
               ref={opponentVideoRef}
               autoPlay
@@ -801,52 +837,6 @@ export default function RoomPage() {
           </div>
           <span className="font-semibold text-lg text-pink-300">{opponentName}</span>
         </div>
-      </div>
-      {/* Bảng kết quả nhỏ hơn */}
-      <div className="w-full max-w-xl overflow-x-auto">
-        <table className="w-full text-center bg-gray-900 rounded-xl overflow-hidden text-sm">
-          <thead className="bg-gray-800">
-            <tr>
-              <th className="py-2">STT</th>
-              <th className="py-2">{userName}</th>
-              <th className="py-2">{opponentName}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[0,1,2,3,4].map(i => (
-              <tr key={i} className="border-b border-gray-700">
-                <td className="py-1">{i+1}</td>
-                <td className="py-1">{myResults[i] === null ? 'DNF' : (myResults[i] ? (myResults[i]/1000).toFixed(2) : "")}</td>
-                <td className="py-1">{opponentResults[i] === null ? 'DNF' : (opponentResults[i] ? (opponentResults[i]/1000).toFixed(2) : "")}</td>
-              </tr>
-            ))}
-            <tr className="bg-gray-800 font-bold">
-              <td>Best</td>
-              <td>{myStats.best !== null ? (myStats.best/1000).toFixed(2) : ""}</td>
-              <td>{oppStats.best !== null ? (oppStats.best/1000).toFixed(2) : ""}</td>
-            </tr>
-            <tr className="bg-gray-800 font-bold">
-              <td>Worst</td>
-              <td>{myStats.worst !== null ? (myStats.worst/1000).toFixed(2) : ""}</td>
-              <td>{oppStats.worst !== null ? (oppStats.worst/1000).toFixed(2) : ""}</td>
-            </tr>
-            <tr className="bg-gray-800 font-bold">
-              <td>Mean 3</td>
-              <td>{myStats.mean3 !== null ? (myStats.mean3/1000).toFixed(2) : ""}</td>
-              <td>{oppStats.mean3 !== null ? (oppStats.mean3/1000).toFixed(2) : ""}</td>
-            </tr>
-            <tr className="bg-gray-800 font-bold">
-              <td>Avg 5</td>
-              <td>{myStats.avg5 !== null ? (myStats.avg5/1000).toFixed(2) : ""}</td>
-              <td>{oppStats.avg5 !== null ? (oppStats.avg5/1000).toFixed(2) : ""}</td>
-            </tr>
-            <tr className="bg-gray-800 font-bold">
-              <td>Ao5</td>
-              <td>{myStats.ao5 !== null ? (myStats.ao5/1000).toFixed(2) : ""}</td>
-              <td>{oppStats.ao5 !== null ? (oppStats.ao5/1000).toFixed(2) : ""}</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
   );
