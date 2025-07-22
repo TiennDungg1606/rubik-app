@@ -1,3 +1,14 @@
+@font-face {
+  font-family: 'Digital7Mono';
+  src: url('/digital-7-mono.ttf') format('truetype');
+  font-display: swap;
+}
+
+.digital7mono {
+  font-family: 'Digital7Mono', monospace !important;
+  font-weight: normal !important;
+  letter-spacing: 0.05em;
+}
 @import "tailwindcss";
 
 :root {

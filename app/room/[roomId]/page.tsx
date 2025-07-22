@@ -29,34 +29,41 @@ function generateScramble() {
 }
 
 // Helper for stats (all in ms)
+// Tính toán thống kê chuẩn WCA, DNF là null, mọi kết quả đều 3 số thập phân
 function calcStats(times: (number|null)[]) {
   const valid = times.filter(t => typeof t === 'number' && t > 0) as number[];
   if (valid.length === 0) return { best: null, worst: null, mean3: null, avg5: null, ao5: null };
   const sorted = [...valid].sort((a, b) => a - b);
   const best = sorted[0];
   const worst = sorted[sorted.length - 1];
-// mean3: average of the 3 middle values (if at least 3)
+  // mean3: average of 3 solves (nếu đủ 3, có DNF thì DNF)
   let mean3 = null;
-  if (valid.length >= 3) {
-    const m3 = [...valid].sort((a, b) => a - b).slice(1, 4);
-    mean3 = m3.reduce((a, b) => a + b, 0) / 3;
-  }
-// avg5: average of 5 solves, if any DNF then result is DNF
-  let avg5 = null;
-  if (times.length === 5) {
-    if (times.some(t => t === null)) {
-      avg5 = null;
+  if (times.length >= 3) {
+    const last3 = times.slice(-3);
+    if (last3.some(t => t === null)) {
+      mean3 = null;
     } else {
-      avg5 = (times as number[]).reduce((a, b) => a + b, 0) / 5;
+      mean3 = (last3 as number[]).reduce((a, b) => a + b, 0) / 3;
     }
   }
-// ao5: exclude best and worst, average the remaining 3 values, if any DNF then result is DNF
+  // avg5: average of 5 solves, nếu có DNF thì DNF
+  let avg5 = null;
+  if (times.length >= 5) {
+    const last5 = times.slice(-5);
+    if (last5.some(t => t === null)) {
+      avg5 = null;
+    } else {
+      avg5 = (last5 as number[]).reduce((a, b) => a + b, 0) / 5;
+    }
+  }
+  // ao5: loại best và worst trong 5 lần gần nhất, nếu có DNF thì DNF
   let ao5 = null;
-  if (times.length === 5) {
-    if (times.some(t => t === null)) {
+  if (times.length >= 5) {
+    const last5 = times.slice(-5);
+    if (last5.some(t => t === null)) {
       ao5 = null;
     } else {
-      const arr = [...(times as number[])].sort((a, b) => a - b).slice(1, 4);
+      const arr = [...(last5 as number[])].sort((a, b) => a - b).slice(1, 4);
       ao5 = arr.reduce((a, b) => a + b, 0) / 3;
     }
   }
@@ -631,22 +638,15 @@ export default function RoomPage() {
   const myStats = calcStats(myResults);
   const oppStats = calcStats(opponentResults);
 
-  function formatTime(ms: number|null) {
-    if (ms === null) return 'DNF';
-    // round to 3 decimals
-    const sec = Math.floor(ms / 1000);
-    const msR = Math.round(ms % 1000);
-    return `${sec}.${msR.toString().padStart(3, "0")}`;
-  }
+function formatTime(ms: number|null) {
+  if (ms === null) return 'DNF';
+  return (ms/1000).toFixed(3);
+}
 
-  function formatStat(val: number|null) {
-    if (val === null) return '';
-    // round to 3 decimals
-    const v = Math.round(val);
-    const sec = Math.floor(v / 1000);
-    const msR = Math.abs(v % 1000);
-    return `${sec}.${msR.toString().padStart(3, "0")}`;
-  }
+function formatStat(val: number|null) {
+  if (val === null) return '';
+  return (val/1000).toFixed(3);
+}
 
   if (!userName || !roomId) {
     return (
@@ -682,7 +682,7 @@ export default function RoomPage() {
         type="button"
       >Rời phòng</button>
       {/* Dải chỉ số tổng hợp của cả 2 người ở góc trên trái */}
-      <div className="fixed top-30 left-16 z-50 bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white p-0 m-0 rounded-xl">
+      <div className="fixed top-35 left-28 z-50 bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white p-0 m-0 rounded-xl">
         <table className="text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg border-collapse" style={{ border: '1px solid #374151', margin: 0 }}>
           <thead className="bg-gray-800">
             <tr>
@@ -697,26 +697,26 @@ export default function RoomPage() {
           <tbody>
             <tr>
               <td className="px-3 py-1 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>{userName}</td>
-              <td className="px-3 py-1 border border-gray-700 text-green-300">{myStats.best !== null ? (myStats.best/1000).toFixed(2) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700 text-red-300">{myStats.worst !== null ? (myStats.worst/1000).toFixed(2) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{myStats.mean3 !== null ? (myStats.mean3/1000).toFixed(2) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{myStats.avg5 !== null ? (myStats.avg5/1000).toFixed(2) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{myStats.ao5 !== null ? (myStats.ao5/1000).toFixed(2) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700 text-green-300">{myStats.best !== null ? formatTime(myStats.best) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700 text-red-300">{myStats.worst !== null ? formatTime(myStats.worst) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{myStats.mean3 !== null ? formatStat(myStats.mean3) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{myStats.avg5 !== null ? formatStat(myStats.avg5) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{myStats.ao5 !== null ? formatStat(myStats.ao5) : ""}</td>
             </tr>
             <tr>
               <td className="px-3 py-1 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>{opponentName}</td>
-              <td className="px-3 py-1 border border-gray-700 text-green-300">{oppStats.best !== null ? (oppStats.best/1000).toFixed(2) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700 text-red-300">{oppStats.worst !== null ? (oppStats.worst/1000).toFixed(2) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{oppStats.mean3 !== null ? (oppStats.mean3/1000).toFixed(2) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{oppStats.avg5 !== null ? (oppStats.avg5/1000).toFixed(2) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{oppStats.ao5 !== null ? (oppStats.ao5/1000).toFixed(2) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700 text-green-300">{oppStats.best !== null ? formatTime(oppStats.best) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700 text-red-300">{oppStats.worst !== null ? formatTime(oppStats.worst) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{oppStats.mean3 !== null ? formatStat(oppStats.mean3) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{oppStats.avg5 !== null ? formatStat(oppStats.avg5) : ""}</td>
+              <td className="px-3 py-1 border border-gray-700">{oppStats.ao5 !== null ? formatStat(oppStats.ao5) : ""}</td>
             </tr>
           </tbody>
         </table>
       </div>
       {/* Bảng kết quả ở góc phải trên */}
       <div
-        className="absolute top-13 right-15 z-40 w-[340px] max-w-xs"
+        className="absolute top-28 right-28 z-40 w-[340px] max-w-xs"
         style={{ minWidth: 260 }}
       >
         <table className="w-full text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg">
@@ -731,8 +731,8 @@ export default function RoomPage() {
             {[0,1,2,3,4].map(i => (
               <tr key={i} className="border-b border-gray-700">
                 <td className="py-1 border border-gray-700">{i+1}</td>
-                <td className="py-1 border border-gray-700">{myResults[i] === null ? 'DNF' : (myResults[i] ? (myResults[i]/1000).toFixed(2) : "")}</td>
-                <td className="py-1 border border-gray-700">{opponentResults[i] === null ? 'DNF' : (opponentResults[i] ? (opponentResults[i]/1000).toFixed(2) : "")}</td>
+                <td className="py-1 border border-gray-700">{myResults[i] === null ? 'DNF' : (typeof myResults[i] === 'number' ? formatTime(myResults[i]) : "")}</td>
+                <td className="py-1 border border-gray-700">{opponentResults[i] === null ? 'DNF' : (typeof opponentResults[i] === 'number' ? formatTime(opponentResults[i]) : "")}</td>
               </tr>
             ))}
           </tbody>
@@ -741,7 +741,7 @@ export default function RoomPage() {
       {/* Tên phòng */}
       <h2 className="text-3xl font-bold mb-2">Phòng: <span className="text-blue-400">{roomId}</span></h2>
       {/* Scramble */}
-      <div className="mb-5 px-2 py-1 bg-gray-800 rounded-xl text-base font-mono tracking-widest select-all">
+      <div className="mb-5 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all">
         {scramble}
       </div>
       {/* Thanh trạng thái */}
@@ -751,11 +751,51 @@ export default function RoomPage() {
         ) : (
           <span className="text-green-400 text-lg font-semibold">Đã đủ 2 người, sẵn sàng thi đấu!</span>
         )}
-      </div>  
+      </div>
+      {/* Thông báo trạng thái lượt giải */}
+      <div className="mb-3">
+        {(() => {
+          // Chỉ hiển thị khi đủ 2 người
+          if (waiting || users.length < 2) return null;
+          // Nếu cả 2 đã đủ 5 lượt thì thông báo kết quả
+          const bothDone = myResults.length >= 5 && opponentResults.length >= 5;
+          if (bothDone) {
+            // So sánh ao5, nếu đều DNF thì hòa
+            const myAo5 = calcStats(myResults).ao5;
+            const oppAo5 = calcStats(opponentResults).ao5;
+            let winner = null;
+            if (myAo5 === null && oppAo5 === null) {
+              return <span className="text-base font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
+            } else if (myAo5 === null) {
+              winner = opponentName;
+            } else if (oppAo5 === null) {
+              winner = userName;
+            } else if (myAo5 < oppAo5) {
+              winner = userName;
+            } else if (myAo5 > oppAo5) {
+              winner = opponentName;
+            } else {
+              return <span className="text-base font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
+            }
+            return <span className="text-base font-semibold text-green-400">Trận đấu kết thúc, {winner} thắng</span>;
+          }
+          // Đang trong trận
+          let msg = "";
+          let name = turn === 'me' ? userName : opponentName;
+          if (prep) {
+            msg = `${name} đang chuẩn bị`;
+          } else if (running) {
+            msg = `${name} đang giải`;
+          } else {
+            msg = `Đến lượt ${name} thi đấu`;
+          }
+          return <span className="text-base font-semibold text-blue-300">{msg}</span>;
+        })()}
+      </div>
       {/* Đã xóa Timer phía trên, chỉ giữ lại Timer nằm ngang giữa hai webcam */}
       {/* Webcam + Timer ngang hàng */}
       <div
-        className="w-full mb-0 max-w-5xl flex flex-row gap-24 justify-center items-center mt-28"
+        className="w-full mb-0 max-w-5xl flex flex-row gap-20 justify-center items-center mt-38"
         style={{ maxWidth: '100vw' }}
       >
         {/* Webcam của bạn */}
@@ -787,7 +827,8 @@ export default function RoomPage() {
         {/* Timer ở giữa */}
         <div className="flex flex-col items-center justify-center">
           <div
-            className="text-6xl font-mono font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg"
+            className="text-6xl font-[\'Digital-7\'] font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg"
+            style={{ fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace" }}
             onClick={() => {
               if (waiting || myResults.length >= 5) return;
               if (!prep && !running && turn === 'me') {
@@ -816,7 +857,10 @@ export default function RoomPage() {
             ) : dnf ? (
               <span className="text-red-400">DNF</span>
             ) : (
-              <span>{(timer/1000).toFixed(3)}s</span>
+              <>
+                <span style={{ fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace" }}>{(timer/1000).toFixed(3)}</span>
+                <span className="ml-1 align-bottom" style={{ fontFamily: 'font-mono', fontWeight: 400, fontSize: '0.7em', lineHeight: 1 }}>s</span>
+              </>
             )}
           </div>
           {running && <div className="text-sm text-gray-400 mt-1">Chạm hoặc bấm phím bất kỳ để dừng</div>}

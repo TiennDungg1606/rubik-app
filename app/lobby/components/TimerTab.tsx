@@ -44,6 +44,29 @@ export default function TimerTab() {
         setTimerState("ready");
       } else if (timerState === "running") {
         setTimerState("done");
+      } else if (timerState === "dnf" && e.code === "Space") {
+        // Khi đang ở trạng thái DNF, nhấn Space để thêm kết quả DNF vào bảng và sang scramble mới
+        setResults(prev => {
+          const newResults = [...prev, { time: 0, scramble, dnf: true }];
+          // Update best
+          const valid = newResults.filter(r => !r.dnf);
+          setBest(valid.length ? Math.min(...valid.map(r => r.time)) : null);
+          // Update mean
+          setMean(valid.length ? (valid.reduce((a, b) => a + b.time, 0) / valid.length / 1000).toFixed(3) : "DNF");
+          // ao5, ao12
+          function avgN(arr: any[], n: number) {
+            if (arr.length < n) return "-";
+            const lastN = arr.slice(-n).filter(r => !r.dnf);
+            if (lastN.length < n) return "DNF";
+            return (lastN.reduce((a, b) => a + b.time, 0) / n / 1000).toFixed(3);
+          }
+          setAo5(avgN(newResults, 5));
+          setAo12(avgN(newResults, 12));
+          return newResults;
+        });
+        setScramble(generateScramble());
+        setTimerState("idle");
+        setStartTime(null);
       }
     }
     function onKeyUp(e: KeyboardEvent) {
@@ -85,22 +108,26 @@ export default function TimerTab() {
   }, [timerState, startTime]);
 
   useEffect(() => {
-    if (timerState === "done" || timerState === "dnf") {
-      let t = timerState === "dnf" ? 0 : time;
-      let dnf = timerState === "dnf";
+    if (timerState === "done") {
+      let t = time;
+      let dnf = false;
       setResults(prev => {
         const newResults = [...prev, { time: t, scramble, dnf }];
         // Update best
         const valid = newResults.filter(r => !r.dnf);
         setBest(valid.length ? Math.min(...valid.map(r => r.time)) : null);
         // Update mean
-        setMean(valid.length ? (valid.reduce((a, b) => a + b.time, 0) / valid.length / 1000).toFixed(2) : "DNF");
-        // ao5, ao12
-        function avgN(arr: any[], n: number) {
+        setMean(valid.length ? (valid.reduce((a, b) => a + b.time, 0) / valid.length / 1000).toFixed(3) : "DNF");
+        // ao5, ao12 (chuẩn WCA)
+        function avgN(arr: {time: number, scramble: string, dnf?: boolean}[], n: number): string {
           if (arr.length < n) return "-";
-          const lastN = arr.slice(-n).filter(r => !r.dnf);
-          if (lastN.length < n) return "DNF";
-          return (lastN.reduce((a, b) => a + b.time, 0) / n / 1000).toFixed(2);
+          const lastN = arr.slice(-n);
+          const dnfCount = lastN.filter(r => r.dnf).length;
+          if (dnfCount >= 2) return "DNF";
+          const times = lastN.map(r => r.dnf ? Infinity : r.time).sort((a, b) => a - b);
+          const trimmed = times.slice(1, -1);
+          if (trimmed.some(t => !isFinite(t))) return "DNF";
+          return (trimmed.reduce((a, b) => a + b, 0) / trimmed.length / 1000).toFixed(3);
         }
         setAo5(avgN(newResults, 5));
         setAo12(avgN(newResults, 12));
@@ -110,6 +137,7 @@ export default function TimerTab() {
       setTimerState("idle");
       setStartTime(null);
     }
+    // Nếu là dnf thì chỉ hiển thị DNF, không reset, không thêm vào bảng
   }, [timerState]);
 
   return (
@@ -161,21 +189,29 @@ export default function TimerTab() {
                   <tbody>
                     {results.slice().reverse().map((r, idx, arr) => {
                       const i = arr.length - idx; // Số thứ tự
-                      // Tính ao5, ao12 cho từng dòng
+                      // Tính ao5, ao12 cho từng dòng với đúng luật WCA
+                      function calcAoN(subArr: {time: number, scramble: string, dnf?: boolean}[], n: number): string {
+                        if (subArr.length < n) return "-";
+                        const lastN = subArr.slice(0, n);
+                        const dnfCount = lastN.filter((r) => r.dnf).length;
+                        if (dnfCount >= 2) return "DNF";
+                        const times = lastN.map((r) => r.dnf ? Infinity : r.time).sort((a, b) => a - b);
+                        const trimmed = times.slice(1, -1);
+                        if (trimmed.some((t) => !isFinite(t))) return "DNF";
+                        return (trimmed.reduce((a, b) => a + b, 0) / trimmed.length / 1000).toFixed(3);
+                      }
                       let ao5Val = '-';
                       let ao12Val = '-';
                       if (arr.length - idx >= 5) {
-                        const last5 = arr.slice(idx, idx+5).filter(x => !x.dnf);
-                        if (last5.length === 5) ao5Val = (last5.reduce((a, b) => a + b.time, 0) / 5 / 1000).toFixed(2);
+                        ao5Val = calcAoN(arr.slice(idx, idx+5), 5);
                       }
                       if (arr.length - idx >= 12) {
-                        const last12 = arr.slice(idx, idx+12).filter(x => !x.dnf);
-                        if (last12.length === 12) ao12Val = (last12.reduce((a, b) => a + b.time, 0) / 12 / 1000).toFixed(2);
+                        ao12Val = calcAoN(arr.slice(idx, idx+12), 12);
                       }
                       return (
                         <tr key={i}>
                           <td className="border border-gray-400 text-blue-700 text-center">{i}</td>
-                          <td className={`border border-gray-400 text-center ${r.dnf ? 'text-red-500' : 'text-red-500'}`}>{r.dnf ? 'DNF' : (r.time/1000).toFixed(2)}</td>
+                          <td className={`border border-gray-400 text-center ${r.dnf ? 'text-red-500' : 'text-red-500'}`}>{r.dnf ? 'DNF' : (r.time/1000).toFixed(3)}</td>
                           <td className={`border border-gray-400 text-center ${ao5Val !== '-' ? 'text-red-500' : ''}`}>{ao5Val}</td>
                           <td className="border border-gray-400 text-center">{ao12Val}</td>
                         </tr>
@@ -221,20 +257,24 @@ export default function TimerTab() {
           </div>
         </div>
         {/* Scramble */}
-        <div className="w-full text-center text-lg font-mono py-4 px-2 border-b border-gray-200 bg-transparent text-white drop-shadow-lg">
+        <div className="w-full text-center text-2xl font-mono font-bold py-4 px-2 border-b border-gray-200 bg-transparent text-white drop-shadow-lg">
           {scramble}
         </div>
         {/* Timer big */}
         <div className="flex-1 flex flex-col items-center justify-center relative">
           <div className="flex flex-col items-center">
+            {timerState === 'dnf' && (
+              <div className="mb-4 text-3xl text-yellow-400 font-bold drop-shadow-lg animate-pulse">Lỗi DNF, nhấn Space</div>
+            )}
+            {/* Font-face is now in globals.css for global effect */}
             {timerState === 'preparing' ? (
-              <div className="text-[5rem] font-mono font-bold text-yellow-400 leading-none select-none drop-shadow-lg">{prepTime}</div>
+              <div className="text-[10rem] digital7mono text-yellow-400 leading-none select-none drop-shadow-lg">{prepTime}</div>
             ) : timerState === 'ready' ? (
-              <div className="text-[5rem] font-mono font-bold text-yellow-400 leading-none select-none drop-shadow-lg">{prepTime}</div>
-            ) : timerState === 'dnf' ? (
-              <div className="text-[8rem] font-mono font-bold text-red-400 leading-none select-none drop-shadow-lg">DNF</div>
+              <div className="text-[10rem] digital7mono text-yellow-400 leading-none select-none drop-shadow-lg">{prepTime}</div>
+            ) : (timerState === 'dnf' || (timerState === 'done' && results.length > 0 && results[results.length-1].dnf)) ? (
+              <div className="text-[10rem] digital7mono font-bold text-red-400 leading-none select-none drop-shadow-lg">DNF</div>
             ) : (
-              <div className="text-[8rem] font-mono font-bold text-white leading-none select-none drop-shadow-lg">{(timerState === 'running' ? time : (timerState === 'done' ? time : time))/1000.0 < 0.001 ? '0.000' : ((timerState === 'running' || timerState === 'done') ? (time/1000).toFixed(3) : (time/1000).toFixed(3))}</div>
+              <div className="text-[10rem] digital7mono text-white leading-none select-none drop-shadow-lg" style={{fontFamily: 'Digital7Mono, monospace'}}>{(timerState === 'running' || timerState === 'done') ? (time/1000).toFixed(3) : (time/1000).toFixed(3)}</div>
             )}
             <div className="text-2xl text-white font-mono drop-shadow-lg">ao5: {ao5}</div>
             <div className="text-2xl text-white font-mono drop-shadow-lg">ao12: {ao12}</div>
