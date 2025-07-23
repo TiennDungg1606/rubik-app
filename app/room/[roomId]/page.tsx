@@ -80,6 +80,7 @@ export default function RoomPage() {
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream|null>(null);
+  const [streamReady, setStreamReady] = useState(false);
   const peerRef = useRef<any>(null);
   const [roomId, setRoomId] = useState<string>("");
   const [scramble, setScramble] = useState(generateScramble());
@@ -172,15 +173,14 @@ export default function RoomPage() {
   // All variable and hook declarations must be above this line
   // (removed duplicate/old peer connection effect)
   // Lấy camera/mic và gán vào myVideoRef khi vào phòng
+
   useEffect(() => {
     let stream: MediaStream | null = null;
     async function getMedia() {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (myVideoRef.current) {
-          myVideoRef.current.srcObject = stream;
-        }
         mediaStreamRef.current = stream;
+        setStreamReady(true); // trigger effect to set video srcObject
       } catch (err) {
         // eslint-disable-next-line no-alert
         alert('Không truy cập được camera/mic. Vui lòng kiểm tra lại quyền trình duyệt!');
@@ -191,14 +191,12 @@ export default function RoomPage() {
     // eslint-disable-next-line
   }, []);
 
-  // Đảm bảo luôn gán lại stream cho myVideoRef khi stream đã sẵn sàng hoặc khi cam/mic thay đổi
+  // Đảm bảo luôn gán lại stream cho myVideoRef khi stream đã sẵn sàng hoặc khi cam/mic thay đổi hoặc streamReady thay đổi
   useEffect(() => {
     if (myVideoRef.current && mediaStreamRef.current) {
-      if (myVideoRef.current.srcObject !== mediaStreamRef.current) {
-        myVideoRef.current.srcObject = mediaStreamRef.current;
-      }
+      myVideoRef.current.srcObject = mediaStreamRef.current;
     }
-  }, [camOn, micOn]);
+  }, [streamReady, camOn, micOn]);
 
 
   // Xác định thiết bị mobile (hydration-safe)
