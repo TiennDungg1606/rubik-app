@@ -94,7 +94,7 @@ export default function RoomPage() {
   const [users, setUsers] = useState<string[]>([]);
   const [waiting, setWaiting] = useState(true);
   // const [roomError, setRoomError] = useState<string|null>(null);
-  const [turn, setTurn] = useState<'me'|'opponent'>("me");
+  const [turn, setTurn] = useState<'me'|'opponent'>("opponent");
   const [myResults, setMyResults] = useState<(number|null)[]>([]);
   const [opponentResults, setOpponentResults] = useState<(number|null)[]>([]);
   const [dnf, setDnf] = useState(false);
@@ -125,10 +125,10 @@ export default function RoomPage() {
   }
   function handleLeaveRoom() {
     cleanupResources();
-    router.push('/lobby');
+    window.location.href = '/lobby';
     setTimeout(() => {
       window.location.reload();
-    }, 100);
+    }, 300);
   }
 
   // Cleanup khi đóng tab hoặc reload
@@ -412,13 +412,22 @@ export default function RoomPage() {
     };
   }, [roomId, userName]);
 
+
   // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
   useEffect(() => {
     if (isCreator && typeof userName === 'string') {
       setUsers([userName]);
       setWaiting(true);
+      setTurn('me'); // Chủ phòng luôn được chơi trước
     }
   }, [isCreator, userName]);
+
+  // Khi đủ 2 người, nếu không phải chủ phòng thì phải chờ đối thủ chơi trước
+  useEffect(() => {
+    if (!isCreator && users.length === 2) {
+      setTurn('opponent');
+    }
+  }, [isCreator, users.length]);
 
   // Khi vào phòng, tạo scramble mới
   useEffect(() => {
@@ -666,7 +675,11 @@ function formatStat(val: number|null) {
 
   return (
     <div
-      className="min-h-screen w-full flex flex-col items-center text-white py-4 overflow-hidden relative"
+      className={
+        isMobile && !isPortrait
+          ? "h-screen w-screen flex flex-row items-center justify-center text-white py-4 overflow-x-hidden overflow-y-auto min-h-0 relative"
+          : "min-h-screen w-full flex flex-col items-center text-white py-4 overflow-hidden relative"
+      }
       style={{
         backgroundImage: "url('/images.jpg')",
         backgroundSize: 'cover',
@@ -716,7 +729,7 @@ function formatStat(val: number|null) {
       </div>
       {/* Bảng kết quả ở góc phải trên */}
       <div
-        className="absolute top-28 right-28 z-40 w-[340px] max-w-xs"
+        className="absolute top-28 right-25 z-40 w-[340px] max-w-xs"
         style={{ minWidth: 260 }}
       >
         <table className="w-full text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg">
@@ -747,9 +760,9 @@ function formatStat(val: number|null) {
       {/* Thanh trạng thái */}
       <div className="mb-2">
         {waiting ? (
-          <span className="text-yellow-400 text-lg font-semibold">Đang chờ đối thủ vào phòng...</span>
+          <span className="text-yellow-400 text-2xl font-semibold">Đang chờ đối thủ vào phòng...</span>
         ) : (
-          <span className="text-green-400 text-lg font-semibold">Đã đủ 2 người, sẵn sàng thi đấu!</span>
+          <span className="text-green-400 text-2xl font-semibold">Đã đủ 2 người, sẵn sàng thi đấu!</span>
         )}
       </div>
       {/* Thông báo trạng thái lượt giải */}
@@ -789,15 +802,21 @@ function formatStat(val: number|null) {
           } else {
             msg = `Đến lượt ${name} thi đấu`;
           }
-          return <span className="text-base font-semibold text-blue-300">{msg}</span>;
+            return <span className="text-xl font-semibold text-green-300">{msg}</span>;
         })()}
       </div>
       {/* Đã xóa Timer phía trên, chỉ giữ lại Timer nằm ngang giữa hai webcam */}
       {/* Webcam + Timer ngang hàng */}
       <div
-        className="w-full mb-0 max-w-5xl flex flex-row gap-20 justify-center items-center mt-38"
+        className="w-full mb-0 max-w-5xl flex flex-row gap-20 justify-center items-center mt-38 relative"
         style={{ maxWidth: '100vw' }}
       >
+        {/* Thông báo lỗi camera */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-0 z-30" style={{ top: '-2.5rem', width: '100%', textAlign: 'center', pointerEvents: 'none' }}>
+          <span className="text-yellow-300 text-lg font-semibold">
+            Nếu camera của bạn không hoạt động, vui lòng nhấn nút tắt camera rồi bật lại
+          </span>
+        </div>
         {/* Webcam của bạn */}
         <div className="flex flex-col items-center webcam-area" style={isMobile ? { width: '100vw', maxWidth: 420 } : {}}>
           <div
@@ -827,7 +846,7 @@ function formatStat(val: number|null) {
         {/* Timer ở giữa */}
         <div className="flex flex-col items-center justify-center">
           <div
-            className="text-6xl font-[\'Digital-7\'] font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg"
+            className="text-7xl font-[\'Digital-7\'] font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg"
             style={{ fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace" }}
             onClick={() => {
               if (waiting || myResults.length >= 5) return;
