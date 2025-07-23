@@ -128,7 +128,7 @@ export default function RoomPage() {
     window.location.href = '/lobby';
     setTimeout(() => {
       window.location.reload();
-    }, 300);
+    }, 500);
   }
 
   // Cleanup khi đóng tab hoặc reload
@@ -689,13 +689,23 @@ function formatStat(val: number|null) {
       }}
     >
       {/* Nút rời phòng */}
+      {/* Nút rời phòng: luôn cố định trên mobile landscape và desktop */}
       <button
         onClick={handleLeaveRoom}
-        className="fixed top-4 left-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg"
+        className={
+          isMobile && !isPortrait
+            ? "absolute top-4 left-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg"
+            : "fixed top-4 left-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg"
+        }
         type="button"
       >Rời phòng</button>
       {/* Dải chỉ số tổng hợp của cả 2 người ở góc trên trái */}
-      <div className="fixed top-35 left-28 z-50 bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white p-0 m-0 rounded-xl">
+      {/* Bảng tổng hợp: luôn cố định trên desktop, còn mobile landscape thì đặt absolute đầu trang */}
+      <div className={
+        isMobile && !isPortrait
+          ? "absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white p-0 m-0 rounded-xl"
+          : "fixed top-35 left-28 z-50 bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white p-0 m-0 rounded-xl"
+      }>
         <table className="text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg border-collapse" style={{ border: '1px solid #374151', margin: 0 }}>
           <thead className="bg-gray-800">
             <tr>
@@ -807,9 +817,14 @@ function formatStat(val: number|null) {
       </div>
       {/* Đã xóa Timer phía trên, chỉ giữ lại Timer nằm ngang giữa hai webcam */}
       {/* Webcam + Timer ngang hàng */}
+      {/* Webcam + Timer ngang hàng, mobile landscape: chia đều chiều ngang, không tràn, có padding */}
       <div
-        className="w-full mb-0 max-w-5xl flex flex-row gap-20 justify-center items-center mt-38 relative"
-        style={{ maxWidth: '100vw' }}
+        className={
+          isMobile && !isPortrait
+            ? "flex flex-row w-full justify-center items-center gap-2 px-1 box-border"
+            : "w-full mb-0 max-w-5xl flex flex-row gap-20 justify-center items-center mt-38 relative"
+        }
+        style={isMobile && !isPortrait ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw' }}
       >
         {/* Thông báo lỗi camera */}
         <div className="absolute left-1/2 -translate-x-1/2 top-0 z-30" style={{ top: '-2.5rem', width: '100%', textAlign: 'center', pointerEvents: 'none' }}>
@@ -818,10 +833,17 @@ function formatStat(val: number|null) {
           </span>
         </div>
         {/* Webcam của bạn */}
-        <div className="flex flex-col items-center webcam-area" style={isMobile ? { width: '100vw', maxWidth: 420 } : {}}>
+        <div
+          className="flex flex-col items-center webcam-area flex-shrink-0"
+          style={isMobile && !isPortrait
+            ? { width: '32vw', minWidth: 0, maxWidth: 420 }
+            : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
+        >
           <div
             className="bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"
-            style={isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+            style={isMobile && !isPortrait
+              ? { width: '30vw', height: '22vw', minWidth: 0, minHeight: 0, maxWidth: 420, maxHeight: 240 }
+              : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
             <video
               ref={myVideoRef}
@@ -844,10 +866,10 @@ function formatStat(val: number|null) {
           <span className="font-semibold text-lg text-blue-300">{userName}</span>
         </div>
         {/* Timer ở giữa */}
-        <div className="flex flex-col items-center justify-center">
+        <div className={isMobile && !isPortrait ? "flex flex-col items-center justify-center" : "flex flex-col items-center justify-center"} style={isMobile && !isPortrait ? { width: '24vw', minHeight: 0, minWidth: 120, maxWidth: 240 } : {}}>
           <div
             className="text-7xl font-[\'Digital-7\'] font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg"
-            style={{ fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace" }}
+            style={{ fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '100px', textAlign: 'center' }}
             onClick={() => {
               if (waiting || myResults.length >= 5) return;
               if (!prep && !running && turn === 'me') {
@@ -886,10 +908,17 @@ function formatStat(val: number|null) {
           {prep && <div className="text-sm text-gray-400 mt-1">Chạm hoặc bấm phím Space để bắt đầu</div>}
         </div>
         {/* Webcam đối thủ */}
-        <div className="flex flex-col items-center webcam-area" style={isMobile ? { width: '100vw', maxWidth: 420 } : {}}>
+        <div
+          className="flex flex-col items-center webcam-area flex-shrink-0"
+          style={isMobile && !isPortrait
+            ? { width: '32vw', minWidth: 0, maxWidth: 420 }
+            : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
+        >
           <div
             className="bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"
-            style={isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+            style={isMobile && !isPortrait
+              ? { width: '30vw', height: '22vw', minWidth: 0, minHeight: 0, maxWidth: 420, maxHeight: 240 }
+              : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
             <video
               ref={opponentVideoRef}
