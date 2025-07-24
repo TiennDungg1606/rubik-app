@@ -36,7 +36,6 @@ function calcStats(times: (number|null)[]) {
   const sorted = [...valid].sort((a, b) => a - b);
   const best = sorted[0];
   const worst = sorted[sorted.length - 1];
-  // mean3: average of 3 solves (nếu đủ 3, có DNF thì DNF)
   let mean3 = null;
   if (times.length >= 3) {
     const last3 = times.slice(-3);
@@ -46,7 +45,6 @@ function calcStats(times: (number|null)[]) {
       mean3 = (last3 as number[]).reduce((a, b) => a + b, 0) / 3;
     }
   }
-  // avg5: average of 5 solves, nếu có DNF thì DNF
   let avg5 = null;
   if (times.length >= 5) {
     const last5 = times.slice(-5);
@@ -56,7 +54,6 @@ function calcStats(times: (number|null)[]) {
       avg5 = (last5 as number[]).reduce((a, b) => a + b, 0) / 5;
     }
   }
-  // ao5: loại best và worst trong 5 lần gần nhất, nếu có DNF thì DNF
   let ao5 = null;
   if (times.length >= 5) {
     const last5 = times.slice(-5);
@@ -71,39 +68,42 @@ function calcStats(times: (number|null)[]) {
 }
 
 export default function RoomPage() {
-  // All hooks and refs declared ONCE at the top
   const router = useRouter();
-  const [isMobile, setIsMobile] = useState(false);
-  const [isPortrait, setIsPortrait] = useState(false);
-  const [camOn, setCamOn] = useState(true);
-  const [micOn, setMicOn] = useState(true);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [isPortrait, setIsPortrait] = useState<boolean>(false);
+  const [isMobileLandscape, setIsMobileLandscape] = useState<boolean>(false);
+  const [camOn, setCamOn] = useState<boolean>(true);
+  const [micOn, setMicOn] = useState<boolean>(true);
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream|null>(null);
-  const [streamReady, setStreamReady] = useState(false);
+  const [streamReady, setStreamReady] = useState<boolean>(false);
   const peerRef = useRef<any>(null);
   const [roomId, setRoomId] = useState<string>("");
-  const [scramble, setScramble] = useState(generateScramble());
-  const [timer, setTimer] = useState(0);
-  const timerRef = useRef(0);
-  const [running, setRunning] = useState(false);
-  const [prep, setPrep] = useState(false);
-  const [prepTime, setPrepTime] = useState(15);
-  const [canStart, setCanStart] = useState(false);
-  const [spaceHeld, setSpaceHeld] = useState(false);
+  const [scramble, setScramble] = useState<string>(generateScramble());
+  const [timer, setTimer] = useState<number>(0);
+  const timerRef = useRef<number>(0);
+  const [running, setRunning] = useState<boolean>(false);
+  const [prep, setPrep] = useState<boolean>(false);
+  const [prepTime, setPrepTime] = useState<number>(15);
+  const [canStart, setCanStart] = useState<boolean>(false);
+  const [spaceHeld, setSpaceHeld] = useState<boolean>(false);
   const [users, setUsers] = useState<string[]>([]);
-  const [waiting, setWaiting] = useState(true);
-  // const [roomError, setRoomError] = useState<string|null>(null);
-  const [turn, setTurn] = useState<'me'|'opponent'>("opponent");
+  const [waiting, setWaiting] = useState<boolean>(true);
+  const [turn, setTurn] = useState<'me'|'opponent'>('opponent');
   const [myResults, setMyResults] = useState<(number|null)[]>([]);
   const [opponentResults, setOpponentResults] = useState<(number|null)[]>([]);
-  const [dnf, setDnf] = useState(false);
+  const [dnf, setDnf] = useState<boolean>(false);
   const [opponentTime, setOpponentTime] = useState<number|null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [isCreator, setIsCreator] = useState(false);
-  const [opponentName, setOpponentName] = useState('Đối thủ');
+  const [userName, setUserName] = useState<string>("");
+  const [isCreator, setIsCreator] = useState<boolean>(false);
+
+  const [opponentName, setOpponentName] = useState<string>('Đối thủ');
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
+
+
+  // ...giữ nguyên toàn bộ logic và return JSX phía sau...
 
   // --- Effects and logic below ---
 
@@ -128,7 +128,7 @@ export default function RoomPage() {
     window.location.href = '/lobby';
     setTimeout(() => {
       window.location.reload();
-    }, 500);
+    }, 1300);
   }
 
   // Cleanup khi đóng tab hoặc reload
@@ -199,26 +199,26 @@ export default function RoomPage() {
   }, [streamReady, camOn, micOn]);
 
 
-  // Xác định thiết bị mobile (hydration-safe)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsMobile(/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent));
-    }
-  }, []);
 
-  // Xác định xoay dọc màn hình
+  // Xác định thiết bị mobile (hydration-safe) và mobile landscape thực sự (màn nhỏ)
   useEffect(() => {
-    function checkOrientation() {
-      if (window.innerHeight > window.innerWidth) setIsPortrait(true);
-      else setIsPortrait(false);
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      const portrait = window.innerHeight > window.innerWidth;
+      setIsPortrait(portrait);
+      // Chỉ coi là mobile landscape nếu là mobile, landscape và chiều rộng nhỏ hơn 900px
+      setIsMobileLandscape(mobile && !portrait && window.innerWidth < 900);
     }
-    checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-    return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
-    };
+    if (typeof window !== 'undefined') {
+      checkDevice();
+      window.addEventListener('resize', checkDevice);
+      window.addEventListener('orientationchange', checkDevice);
+      return () => {
+        window.removeEventListener('resize', checkDevice);
+        window.removeEventListener('orientationchange', checkDevice);
+      };
+    }
   }, []);
 
   // Lấy roomId từ URL client-side để tránh lỗi build
@@ -699,150 +699,189 @@ function formatStat(val: number|null) {
         }
         type="button"
       >Rời phòng</button>
-      {/* Dải chỉ số tổng hợp của cả 2 người ở góc trên trái */}
-      {/* Bảng tổng hợp: luôn cố định trên desktop, còn mobile landscape thì đặt absolute đầu trang */}
-      <div className={
-        isMobile && !isPortrait
-          ? "absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white p-0 m-0 rounded-xl"
-          : "fixed top-35 left-28 z-50 bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white p-0 m-0 rounded-xl"
-      }>
-        <table className="text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg border-collapse" style={{ border: '1px solid #374151', margin: 0 }}>
-          <thead className="bg-gray-800">
-            <tr>
-              <th className="px-3 py-1 border border-gray-700 font-bold">Tên</th>
-              <th className="px-3 py-1 border border-gray-700 font-bold">Best</th>
-              <th className="px-3 py-1 border border-gray-700 font-bold">Worst</th>
-              <th className="px-3 py-1 border border-gray-700 font-bold">Mean3</th>
-              <th className="px-3 py-1 border border-gray-700 font-bold">Avg5</th>
-              <th className="px-3 py-1 border border-gray-700 font-bold">Ao5</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="px-3 py-1 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>{userName}</td>
-              <td className="px-3 py-1 border border-gray-700 text-green-300">{myStats.best !== null ? formatTime(myStats.best) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700 text-red-300">{myStats.worst !== null ? formatTime(myStats.worst) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{myStats.mean3 !== null ? formatStat(myStats.mean3) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{myStats.avg5 !== null ? formatStat(myStats.avg5) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{myStats.ao5 !== null ? formatStat(myStats.ao5) : ""}</td>
-            </tr>
-            <tr>
-              <td className="px-3 py-1 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>{opponentName}</td>
-              <td className="px-3 py-1 border border-gray-700 text-green-300">{oppStats.best !== null ? formatTime(oppStats.best) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700 text-red-300">{oppStats.worst !== null ? formatTime(oppStats.worst) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{oppStats.mean3 !== null ? formatStat(oppStats.mean3) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{oppStats.avg5 !== null ? formatStat(oppStats.avg5) : ""}</td>
-              <td className="px-3 py-1 border border-gray-700">{oppStats.ao5 !== null ? formatStat(oppStats.ao5) : ""}</td>
-            </tr>
-          </tbody>
-        </table>
+      {/* Khối trên cùng: Tên phòng và scramble */}
+      <div className="w-full flex flex-col items-center justify-center mb-4">
+        <h2 className="text-3xl font-bold mb-2">Phòng: <span className="text-blue-400">{roomId}</span></h2>
+        <div className="mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all">
+          {scramble}
+        </div>
       </div>
-      {/* Bảng kết quả ở góc phải trên */}
+      {/* Hàng ngang 3 khối: bảng tổng hợp | trạng thái + thông báo | bảng kết quả */}
       <div
-        className="absolute top-28 right-25 z-40 w-[340px] max-w-xs"
-        style={{ minWidth: 260 }}
+        className={
+          isMobileLandscape
+            ? "w-full flex flex-row flex-wrap justify-between items-start gap-2 px-1 mb-4 overflow-x-auto"
+            : "w-full flex flex-row justify-between items-start gap-4 mb-6"
+        }
+        style={isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
       >
-        <table className="w-full text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg">
-          <thead className="bg-gray-800">
-            <tr>
-              <th className="py-2 border border-gray-700">STT</th>
-              <th className="py-2 border border-gray-700" style={{ color: '#60a5fa' }}>{userName}</th>
-              <th className="py-2 border border-gray-700" style={{ color: '#f472b6' }}>{opponentName}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[0,1,2,3,4].map(i => (
-              <tr key={i} className="border-b border-gray-700">
-                <td className="py-1 border border-gray-700">{i+1}</td>
-                <td className="py-1 border border-gray-700">{myResults[i] === null ? 'DNF' : (typeof myResults[i] === 'number' ? formatTime(myResults[i]) : "")}</td>
-                <td className="py-1 border border-gray-700">{opponentResults[i] === null ? 'DNF' : (typeof opponentResults[i] === 'number' ? formatTime(opponentResults[i]) : "")}</td>
+        {/* Bảng tổng hợp bên trái */}
+        <div
+          className={
+            isMobileLandscape
+              ? "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 ml-0 mb-2"
+              : "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[220px] max-w-[260px] w-[240px] flex-shrink-0 ml-4"
+          }
+          style={isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+        >
+          <table className="text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg border-collapse w-full" style={{ border: '1px solid #374151', margin: 0 }}>
+            <thead className="bg-gray-800">
+              <tr>
+                <th className="px-3 py-1 border border-gray-700 font-bold">Tên</th>
+                <th className="px-3 py-1 border border-gray-700 font-bold">Best</th>
+                <th className="px-3 py-1 border border-gray-700 font-bold">Worst</th>
+                <th className="px-3 py-1 border border-gray-700 font-bold">Mean3</th>
+                <th className="px-3 py-1 border border-gray-700 font-bold">Avg5</th>
+                <th className="px-3 py-1 border border-gray-700 font-bold">Ao5</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {/* Tên phòng */}
-      <h2 className="text-3xl font-bold mb-2">Phòng: <span className="text-blue-400">{roomId}</span></h2>
-      {/* Scramble */}
-      <div className="mb-5 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all">
-        {scramble}
-      </div>
-      {/* Thanh trạng thái */}
-      <div className="mb-2">
-        {waiting ? (
-          <span className="text-yellow-400 text-2xl font-semibold">Đang chờ đối thủ vào phòng...</span>
-        ) : (
-          <span className="text-green-400 text-2xl font-semibold">Đã đủ 2 người, sẵn sàng thi đấu!</span>
-        )}
-      </div>
-      {/* Thông báo trạng thái lượt giải */}
-      <div className="mb-3">
-        {(() => {
-          // Chỉ hiển thị khi đủ 2 người
-          if (waiting || users.length < 2) return null;
-          // Nếu cả 2 đã đủ 5 lượt thì thông báo kết quả
-          const bothDone = myResults.length >= 5 && opponentResults.length >= 5;
-          if (bothDone) {
-            // So sánh ao5, nếu đều DNF thì hòa
-            const myAo5 = calcStats(myResults).ao5;
-            const oppAo5 = calcStats(opponentResults).ao5;
-            let winner = null;
-            if (myAo5 === null && oppAo5 === null) {
-              return <span className="text-base font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
-            } else if (myAo5 === null) {
-              winner = opponentName;
-            } else if (oppAo5 === null) {
-              winner = userName;
-            } else if (myAo5 < oppAo5) {
-              winner = userName;
-            } else if (myAo5 > oppAo5) {
-              winner = opponentName;
-            } else {
-              return <span className="text-base font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
-            }
-            return <span className="text-base font-semibold text-green-400">Trận đấu kết thúc, {winner} thắng</span>;
+            </thead>
+            <tbody>
+              <tr>
+                <td className="px-3 py-1 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>{userName}</td>
+                <td className="px-3 py-1 border border-gray-700 text-green-300">{myStats.best !== null ? formatTime(myStats.best) : ""}</td>
+                <td className="px-3 py-1 border border-gray-700 text-red-300">{myStats.worst !== null ? formatTime(myStats.worst) : ""}</td>
+                <td className="px-3 py-1 border border-gray-700">{myStats.mean3 !== null ? formatStat(myStats.mean3) : ""}</td>
+                <td className="px-3 py-1 border border-gray-700">{myStats.avg5 !== null ? formatStat(myStats.avg5) : ""}</td>
+                <td className="px-3 py-1 border border-gray-700">{myStats.ao5 !== null ? formatStat(myStats.ao5) : ""}</td>
+              </tr>
+              <tr>
+                <td className="px-3 py-1 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>{opponentName}</td>
+                <td className="px-3 py-1 border border-gray-700 text-green-300">{oppStats.best !== null ? formatTime(oppStats.best) : ""}</td>
+                <td className="px-3 py-1 border border-gray-700 text-red-300">{oppStats.worst !== null ? formatTime(oppStats.worst) : ""}</td>
+                <td className="px-3 py-1 border border-gray-700">{oppStats.mean3 !== null ? formatStat(oppStats.mean3) : ""}</td>
+                <td className="px-3 py-1 border border-gray-700">{oppStats.avg5 !== null ? formatStat(oppStats.avg5) : ""}</td>
+                <td className="px-3 py-1 border border-gray-700">{oppStats.ao5 !== null ? formatStat(oppStats.ao5) : ""}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {/* Khối giữa: trạng thái + thông báo */}
+        <div
+          className={
+            isMobileLandscape
+              ? "flex flex-col items-center justify-center min-w-[120px] max-w-[180px] mx-auto mb-2 w-auto"
+              : "flex flex-col items-center justify-center min-w-[260px] max-w-[520px] mx-auto w-auto"
           }
-          // Đang trong trận
-          let msg = "";
-          let name = turn === 'me' ? userName : opponentName;
-          if (prep) {
-            msg = `${name} đang chuẩn bị`;
-          } else if (running) {
-            msg = `${name} đang giải`;
-          } else {
-            msg = `Đến lượt ${name} thi đấu`;
+          style={isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+        >
+          {/* Thanh trạng thái */}
+          <div className="mb-2 w-full flex items-center justify-center">
+            {waiting ? (
+              <span className="text-yellow-400 text-2xl font-semibold text-center w-full block">Đang chờ đối thủ vào phòng...</span>
+            ) : (
+              <span className="text-green-400 text-2xl font-semibold text-center w-full block">Đã đủ 2 người, sẵn sàng thi đấu!</span>
+            )}
+          </div>
+          {/* Thông báo trạng thái lượt giải + Thông báo lỗi camera */}
+          <div className="mb-3 relative w-full flex flex-col items-center justify-center text-center">
+            {(() => {
+              // Chỉ hiển thị khi đủ 2 người
+              if (waiting || users.length < 2) return null;
+              // Nếu cả 2 đã đủ 5 lượt thì thông báo kết quả
+              const bothDone = myResults.length >= 5 && opponentResults.length >= 5;
+              if (bothDone) {
+                // So sánh ao5, nếu đều DNF thì hòa
+                const myAo5 = calcStats(myResults).ao5;
+                const oppAo5 = calcStats(opponentResults).ao5;
+                let winner = null;
+                if (myAo5 === null && oppAo5 === null) {
+                  return <span className="text-base font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
+                } else if (myAo5 === null) {
+                  winner = opponentName;
+                } else if (oppAo5 === null) {
+                  winner = userName;
+                } else if (myAo5 < oppAo5) {
+                  winner = userName;
+                } else if (myAo5 > oppAo5) {
+                  winner = opponentName;
+                } else {
+                  return <span className="text-base font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
+                }
+                return <span className="text-base font-semibold text-green-400">Trận đấu kết thúc, {winner} thắng</span>;
+              }
+              // Đang trong trận
+              let msg = "";
+              let name = turn === 'me' ? userName : opponentName;
+              if (prep) {
+                msg = `${name} đang chuẩn bị`;
+              } else if (running) {
+                msg = `${name} đang giải`;
+              } else {
+                msg = `Đến lượt ${name} thi đấu`;
+              }
+                return <span className="text-xl font-semibold text-green-300">{msg}</span>;
+            })()}
+            {/* Thông báo lỗi camera */}
+            <div 
+              className="mt-2 w-full text-center pointer-events-none flex items-center justify-center"
+              style={{
+                maxWidth: '600px',
+                margin: '0 auto',
+                whiteSpace: 'normal',
+                wordBreak: 'break-word',
+              }}
+            >
+              <span className="text-yellow-300 text-lg font-semibold w-full block text-center">
+                Nếu camera của bạn không hoạt động, vui lòng nhấn nút tắt camera rồi bật lại
+              </span>
+            </div>
+          </div>
+        </div>
+        {/* Bảng kết quả bên phải */}
+        <div
+          className={
+            isMobileLandscape
+              ? "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 mr-0 mb-2"
+              : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[260px] max-w-[340px] w-[240px] flex-shrink-0 mr-4"
           }
-            return <span className="text-xl font-semibold text-green-300">{msg}</span>;
-        })()}
+          style={isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+        >
+          <table className="w-full text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg">
+            <thead className="bg-gray-800">
+              <tr>
+                <th className="py-2 border border-gray-700">STT</th>
+                <th className="py-2 border border-gray-700" style={{ color: '#60a5fa' }}>{userName}</th>
+                <th className="py-2 border border-gray-700" style={{ color: '#f472b6' }}>{opponentName}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[0,1,2,3,4].map(i => (
+                <tr key={i} className="border-b border-gray-700">
+                  <td className="py-1 border border-gray-700">{i+1}</td>
+                  <td className="py-1 border border-gray-700">{myResults[i] === null ? 'DNF' : (typeof myResults[i] === 'number' ? formatTime(myResults[i]) : "")}</td>
+                  <td className="py-1 border border-gray-700">{opponentResults[i] === null ? 'DNF' : (typeof opponentResults[i] === 'number' ? formatTime(opponentResults[i]) : "")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       {/* Đã xóa Timer phía trên, chỉ giữ lại Timer nằm ngang giữa hai webcam */}
       {/* Webcam + Timer ngang hàng */}
       {/* Webcam + Timer ngang hàng, mobile landscape: chia đều chiều ngang, không tràn, có padding */}
       <div
         className={
-          isMobile && !isPortrait
-            ? "flex flex-row w-full justify-center items-center gap-2 px-1 box-border"
-            : "w-full mb-0 max-w-5xl flex flex-row gap-20 justify-center items-center mt-38 relative"
+          isMobileLandscape
+            ? "flex flex-row flex-wrap w-full justify-center items-center gap-1 px-1 box-border"
+            : "w-full mb-0 max-w-5xl flex flex-row gap-20 justify-center items-center relative"
         }
-        style={isMobile && !isPortrait ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw' }}
+        style={isMobileLandscape ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw' }}
       >
-        {/* Thông báo lỗi camera */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-0 z-30" style={{ top: '-2.5rem', width: '100%', textAlign: 'center', pointerEvents: 'none' }}>
-          <span className="text-yellow-300 text-lg font-semibold">
-            Nếu camera của bạn không hoạt động, vui lòng nhấn nút tắt camera rồi bật lại
-          </span>
-        </div>
         {/* Webcam của bạn */}
         <div
-          className="flex flex-col items-center webcam-area flex-shrink-0"
-          style={isMobile && !isPortrait
-            ? { width: '32vw', minWidth: 0, maxWidth: 420 }
+          className={
+            isMobileLandscape
+              ? "flex flex-col items-center webcam-area flex-shrink-0"
+              : "flex flex-col items-center webcam-area flex-shrink-0"
+          }
+          style={isMobileLandscape
+            ? { width: '30vw', minWidth: 0, maxWidth: 180 }
             : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
         >
           <div
             className="bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"
             style={isMobile && !isPortrait
-              ? { width: '30vw', height: '22vw', minWidth: 0, minHeight: 0, maxWidth: 420, maxHeight: 240 }
+              ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
               : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
             <video
@@ -866,7 +905,7 @@ function formatStat(val: number|null) {
           <span className="font-semibold text-lg text-blue-300">{userName}</span>
         </div>
         {/* Timer ở giữa */}
-        <div className={isMobile && !isPortrait ? "flex flex-col items-center justify-center" : "flex flex-col items-center justify-center"} style={isMobile && !isPortrait ? { width: '24vw', minHeight: 0, minWidth: 120, maxWidth: 240 } : {}}>
+        <div className={isMobileLandscape ? "flex flex-col items-center justify-center" : "flex flex-col items-center justify-center"} style={isMobileLandscape ? { width: '18vw', minHeight: 0, minWidth: 60, maxWidth: 120 } : {}}>
           <div
             className="text-7xl font-[\'Digital-7\'] font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg"
             style={{ fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '100px', textAlign: 'center' }}
@@ -909,15 +948,19 @@ function formatStat(val: number|null) {
         </div>
         {/* Webcam đối thủ */}
         <div
-          className="flex flex-col items-center webcam-area flex-shrink-0"
-          style={isMobile && !isPortrait
-            ? { width: '32vw', minWidth: 0, maxWidth: 420 }
+          className={
+            isMobileLandscape
+              ? "flex flex-col items-center webcam-area flex-shrink-0"
+              : "flex flex-col items-center webcam-area flex-shrink-0"
+          }
+          style={isMobileLandscape
+            ? { width: '30vw', minWidth: 0, maxWidth: 180 }
             : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
         >
           <div
             className="bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"
             style={isMobile && !isPortrait
-              ? { width: '30vw', height: '22vw', minWidth: 0, minHeight: 0, maxWidth: 420, maxHeight: 240 }
+              ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
               : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
             <video
