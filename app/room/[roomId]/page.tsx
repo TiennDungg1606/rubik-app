@@ -809,19 +809,20 @@ function formatStat(val: number|null) {
               } else {
                 msg = `Đến lượt ${name} thi đấu`;
               }
-                return <span className="text-xl font-semibold text-green-300">{msg}</span>;
+              return <span className="text-xl font-semibold text-green-300">{msg}</span>;
             })()}
-            {/* Thông báo lỗi camera */}
-            <div 
-              className="mt-2 w-full text-center pointer-events-none flex items-center justify-center"
+            {/* Thông báo lỗi camera cố định giữa màn hình */}
+            <div
+              className="fixed left-1/2 top-[280px] -translate-x-1/2 z-50 w-full flex items-center justify-center pointer-events-none"
               style={{
-                maxWidth: '600px',
-                margin: '0 auto',
+                maxWidth: '700px',
                 whiteSpace: 'normal',
                 wordBreak: 'break-word',
+                textAlign: 'center',
+                pointerEvents: 'none',
               }}
             >
-              <span className="text-yellow-300 text-lg font-semibold w-full block text-center">
+              <span className="text-yellow-300 text-lg font-semibold block px-4 py-2">
                 Nếu camera của bạn không hoạt động, vui lòng nhấn nút tắt camera rồi bật lại
               </span>
             </div>
@@ -832,7 +833,7 @@ function formatStat(val: number|null) {
           className={
             isMobileLandscape
               ? "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 mr-0 mb-2"
-              : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[260px] max-w-[340px] w-[240px] flex-shrink-0 mr-4"
+              : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[280px] max-w-[360px] w-[260px] flex-shrink-0 mr-4"
           }
           style={isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
