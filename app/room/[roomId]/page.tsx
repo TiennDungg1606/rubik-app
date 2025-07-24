@@ -891,22 +891,22 @@ function formatStat(val: number|null) {
             ? { width: 40, minWidth: 0, maxWidth: 45 }
             : isMobileLandscape
               ? { width: '30vw', minWidth: 0, maxWidth: 180 }
-              : isMobile ? { width: '80vw', maxWidth: 220 } : {}}
+              : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
         >
           <div
             className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-0.5 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
             style={mobileShrink
               ? { width: 40, height: 28, minWidth: 0, minHeight: 0, maxWidth: 45, maxHeight: 32 }
               : isMobile && !isPortrait
-                ? { width: '22vw', height: '15vw', minWidth: 0, minHeight: 0, maxWidth: 120, maxHeight: 90 }
-                : isMobile ? { width: '80vw', maxWidth: 220, height: '28vw', maxHeight: 120, minHeight: 60 } : { width: 420, height: 320 }}
+                ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
             <video
               ref={myVideoRef}
               autoPlay
               muted={true}
               className={mobileShrink ? "w-full h-full object-cover rounded bg-black border border-blue-400" : "w-full h-full object-cover rounded-2xl bg-black border-4 border-blue-400"}
-              style={mobileShrink ? { maxHeight: 32, minHeight: 12 } : isMobile ? { maxHeight: 120, minHeight: 60 } : {}}
+              style={mobileShrink ? { maxHeight: 32, minHeight: 12 } : isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
             />
             <button
               className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
@@ -1027,21 +1027,21 @@ function formatStat(val: number|null) {
             ? { width: 40, minWidth: 0, maxWidth: 45 }
             : isMobileLandscape
               ? { width: '30vw', minWidth: 0, maxWidth: 180 }
-              : isMobile ? { width: '80vw', maxWidth: 220 } : {}}
+              : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
         >
           <div
             className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-0.5 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
             style={mobileShrink
               ? { width: 40, height: 28, minWidth: 0, minHeight: 0, maxWidth: 45, maxHeight: 32 }
               : isMobile && !isPortrait
-                ? { width: '22vw', height: '15vw', minWidth: 0, minHeight: 0, maxWidth: 120, maxHeight: 90 }
-                : isMobile ? { width: '80vw', maxWidth: 220, height: '28vw', maxHeight: 120, minHeight: 60 } : { width: 420, height: 320 }}
+                ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
             <video
               ref={opponentVideoRef}
               autoPlay
               className={mobileShrink ? "w-full h-full object-cover rounded bg-black border border-pink-400" : "w-full h-full object-cover rounded-2xl bg-black border-4 border-pink-400"}
-              style={mobileShrink ? { maxHeight: 32, minHeight: 12 } : isMobile ? { maxHeight: 120, minHeight: 60 } : {}}
+              style={mobileShrink ? { maxHeight: 32, minHeight: 12 } : isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
             />
           </div>
           <span className={mobileShrink ? "font-semibold text-[8px] text-pink-300" : "font-semibold text-lg text-pink-300"}>{opponentName}</span>
