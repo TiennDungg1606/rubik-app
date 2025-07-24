@@ -94,6 +94,9 @@ export default function RoomPage() {
   const [myResults, setMyResults] = useState<(number|null)[]>([]);
   const [opponentResults, setOpponentResults] = useState<(number|null)[]>([]);
   const [dnf, setDnf] = useState<boolean>(false);
+  // Thêm state cho xác nhận kết quả
+  const [pendingResult, setPendingResult] = useState<number|null>(null);
+  const [pendingType, setPendingType] = useState<'normal'|'+2'|'dnf'>('normal');
   const [opponentTime, setOpponentTime] = useState<number|null>(null);
   const [userName, setUserName] = useState<string>("");
   const [isCreator, setIsCreator] = useState<boolean>(false);
@@ -191,12 +194,29 @@ export default function RoomPage() {
     // eslint-disable-next-line
   }, []);
 
-  // Đảm bảo luôn gán lại stream cho myVideoRef khi stream đã sẵn sàng hoặc khi cam/mic thay đổi hoặc streamReady thay đổi
+  // Đảm bảo luôn gán lại stream cho myVideoRef khi stream đã sẵn sàng hoặc khi cam/mic thay đổi hoặc streamReady hoặc mediaStreamRef.current thay đổi
   useEffect(() => {
-    if (myVideoRef.current && mediaStreamRef.current) {
-      myVideoRef.current.srcObject = mediaStreamRef.current;
+    let retryInterval: NodeJS.Timeout | null = null;
+    function assignStream() {
+      if (myVideoRef.current && mediaStreamRef.current) {
+        if (myVideoRef.current.srcObject !== mediaStreamRef.current) {
+          myVideoRef.current.srcObject = mediaStreamRef.current;
+        }
+        // Nếu video đã có stream, clear interval
+        if (myVideoRef.current.readyState >= 2) {
+          if (retryInterval) clearInterval(retryInterval);
+        }
+      }
     }
-  }, [streamReady, camOn, micOn]);
+    assignStream();
+    // Fallback: liên tục thử gán lại stream nếu video chưa hiện
+    retryInterval = setInterval(() => {
+      assignStream();
+    }, 500);
+    return () => {
+      if (retryInterval) clearInterval(retryInterval);
+    };
+  }, [streamReady, camOn, micOn, mediaStreamRef.current]);
 
 
 
@@ -570,34 +590,28 @@ export default function RoomPage() {
         return t + 10;
       });
     }, 10);
+    // Khi dừng timer, chỉ lưu vào pendingResult, không gửi lên server ngay
     const stopTimer = () => {
       setRunning(false);
       if (intervalRef.current) clearInterval(intervalRef.current);
-      setMyResults(r => {
-        const newR = [...r, timerRef.current];
-        const socket = getSocket();
-        socket.emit("solve", { roomId, userName, time: timerRef.current });
-        return newR;
-      });
+      setPendingResult(timerRef.current);
+      setPendingType('normal');
       setCanStart(false);
-      setTurn('opponent');
+      // Không setTurn('opponent') ở đây, chờ xác nhận
     };
     const handleAnyKey = (e: KeyboardEvent) => {
       if (waiting) return;
-      // Chỉ nhận phím, không nhận chuột
       if (e.type === 'keydown') {
         stopTimer();
       }
     };
     const handleMouse = (e: MouseEvent) => {
-      // Không làm gì cả, chặn click
       e.preventDefault();
       e.stopPropagation();
       return false;
     };
     const handleTouch = (e: TouchEvent) => {
       if (!isMobile) return;
-      // Nếu chạm vào webcam thì bỏ qua
       const webcamEls = document.querySelectorAll('.webcam-area');
       for (let i = 0; i < webcamEls.length; i++) {
         if (webcamEls[i].contains(e.target as Node)) return;
@@ -668,16 +682,18 @@ function formatStat(val: number|null) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
         <div className="text-2xl font-bold text-red-400 mb-4">Vui lòng xoay ngang màn hình để sử dụng ứng dụng!</div>
-        <div className="text-lg text-gray-300">Nếu bạn dùng điện thoại, hãy bật "Trang web cho máy tính" trong trình duyệt để sử dụng đầy đủ chức năng.</div>
+        <div className="text-lg text-gray-300">Nếu bạn dùng điện thoại, hãy bật \"Trang web cho máy tính\" trong trình duyệt để sử dụng đầy đủ chức năng.</div>
       </div>
     );
   }
 
+  // Helper: compact style for mobile landscape only
+  const mobileShrink = isMobileLandscape;
   return (
     <div
       className={
-        isMobile && !isPortrait
-          ? "h-screen w-screen flex flex-row items-center justify-center text-white py-4 overflow-x-hidden overflow-y-auto min-h-0 relative"
+        mobileShrink
+          ? "h-screen w-screen flex flex-row items-center justify-center text-white py-1 overflow-x-hidden overflow-y-auto min-h-0 relative"
           : "min-h-screen w-full flex flex-col items-center text-white py-4 overflow-hidden relative"
       }
       style={{
@@ -693,64 +709,72 @@ function formatStat(val: number|null) {
       <button
         onClick={handleLeaveRoom}
         className={
-          isMobile && !isPortrait
-            ? "absolute top-4 left-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg"
+          mobileShrink
+            ? "absolute top-0.5 left-0.5 z-50 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-[9px] rounded font-bold shadow-lg min-w-0 min-h-0"
             : "fixed top-4 left-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg"
         }
+        style={mobileShrink ? { fontSize: 9, minWidth: 0, minHeight: 0, padding: 1 } : {}}
         type="button"
       >Rời phòng</button>
       {/* Khối trên cùng: Tên phòng và scramble */}
-      <div className="w-full flex flex-col items-center justify-center mb-4">
-        <h2 className="text-3xl font-bold mb-2">Phòng: <span className="text-blue-400">{roomId}</span></h2>
-        <div className="mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all">
+      <div className="w-full flex flex-col items-center justify-center mb-0.5">
+        <h2 className={mobileShrink ? "text-[10px] font-bold mb-0.5" : "text-3xl font-bold mb-2"}>
+          Phòng: <span className="text-blue-400">{roomId}</span>
+        </h2>
+        <div className={mobileShrink ? "mb-0.5 px-0.5 py-0.5 bg-gray-800 rounded text-[9px] font-mono font-bold tracking-widest select-all max-w-[100px] overflow-hidden text-ellipsis" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
+          style={mobileShrink ? { fontSize: 9, minWidth: 0, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
           {scramble}
         </div>
       </div>
       {/* Hàng ngang 3 khối: bảng tổng hợp | trạng thái + thông báo | bảng kết quả */}
       <div
         className={
-          isMobileLandscape
-            ? "w-full flex flex-row flex-wrap justify-between items-start gap-2 px-1 mb-4 overflow-x-auto"
-            : "w-full flex flex-row justify-between items-start gap-4 mb-6"
+          mobileShrink
+            ? "w-full flex flex-row flex-nowrap justify-between items-start gap-0.5 px-0 mb-0.5 overflow-x-auto"
+            : isMobileLandscape
+              ? "w-full flex flex-row flex-wrap justify-between items-start gap-2 px-1 mb-4 overflow-x-auto"
+              : "w-full flex flex-row justify-between items-start gap-4 mb-6"
         }
-        style={isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
+        style={mobileShrink ? { maxWidth: '100vw', rowGap: 1 } : isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
       >
         {/* Bảng tổng hợp bên trái */}
         <div
           className={
-            isMobileLandscape
-              ? "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 ml-0 mb-2"
-              : "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[220px] max-w-[260px] w-[240px] flex-shrink-0 ml-4"
+            mobileShrink
+              ? "bg-gray-900 bg-opacity-90 shadow rounded p-0 m-0 min-w-[55px] max-w-[65px] w-[60px] flex-shrink-0 ml-0 mb-0.5"
+              : isMobileLandscape
+                ? "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 ml-0 mb-2"
+                : "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[220px] max-w-[260px] w-[240px] flex-shrink-0 ml-4"
           }
-          style={isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 8 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
-          <table className="text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg border-collapse w-full" style={{ border: '1px solid #374151', margin: 0 }}>
+          <table className={mobileShrink ? "text-center bg-gray-900 rounded overflow-hidden text-[8px] shadow border-collapse w-full" : "text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg border-collapse w-full"} style={mobileShrink ? { border: '1px solid #374151', margin: 0 } : { border: '1px solid #374151', margin: 0 }}>
             <thead className="bg-gray-800">
               <tr>
-                <th className="px-3 py-1 border border-gray-700 font-bold">Tên</th>
-                <th className="px-3 py-1 border border-gray-700 font-bold">Best</th>
-                <th className="px-3 py-1 border border-gray-700 font-bold">Worst</th>
-                <th className="px-3 py-1 border border-gray-700 font-bold">Mean3</th>
-                <th className="px-3 py-1 border border-gray-700 font-bold">Avg5</th>
-                <th className="px-3 py-1 border border-gray-700 font-bold">Ao5</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Tên</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Best</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Worst</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Mean3</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Avg5</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Ao5</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="px-3 py-1 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>{userName}</td>
-                <td className="px-3 py-1 border border-gray-700 text-green-300">{myStats.best !== null ? formatTime(myStats.best) : ""}</td>
-                <td className="px-3 py-1 border border-gray-700 text-red-300">{myStats.worst !== null ? formatTime(myStats.worst) : ""}</td>
-                <td className="px-3 py-1 border border-gray-700">{myStats.mean3 !== null ? formatStat(myStats.mean3) : ""}</td>
-                <td className="px-3 py-1 border border-gray-700">{myStats.avg5 !== null ? formatStat(myStats.avg5) : ""}</td>
-                <td className="px-3 py-1 border border-gray-700">{myStats.ao5 !== null ? formatStat(myStats.ao5) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>{userName}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{myStats.best !== null ? formatTime(myStats.best) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{myStats.worst !== null ? formatTime(myStats.worst) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{myStats.mean3 !== null ? formatStat(myStats.mean3) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{myStats.avg5 !== null ? formatStat(myStats.avg5) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{myStats.ao5 !== null ? formatStat(myStats.ao5) : ""}</td>
               </tr>
               <tr>
-                <td className="px-3 py-1 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>{opponentName}</td>
-                <td className="px-3 py-1 border border-gray-700 text-green-300">{oppStats.best !== null ? formatTime(oppStats.best) : ""}</td>
-                <td className="px-3 py-1 border border-gray-700 text-red-300">{oppStats.worst !== null ? formatTime(oppStats.worst) : ""}</td>
-                <td className="px-3 py-1 border border-gray-700">{oppStats.mean3 !== null ? formatStat(oppStats.mean3) : ""}</td>
-                <td className="px-3 py-1 border border-gray-700">{oppStats.avg5 !== null ? formatStat(oppStats.avg5) : ""}</td>
-                <td className="px-3 py-1 border border-gray-700">{oppStats.ao5 !== null ? formatStat(oppStats.ao5) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>{opponentName}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{oppStats.best !== null ? formatTime(oppStats.best) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{oppStats.worst !== null ? formatTime(oppStats.worst) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{oppStats.mean3 !== null ? formatStat(oppStats.mean3) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{oppStats.avg5 !== null ? formatStat(oppStats.avg5) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{oppStats.ao5 !== null ? formatStat(oppStats.ao5) : ""}</td>
               </tr>
             </tbody>
           </table>
@@ -758,18 +782,20 @@ function formatStat(val: number|null) {
         {/* Khối giữa: trạng thái + thông báo */}
         <div
           className={
-            isMobileLandscape
-              ? "flex flex-col items-center justify-center min-w-[120px] max-w-[180px] mx-auto mb-2 w-auto"
-              : "flex flex-col items-center justify-center min-w-[260px] max-w-[520px] mx-auto w-auto"
+            mobileShrink
+              ? "flex flex-col items-center justify-center min-w-[60px] max-w-[80px] mx-auto mb-0.5 w-auto"
+              : isMobileLandscape
+                ? "flex flex-col items-center justify-center min-w-[120px] max-w-[180px] mx-auto mb-2 w-auto"
+                : "flex flex-col items-center justify-center min-w-[260px] max-w-[520px] mx-auto w-auto"
           }
-          style={isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 8 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
           {/* Thanh trạng thái */}
           <div className="mb-2 w-full flex items-center justify-center">
             {waiting ? (
-              <span className="text-yellow-400 text-2xl font-semibold text-center w-full block">Đang chờ đối thủ vào phòng...</span>
+              <span className={mobileShrink ? "text-yellow-400 text-[10px] font-semibold text-center w-full block" : "text-yellow-400 text-2xl font-semibold text-center w-full block"}>Đang chờ đối thủ vào phòng...</span>
             ) : (
-              <span className="text-green-400 text-2xl font-semibold text-center w-full block">Đã đủ 2 người, sẵn sàng thi đấu!</span>
+              <span className={mobileShrink ? "text-green-400 text-[10px] font-semibold text-center w-full block" : "text-green-400 text-2xl font-semibold text-center w-full block"}>Đã đủ 2 người, sẵn sàng thi đấu!</span>
             )}
           </div>
           {/* Thông báo trạng thái lượt giải + Thông báo lỗi camera */}
@@ -785,7 +811,7 @@ function formatStat(val: number|null) {
                 const oppAo5 = calcStats(opponentResults).ao5;
                 let winner = null;
                 if (myAo5 === null && oppAo5 === null) {
-                  return <span className="text-base font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
+                  return <span className={mobileShrink ? "text-[9px] font-semibold text-yellow-400" : "text-base font-semibold text-yellow-400"}>Trận đấu kết thúc, hòa</span>;
                 } else if (myAo5 === null) {
                   winner = opponentName;
                 } else if (oppAo5 === null) {
@@ -797,7 +823,7 @@ function formatStat(val: number|null) {
                 } else {
                   return <span className="text-base font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
                 }
-                return <span className="text-base font-semibold text-green-400">Trận đấu kết thúc, {winner} thắng</span>;
+                  return <span className={mobileShrink ? "text-[9px] font-semibold text-green-400" : "text-base font-semibold text-green-400"}>Trận đấu kết thúc, {winner} thắng</span>;
               }
               // Đang trong trận
               let msg = "";
@@ -809,35 +835,23 @@ function formatStat(val: number|null) {
               } else {
                 msg = `Đến lượt ${name} thi đấu`;
               }
-              return <span className="text-xl font-semibold text-green-300">{msg}</span>;
+              return <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>;
             })()}
-            {/* Thông báo lỗi camera cố định giữa màn hình */}
-            <div
-              className="fixed left-1/2 top-[280px] -translate-x-1/2 z-50 w-full flex items-center justify-center pointer-events-none"
-              style={{
-                maxWidth: '700px',
-                whiteSpace: 'normal',
-                wordBreak: 'break-word',
-                textAlign: 'center',
-                pointerEvents: 'none',
-              }}
-            >
-              <span className="text-yellow-300 text-lg font-semibold block px-4 py-2">
-                Nếu camera của bạn không hoạt động, vui lòng nhấn nút tắt camera rồi bật lại
-              </span>
-            </div>
+            {/* Đã xóa thông báo lỗi camera theo yêu cầu */}
           </div>
         </div>
         {/* Bảng kết quả bên phải */}
         <div
           className={
-            isMobileLandscape
-              ? "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 mr-0 mb-2"
-              : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[280px] max-w-[360px] w-[260px] flex-shrink-0 mr-4"
+            mobileShrink
+              ? "bg-gray-900 bg-opacity-90 shadow rounded p-0 m-0 min-w-[55px] max-w-[65px] w-[60px] flex-shrink-0 mr-0 mb-0.5"
+              : isMobileLandscape
+                ? "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 mr-0 mb-2"
+                : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[280px] max-w-[360px] w-[260px] flex-shrink-0 mr-4"
           }
-          style={isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 8 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
-          <table className="w-full text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg">
+          <table className={mobileShrink ? "w-full text-center bg-gray-900 rounded overflow-hidden text-[8px] shadow border-collapse" : "w-full text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg"}>
             <thead className="bg-gray-800">
               <tr>
                 <th className="py-2 border border-gray-700">STT</th>
@@ -862,54 +876,92 @@ function formatStat(val: number|null) {
       {/* Webcam + Timer ngang hàng, mobile landscape: chia đều chiều ngang, không tràn, có padding */}
       <div
         className={
-          isMobileLandscape
-            ? "flex flex-row flex-wrap w-full justify-center items-center gap-1 px-1 box-border"
-            : "w-full mb-0 max-w-5xl flex flex-row gap-20 justify-center items-center relative"
+          mobileShrink
+            ? "flex flex-row w-full justify-center items-center gap-0 px-0.5 box-border"
+            : isMobileLandscape
+              ? "flex flex-row flex-wrap w-full justify-center items-center gap-0 px-1 box-border"
+              : "w-full mb-0 max-w-5xl flex flex-row gap-10 justify-center items-center relative"
         }
-        style={isMobileLandscape ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw' }}
+        style={mobileShrink ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : isMobileLandscape ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw' }}
       >
         {/* Webcam của bạn */}
         <div
-          className={
-            isMobileLandscape
-              ? "flex flex-col items-center webcam-area flex-shrink-0"
-              : "flex flex-col items-center webcam-area flex-shrink-0"
-          }
-          style={isMobileLandscape
-            ? { width: '30vw', minWidth: 0, maxWidth: 180 }
-            : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
+          className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : isMobileLandscape ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
+          style={mobileShrink
+            ? { width: 40, minWidth: 0, maxWidth: 45 }
+            : isMobileLandscape
+              ? { width: '30vw', minWidth: 0, maxWidth: 180 }
+              : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
         >
           <div
-            className="bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"
-            style={isMobile && !isPortrait
-              ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
-              : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+            className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-0.5 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
+            style={mobileShrink
+              ? { width: 40, height: 28, minWidth: 0, minHeight: 0, maxWidth: 45, maxHeight: 32 }
+              : isMobile && !isPortrait
+                ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
             <video
               ref={myVideoRef}
               autoPlay
               muted={true}
-              className="w-full h-full object-cover rounded-2xl bg-black border-4 border-blue-400"
-              style={isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
+              className={mobileShrink ? "w-full h-full object-cover rounded bg-black border border-blue-400" : "w-full h-full object-cover rounded-2xl bg-black border-4 border-blue-400"}
+              style={mobileShrink ? { maxHeight: 32, minHeight: 12 } : isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
             />
             <button
-              className={`absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
+              className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
+              style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               onClick={() => setCamOn(v => !v)}
               type="button"
-            >{camOn ? 'Tắt camera' : 'Bật camera'}</button>
+            >{camOn ? 'Tắt cam' : 'Bật cam'}</button>
             <button
-              className={`absolute bottom-3 right-3 px-3 py-1 rounded text-base ${micOn ? 'bg-gray-700' : 'bg-red-600'}`}
+              className={mobileShrink ? `absolute bottom-0.5 right-0.5 px-0.5 py-0.5 rounded text-[8px] ${micOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 right-3 px-3 py-1 rounded text-base ${micOn ? 'bg-gray-700' : 'bg-red-600'}`}
+              style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               onClick={() => setMicOn(v => !v)}
               type="button"
             >{micOn ? 'Tắt mic' : 'Bật mic'}</button>
           </div>
-          <span className="font-semibold text-lg text-blue-300">{userName}</span>
+          <span className={mobileShrink ? "font-semibold text-[8px] text-blue-300" : "font-semibold text-lg text-blue-300"}>{userName}</span>
         </div>
         {/* Timer ở giữa */}
-        <div className={isMobileLandscape ? "flex flex-col items-center justify-center" : "flex flex-col items-center justify-center"} style={isMobileLandscape ? { width: '18vw', minHeight: 0, minWidth: 60, maxWidth: 120 } : {}}>
+        <div className={mobileShrink ? "flex flex-col items-center justify-center" : isMobileLandscape ? "flex flex-col items-center justify-center" : "flex flex-col items-center justify-center"} style={mobileShrink ? { width: 22, minHeight: 0, minWidth: 10, maxWidth: 28 } : isMobileLandscape ? { width: '18vw', minHeight: 0, minWidth: 60, maxWidth: 120 } : {}}>
+          {/* Nếu có pendingResult thì hiện 3 nút xác nhận */}
+          {pendingResult !== null && !running && !prep ? (
+            <div className="flex flex-row items-center justify-center gap-1 mb-1">
+              <button
+                className={mobileShrink ? "px-1 py-0.5 text-[9px] rounded bg-green-600 hover:bg-green-700 font-bold text-white" : "px-3 py-1 text-base rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white"}
+                onClick={() => {
+                  // Gửi kết quả bình thường
+                  let result: number|null = pendingResult;
+                  if (pendingType === '+2' && result !== null) result = result + 2000;
+                  if (pendingType === 'dnf') result = null;
+                  setMyResults(r => {
+                    const newR = [...r, result];
+                    const socket = getSocket();
+                    socket.emit("solve", { roomId, userName, time: result === null ? null : result });
+                    return newR;
+                  });
+                  setPendingResult(null);
+                  setPendingType('normal');
+                  setTurn('opponent');
+                }}
+                style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
+              >Gửi</button>
+              <button
+                className={mobileShrink ? `px-1 py-0.5 text-[9px] rounded ${pendingType === '+2' ? 'bg-yellow-500' : 'bg-gray-700'} font-bold text-white` : `px-3 py-1 text-base rounded-lg ${pendingType === '+2' ? 'bg-yellow-500' : 'bg-gray-700'} font-bold text-white`}
+                onClick={() => setPendingType(pendingType === '+2' ? 'normal' : '+2')}
+                style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
+              >+2</button>
+              <button
+                className={mobileShrink ? `px-1 py-0.5 text-[9px] rounded ${pendingType === 'dnf' ? 'bg-red-600' : 'bg-gray-700'} font-bold text-white` : `px-3 py-1 text-base rounded-lg ${pendingType === 'dnf' ? 'bg-red-600' : 'bg-gray-700'} font-bold text-white`}
+                onClick={() => setPendingType(pendingType === 'dnf' ? 'normal' : 'dnf')}
+                style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
+              >DNF</button>
+            </div>
+          ) : null}
           <div
-            className="text-7xl font-[\'Digital-7\'] font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg"
-            style={{ fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '100px', textAlign: 'center' }}
+            className={mobileShrink ? "text-xs font-bold text-yellow-300 drop-shadow select-none cursor-pointer px-0.5 py-0.5 rounded" : "text-7xl font-['Digital-7'] font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg"}
+            style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 12, textAlign: 'center', fontSize: 12, padding: 0 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '100px', textAlign: 'center' }}
             onClick={() => {
               if (waiting || myResults.length >= 5) return;
               if (!prep && !running && turn === 'me') {
@@ -922,56 +974,53 @@ function formatStat(val: number|null) {
               } else if (running) {
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
-                setMyResults(r => {
-                  const newR = [...r, timerRef.current];
-                  const socket = getSocket();
-                  socket.emit("solve", { roomId, userName, time: timerRef.current });
-                  return newR;
-                });
+                // Không gửi kết quả ngay, chỉ lưu vào pendingResult
+                setPendingResult(timerRef.current);
+                setPendingType('normal');
                 setCanStart(false);
-                setTurn('opponent');
+                // Không setTurn('opponent') ở đây
               }
             }}
           >
             {prep ? (
-              <span>Chuẩn bị: {prepTime}s</span>
+              <span className={mobileShrink ? "text-[9px]" : undefined}>Chuẩn bị: {prepTime}s</span>
             ) : dnf ? (
-              <span className="text-red-400">DNF</span>
+              <span className={mobileShrink ? "text-[9px] text-red-400" : "text-red-400"}>DNF</span>
             ) : (
               <>
-                <span style={{ fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace" }}>{(timer/1000).toFixed(3)}</span>
-                <span className="ml-1 align-bottom" style={{ fontFamily: 'font-mono', fontWeight: 400, fontSize: '0.7em', lineHeight: 1 }}>s</span>
+                <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 12 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace" }}>{(timer/1000).toFixed(3)}</span>
+                <span className={mobileShrink ? "ml-0.5 align-bottom" : "ml-1 align-bottom"} style={mobileShrink ? { fontFamily: 'font-mono', fontWeight: 400, fontSize: 8, lineHeight: 1 } : { fontFamily: 'font-mono', fontWeight: 400, fontSize: '0.7em', lineHeight: 1 }}>s</span>
               </>
             )}
           </div>
-          {running && <div className="text-sm text-gray-400 mt-1">Chạm hoặc bấm phím bất kỳ để dừng</div>}
-          {prep && <div className="text-sm text-gray-400 mt-1">Chạm hoặc bấm phím Space để bắt đầu</div>}
+          {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
+          {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
         </div>
         {/* Webcam đối thủ */}
         <div
-          className={
-            isMobileLandscape
-              ? "flex flex-col items-center webcam-area flex-shrink-0"
-              : "flex flex-col items-center webcam-area flex-shrink-0"
-          }
-          style={isMobileLandscape
-            ? { width: '30vw', minWidth: 0, maxWidth: 180 }
-            : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
+          className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : isMobileLandscape ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
+          style={mobileShrink
+            ? { width: 40, minWidth: 0, maxWidth: 45 }
+            : isMobileLandscape
+              ? { width: '30vw', minWidth: 0, maxWidth: 180 }
+              : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
         >
           <div
-            className="bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"
-            style={isMobile && !isPortrait
-              ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
-              : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+            className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-0.5 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
+            style={mobileShrink
+              ? { width: 40, height: 28, minWidth: 0, minHeight: 0, maxWidth: 45, maxHeight: 32 }
+              : isMobile && !isPortrait
+                ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
             <video
               ref={opponentVideoRef}
               autoPlay
-              className="w-full h-full object-cover rounded-2xl bg-black border-4 border-pink-400"
-              style={isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
+              className={mobileShrink ? "w-full h-full object-cover rounded bg-black border border-pink-400" : "w-full h-full object-cover rounded-2xl bg-black border-4 border-pink-400"}
+              style={mobileShrink ? { maxHeight: 32, minHeight: 12 } : isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
             />
           </div>
-          <span className="font-semibold text-lg text-pink-300">{opponentName}</span>
+          <span className={mobileShrink ? "font-semibold text-[8px] text-pink-300" : "font-semibold text-lg text-pink-300"}>{opponentName}</span>
         </div>
       </div>
     </div>
