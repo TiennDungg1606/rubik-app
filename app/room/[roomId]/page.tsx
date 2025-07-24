@@ -67,6 +67,7 @@ function calcStats(times: (number|null)[]) {
   return { best, worst, mean3, avg5, ao5 };
 }
 
+
 export default function RoomPage() {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -100,6 +101,7 @@ export default function RoomPage() {
   const [opponentTime, setOpponentTime] = useState<number|null>(null);
   const [userName, setUserName] = useState<string>("");
   const [isCreator, setIsCreator] = useState<boolean>(false);
+  const [showRules, setShowRules] = useState(false); // State for luật thi đấu modal
 
   const [opponentName, setOpponentName] = useState<string>('Đối thủ');
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
@@ -422,9 +424,15 @@ export default function RoomPage() {
       if (opp) setOpponentName(opp);
     });
     socket.on("opponent-solve", ({ userName: oppName, time }: { userName: string, time: number|null }) => {
-      setOpponentResults(r => [...r, time]);
+      setOpponentResults(r => {
+        const newR = [...r, time];
+        // Tổng số lượt giải (cả 2 người)
+        const total = myResults.length + newR.length;
+        // Chỉ đổi scramble khi tổng lượt là số lẻ (1,3,5,7,9)
+        if (total % 2 === 1) setScramble(generateScramble());
+        return newR;
+      });
       setTurn('me');
-      setScramble(generateScramble());
     });
     return () => {
       socket.off("room-users");
@@ -682,7 +690,7 @@ function formatStat(val: number|null) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
         <div className="text-2xl font-bold text-red-400 mb-4">Vui lòng xoay ngang màn hình để sử dụng ứng dụng!</div>
-        <div className="text-lg text-gray-300">Nếu bạn dùng điện thoại, hãy bật \"Trang web cho máy tính\" trong trình duyệt để sử dụng đầy đủ chức năng.</div>
+        <div className="text-lg text-gray-300">Nếu bạn dùng điện thoại, hãy bật \"Trang web cho máy tính\" trong phần ⋮ góc bên phải để sử dụng đầy đủ chức năng.</div>
       </div>
     );
   }
@@ -716,6 +724,71 @@ function formatStat(val: number|null) {
         style={mobileShrink ? { fontSize: 9, minWidth: 0, minHeight: 0, padding: 1 } : {}}
         type="button"
       >Rời phòng</button>
+      {/* Nút luật thi đấu ở góc trên bên phải */}
+      <div
+        className={
+          mobileShrink
+            ? "absolute top-0.5 right-0.5 z-50 flex flex-col items-center"
+            : "fixed top-4 right-4 z-50 flex flex-col items-center"
+        }
+        style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
+      >
+        <button
+          onClick={() => setShowRules(true)}
+          className={
+            mobileShrink
+              ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
+              : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+          }
+          style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+          type="button"
+          aria-label="Luật thi đấu"
+          title="Luật thi đấu"
+        >
+          <span role="img" aria-label="Luật thi đấu">📜</span>
+        </button>
+        <span
+          className={mobileShrink ? "text-[9px] text-blue-200 font-semibold mt-0.5" : "text-base text-blue-200 font-semibold mt-1"}
+          style={mobileShrink ? { lineHeight: '12px' } : {}}
+        >Luật thi đấu</span>
+      </div>
+      {/* Modal luật thi đấu */}
+      {showRules && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60"
+          style={{ backdropFilter: 'blur(2px)' }}
+        >
+          <div
+            className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] border-2 border-blue-400 relative" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] border-4 border-blue-400 relative"}
+            style={mobileShrink ? { fontSize: 10 } : {}}
+          >
+            <button
+              onClick={() => setShowRules(false)}
+              className={mobileShrink ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"}
+              style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
+              type="button"
+            >Đóng</button>
+            <div className={mobileShrink ? "text-[11px] font-bold text-blue-300 mb-1 text-center" : "text-xl font-bold text-blue-300 mb-3 text-center"}>
+              Luật thi đấu phòng
+            </div>
+            <div className={mobileShrink ? "text-[9px] text-white" : "text-base text-white"}>
+              {/* Thay nội dung này bằng luật thi đấu cụ thể sau */}
+              <ul className="list-disc pl-4">
+                <li>Mỗi người có 5 lượt giải, chủ phòng là người có quyền giải trước.</li>
+                <li>Trường hợp camera không hoạt động, vui lòng tắt bật lại camera.</li>
+                <li>Chỉ có thể giải khi lượt của bạn, nếu không phải lượt của bạn thì hệ thống tự động khóa thao tác (chú ý xem thông báo trạng thái).</li>
+                <li>Mỗi vòng là 1 scramble, nghĩa là có tổng cộng 5 scramble, mỗi vòng cả 2 người đều cùng tráo theo scramble đã cho.</li>
+                <li>Nhấn <b>Space</b> (đối với máy tính) để có 15 giây chuẩn bị, tiếp tục nhấn <b>Space</b> để bắt đầu giải và cuối cùng nhấn phím <b>Space</b> để kết thúc lượt giải.</li>
+                <li>Trên điện thoại, chạm 1 lần vào timer để chuẩn bị, nhấn giữ và thả timer để bắt đầu và chạm 1 lần vào timer để kết thúc lượt giải.</li>              
+                <li>DNF (Did Not Finish) nếu hết giờ chuẩn bị hoặc chọn DNF sau khi bạn dừng thời gian.</li>
+                <li>Ấn <b>Gửi</b> để xác nhận kết quả, <b>+2</b> nếu bị phạt, <b>DNF</b> nếu không hoàn thành, khi đó kết quả sẽ được cập nhật lên bảng kết quả.</li>
+                <li>Người có Ao5 tốt hơn sẽ thắng.</li>
+                <li><b>HÃY THI ĐẤU MỘT CÁCH CÔNG BẰNG VÀ TRUNG THỰC!</b></li>
+              </ul>
+            </div>
+          </div>  
+        </div>
+      )}
       {/* Khối trên cùng: Tên phòng và scramble */}
       <div className="w-full flex flex-col items-center justify-center mb-0.5">
         <h2 className={mobileShrink ? "text-[10px] font-bold mb-0.5" : "text-3xl font-bold mb-2"}>
@@ -939,6 +1012,10 @@ function formatStat(val: number|null) {
                     const newR = [...r, result];
                     const socket = getSocket();
                     socket.emit("solve", { roomId, userName, time: result === null ? null : result });
+                    // Tổng số lượt giải (cả 2 người)
+                    const total = newR.length + opponentResults.length;
+                    // Chỉ đổi scramble khi tổng lượt là số lẻ (1,3,5,7,9)
+                    if (total % 2 === 1) setScramble(generateScramble());
                     return newR;
                   });
                   setPendingResult(null);
@@ -957,6 +1034,9 @@ function formatStat(val: number|null) {
                     const newR = [...r, result];
                     const socket = getSocket();
                     socket.emit("solve", { roomId, userName, time: result });
+                    // Tổng số lượt giải (cả 2 người)
+                    const total = newR.length + opponentResults.length;
+                    if (total % 2 === 1) setScramble(generateScramble());
                     return newR;
                   });
                   setPendingResult(null);
@@ -973,6 +1053,9 @@ function formatStat(val: number|null) {
                     const newR = [...r, null];
                     const socket = getSocket();
                     socket.emit("solve", { roomId, userName, time: null });
+                    // Tổng số lượt giải (cả 2 người)
+                    const total = newR.length + opponentResults.length;
+                    if (total % 2 === 1) setScramble(generateScramble());
                     return newR;
                   });
                   setPendingResult(null);
