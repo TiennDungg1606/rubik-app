@@ -12,6 +12,7 @@ export default function AuthForm({ onLogin }) {
     lastName: "",
     birthday: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [tab, setTab] = useState("login");
@@ -81,7 +82,34 @@ export default function AuthForm({ onLogin }) {
           </div>
           <div className="mb-3">
             <label className="block mb-1 text-gray-700 font-semibold text-sm">Password</label>
-            <input name="password" type="password" placeholder="Password" required value={form.password} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm" />
+            <div className="relative">
+              <input
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                required
+                value={form.password}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm pr-10"
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                onClick={() => setShowPassword(v => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7zm9 3a3 3 0 100-6 3 3 0 000 6z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5.5 0-9-7-9-7a17.6 17.6 0 013.16-4.19m3.12-2.54A8.96 8.96 0 0112 5c5.5 0 9 7 9 7a17.6 17.6 0 01-3.16 4.19m-2.12 1.54A8.96 8.96 0 0112 19c-1.07 0-2.09-.13-3.06-.37m-2.12-1.54A10.05 10.05 0 013.16 12.81m0 0L21 3" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
           {tab === "register" && (
             <>

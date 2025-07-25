@@ -693,8 +693,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
   if (isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
-        <div className="text-3xl font-bold text-red-300 text-center">Nếu bạn dùng điện thoại, hãy bật "Trang web cho máy tính" trong phần ⋮ góc bên phải để sử dụng đầy đủ chức năng và</div>
         <div className="text-2xl font-bold text-red-400 mb-4 text-center">VUI LÒNG XOAY NGANG MÀN HÌNH ĐỂ SỬ DỤNG ỨNG DỤNG!</div>
+        <div className="text-lg text-red-300 mb-2 text-center">Nhớ tắt chế độ khóa xoay màn hình ở bảng điều khiển của thiết bị.</div>
       </div>
     );
   }
@@ -798,11 +798,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       )}
       {/* Khối trên cùng: Tên phòng và scramble */}
       <div className="w-full flex flex-col items-center justify-center mb-0.5">
-        <h2 className={mobileShrink ? "text-[12px] font-bold mb-1" : "text-3xl font-bold mb-2"}>
+        <h2 className={mobileShrink ? "text-[14px] font-bold mb-1" : "text-3xl font-bold mb-2"}>
           Phòng: <span className="text-blue-400">{roomId}</span>
         </h2>
-        <div className={mobileShrink ? "mb-1 px-1 py-1 bg-gray-800 rounded text-[10px] font-mono font-bold tracking-widest select-all max-w-[140px] overflow-hidden text-ellipsis" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
-          style={mobileShrink ? { fontSize: 10  , minWidth: 0, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
+        <div className={mobileShrink ? "mb-1 px-2 py-1 bg-gray-800 rounded text-[16px] font-mono font-bold tracking-widest select-all w-[90vw] max-w-[340px] overflow-x-auto whitespace-normal" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
+          style={mobileShrink ? { fontSize: 16, minWidth: '60vw', maxWidth: 340, overflowX: 'auto', whiteSpace: 'normal' } : {}}>
           {scramble}
         </div>
       </div>
@@ -821,12 +821,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={
             mobileShrink
-              ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[90px] max-w-[120px] w-[100px] flex-shrink-0 ml-0 mb-1"
+              ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[120px] max-w-[180px] w-[150px] flex-shrink-0 ml-0 mb-1"
               : isMobileLandscape
-                ? "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 ml-0 mb-2"
-                : "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[220px] max-w-[260px] w-[240px] flex-shrink-0 ml-4"
+                ? "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[180px] max-w-[260px] w-[220px] flex-shrink-0 ml-0 mb-2"
+                : "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[260px] max-w-[340px] w-[300px] flex-shrink-0 ml-4"
           }
-          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 11 } : isMobileLandscape ? { wordBreak: 'break-word', fontSize: 13 } : { fontSize: 15 }}
         >
           <table className={mobileShrink ? "text-center bg-gray-900 rounded overflow-hidden text-[8px] shadow border-collapse w-full" : "text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg border-collapse w-full"} style={mobileShrink ? { border: '1px solid #374151', margin: 0 } : { border: '1px solid #374151', margin: 0 }}>
             <thead className="bg-gray-800">
@@ -921,12 +921,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={
             mobileShrink
-              ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[90px] max-w-[120px] w-[100px] flex-shrink-0 mr-0 mb-1"
+              ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[120px] max-w-[180px] w-[150px] flex-shrink-0 mr-0 mb-1"
               : isMobileLandscape
-                ? "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 mr-0 mb-2"
-                : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[280px] max-w-[360px] w-[260px] flex-shrink-0 mr-4"
+                ? "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[180px] max-w-[260px] w-[220px] flex-shrink-0 mr-0 mb-2"
+                : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[260px] max-w-[340px] w-[300px] flex-shrink-0 mr-4"
           }
-          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 11 } : isMobileLandscape ? { wordBreak: 'break-word', fontSize: 13 } : { fontSize: 15 }}
         >
           <table className={mobileShrink ? "w-full text-center bg-gray-900 rounded overflow-hidden text-[8px] shadow border-collapse" : "w-full text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg"}>
             <thead className="bg-gray-800">
@@ -957,12 +957,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Webcam của bạn - cột 1 */}
         <div
           className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
-          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 80, minWidth: 40 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
+          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
-            className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-1 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
+            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
             style={mobileShrink
-              ? { width: 40, height: 28, minWidth: 0, minHeight: 0, maxWidth: 45, maxHeight: 32 }
+              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
@@ -972,7 +972,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               autoPlay
               muted={true}
               className={mobileShrink ? "w-full h-full object-cover rounded bg-black border border-blue-400" : "w-full h-full object-cover rounded-2xl bg-black border-4 border-blue-400"}
-              style={mobileShrink ? { maxHeight: 32, minHeight: 12 } : isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
+              style={mobileShrink ? { maxHeight: 90, minHeight: 40 } : isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
             />
             <button
               className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
@@ -992,7 +992,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Timer ở giữa - cột 2 */}
         <div
           className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
-          style={mobileShrink ? { flex: '0 1 20%', minWidth: 40, maxWidth: 80 } : { flex: '0 1 20%', minWidth: 100, maxWidth: 180 }}
+          style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
           onClick={() => {
             if (waiting || myResults.length >= 5) return;
             if (!prep && !running && turn === 'me') {
@@ -1075,19 +1075,19 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </div>
           ) : null}
           <div
-            className={mobileShrink ? "text-xs font-bold text-yellow-300 drop-shadow select-none px-0.5 py-0.5 rounded" : "text-7xl font-['Digital-7'] font-bold text-yellow-300 drop-shadow-lg select-none px-4 py-2 rounded-lg"}
-            style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 12, textAlign: 'center', fontSize: 12, padding: 0 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '100px', textAlign: 'center' }}
+            className={mobileShrink ? "text-2xl font-bold text-yellow-300 drop-shadow select-none px-2 py-2 rounded" : "text-8xl font-['Digital-7'] font-bold text-yellow-300 drop-shadow-lg select-none px-8 py-4 rounded-2xl"}
+            style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 32, textAlign: 'center', fontSize: 32, padding: 2 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '180px', textAlign: 'center', fontSize: 80, padding: 8 }}
           >
-            {prep ? (
-              <span className={mobileShrink ? "text-[9px]" : undefined}>Chuẩn bị: {prepTime}s</span>
-            ) : dnf ? (
-              <span className={mobileShrink ? "text-[9px] text-red-400" : "text-red-400"}>DNF</span>
-            ) : (
-              <>
-                <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 12 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace" }}>{(timer/1000).toFixed(3)}</span>
-                <span className={mobileShrink ? "ml-0.5 align-bottom" : "ml-1 align-bottom"} style={mobileShrink ? { fontFamily: 'font-mono', fontWeight: 400, fontSize: 8, lineHeight: 1 } : { fontFamily: 'font-mono', fontWeight: 400, fontSize: '0.7em', lineHeight: 1 }}>s</span>
-              </>
-            )}
+              {prep ? (
+                <span className={mobileShrink ? "text-[20px]" : undefined}>Chuẩn bị: {prepTime}s</span>
+              ) : dnf ? (
+                <span className={mobileShrink ? "text-[20px] text-red-400" : "text-red-400"}>DNF</span>
+              ) : (
+                <>
+                  <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 32 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 80 }}>{(timer/1000).toFixed(3)}</span>
+                  <span className={mobileShrink ? "ml-1 align-bottom" : "ml-2 align-bottom"} style={mobileShrink ? { fontFamily: 'font-mono', fontWeight: 400, fontSize: 12, lineHeight: 1 } : { fontFamily: 'font-mono', fontWeight: 400, fontSize: '1em', lineHeight: 1 }}>s</span>
+                </>
+              )}
           </div>
           {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
           {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
@@ -1095,12 +1095,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Webcam đối thủ - cột 3 */}
         <div
           className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
-          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 80, minWidth: 40 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
+          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
-            className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-0.5 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
+            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
             style={mobileShrink
-              ? { width: 40, height: 28, minWidth: 0, minHeight: 0, maxWidth: 45, maxHeight: 32 }
+              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
@@ -1109,7 +1109,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               ref={opponentVideoRef}
               autoPlay
               className={mobileShrink ? "w-full h-full object-cover rounded bg-black border border-pink-400" : "w-full h-full object-cover rounded-2xl bg-black border-4 border-pink-400"}
-              style={mobileShrink ? { maxHeight: 32, minHeight: 12 } : isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
+              style={mobileShrink ? { maxHeight: 90, minHeight: 40 } : isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
             />
           </div>
           <span className={mobileShrink ? "font-semibold text-[8px] text-pink-300" : "font-semibold text-lg text-pink-300"}>{opponentName}</span>

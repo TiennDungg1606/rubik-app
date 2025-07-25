@@ -23,6 +23,26 @@ type User = {
 };
 
 export default function Lobby() {
+  const [isMobile, setIsMobile] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  useEffect(() => {
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      const portrait = window.innerHeight > window.innerWidth;
+      setIsPortrait(portrait);
+    }
+    if (typeof window !== 'undefined') {
+      checkDevice();
+      window.addEventListener('resize', checkDevice);
+      window.addEventListener('orientationchange', checkDevice);
+      return () => {
+        window.removeEventListener('resize', checkDevice);
+        window.removeEventListener('orientationchange', checkDevice);
+      };
+    }
+  }, []);
   const [roomInput, setRoomInput] = useState("");
   const [tab, setTab] = useState("room");
   const [user, setUser] = useState<User | null>(null);
@@ -54,6 +74,14 @@ export default function Lobby() {
     router.push(`/room/${code}`);
   };
 
+  if (isMobile && isPortrait) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
+        <div className="text-2xl font-bold text-red-400 mb-4 text-center">VUI LÒNG XOAY NGANG MÀN HÌNH ĐỂ SỬ DỤNG ỨNG DỤNG!</div>
+        <div className="text-lg text-red-300 mb-2 text-center">Nhớ tắt chế độ khóa xoay màn hình ở bảng điều khiển của thiết bị.</div>
+      </div>
+    );
+  }
   return (
     <main className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans" style={{ backgroundImage: 'url(/images.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
       {/* Tab Navigation Bar */}
