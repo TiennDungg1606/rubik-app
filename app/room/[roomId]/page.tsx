@@ -937,26 +937,15 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
       </div>
       {/* Đã xóa Timer phía trên, chỉ giữ lại Timer nằm ngang giữa hai webcam */}
-      {/* Webcam + Timer ngang hàng */}
-      {/* Webcam + Timer ngang hàng, mobile landscape: chia đều chiều ngang, không tràn, có padding */}
+      {/* Webcam + Timer ngang hàng, chia 3 cột: webcam - timer - webcam */}
       <div
-        className={
-          mobileShrink
-            ? "flex flex-row w-full justify-center items-center gap-0 px-0.5 box-border"
-            : isMobileLandscape
-              ? "flex flex-row flex-wrap w-full justify-center items-center gap-0 px-1 box-border"
-              : "w-full mb-0 max-w-5xl flex flex-row gap-10 justify-center items-center relative"
-        }
-        style={mobileShrink ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : isMobileLandscape ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw' }}
+        className="w-full flex flex-row justify-center items-center gap-4 box-border"
+        style={{ maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' }}
       >
-        {/* Webcam của bạn */}
+        {/* Webcam của bạn - cột 1 */}
         <div
-          className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : isMobileLandscape ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
-          style={mobileShrink
-            ? { width: 40, minWidth: 0, maxWidth: 45 }
-            : isMobileLandscape
-              ? { width: '30vw', minWidth: 0, maxWidth: 180 }
-              : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
+          className="flex flex-col items-center webcam-area flex-shrink-0"
+          style={{ flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
             className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-0.5 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
@@ -988,8 +977,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>
           <span className={mobileShrink ? "font-semibold text-[8px] text-blue-300" : "font-semibold text-lg text-blue-300"}>{userName}</span>
         </div>
-        {/* Timer ở giữa */}
-        <div className={mobileShrink ? "flex flex-col items-center justify-center" : isMobileLandscape ? "flex flex-col items-center justify-center" : "flex flex-col items-center justify-center"} style={mobileShrink ? { width: 22, minHeight: 0, minWidth: 10, maxWidth: 28 } : isMobileLandscape ? { width: '18vw', minHeight: 0, minWidth: 60, maxWidth: 120 } : {}}>
+        {/* Timer ở giữa - cột 2 */}
+        <div
+          className="flex flex-col items-center justify-center"
+          style={{ flex: '0 1 20%', minWidth: 100, maxWidth: 180 }}
+        >
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận */}
           {pendingResult !== null && !running && !prep ? (
             <div className="flex flex-row items-center justify-center gap-1 mb-1">
@@ -1095,14 +1087,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
           {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
         </div>
-        {/* Webcam đối thủ */}
+        {/* Webcam đối thủ - cột 3 */}
         <div
-          className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : isMobileLandscape ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
-          style={mobileShrink
-            ? { width: 40, minWidth: 0, maxWidth: 45 }
-            : isMobileLandscape
-              ? { width: '30vw', minWidth: 0, maxWidth: 180 }
-              : isMobile ? { width: '100vw', maxWidth: 420 } : {}}
+          className="flex flex-col items-center webcam-area flex-shrink-0"
+          style={{ flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
             className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-0.5 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
