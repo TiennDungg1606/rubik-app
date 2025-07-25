@@ -31,40 +31,32 @@ function generateScramble() {
 // Helper for stats (all in ms)
 // Tính toán thống kê chuẩn WCA, DNF là null, mọi kết quả đều 3 số thập phân
 function calcStats(times: (number|null)[]) {
+  // valid: các lần giải hợp lệ (không DNF)
   const valid = times.filter(t => typeof t === 'number' && t > 0) as number[];
-  if (valid.length === 0) return { best: null, worst: null, mean3: null, avg5: null, ao5: null };
+  if (valid.length === 0) return { best: null, worst: null, mean: null, ao5: null };
   const sorted = [...valid].sort((a, b) => a - b);
   const best = sorted[0];
-  const worst = sorted[sorted.length - 1];
-  let mean3 = null;
-  if (times.length >= 3) {
-    const last3 = times.slice(-3);
-    if (last3.some(t => t === null)) {
-      mean3 = null;
-    } else {
-      mean3 = (last3 as number[]).reduce((a, b) => a + b, 0) / 3;
-    }
-  }
-  let avg5 = null;
-  if (times.length >= 5) {
-    const last5 = times.slice(-5);
-    if (last5.some(t => t === null)) {
-      avg5 = null;
-    } else {
-      avg5 = (last5 as number[]).reduce((a, b) => a + b, 0) / 5;
-    }
-  }
+  // worst: nếu có DNF thì là DNF, nếu không thì là số lớn nhất
+  const worst = times.includes(null) ? null : sorted[sorted.length - 1];
+  // mean: trung bình cộng các lần hợp lệ
+  const mean = valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+  // ao5: nếu có đủ 5 lần, loại tốt nhất và tệ nhất (DNF là tệ nhất), tính trung bình 3 lần còn lại
   let ao5 = null;
   if (times.length >= 5) {
     const last5 = times.slice(-5);
-    if (last5.some(t => t === null)) {
+    const dnfCount = last5.filter(t => t === null).length;
+    if (dnfCount > 1) {
       ao5 = null;
     } else {
-      const arr = [...(last5 as number[])].sort((a, b) => a - b).slice(1, 4);
-      ao5 = arr.reduce((a, b) => a + b, 0) / 3;
+      // DNF là tệ nhất, nên khi loại tệ nhất sẽ loại DNF (nếu có)
+      const arr = last5.map(t => t === null ? Infinity : t);
+      const sorted5 = [...arr].sort((a, b) => a - b);
+      // loại tốt nhất (min) và tệ nhất (max)
+      const ao5Arr = sorted5.slice(1, 4).filter(x => x !== Infinity);
+      ao5 = ao5Arr.length === 3 ? ao5Arr.reduce((a, b) => a + b, 0) / 3 : null;
     }
   }
-  return { best, worst, mean3, avg5, ao5 };
+  return { best, worst, mean, ao5 };
 }
 
 
@@ -669,13 +661,13 @@ export default function RoomPage() {
   const myStats = calcStats(myResults);
   const oppStats = calcStats(opponentResults);
 
-function formatTime(ms: number|null) {
-  if (ms === null) return 'DNF';
+function formatTime(ms: number|null, showDNF: boolean = false) {
+  if (ms === null) return showDNF ? 'DNF' : '';
   return (ms/1000).toFixed(3);
 }
 
-function formatStat(val: number|null) {
-  if (val === null) return '';
+function formatStat(val: number|null, showDNF: boolean = false) {
+  if (val === null) return showDNF ? 'DNF' : '';
   return (val/1000).toFixed(3);
 }
 
@@ -759,8 +751,8 @@ function formatStat(val: number|null) {
           style={{ backdropFilter: 'blur(2px)' }}
         >
           <div
-            className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] border-2 border-blue-400 relative" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] border-4 border-blue-400 relative"}
-            style={mobileShrink ? { fontSize: 10 } : {}}
+            className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[220px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[340px] border-4 border-blue-400 relative flex flex-col"}
+            style={mobileShrink ? { fontSize: 10, overflow: 'hidden' } : { overflow: 'hidden' }}
           >
             <button
               onClick={() => setShowRules(false)}
@@ -771,7 +763,10 @@ function formatStat(val: number|null) {
             <div className={mobileShrink ? "text-[11px] font-bold text-blue-300 mb-1 text-center" : "text-xl font-bold text-blue-300 mb-3 text-center"}>
               Luật thi đấu phòng
             </div>
-            <div className={mobileShrink ? "text-[9px] text-white" : "text-base text-white"}>
+            <div
+              className={mobileShrink ? "text-[9px] text-white flex-1 overflow-y-auto pr-1" : "text-base text-white flex-1 overflow-y-auto pr-2"}
+              style={mobileShrink ? { maxHeight: 160 } : { maxHeight: 240 }}
+            >
               {/* Thay nội dung này bằng luật thi đấu cụ thể sau */}
               <ul className="list-disc pl-4">
                 <li>Mỗi người có 5 lượt giải, chủ phòng là người có quyền giải trước.</li>
@@ -827,27 +822,24 @@ function formatStat(val: number|null) {
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">Tên</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">Best</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">Worst</th>
-                <th className="px-1 py-0.5 border border-gray-700 font-bold">Mean3</th>
-                <th className="px-1 py-0.5 border border-gray-700 font-bold">Avg5</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Mean</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">Ao5</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>{userName}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{myStats.best !== null ? formatTime(myStats.best) : ""}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{myStats.worst !== null ? formatTime(myStats.worst) : ""}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{myStats.mean3 !== null ? formatStat(myStats.mean3) : ""}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{myStats.avg5 !== null ? formatStat(myStats.avg5) : ""}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{myStats.ao5 !== null ? formatStat(myStats.ao5) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{myStats.best !== null ? formatTime(myStats.best) : formatTime(myStats.best, myResults.length >= 5)}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{myStats.worst !== null ? formatTime(myStats.worst) : formatTime(myStats.worst, myResults.length >= 5)}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{myStats.mean !== null ? formatStat(myStats.mean) : formatStat(myStats.mean, myResults.length >= 5)}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{myStats.ao5 !== null ? formatStat(myStats.ao5) : formatStat(myStats.ao5, myResults.length >= 5)}</td>
               </tr>
               <tr>
                 <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>{opponentName}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{oppStats.best !== null ? formatTime(oppStats.best) : ""}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{oppStats.worst !== null ? formatTime(oppStats.worst) : ""}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{oppStats.mean3 !== null ? formatStat(oppStats.mean3) : ""}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{oppStats.avg5 !== null ? formatStat(oppStats.avg5) : ""}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{oppStats.ao5 !== null ? formatStat(oppStats.ao5) : ""}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{oppStats.best !== null ? formatTime(oppStats.best) : formatTime(oppStats.best, opponentResults.length >= 5)}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{oppStats.worst !== null ? formatTime(oppStats.worst) : formatTime(oppStats.worst, opponentResults.length >= 5)}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{oppStats.mean !== null ? formatStat(oppStats.mean) : formatStat(oppStats.mean, opponentResults.length >= 5)}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{oppStats.ao5 !== null ? formatStat(oppStats.ao5) : formatStat(oppStats.ao5, opponentResults.length >= 5)}</td>
               </tr>
             </tbody>
           </table>
@@ -936,8 +928,8 @@ function formatStat(val: number|null) {
               {[0,1,2,3,4].map(i => (
                 <tr key={i} className="border-b border-gray-700">
                   <td className="py-1 border border-gray-700">{i+1}</td>
-                  <td className="py-1 border border-gray-700">{myResults[i] === null ? 'DNF' : (typeof myResults[i] === 'number' ? formatTime(myResults[i]) : "")}</td>
-                  <td className="py-1 border border-gray-700">{opponentResults[i] === null ? 'DNF' : (typeof opponentResults[i] === 'number' ? formatTime(opponentResults[i]) : "")}</td>
+                  <td className="py-1 border border-gray-700">{myResults.length >= 5 ? (myResults[i] === null ? 'DNF' : (typeof myResults[i] === 'number' ? formatTime(myResults[i]) : "")) : (typeof myResults[i] === 'number' ? formatTime(myResults[i]) : "")}</td>
+                  <td className="py-1 border border-gray-700">{opponentResults.length >= 5 ? (opponentResults[i] === null ? 'DNF' : (typeof opponentResults[i] === 'number' ? formatTime(opponentResults[i]) : "")) : (typeof opponentResults[i] === 'number' ? formatTime(opponentResults[i]) : "")}</td>
                 </tr>
               ))}
             </tbody>
