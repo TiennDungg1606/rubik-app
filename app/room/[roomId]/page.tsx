@@ -693,8 +693,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
   if (isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
-        <div className="text-2xl font-bold text-red-400 mb-4">Vui lòng xoay ngang màn hình để sử dụng ứng dụng!</div>
-        <div className="text-lg text-gray-300">Nếu bạn dùng điện thoại, hãy bật "Trang web cho máy tính" trong phần ⋮ góc bên phải để sử dụng đầy đủ chức năng.</div>
+        <div className="text-3xl font-bold text-red-300 text-center">Nếu bạn dùng điện thoại, hãy bật "Trang web cho máy tính" trong phần ⋮ góc bên phải để sử dụng đầy đủ chức năng và</div>
+        <div className="text-2xl font-bold text-red-400 mb-4 text-center">VUI LÒNG XOAY NGANG MÀN HÌNH ĐỂ SỬ DỤNG ỨNG DỤNG!</div>
       </div>
     );
   }
@@ -705,7 +705,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     <div
       className={
         mobileShrink
-          ? "h-screen w-screen flex flex-row items-center justify-center text-white py-1 overflow-x-hidden overflow-y-auto min-h-0 relative"
+          ? "h-screen w-screen flex flex-col items-center justify-start text-white py-1 overflow-x-hidden overflow-y-auto min-h-0 relative"
           : "min-h-screen w-full flex flex-col items-center text-white py-4 overflow-hidden relative"
       }
       style={{
@@ -798,11 +798,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       )}
       {/* Khối trên cùng: Tên phòng và scramble */}
       <div className="w-full flex flex-col items-center justify-center mb-0.5">
-        <h2 className={mobileShrink ? "text-[10px] font-bold mb-0.5" : "text-3xl font-bold mb-2"}>
+        <h2 className={mobileShrink ? "text-[12px] font-bold mb-1" : "text-3xl font-bold mb-2"}>
           Phòng: <span className="text-blue-400">{roomId}</span>
         </h2>
-        <div className={mobileShrink ? "mb-0.5 px-0.5 py-0.5 bg-gray-800 rounded text-[9px] font-mono font-bold tracking-widest select-all max-w-[100px] overflow-hidden text-ellipsis" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
-          style={mobileShrink ? { fontSize: 9, minWidth: 0, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
+        <div className={mobileShrink ? "mb-1 px-1 py-1 bg-gray-800 rounded text-[10px] font-mono font-bold tracking-widest select-all max-w-[140px] overflow-hidden text-ellipsis" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
+          style={mobileShrink ? { fontSize: 10  , minWidth: 0, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' } : {}}>
           {scramble}
         </div>
       </div>
@@ -810,23 +810,23 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       <div
         className={
           mobileShrink
-            ? "w-full flex flex-row flex-nowrap justify-between items-start gap-0.5 px-0 mb-0.5 overflow-x-auto"
+            ? "w-full flex flex-row items-center gap-1 px-0 mb-1"
             : isMobileLandscape
               ? "w-full flex flex-row flex-wrap justify-between items-start gap-2 px-1 mb-4 overflow-x-auto"
               : "w-full flex flex-row justify-between items-start gap-4 mb-6"
         }
-        style={mobileShrink ? { maxWidth: '100vw', rowGap: 1 } : isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
+        style={mobileShrink ? { maxWidth: '100vw', columnGap: 4 } : isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
       >
         {/* Bảng tổng hợp bên trái */}
         <div
           className={
             mobileShrink
-              ? "bg-gray-900 bg-opacity-90 shadow rounded p-0 m-0 min-w-[55px] max-w-[65px] w-[60px] flex-shrink-0 ml-0 mb-0.5"
+              ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[90px] max-w-[120px] w-[100px] flex-shrink-0 ml-0 mb-1"
               : isMobileLandscape
                 ? "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 ml-0 mb-2"
                 : "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[220px] max-w-[260px] w-[240px] flex-shrink-0 ml-4"
           }
-          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 8 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
           <table className={mobileShrink ? "text-center bg-gray-900 rounded overflow-hidden text-[8px] shadow border-collapse w-full" : "text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg border-collapse w-full"} style={mobileShrink ? { border: '1px solid #374151', margin: 0 } : { border: '1px solid #374151', margin: 0 }}>
             <thead className="bg-gray-800">
@@ -860,12 +860,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={
             mobileShrink
-              ? "flex flex-col items-center justify-center min-w-[60px] max-w-[80px] mx-auto mb-0.5 w-auto"
+              ? "flex flex-col items-center justify-center min-w-[70px] max-w-[110px] mx-auto mb-1 w-auto"
               : isMobileLandscape
                 ? "flex flex-col items-center justify-center min-w-[120px] max-w-[180px] mx-auto mb-2 w-auto"
                 : "flex flex-col items-center justify-center min-w-[260px] max-w-[520px] mx-auto w-auto"
           }
-          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 8 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
           {/* Thanh trạng thái */}
           <div className="mb-2 w-full flex items-center justify-center">
@@ -921,12 +921,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={
             mobileShrink
-              ? "bg-gray-900 bg-opacity-90 shadow rounded p-0 m-0 min-w-[55px] max-w-[65px] w-[60px] flex-shrink-0 mr-0 mb-0.5"
+              ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[90px] max-w-[120px] w-[100px] flex-shrink-0 mr-0 mb-1"
               : isMobileLandscape
                 ? "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[120px] max-w-[180px] w-[160px] flex-shrink-0 mr-0 mb-2"
                 : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[280px] max-w-[360px] w-[260px] flex-shrink-0 mr-4"
           }
-          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 8 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
           <table className={mobileShrink ? "w-full text-center bg-gray-900 rounded overflow-hidden text-[8px] shadow border-collapse" : "w-full text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg"}>
             <thead className="bg-gray-800">
@@ -951,16 +951,16 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       {/* Đã xóa Timer phía trên, chỉ giữ lại Timer nằm ngang giữa hai webcam */}
       {/* Webcam + Timer ngang hàng, chia 3 cột: webcam - timer - webcam */}
       <div
-        className="w-full flex flex-row justify-center items-center gap-4 box-border"
-        style={{ maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' }}
+        className={mobileShrink ? "w-full flex flex-row justify-center items-center gap-2 box-border mb-2" : "w-full flex flex-row justify-center items-center gap-4 box-border"}
+        style={mobileShrink ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' }}
       >
         {/* Webcam của bạn - cột 1 */}
         <div
-          className="flex flex-col items-center webcam-area flex-shrink-0"
-          style={{ flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
+          className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
+          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 80, minWidth: 40 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
-            className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-0.5 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
+            className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-1 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
             style={mobileShrink
               ? { width: 40, height: 28, minWidth: 0, minHeight: 0, maxWidth: 45, maxHeight: 32 }
               : isMobile && !isPortrait
@@ -991,8 +991,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
         {/* Timer ở giữa - cột 2 */}
         <div
-          className="flex flex-col items-center justify-center timer-area"
-          style={{ flex: '0 1 20%', minWidth: 100, maxWidth: 180 }}
+          className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
+          style={mobileShrink ? { flex: '0 1 20%', minWidth: 40, maxWidth: 80 } : { flex: '0 1 20%', minWidth: 100, maxWidth: 180 }}
           onClick={() => {
             if (waiting || myResults.length >= 5) return;
             if (!prep && !running && turn === 'me') {
@@ -1094,8 +1094,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
         {/* Webcam đối thủ - cột 3 */}
         <div
-          className="flex flex-col items-center webcam-area flex-shrink-0"
-          style={{ flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
+          className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
+          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 80, minWidth: 40 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
             className={mobileShrink ? "bg-gray-900 rounded flex items-center justify-center mb-0.5 relative shadow" : "bg-gray-900 rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
