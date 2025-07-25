@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer";
@@ -73,7 +72,8 @@ export default function RoomPage() {
   const [streamReady, setStreamReady] = useState<boolean>(false);
   const peerRef = useRef<any>(null);
   const [roomId, setRoomId] = useState<string>("");
-  const [scramble, setScramble] = useState<string>(generateScramble());
+  const [scramble, setScramble] = useState<string>("");
+  const [scrambleIndex, setScrambleIndex] = useState<number>(0);
   const [timer, setTimer] = useState<number>(0);
   const timerRef = useRef<number>(0);
   const [running, setRunning] = useState<boolean>(false);
@@ -164,8 +164,6 @@ export default function RoomPage() {
         });
     }
   }, []);
-
-  // ...existing code...
 
   // All variable and hook declarations must be above this line
   // (removed duplicate/old peer connection effect)
@@ -416,14 +414,7 @@ export default function RoomPage() {
       if (opp) setOpponentName(opp);
     });
     socket.on("opponent-solve", ({ userName: oppName, time }: { userName: string, time: number|null }) => {
-      setOpponentResults(r => {
-        const newR = [...r, time];
-        // Tổng số lượt giải (cả 2 người)
-        const total = myResults.length + newR.length;
-        // Chỉ đổi scramble khi tổng lượt là số lẻ (1,3,5,7,9)
-        if (total % 2 === 1) setScramble(generateScramble());
-        return newR;
-      });
+      setOpponentResults(r => [...r, time]);
       setTurn('me');
     });
     return () => {
@@ -449,14 +440,28 @@ export default function RoomPage() {
     }
   }, [isCreator, users.length]);
 
-  // Khi vào phòng, tạo scramble mới
+  // Nhận scramble từ server qua socket
   useEffect(() => {
-    setScramble(generateScramble());
+    const socket = getSocket();
+    const handleScramble = ({ scramble, index }: { scramble: string, index: number }) => {
+      setScramble(scramble);
+      setScrambleIndex(index);
+      // Reset trạng thái cho vòng mới
+      setPrep(false);
+      setCanStart(false);
+      setSpaceHeld(false);
+      setTimer(0);
+      setDnf(false);
+      setPendingResult(null);
+      setPendingType('normal');
+    };
+    socket.on("scramble", handleScramble);
     return () => {
+      socket.off("scramble", handleScramble);
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, []);
+  }, [roomId]);
 
   // Timer logic: desktop chỉ phím Space mới vào chuẩn bị, nhấn giữ/thả Space để bắt đầu, khi timer đang chạy nhấn phím bất kỳ để dừng, chuột click không có tác dụng
   useEffect(() => {
@@ -648,13 +653,20 @@ export default function RoomPage() {
 
   // Reset cho lần giải tiếp theo
   useEffect(() => {
-    if (myResults.length + opponentResults.length === 0) return;
+    const totalSolves = myResults.length + opponentResults.length;
+    if (totalSolves === 0) return;
     if (myResults.length > 0 && myResults.length > opponentResults.length) return; // chờ đối thủ
     setPrep(false);
     setCanStart(false);
     setSpaceHeld(false);
     setTimer(0);
     setDnf(false);
+    // Chỉ đổi scramble khi tổng số lượt giải là số chẵn (sau mỗi vòng)
+    if (totalSolves % 2 === 0 && totalSolves < 10) {
+      // Gửi yêu cầu đổi scramble lên server (nếu là chủ phòng)
+      const socket = getSocket();
+      socket.emit("next-scramble", { roomId });
+    }
   }, [myResults, opponentResults]);
 
   // Tính toán thống kê
@@ -682,7 +694,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
         <div className="text-2xl font-bold text-red-400 mb-4">Vui lòng xoay ngang màn hình để sử dụng ứng dụng!</div>
-        <div className="text-lg text-gray-300">Nếu bạn dùng điện thoại, hãy bật \"Trang web cho máy tính\" trong phần ⋮ góc bên phải để sử dụng đầy đủ chức năng.</div>
+        <div className="text-lg text-gray-300">Nếu bạn dùng điện thoại, hãy bật "Trang web cho máy tính" trong phần ⋮ góc bên phải để sử dụng đầy đủ chức năng.</div>
       </div>
     );
   }
@@ -769,7 +781,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             >
               {/* Thay nội dung này bằng luật thi đấu cụ thể sau */}
               <ul className="list-disc pl-4">
-                <li>Mỗi người có 5 lượt giải, chủ phòng là người có quyền giải trước.</li>
+                <li>Mỗi người có 5 lượt giải, chủ phòng là người giải trước.</li>
                 <li>Trường hợp camera không hoạt động, vui lòng tắt bật lại camera.</li>
                 <li>Chỉ có thể giải khi lượt của bạn, nếu không phải lượt của bạn thì hệ thống tự động khóa thao tác (chú ý xem thông báo trạng thái).</li>
                 <li>Mỗi vòng là 1 scramble, nghĩa là có tổng cộng 5 scramble, mỗi vòng cả 2 người đều cùng tráo theo scramble đã cho.</li>
@@ -928,8 +940,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               {[0,1,2,3,4].map(i => (
                 <tr key={i} className="border-b border-gray-700">
                   <td className="py-1 border border-gray-700">{i+1}</td>
-                  <td className="py-1 border border-gray-700">{myResults.length >= 5 ? (myResults[i] === null ? 'DNF' : (typeof myResults[i] === 'number' ? formatTime(myResults[i]) : "")) : (typeof myResults[i] === 'number' ? formatTime(myResults[i]) : "")}</td>
-                  <td className="py-1 border border-gray-700">{opponentResults.length >= 5 ? (opponentResults[i] === null ? 'DNF' : (typeof opponentResults[i] === 'number' ? formatTime(opponentResults[i]) : "")) : (typeof opponentResults[i] === 'number' ? formatTime(opponentResults[i]) : "")}</td>
+                  <td className="py-1 border border-gray-700">{myResults[i] === null ? 'DNF' : (typeof myResults[i] === 'number' ? formatTime(myResults[i]) : "")}</td>
+                  <td className="py-1 border border-gray-700">{opponentResults[i] === null ? 'DNF' : (typeof opponentResults[i] === 'number' ? formatTime(opponentResults[i]) : "")}</td>
                 </tr>
               ))}
             </tbody>
@@ -979,15 +991,35 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
         {/* Timer ở giữa - cột 2 */}
         <div
-          className="flex flex-col items-center justify-center"
+          className="flex flex-col items-center justify-center timer-area"
           style={{ flex: '0 1 20%', minWidth: 100, maxWidth: 180 }}
+          onClick={() => {
+            if (waiting || myResults.length >= 5) return;
+            if (!prep && !running && turn === 'me') {
+              setPrep(true);
+              setPrepTime(15);
+              setDnf(false);
+            } else if (prep && !running) {
+              setPrep(false);
+              setCanStart(true);
+            } else if (running) {
+              setRunning(false);
+              if (intervalRef.current) clearInterval(intervalRef.current);
+              // Không gửi kết quả ngay, chỉ lưu vào pendingResult
+              setPendingResult(timerRef.current);
+              setPendingType('normal');
+              setCanStart(false);
+              // Không setTurn('opponent') ở đây
+            }
+          }}
         >
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận */}
           {pendingResult !== null && !running && !prep ? (
             <div className="flex flex-row items-center justify-center gap-1 mb-1">
               <button
                 className={mobileShrink ? "px-1 py-0.5 text-[9px] rounded bg-green-600 hover:bg-green-700 font-bold text-white" : "px-3 py-1 text-base rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white"}
-                onClick={() => {
+                onClick={e => {
+                  e.stopPropagation();
                   // Gửi kết quả bình thường
                   let result: number|null = pendingResult;
                   if (pendingType === '+2' && result !== null) result = result + 2000;
@@ -996,10 +1028,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                     const newR = [...r, result];
                     const socket = getSocket();
                     socket.emit("solve", { roomId, userName, time: result === null ? null : result });
-                    // Tổng số lượt giải (cả 2 người)
-                    const total = newR.length + opponentResults.length;
-                    // Chỉ đổi scramble khi tổng lượt là số lẻ (1,3,5,7,9)
-                    if (total % 2 === 1) setScramble(generateScramble());
                     return newR;
                   });
                   setPendingResult(null);
@@ -1010,7 +1038,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               >Gửi</button>
               <button
                 className={mobileShrink ? `px-1 py-0.5 text-[9px] rounded bg-yellow-500 font-bold text-white` : `px-3 py-1 text-base rounded-lg bg-yellow-500 font-bold text-white`}
-                onClick={() => {
+                onClick={e => {
+                  e.stopPropagation();
                   // Gửi kết quả +2 ngay
                   let result: number|null = pendingResult;
                   if (result !== null) result = result + 2000;
@@ -1018,9 +1047,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                     const newR = [...r, result];
                     const socket = getSocket();
                     socket.emit("solve", { roomId, userName, time: result });
-                    // Tổng số lượt giải (cả 2 người)
-                    const total = newR.length + opponentResults.length;
-                    if (total % 2 === 1) setScramble(generateScramble());
                     return newR;
                   });
                   setPendingResult(null);
@@ -1031,15 +1057,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               >+2</button>
               <button
                 className={mobileShrink ? `px-1 py-0.5 text-[9px] rounded bg-red-600 font-bold text-white` : `px-3 py-1 text-base rounded-lg bg-red-600 font-bold text-white`}
-                onClick={() => {
+                onClick={e => {
+                  e.stopPropagation();
                   // Gửi kết quả DNF ngay
                   setMyResults(r => {
                     const newR = [...r, null];
                     const socket = getSocket();
                     socket.emit("solve", { roomId, userName, time: null });
-                    // Tổng số lượt giải (cả 2 người)
-                    const total = newR.length + opponentResults.length;
-                    if (total % 2 === 1) setScramble(generateScramble());
                     return newR;
                   });
                   setPendingResult(null);
@@ -1051,27 +1075,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </div>
           ) : null}
           <div
-            className={mobileShrink ? "text-xs font-bold text-yellow-300 drop-shadow select-none cursor-pointer px-0.5 py-0.5 rounded" : "text-7xl font-['Digital-7'] font-bold text-yellow-300 drop-shadow-lg select-none cursor-pointer px-4 py-2 rounded-lg"}
+            className={mobileShrink ? "text-xs font-bold text-yellow-300 drop-shadow select-none px-0.5 py-0.5 rounded" : "text-7xl font-['Digital-7'] font-bold text-yellow-300 drop-shadow-lg select-none px-4 py-2 rounded-lg"}
             style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 12, textAlign: 'center', fontSize: 12, padding: 0 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '100px', textAlign: 'center' }}
-            onClick={() => {
-              if (waiting || myResults.length >= 5) return;
-              if (!prep && !running && turn === 'me') {
-                setPrep(true);
-                setPrepTime(15);
-                setDnf(false);
-              } else if (prep && !running) {
-                setPrep(false);
-                setCanStart(true);
-              } else if (running) {
-                setRunning(false);
-                if (intervalRef.current) clearInterval(intervalRef.current);
-                // Không gửi kết quả ngay, chỉ lưu vào pendingResult
-                setPendingResult(timerRef.current);
-                setPendingType('normal');
-                setCanStart(false);
-                // Không setTurn('opponent') ở đây
-              }
-            }}
           >
             {prep ? (
               <span className={mobileShrink ? "text-[9px]" : undefined}>Chuẩn bị: {prepTime}s</span>
