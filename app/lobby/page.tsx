@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import TimerTab from "./components/TimerTab";
 import RoomTab from "./components/RoomTab";
 import AccountTab from "./components/AccountTab";
+import AccountTabWrapper from "./components/AccountTabWrapper";
 import { useRouter } from "next/navigation";
 
 
@@ -84,7 +85,7 @@ export default function Lobby() {
         </>
       )}
       {tab === "account" && (
-        <AccountTab user={user} loading={user === null && tab === "account"} />
+        <AccountTabWrapper />
       )}
     </main>
   );

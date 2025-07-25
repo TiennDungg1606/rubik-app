@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme';
 
-export async function GET(req) {
+export async function PATCH(req) {
   const cookie = req.headers.get('cookie') || '';
   const match = cookie.match(/token=([^;]+)/);
   if (!match) {
@@ -13,11 +13,8 @@ export async function GET(req) {
   try {
     const payload = jwt.verify(match[1], JWT_SECRET);
     await dbConnect();
-    const user = await User.findById(payload.userId).select('-password');
-    // Đảm bảo trả về trường birthday (nếu chưa có)
-    if (user && !user.birthday && user.birthday === undefined && user.birthday === null) {
-      user.birthday = null;
-    }
+    const { birthday } = await req.json();
+    const user = await User.findByIdAndUpdate(payload.userId, { birthday }, { new: true }).select('-password');
     if (!user) return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
     return new Response(JSON.stringify({ user }), { status: 200 });
   } catch {
