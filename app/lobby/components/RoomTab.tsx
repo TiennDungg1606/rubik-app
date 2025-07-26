@@ -12,9 +12,24 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [rooms, setRooms] = useState<string[]>([]);
   // Lấy danh sách phòng đang hoạt động
   useEffect(() => {
+    // Lấy danh sách phòng và lọc chỉ phòng có đúng 1 người chơi
     fetch("http://localhost:3001/active-rooms")
       .then(res => res.json())
-      .then(data => setRooms(Array.isArray(data) ? data : []))
+      .then(async (roomIds) => {
+        if (!Array.isArray(roomIds)) return setRooms([]);
+        // Lấy số lượng user cho từng phòng
+        const filteredRooms: string[] = [];
+        for (const roomId of roomIds) {
+          try {
+            const res = await fetch(`http://localhost:3001/room-users/${roomId}`);
+            const users = await res.json();
+            if (Array.isArray(users) && users.length === 1 && users[0]) {
+              filteredRooms.push(roomId);
+            }
+          } catch {}
+        }
+        setRooms(filteredRooms);
+      })
       .catch(() => setRooms([]));
   }, []);
 
