@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Peer from "simple-peer";
@@ -7,6 +8,9 @@ declare global {
   interface Window { userName?: string }
 }
 import { getSocket } from "@/lib/socket";
+
+  // Trạng thái thông báo tráo scramble
+const [showScrambleMsg, setShowScrambleMsg] = useState<boolean>(false);
 
 // Scramble giống TimerTab.tsx
 function generateScramble() {
@@ -454,6 +458,7 @@ export default function RoomPage() {
       setDnf(false);
       setPendingResult(null);
       setPendingType('normal');
+      setShowScrambleMsg(true); // Hiện thông báo tráo scramble
     };
     socket.on("scramble", handleScramble);
     return () => {
@@ -462,6 +467,12 @@ export default function RoomPage() {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
   }, [roomId]);
+  // Ẩn thông báo tráo scramble khi có người bắt đầu giải (bắt đầu chuẩn bị hoặc chạy)
+  useEffect(() => {
+    if (prep || running) {
+      setShowScrambleMsg(false);
+    }
+  }, [prep, running]);
 
   // Timer logic: desktop chỉ phím Space mới vào chuẩn bị, nhấn giữ/thả Space để bắt đầu, khi timer đang chạy nhấn phím bất kỳ để dừng, chuột click không có tác dụng
   useEffect(() => {
@@ -854,6 +865,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   return <span className={mobileShrink ? "text-[9px] font-semibold text-green-400" : "text-base font-semibold text-green-400"}>Trận đấu kết thúc, {winner} thắng</span>;
               }
               // Đang trong trận
+              if (showScrambleMsg) {
+                return <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300" : "text-xl font-semibold text-yellow-300"}>Hai cuber hãy tráo scramble</span>;
+              }
               let msg = "";
               let name = turn === 'me' ? userName : opponentName;
               if (prep) {
