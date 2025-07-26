@@ -953,19 +953,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
               if (waiting || myResults.length >= 5) return;
-              // 1. Tap and release to enter prep
-              if (!prep && !running && turn === 'me') {
-                (window as any)._timerTouchMode = 'prep';
-              }
-              // 2. In prep, tap and hold to start timer
-              else if (prep && !running) {
-                (window as any)._timerTouchMode = 'holdToStart';
-                (window as any)._timerTouchHoldStart = Date.now();
-              }
-              // 3. When running, tap to stop
-              else if (running) {
-                (window as any)._timerTouchMode = 'stop';
-              }
+              // Đánh dấu touch bắt đầu
+              (window as any)._timerTouchActive = true;
             },
             onTouchEnd: (e) => {
               if (pendingResult !== null) return;
@@ -976,32 +965,28 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }
               if (waiting || myResults.length >= 5) return;
               // 1. Tap and release to enter prep
-              if ((window as any)._timerTouchMode === 'prep' && !prep && !running && turn === 'me') {
+              if (!prep && !running && turn === 'me') {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
-                (window as any)._timerTouchMode = null;
+                (window as any)._timerTouchActive = false;
                 return;
               }
-              // 2. In prep, tap and hold >=1s then release to start timer
-              if ((window as any)._timerTouchMode === 'holdToStart' && prep && !running) {
-                const holdTime = Date.now() - ((window as any)._timerTouchHoldStart || 0);
-                if (holdTime >= 1000) {
-                  setPrep(false);
-                  setCanStart(true);
-                }
-                (window as any)._timerTouchMode = null;
-                (window as any)._timerTouchHoldStart = null;
+              // 2. In prep, tap and release to start timer
+              if (prep && !running) {
+                setPrep(false);
+                setCanStart(true);
+                (window as any)._timerTouchActive = false;
                 return;
               }
-              // 3. When running, tap to stop
-              if ((window as any)._timerTouchMode === 'stop' && running) {
+              // 3. When running, tap and release to stop timer
+              if (running) {
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
                 setPendingResult(timerRef.current);
                 setPendingType('normal');
                 setCanStart(false);
-                (window as any)._timerTouchMode = null;
+                (window as any)._timerTouchActive = false;
                 return;
               }
             }
