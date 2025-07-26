@@ -83,7 +83,7 @@ export default function TimerTab() {
         setTimerState("preparing");
         setPrepTime(15);
       } else if (timerState === "preparing") {
-        if (start && now - start >= 500) {
+        if (start && now - start >= 300) {
           setTimerState("running");
           setStartTime(Date.now());
         }
@@ -182,25 +182,107 @@ export default function TimerTab() {
       {/* Đường kẻ trắng ngang phía trên sidebar và main */}
       <div className="absolute left-0 top-0 w-full h-0.5 bg-white z-30" style={{height: '1px', top: 0}}></div>
       {/* Đường kẻ trắng dọc giữa sidebar và main */}
-      <div className="absolute top-0 left-64 h-full w-0.5 bg-white z-30" style={{width: '1px', left: '16rem'}}></div>
+      <div className="fixed top-16 left-64 w-0.5 bg-white z-30" style={{width: '1px', left: '17rem', height: '90vh'}}></div>
       {/* Sidebar */}
       <aside className="w-64 bg-transparent flex flex-col items-center py-4 min-h-[80vh]">
         {/* Logo */}
         <div className="relative w-full flex items-center justify-center mb-4">
-          <div className="absolute inset-0 pointer-events-none z-0" style={{borderRadius: '1rem', border: '3px solid white', boxSizing: 'border-box', top: 0, bottom: 0, left: 0, right: 0}}></div>
-          <div className="bg-black bg-opacity-70 border-2 border-yellow-400 text-yellow-400 font-extrabold text-4xl px-6 py-4 rounded-xl shadow-lg flex items-center justify-center z-10" style={{letterSpacing: '2px', width: '100%'}}>csTimer</div>
+          <div
+            className="absolute inset-0 pointer-events-none z-0"
+            style={
+              isMobileDevice()
+                ? { borderRadius: '0.75rem', border: '2px solid white', boxSizing: 'border-box', top: 0, bottom: 0, left: 0, right: 0 }
+                : { borderRadius: '1rem', border: '3px solid white', boxSizing: 'border-box', top: 0, bottom: 0, left: 0, right: 0 }
+            }
+          ></div>
+          <div
+            className={
+              (isMobileDevice()
+                ? "bg-black bg-opacity-70 border border-yellow-400 text-yellow-400 font-extrabold text-2xl px-2 py-2 rounded-xl shadow-lg flex items-center justify-center z-10"
+                : "bg-black bg-opacity-70 border-2 border-yellow-400 text-yellow-400 font-extrabold text-4xl px-6 py-4 rounded-xl shadow-lg flex items-center justify-center z-10"
+              )
+            }
+            style={{ letterSpacing: '2px', width: '100%' }}
+          >
+            csTimer
+          </div>
         </div>
         {/* Session & stats */}
-        <div className="relative w-full px-2 mb-1">
+        <div className={
+          "relative w-full px-2 mb-1 " +
+          (isMobileDevice() ? "text-[11px]" : "")
+        }>
           <div className="absolute inset-0 pointer-events-none z-0" style={{borderRadius: '0', border: '1px solid white', boxSizing: 'border-box'}}></div>
-          <div className="flex items-center justify-between mb-4 z-10 relative">
-            <div className="bg-black bg-opacity-70 border border-blue-400 rounded px-2 py-1 text-white text-base font-bold cursor-pointer">Session1</div>
-            <button
-              className="text-xs text-white border border-red-300 rounded px-2 py-1 ml-2 hover:bg-red-100"
-              onClick={() => { setResults([]); setBest(null); setMean('DNF'); setAo5('-'); setAo12('-'); setCookie('timer_results', JSON.stringify([])); }}
-            >Clear</button>
+          <div className={
+            "flex items-center justify-between mb-4 z-10 relative " +
+            (isMobileDevice() ? "gap-1" : "")
+          }>
+            <div className={
+              (isMobileDevice()
+                ? "bg-black bg-opacity-70 border border-blue-400 rounded px-1 py-0.5 text-white text-[12px] font-bold cursor-pointer"
+                : "bg-black bg-opacity-70 border border-blue-400 rounded px-2 py-1 text-white text-base font-bold cursor-pointer"
+              )
+            }>Session1</div>
+            <div className={
+              (isMobileDevice()
+                ? "flex flex-row items-center gap-1"
+                : "flex flex-row items-center gap-2"
+              )
+            }>
+              <button
+                className={
+                  (isMobileDevice()
+                    ? "text-[11px] text-white border border-red-300 rounded px-1 py-0.5 hover:bg-red-100"
+                    : "text-xs text-white border border-red-300 rounded px-2 py-1 hover:bg-red-100"
+                  )
+                }
+                onClick={() => { setResults([]); setBest(null); setMean('DNF'); setAo5('-'); setAo12('-'); setCookie('timer_results', JSON.stringify([])); }}
+              >Clear</button>
+              <button
+                className={
+                  (isTyping
+                    ? (isMobileDevice()
+                        ? "bg-yellow-400 text-white rounded-full p-1 shadow hover:bg-gray-200 focus:outline-none ml-1"
+                        : "bg-yellow-400 text-white rounded-full p-2 shadow hover:bg-gray-200 focus:outline-none ml-2"
+                      )
+                    : (isMobileDevice()
+                        ? "bg-white text-gray-700 rounded-full p-1 shadow hover:bg-gray-200 focus:outline-none ml-1"
+                        : "bg-white text-gray-700 rounded-full p-2 shadow hover:bg-gray-200 focus:outline-none ml-2"
+                      )
+                  )
+                }
+                title={isTyping ? "Thoát chế độ nhập thời gian" : "Nhập thời gian từ bàn phím"}
+                onClick={() => {
+                  if (isTyping) {
+                    setIsTyping(false);
+                    setTypingValue("");
+                  } else {
+                    setIsTyping(true);
+                    setTypingValue("");
+                  }
+                }}
+              >
+                {/* Keyboard SVG icon đổi màu khi bật Typing */}
+                {isTyping ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={isMobileDevice() ? "w-4 h-4 text-white" : "w-5 h-5 text-white"}>
+                    <rect x="3" y="7" width="18" height="10" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" stroke="currentColor" d="M7 13h.01M11 13h.01M15 13h.01M7 17h10" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={isMobileDevice() ? "w-4 h-4 text-gray-700" : "w-5 h-5 text-gray-700"}>
+                    <rect x="3" y="7" width="18" height="10" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" stroke="currentColor" d="M7 13h.01M11 13h.01M15 13h.01M7 17h10" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
-          <div className="bg-white bg-opacity-80 rounded-none p-2 text-xs text-black z-10 relative" style={{marginTop: '-8px'}}>
+          <div className={
+            (isMobileDevice()
+              ? "bg-white bg-opacity-80 rounded-none p-1 text-[11px] text-black z-10 relative"
+              : "bg-white bg-opacity-80 rounded-none p-2 text-xs text-black z-10 relative"
+            )
+          } style={{marginTop: '-8px'}}>
             <div className="flex justify-between"><span>current</span><span>best</span></div>
             <div className="flex justify-between mb-1"><span>time</span><span>-</span><span>{best !== null ? (best/1000).toFixed(3) : '-'}</span></div>
             <div>solve: {results.length}/0</div>
@@ -208,19 +290,48 @@ export default function TimerTab() {
           </div>
         </div>
         {/* Results table full height */}
-        <div className="relative w-full flex-1 flex flex-col justify-end" style={{paddingBottom: 0, height: '100%'}}>
+        <div className="relative w-full">
           <div className="absolute inset-0 pointer-events-none z-0" style={{borderRadius: '0', border: '1px solid white', boxSizing: 'border-box'}}></div>
-          <div className="relative z-10 h-full flex flex-col justify-end">
-            <div className="overflow-y-auto w-full" style={{height: 'calc(100vh - 320px)'}}>
+          <div className="relative z-10">
+            {/* Chỉ bảng kết quả có thanh cuộn, không phải toàn trang */}
+            <div className="w-full" style={{maxHeight: '40vh', overflowY: 'auto'}}>
               {/* Bảng kết quả dạng table với header cố định */}
-              <div className="relative w-full h-full">
-                <table className="w-full text-xs border-collapse">
-                  <thead className="sticky top-0 bg-black bg-opacity-80 z-20">
+              <div className="relative w-full">
+                <table
+                  className={
+                    "w-full border-collapse " +
+                    (isMobileDevice() ? "text-[10px]" : "text-xs")
+                  }
+                >
+                  <thead className={
+                    "sticky top-0 bg-black bg-opacity-80 z-20 " +
+                    (isMobileDevice() ? "text-[11px]" : "")
+                  }>
                     <tr className="bg-transparent">
-                      <th className="border border-gray-400 text-blue-700 font-bold">ø</th>
-                      <th className="border border-gray-400 text-blue-700 font-bold">time</th>
-                      <th className="border border-gray-400 text-blue-700 font-bold">ao5</th>
-                      <th className="border border-gray-400 text-blue-700 font-bold">ao12</th>
+                      <th className={
+                        (isMobileDevice()
+                          ? "border border-gray-300 px-1 py-0.5 text-blue-700 font-bold"
+                          : "border border-gray-400 px-2 py-1 text-blue-700 font-bold"
+                        )
+                      }>ø</th>
+                      <th className={
+                        (isMobileDevice()
+                          ? "border border-gray-300 px-1 py-0.5 text-blue-700 font-bold"
+                          : "border border-gray-400 px-2 py-1 text-blue-700 font-bold"
+                        )
+                      }>time</th>
+                      <th className={
+                        (isMobileDevice()
+                          ? "border border-gray-300 px-1 py-0.5 text-blue-700 font-bold"
+                          : "border border-gray-400 px-2 py-1 text-blue-700 font-bold"
+                        )
+                      }>ao5</th>
+                      <th className={
+                        (isMobileDevice()
+                          ? "border border-gray-300 px-1 py-0.5 text-blue-700 font-bold"
+                          : "border border-gray-400 px-2 py-1 text-blue-700 font-bold"
+                        )
+                      }>ao12</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -247,10 +358,38 @@ export default function TimerTab() {
                       }
                       return (
                         <tr key={i}>
-                          <td className="border border-gray-400 text-blue-700 text-center">{i}</td>
-                          <td className={`border border-gray-400 text-center ${r.dnf ? 'text-red-500' : 'text-red-500'}`}>{r.dnf ? 'DNF' : (r.time/1000).toFixed(3)}</td>
-                          <td className={`border border-gray-400 text-center ${ao5Val !== '-' ? 'text-red-500' : ''}`}>{ao5Val}</td>
-                          <td className="border border-gray-400 text-center">{ao12Val}</td>
+                          <td
+                            className={
+                              (isMobileDevice()
+                                ? "border border-gray-300 px-1 py-0.5 text-blue-700 text-center"
+                                : "border border-gray-400 px-2 py-1 text-blue-700 text-center"
+                              )
+                            }
+                          >{i}</td>
+                          <td
+                            className={
+                              (isMobileDevice()
+                                ? `border border-gray-300 px-1 py-0.5 text-center ${r.dnf ? 'text-red-500' : 'text-red-500'}`
+                                : `border border-gray-400 px-2 py-1 text-center ${r.dnf ? 'text-red-500' : 'text-red-500'}`
+                              )
+                            }
+                          >{r.dnf ? 'DNF' : (r.time/1000).toFixed(3)}</td>
+                          <td
+                            className={
+                              (isMobileDevice()
+                                ? `border border-gray-300 px-1 py-0.5 text-center ${ao5Val !== '-' ? 'text-red-500' : ''}`
+                                : `border border-gray-400 px-2 py-1 text-center ${ao5Val !== '-' ? 'text-red-500' : ''}`
+                              )
+                            }
+                          >{ao5Val}</td>
+                          <td
+                            className={
+                              (isMobileDevice()
+                                ? "border border-gray-300 px-1 py-0.5 text-center"
+                                : "border border-gray-400 px-2 py-1 text-center"
+                              )
+                            }
+                          >{ao12Val}</td>
                         </tr>
                       );
                     })}
@@ -294,46 +433,48 @@ export default function TimerTab() {
           </div>
         </div>
         {/* Scramble */}
-        <div className="w-full text-center text-2xl font-mono font-bold py-4 px-2 border-b border-gray-200 bg-transparent text-white drop-shadow-lg">
+        <div
+          className={
+            "w-full text-center font-mono font-bold border-b border-gray-200 bg-transparent text-white drop-shadow-lg " +
+            (isMobileDevice()
+              ? "text-sm py-2 px-1"
+              : "text-2xl py-4 px-2")
+          }
+        >
           {scramble}
         </div>
         {/* Timer big + Typing button */}
         <div className="flex-1 flex flex-col items-center justify-center relative">
-          {/* Keyboard icon button for manual time entry - moved to top right */}
-          <div className="absolute right-4 top-4 flex flex-col items-center z-20">
-            <button
-              className="bg-white rounded-full p-3 shadow hover:bg-gray-200 focus:outline-none"
-              title="Nhập thời gian từ bàn phím"
-              onClick={() => {
-                setIsTyping(true);
-                setTypingValue("");
-              }}
-            >
-              {/* Keyboard SVG icon */}
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7 text-gray-700">
-                <rect x="3" y="7" width="18" height="10" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" stroke="currentColor" d="M7 13h.01M11 13h.01M15 13h.01M7 17h10" />
-              </svg>
-            </button>
-            <span className="mt-2 text-xs text-white font-semibold">Typing</span>
-          </div>
+          {/* Đã di chuyển nút Typing lên cạnh nút Clear */}
           <div className="flex flex-col items-center">
             {/* Nếu đang nhập, hiển thị input thay cho timer */}
             {isTyping ? (
               <input
                 autoFocus
                 type="text"
-                className="text-[6rem] digital7mono text-black font-bold text-center rounded-lg border-2 border-yellow-400 bg-white px-4 py-2 outline-none shadow-lg"
-                style={{fontFamily: 'Digital7Mono, monospace', width: '18ch'}}  
+                className={
+                  (isMobileDevice()
+                    ? "text-[2.5rem] px-2 py-1 w-[9ch]"
+                    : "text-[6rem] px-4 py-2 w-[18ch]") +
+                  " digital7mono text-black font-bold text-center rounded-lg border-2 border-yellow-400 bg-white outline-none shadow-lg"
+                }
+                style={{fontFamily: 'Digital7Mono, monospace'}}  
                 value={typingValue}
                 onChange={e => setTypingValue(e.target.value)}
                 onBlur={() => {
-                  setIsTyping(false);
+                  // Không tự động tắt chế độ Typing khi blur, chỉ clear input
                   setTypingValue("");
                 }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
-                    const val = parseFloat(typingValue.replace(',', '.'));
+                    // Kiểm tra định dạng x.xxx
+                    const regex = /^\d+\.\d{3}$/;
+                    const valStr = typingValue.replace(',', '.');
+                    if (!regex.test(valStr)) {
+                      alert('Vui lòng nhập đúng định dạng: x.xxx (ví dụ: 12.345)');
+                      return;
+                    }
+                    const val = parseFloat(valStr);
                     if (isNaN(val) || val <= 0) {
                       alert('Thời gian không hợp lệ!');
                       return;
@@ -362,8 +503,8 @@ export default function TimerTab() {
                     setScramble(generateScramble());
                     setTimerState('idle');
                     setStartTime(null);
-                    setIsTyping(false);
                     setTypingValue("");
+                    // Không setIsTyping(false) để giữ chế độ Typing
                   }
                 }}
               />
@@ -395,7 +536,7 @@ export default function TimerTab() {
                     setTimerState('preparing');
                     setPrepTime(15);
                   } else if (timerState === 'preparing') {
-                    if (start && now - start >= 500) {
+                    if (start && now - start >= 300) {
                       setTimerState('running');
                       setStartTime(Date.now());
                     }

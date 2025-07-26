@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react";
@@ -6,6 +5,9 @@ import TimerTab from "./components/TimerTab";
 import RoomTab from "./components/RoomTab";
 import AccountTab from "./components/AccountTab";
 import AccountTabWrapper from "./components/AccountTabWrapper";
+import NewTab from "./components/NewTab";
+import AboutTab from "./components/AboutTab";
+import ShopTab from "./components/ShopTab";
 import { useRouter } from "next/navigation";
 
 
@@ -44,7 +46,8 @@ export default function Lobby() {
     }
   }, []);
   const [roomInput, setRoomInput] = useState("");
-  const [tab, setTab] = useState("room");
+  // Mặc định tab New được chọn đầu tiên khi đăng nhập
+  const [tab, setTab] = useState("new");
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
@@ -83,12 +86,15 @@ export default function Lobby() {
     );
   }
   return (
-    <main className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans" style={{ backgroundImage: 'url(/images.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+    <main className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans backdrop-blur-3xl" style={{ backgroundImage: 'url(/images.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
       {/* Tab Navigation Bar */}
       <nav className="w-full max-w-2xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-6 py-3 mt-2 mb-2">
         <div className="flex gap-6">
+          <button className={`text-base font-semibold transition-colors ${tab === "new" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("new")}>New</button>
           <button className={`text-base font-semibold transition-colors ${tab === "timer" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("timer")}>Timer</button>
           <button className={`text-base font-semibold transition-colors ${tab === "room" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("room")}>Room</button>
+          <button className={`text-base font-semibold transition-colors ${tab === "shop" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("shop")}>Shop</button>
+          <button className={`text-base font-semibold transition-colors ${tab === "about" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("about")}>About</button>
           <button className={`text-base font-semibold transition-colors ${tab === "account" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("account")}>Account</button>
         </div>
         <button className="text-white font-semibold text-base hover:text-red-400 transition-colors" onClick={() => {
@@ -111,6 +117,15 @@ export default function Lobby() {
           />
           {joinError && <div className="text-red-400 text-center mt-2">{joinError}</div>}
         </>
+      )}
+      {tab === "new" && (
+        <NewTab />
+      )}
+      {tab === "shop" && (
+        <ShopTab />
+      )}
+      {tab === "about" && (
+        <AboutTab />
       )}
       {tab === "account" && (
         <AccountTabWrapper />

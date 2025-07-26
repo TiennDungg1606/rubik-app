@@ -514,7 +514,7 @@ export default function RoomPage() {
         const start = pressStartRef.current;
         pressStartRef.current = null;
         spaceHeld = false;
-        if (start && now - start >= 500) {
+        if (start && now - start >= 300) {
           setPrep(false);
           setCanStart(true);
         }
@@ -540,7 +540,9 @@ export default function RoomPage() {
           clearInterval(prepIntervalRef.current!);
           setPrep(false);
           setCanStart(false);
+          setRunning(false);
           setDnf(true); // DNF nếu hết giờ chuẩn bị
+          pressStartRef.current = null;
           // Lưu kết quả DNF
           setMyResults(r => [...r, null]);
           setTurn('opponent');
@@ -1005,7 +1007,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }
               // 2. In prep, giữ >=0.5s rồi thả ra để start timer
               if (prep && !running) {
-                if (start && now - start >= 500) {
+                if (start && now - start >= 300) {
                   setPrep(false);
                   setCanStart(true);
                 }
