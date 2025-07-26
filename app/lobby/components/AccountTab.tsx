@@ -88,7 +88,7 @@ export default function AccountTab({ user, loading }: AccountTabProps) {
   };
   return (
     <div className="w-full flex flex-col items-center justify-center">
-      <h2 className="text-3xl font-extrabold mb-8 text-blue-500 tracking-wide drop-shadow">Thông tin tài khoản</h2>
+      <h2 className="text-3xl font-extrabold mb-8 text-white-500 tracking-wide drop-shadow">Thông tin tài khoản</h2>
       {loading ? (
         <div className="text-gray-400">Đang tải thông tin...</div>
       ) : user ? (

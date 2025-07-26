@@ -27,6 +27,8 @@ export default function TimerTab() {
   const [prepTime, setPrepTime] = useState(15);
   const [time, setTime] = useState(0);
   const [startTime, setStartTime] = useState<number|null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingValue, setTypingValue] = useState("");
   // Helper for cookie
   function setCookie(name: string, value: string, days = 365) {
     const expires = new Date(Date.now() + days*24*60*60*1000).toUTCString();
@@ -284,57 +286,14 @@ export default function TimerTab() {
         </div>
         {/* Timer big + Typing button */}
         <div className="flex-1 flex flex-col items-center justify-center relative">
-          <div className="flex flex-col items-center">
-            {timerState === 'dnf' && (
-              <div className="mb-4 text-3xl text-yellow-400 font-bold drop-shadow-lg animate-pulse">Lỗi DNF, nhấn Space</div>
-            )}
-            {/* Font-face is now in globals.css for global effect */}
-            {timerState === 'preparing' ? (
-              <div className="text-[10rem] digital7mono text-yellow-400 leading-none select-none drop-shadow-lg">{prepTime}</div>
-            ) : timerState === 'ready' ? (
-              <div className="text-[10rem] digital7mono text-yellow-400 leading-none select-none drop-shadow-lg">{prepTime}</div>
-            ) : (timerState === 'dnf' || (timerState === 'done' && results.length > 0 && results[results.length-1].dnf)) ? (
-              <div className="text-[10rem] digital7mono font-bold text-red-400 leading-none select-none drop-shadow-lg">DNF</div>
-            ) : (
-              <div className="text-[10rem] digital7mono text-white leading-none select-none drop-shadow-lg" style={{fontFamily: 'Digital7Mono, monospace'}}>{(timerState === 'running' || timerState === 'done') ? (time/1000).toFixed(3) : (time/1000).toFixed(3)}</div>
-            )}
-            <div className="text-2xl text-white font-mono drop-shadow-lg">ao5: {ao5}</div>
-            <div className="text-2xl text-white font-mono drop-shadow-lg">ao12: {ao12}</div>
-          </div>
-          {/* Keyboard icon button for manual time entry */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center">
+          {/* Keyboard icon button for manual time entry - moved to top right */}
+          <div className="absolute right-4 top-4 flex flex-col items-center z-20">
             <button
               className="bg-white rounded-full p-3 shadow hover:bg-gray-200 focus:outline-none"
               title="Nhập thời gian từ bàn phím"
               onClick={() => {
-                const input = prompt('Nhập thời gian (giây, ví dụ: 12.345):');
-                if (!input) return;
-                const val = parseFloat(input.replace(',', '.'));
-                if (isNaN(val) || val <= 0) return alert('Thời gian không hợp lệ!');
-                setResults(prev => {
-                  const newResults = [...prev, { time: Math.round(val*1000), scramble: scramble, dnf: false }];
-                  setCookie('timer_results', JSON.stringify(newResults));
-                  // Update best, mean, ao5, ao12
-                  const valid = newResults.filter(r => !r.dnf);
-                  setBest(valid.length ? Math.min(...valid.map(r => r.time)) : null);
-                  setMean(valid.length ? (valid.reduce((a, b) => a + b.time, 0) / valid.length / 1000).toFixed(3) : "DNF");
-                  function avgN(arr: {time: number, scramble: string, dnf?: boolean}[], n: number): string {
-                    if (arr.length < n) return "-";
-                    const lastN = arr.slice(-n);
-                    const dnfCount = lastN.filter(r => r.dnf).length;
-                    if (dnfCount >= 2) return "DNF";
-                    const times = lastN.map(r => r.dnf ? Infinity : r.time).sort((a, b) => a - b);
-                    const trimmed = times.slice(1, -1);
-                    if (trimmed.some(t => !isFinite(t))) return "DNF";
-                    return (trimmed.reduce((a, b) => a + b, 0) / trimmed.length / 1000).toFixed(3);
-                  }
-                  setAo5(avgN(newResults, 5));
-                  setAo12(avgN(newResults, 12));
-                  return newResults;
-                });
-                setScramble(generateScramble());
-                setTimerState('idle');
-                setStartTime(null);
+                setIsTyping(true);
+                setTypingValue("");
               }}
             >
               {/* Keyboard SVG icon */}
@@ -344,6 +303,151 @@ export default function TimerTab() {
               </svg>
             </button>
             <span className="mt-2 text-xs text-white font-semibold">Typing</span>
+          </div>
+          <div className="flex flex-col items-center">
+            {/* Nếu đang nhập, hiển thị input thay cho timer */}
+            {isTyping ? (
+              <input
+                autoFocus
+                type="text"
+                className="text-[6rem] digital7mono text-black font-bold text-center rounded-lg border-2 border-yellow-400 bg-white px-4 py-2 outline-none shadow-lg"
+                style={{fontFamily: 'Digital7Mono, monospace', width: '18ch'}}  
+                value={typingValue}
+                onChange={e => setTypingValue(e.target.value)}
+                onBlur={() => {
+                  setIsTyping(false);
+                  setTypingValue("");
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const val = parseFloat(typingValue.replace(',', '.'));
+                    if (isNaN(val) || val <= 0) {
+                      alert('Thời gian không hợp lệ!');
+                      return;
+                    }
+                    setResults(prev => {
+                      const newResults = [...prev, { time: Math.round(val*1000), scramble: scramble, dnf: false }];
+                      setCookie('timer_results', JSON.stringify(newResults));
+                      // Update best, mean, ao5, ao12
+                      const valid = newResults.filter(r => !r.dnf);
+                      setBest(valid.length ? Math.min(...valid.map(r => r.time)) : null);
+                      setMean(valid.length ? (valid.reduce((a, b) => a + b.time, 0) / valid.length / 1000).toFixed(3) : "DNF");
+                      function avgN(arr: {time: number, scramble: string, dnf?: boolean}[], n: number): string {
+                        if (arr.length < n) return "-";
+                        const lastN = arr.slice(-n);
+                        const dnfCount = lastN.filter(r => r.dnf).length;
+                        if (dnfCount >= 2) return "DNF";
+                        const times = lastN.map(r => r.dnf ? Infinity : r.time).sort((a, b) => a - b);
+                        const trimmed = times.slice(1, -1);
+                        if (trimmed.some(t => !isFinite(t))) return "DNF";
+                        return (trimmed.reduce((a, b) => a + b, 0) / trimmed.length / 1000).toFixed(3);
+                      }
+                      setAo5(avgN(newResults, 5));
+                      setAo12(avgN(newResults, 12));
+                      return newResults;
+                    });
+                    setScramble(generateScramble());
+                    setTimerState('idle');
+                    setStartTime(null);
+                    setIsTyping(false);
+                    setTypingValue("");
+                  }
+                }}
+              />
+            ) : (
+              <div
+                className={
+                  timerState === 'dnf' || (timerState === 'done' && results.length > 0 && results[results.length-1].dnf)
+                    ? "text-[10rem] digital7mono font-bold text-red-400 leading-none select-none drop-shadow-lg"
+                    : timerState === 'preparing' || timerState === 'ready'
+                      ? "text-[10rem] digital7mono text-yellow-400 leading-none select-none drop-shadow-lg"
+                      : "text-[10rem] digital7mono text-white leading-none select-none drop-shadow-lg"
+                }
+                style={{fontFamily: 'Digital7Mono, monospace'}}
+                onClick={() => {
+                  if (timerState === 'idle') {
+                    setTimerState('preparing');
+                    setPrepTime(15);
+                  } else if (timerState === 'preparing') {
+                    setTimerState('ready');
+                  } else if (timerState === 'ready') {
+                    setTimerState('running');
+                    setStartTime(Date.now());
+                  } else if (timerState === 'running') {
+                    setTimerState('done');
+                  } else if (timerState === 'dnf') {
+                    // Khi đang ở trạng thái DNF, chạm để thêm kết quả DNF vào bảng và sang scramble mới
+                    setResults(prev => {
+                      const newResults = [...prev, { time: 0, scramble, dnf: true }];
+                      // Update best
+                      const valid = newResults.filter(r => !r.dnf);
+                      setBest(valid.length ? Math.min(...valid.map(r => r.time)) : null);
+                      // Update mean
+                      setMean(valid.length ? (valid.reduce((a, b) => a + b.time, 0) / valid.length / 1000).toFixed(3) : "DNF");
+                      // ao5, ao12
+                      function avgN(arr: any[], n: number) {
+                        if (arr.length < n) return "-";
+                        const lastN = arr.slice(-n).filter(r => !r.dnf);
+                        if (lastN.length < n) return "DNF";
+                        return (lastN.reduce((a, b) => a + b.time, 0) / n / 1000).toFixed(3);
+                      }
+                      setAo5(avgN(newResults, 5));
+                      setAo12(avgN(newResults, 12));
+                      return newResults;
+                    });
+                    setScramble(generateScramble());
+                    setTimerState('idle');
+                    setStartTime(null);
+                  }
+                }}
+                onTouchStart={e => {
+                  e.preventDefault();
+                  if (timerState === 'idle') {
+                    setTimerState('preparing');
+                    setPrepTime(15);
+                  } else if (timerState === 'preparing') {
+                    setTimerState('ready');
+                  } else if (timerState === 'ready') {
+                    setTimerState('running');
+                    setStartTime(Date.now());
+                  } else if (timerState === 'running') {
+                    setTimerState('done');
+                  } else if (timerState === 'dnf') {
+                    setResults(prev => {
+                      const newResults = [...prev, { time: 0, scramble, dnf: true }];
+                      const valid = newResults.filter(r => !r.dnf);
+                      setBest(valid.length ? Math.min(...valid.map(r => r.time)) : null);
+                      setMean(valid.length ? (valid.reduce((a, b) => a + b.time, 0) / valid.length / 1000).toFixed(3) : "DNF");
+                      function avgN(arr: any[], n: number) {
+                        if (arr.length < n) return "-";
+                        const lastN = arr.slice(-n).filter(r => !r.dnf);
+                        if (lastN.length < n) return "DNF";
+                        return (lastN.reduce((a, b) => a + b.time, 0) / n / 1000).toFixed(3);
+                      }
+                      setAo5(avgN(newResults, 5));
+                      setAo12(avgN(newResults, 12));
+                      return newResults;
+                    });
+                    setScramble(generateScramble());
+                    setTimerState('idle');
+                    setStartTime(null);
+                  }
+                }}
+              >
+                {timerState === 'dnf' || (timerState === 'done' && results.length > 0 && results[results.length-1].dnf)
+                  ? 'DNF'
+                  : timerState === 'preparing' || timerState === 'ready'
+                    ? prepTime
+                    : (time/1000).toFixed(3)
+                }
+              </div>
+            )}
+            {/* Thông báo lỗi DNF */}
+            {timerState === 'dnf' && (
+              <div className="mb-4 text-3xl text-yellow-400 font-bold drop-shadow-lg animate-pulse">Lỗi DNF, nhấn Space hoặc chạm</div>
+            )}
+            <div className="text-2xl text-white font-mono drop-shadow-lg">ao5: {ao5}</div>
+            <div className="text-2xl text-white font-mono drop-shadow-lg">ao12: {ao12}</div>
           </div>
         </div>
       </section>
