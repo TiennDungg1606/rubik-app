@@ -85,7 +85,7 @@ export default function Lobby() {
   return (
     <main className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans" style={{ backgroundImage: 'url(/images.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
       {/* Tab Navigation Bar */}
-      <nav className="w-full max-w-2xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-6 py-3 mt-2 mb-10">
+      <nav className="w-full max-w-2xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-6 py-3 mt-2 mb-2">
         <div className="flex gap-6">
           <button className={`text-base font-semibold transition-colors ${tab === "timer" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("timer")}>Timer</button>
           <button className={`text-base font-semibold transition-colors ${tab === "room" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("room")}>Room</button>

@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+// Helper to detect mobile
+function isMobileDevice() {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+}
 
 function generateScramble() {
   const moves = ["U", "D", "L", "R", "F", "B"];
@@ -19,6 +24,10 @@ function generateScramble() {
 }
 
 export default function TimerTab() {
+  // Ref để chặn lặp sự kiện keydown khi giữ phím Space ở desktop
+  const isSpacePressed = useRef(false);
+  // Ref lưu thời điểm bắt đầu nhấn/chạm (dùng cho cả desktop và mobile)
+  const pressStartRef = useRef<number | null>(null);
   const [scramble, setScramble] = useState(() => generateScramble());
   const [prevScramble, setPrevScramble] = useState<string | null>(null);
   const [canGoLast, setCanGoLast] = useState(false);
@@ -59,23 +68,33 @@ export default function TimerTab() {
     let prepInterval: any = null;
     let runInterval: any = null;
     function onKeyDown(e: KeyboardEvent) {
-      if (timerState === "idle" && e.code === "Space") {
+      if (e.code !== "Space") return;
+      if (isSpacePressed.current) return;
+      isSpacePressed.current = true;
+      pressStartRef.current = Date.now();
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.code !== "Space") return;
+      isSpacePressed.current = false;
+      const now = Date.now();
+      const start = pressStartRef.current;
+      pressStartRef.current = null;
+      if (timerState === "idle") {
         setTimerState("preparing");
         setPrepTime(15);
-      } else if (timerState === "preparing" && e.code === "Space") {
-        setTimerState("ready");
+      } else if (timerState === "preparing") {
+        if (start && now - start >= 500) {
+          setTimerState("running");
+          setStartTime(Date.now());
+        }
       } else if (timerState === "running") {
         setTimerState("done");
-      } else if (timerState === "dnf" && e.code === "Space") {
-        // Khi đang ở trạng thái DNF, nhấn Space để thêm kết quả DNF vào bảng và sang scramble mới
+      } else if (timerState === "dnf") {
         setResults(prev => {
           const newResults = [...prev, { time: 0, scramble, dnf: true }];
-          // Update best
           const valid = newResults.filter(r => !r.dnf);
           setBest(valid.length ? Math.min(...valid.map(r => r.time)) : null);
-          // Update mean
           setMean(valid.length ? (valid.reduce((a, b) => a + b.time, 0) / valid.length / 1000).toFixed(3) : "DNF");
-          // ao5, ao12
           function avgN(arr: any[], n: number) {
             if (arr.length < n) return "-";
             const lastN = arr.slice(-n).filter(r => !r.dnf);
@@ -89,12 +108,6 @@ export default function TimerTab() {
         setScramble(generateScramble());
         setTimerState("idle");
         setStartTime(null);
-      }
-    }
-    function onKeyUp(e: KeyboardEvent) {
-      if (timerState === "ready" && e.code === "Space") {
-        setTimerState("running");
-        setStartTime(Date.now());
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -357,59 +370,35 @@ export default function TimerTab() {
             ) : (
               <div
                 className={
-                  timerState === 'dnf' || (timerState === 'done' && results.length > 0 && results[results.length-1].dnf)
-                    ? "text-[10rem] digital7mono font-bold text-red-400 leading-none select-none drop-shadow-lg"
-                    : timerState === 'preparing' || timerState === 'ready'
-                      ? "text-[10rem] digital7mono text-yellow-400 leading-none select-none drop-shadow-lg"
-                      : "text-[10rem] digital7mono text-white leading-none select-none drop-shadow-lg"
+                  (() => {
+                    const base = isMobileDevice()
+                      ? "text-[5.5rem] "
+                      : "text-[10rem] ";
+                    if (timerState === 'dnf' || (timerState === 'done' && results.length > 0 && results[results.length-1].dnf))
+                      return base + "digital7mono font-bold text-red-400 leading-none select-none drop-shadow-lg";
+                    if (timerState === 'preparing' || timerState === 'ready')
+                      return base + "digital7mono text-yellow-400 leading-none select-none drop-shadow-lg";
+                    return base + "digital7mono text-white leading-none select-none drop-shadow-lg";
+                  })()
                 }
                 style={{fontFamily: 'Digital7Mono, monospace'}}
-                onClick={() => {
-                  if (timerState === 'idle') {
-                    setTimerState('preparing');
-                    setPrepTime(15);
-                  } else if (timerState === 'preparing') {
-                    setTimerState('ready');
-                  } else if (timerState === 'ready') {
-                    setTimerState('running');
-                    setStartTime(Date.now());
-                  } else if (timerState === 'running') {
-                    setTimerState('done');
-                  } else if (timerState === 'dnf') {
-                    // Khi đang ở trạng thái DNF, chạm để thêm kết quả DNF vào bảng và sang scramble mới
-                    setResults(prev => {
-                      const newResults = [...prev, { time: 0, scramble, dnf: true }];
-                      // Update best
-                      const valid = newResults.filter(r => !r.dnf);
-                      setBest(valid.length ? Math.min(...valid.map(r => r.time)) : null);
-                      // Update mean
-                      setMean(valid.length ? (valid.reduce((a, b) => a + b.time, 0) / valid.length / 1000).toFixed(3) : "DNF");
-                      // ao5, ao12
-                      function avgN(arr: any[], n: number) {
-                        if (arr.length < n) return "-";
-                        const lastN = arr.slice(-n).filter(r => !r.dnf);
-                        if (lastN.length < n) return "DNF";
-                        return (lastN.reduce((a, b) => a + b.time, 0) / n / 1000).toFixed(3);
-                      }
-                      setAo5(avgN(newResults, 5));
-                      setAo12(avgN(newResults, 12));
-                      return newResults;
-                    });
-                    setScramble(generateScramble());
-                    setTimerState('idle');
-                    setStartTime(null);
-                  }
-                }}
                 onTouchStart={e => {
                   e.preventDefault();
+                  pressStartRef.current = Date.now();
+                }}
+                onTouchEnd={e => {
+                  e.preventDefault();
+                  const now = Date.now();
+                  const start = pressStartRef.current;
+                  pressStartRef.current = null;
                   if (timerState === 'idle') {
                     setTimerState('preparing');
                     setPrepTime(15);
                   } else if (timerState === 'preparing') {
-                    setTimerState('ready');
-                  } else if (timerState === 'ready') {
-                    setTimerState('running');
-                    setStartTime(Date.now());
+                    if (start && now - start >= 500) {
+                      setTimerState('running');
+                      setStartTime(Date.now());
+                    }
                   } else if (timerState === 'running') {
                     setTimerState('done');
                   } else if (timerState === 'dnf') {
@@ -446,8 +435,8 @@ export default function TimerTab() {
             {timerState === 'dnf' && (
               <div className="mb-4 text-3xl text-yellow-400 font-bold drop-shadow-lg animate-pulse">Lỗi DNF, nhấn Space hoặc chạm</div>
             )}
-            <div className="text-2xl text-white font-mono drop-shadow-lg">ao5: {ao5}</div>
-            <div className="text-2xl text-white font-mono drop-shadow-lg">ao12: {ao12}</div>
+            <div className={isMobileDevice() ? "text-sm text-white font-mono drop-shadow-lg" : "text-2xl text-white font-mono drop-shadow-lg"}>ao5: {ao5}</div>
+            <div className={isMobileDevice() ? "text-sm text-white font-mono drop-shadow-lg" : "text-2xl text-white font-mono drop-shadow-lg"}>ao12: {ao12}</div>
           </div>
         </div>
       </section>

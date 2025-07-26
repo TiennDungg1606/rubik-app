@@ -467,7 +467,7 @@ export default function RoomPage() {
       if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
       scrambleMsgTimeout = setTimeout(() => {
         setShowScrambleMsg(false);
-      }, 5000);
+      }, 10000);
     };
     socket.on("scramble", handleScramble);
     return () => {
