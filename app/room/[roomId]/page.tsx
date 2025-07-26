@@ -946,32 +946,50 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
           {...(isMobile ? {
             onTouchStart: (e) => {
+              if (pendingResult !== null) return;
               // Nếu chạm vào webcam thì bỏ qua
               const webcamEls = document.querySelectorAll('.webcam-area');
               for (let i = 0; i < webcamEls.length; i++) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
               if (waiting || myResults.length >= 5) return;
-              // Chỉ cho phép chạm 1 lần để chuẩn bị
+              // WCA logic: tap to prepare, hold/release to start, tap to stop
               if (!prep && !running && turn === 'me') {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
-              }
-              // Khi đang chạy, chạm 1 lần để dừng
-              else if (running) {
+                // Đánh dấu đã bắt đầu chạm để chuẩn bị cho hold
+                (window as any)._timerTouchHold = true;
+              } else if (canStart && !running) {
+                // Khi đã sẵn sàng bắt đầu (sau khi thả), chạm giữ để bắt đầu
+                setRunning(true);
+                setTimer(0);
+                timerRef.current = 0;
+                intervalRef.current = setInterval(() => {
+                  setTimer(t => {
+                    timerRef.current = t + 10;
+                    return t + 10;
+                  });
+                }, 10);
+                setCanStart(false);
+                setPrep(false);
+                (window as any)._timerTouchHold = false;
+              } else if (running) {
+                // Khi đang chạy, chạm 1 lần để dừng
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
                 setPendingResult(timerRef.current);
                 setPendingType('normal');
                 setCanStart(false);
+                (window as any)._timerTouchHold = false;
               }
             },
             onTouchEnd: (e) => {
-              // Khi đang chuẩn bị, thả tay sẽ bắt đầu giải
-              if (prep && !running && !waiting) {
+              if (pendingResult !== null) return;
+              if (prep && !running && !waiting && (window as any)._timerTouchHold) {
                 setPrep(false);
                 setCanStart(true);
+                (window as any)._timerTouchHold = false;
               }
             }
           } : {
@@ -984,6 +1002,18 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               } else if (prep && !running) {
                 setPrep(false);
                 setCanStart(true);
+              } else if (canStart && !running) {
+                setRunning(true);
+                setTimer(0);
+                timerRef.current = 0;
+                intervalRef.current = setInterval(() => {
+                  setTimer(t => {
+                    timerRef.current = t + 10;
+                    return t + 10;
+                  });
+                }, 10);
+                setCanStart(false);
+                setPrep(false);
               } else if (running) {
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
