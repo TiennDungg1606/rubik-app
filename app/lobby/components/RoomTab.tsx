@@ -4,7 +4,7 @@ type RoomTabProps = {
   roomInput: string;
   setRoomInput: (v: string) => void;
   handleCreateRoom: () => void;
-  handleJoinRoom: () => void;
+  handleJoinRoom: (roomId: string) => void;
 };
 
 export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom }: RoomTabProps) {
@@ -67,7 +67,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       return;
     }
     setError("");
-    handleJoinRoom();
+    handleJoinRoom(roomInput);
   }
 
   return (
@@ -108,13 +108,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           {rooms.map((room, idx) => (
             <div
               key={room}
-              onClick={() => {
-                setRoomInput(room);
-                setTimeout(() => {
-                  // Gọi handleJoinRoom sau khi setRoomInput
-                  handleJoinRoom();
-                }, 0);
-              }}
+              onClick={() => handleJoinRoom(room)}
               className="flex flex-col items-center cursor-pointer"
             >
               <div className="w-24 h-24 bg-blue-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">

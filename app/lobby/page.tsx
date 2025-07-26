@@ -67,8 +67,8 @@ export default function Lobby() {
   const [joinError, setJoinError] = useState("");
 
   // Hàm join phòng: không kiểm tra phòng, luôn cho phép vào
-  const handleJoinRoom = () => {
-    const code = roomInput.trim().toUpperCase();
+  const handleJoinRoom = (roomId: string) => {
+    const code = roomId.trim().toUpperCase();
     if (!code) return;
     setJoinError("");
     router.push(`/room/${code}`);

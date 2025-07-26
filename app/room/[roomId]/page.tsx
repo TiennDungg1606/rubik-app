@@ -952,14 +952,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
               if (waiting || myResults.length >= 5) return;
+              // Chỉ cho phép chạm 1 lần để chuẩn bị
               if (!prep && !running && turn === 'me') {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
-              } else if (prep && !running) {
-                setPrep(false);
-                setCanStart(true);
-              } else if (running) {
+              }
+              // Khi đang chạy, chạm 1 lần để dừng
+              else if (running) {
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
                 setPendingResult(timerRef.current);
