@@ -448,9 +448,10 @@ export default function RoomPage() {
     }
   }, [isCreator, users.length]);
 
-  // Nhận scramble từ server qua socket
+  // Nhận scramble từ server qua socket, hiện thông báo tráo scramble đúng 5s
   useEffect(() => {
     const socket = getSocket();
+    let scrambleMsgTimeout: NodeJS.Timeout | null = null;
     const handleScramble = ({ scramble, index }: { scramble: string, index: number }) => {
       setScramble(scramble);
       setScrambleIndex(index);
@@ -463,12 +464,17 @@ export default function RoomPage() {
       setPendingResult(null);
       setPendingType('normal');
       setShowScrambleMsg(true); // Hiện thông báo tráo scramble
+      if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
+      scrambleMsgTimeout = setTimeout(() => {
+        setShowScrambleMsg(false);
+      }, 5000);
     };
     socket.on("scramble", handleScramble);
     return () => {
       socket.off("scramble", handleScramble);
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
+      if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
     };
   }, [roomId]);
   // Ẩn thông báo tráo scramble khi có người bắt đầu giải (bắt đầu chuẩn bị hoặc chạy)
@@ -869,9 +875,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   return <span className={mobileShrink ? "text-[9px] font-semibold text-green-400" : "text-base font-semibold text-green-400"}>Trận đấu kết thúc, {winner} thắng</span>;
               }
               // Đang trong trận
-              if (showScrambleMsg) {
-                return <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300" : "text-xl font-semibold text-yellow-300"}>Hai cuber hãy tráo scramble</span>;
-              }
               let msg = "";
               let name = turn === 'me' ? userName : opponentName;
               if (prep) {
@@ -881,7 +884,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               } else {
                 msg = `Đến lượt ${name} thi đấu`;
               }
-              return <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>;
+              return (
+                <>
+                  <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
+                  {showScrambleMsg && (
+                    <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-xl font-semibold text-yellow-300 block mt-2"}>Hai cuber hãy tráo scramble</span>
+                  )}
+                </>
+              );
             })()}
             {/* Đã xóa thông báo lỗi camera theo yêu cầu */}
           </div>
