@@ -533,55 +533,6 @@ export default function RoomPage() {
     };
   }, [prep, waiting]);
 
-  // Mobile: chạm 1 lần để chuẩn bị, nhấn giữ/thả để bắt đầu
-  useEffect(() => {
-    if (!isMobile) return;
-    if (waiting || running || prep || turn !== 'me' || myResults.length >= 5) return;
-    let prepStarted = false;
-    const handleTouchStart = (e: TouchEvent) => {
-      // Nếu chạm vào webcam thì bỏ qua
-      const webcamEls = document.querySelectorAll('.webcam-area');
-      for (let i = 0; i < webcamEls.length; i++) {
-        if (webcamEls[i].contains(e.target as Node)) return;
-      }
-      if (waiting || running || prep || turn !== 'me' || myResults.length >= 5) return;
-      prepStarted = true;
-      setPrep(true);
-      setPrepTime(15);
-      setDnf(false);
-    };
-    window.addEventListener('touchstart', handleTouchStart, { once: true });
-    return () => {
-      window.removeEventListener('touchstart', handleTouchStart);
-    };
-  }, [isMobile, waiting, running, prep, turn, myResults.length]);
-
-  // Mobile: Khi đang chuẩn bị, nhấn giữ/thả để bắt đầu
-  useEffect(() => {
-    if (!isMobile) return;
-    if (!prep || waiting) return;
-    let touchActive = false;
-    const handleTouchHold = (e: TouchEvent) => {
-      // Nếu chạm vào webcam thì bỏ qua
-      const webcamEls = document.querySelectorAll('.webcam-area');
-      for (let i = 0; i < webcamEls.length; i++) {
-        if (webcamEls[i].contains(e.target as Node)) return;
-      }
-      touchActive = true;
-    };
-    const handleTouchRelease = (e: TouchEvent) => {
-      if (!touchActive) return;
-      touchActive = false;
-      setPrep(false);
-      setCanStart(true);
-    };
-    window.addEventListener('touchstart', handleTouchHold);
-    window.addEventListener('touchend', handleTouchRelease);
-    return () => {
-      window.removeEventListener('touchstart', handleTouchHold);
-      window.removeEventListener('touchend', handleTouchRelease);
-    };
-  }, [isMobile, prep, waiting]);
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
@@ -1014,6 +965,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 setPendingResult(timerRef.current);
                 setPendingType('normal');
                 setCanStart(false);
+              }
+            },
+            onTouchEnd: (e) => {
+              // Khi đang chuẩn bị, thả tay sẽ bắt đầu giải
+              if (prep && !running && !waiting) {
+                setPrep(false);
+                setCanStart(true);
               }
             }
           } : {
