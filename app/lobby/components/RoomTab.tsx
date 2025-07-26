@@ -10,10 +10,11 @@ type RoomTabProps = {
 export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom }: RoomTabProps) {
   const [error, setError] = useState("");
   const [rooms, setRooms] = useState<string[]>([]);
+  const API_BASE = "https://rubik-socket-server-production-3b21.up.railway.app";
   // Lấy danh sách phòng đang hoạt động
   useEffect(() => {
     // Lấy danh sách phòng và lọc chỉ phòng có đúng 1 người chơi
-    fetch("http://localhost:3001/active-rooms")
+    fetch(`${API_BASE}/active-rooms`)
       .then(res => res.json())
       .then(async (roomIds) => {
         if (!Array.isArray(roomIds)) return setRooms([]);
@@ -21,7 +22,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         const filteredRooms: string[] = [];
         for (const roomId of roomIds) {
           try {
-            const res = await fetch(`http://localhost:3001/room-users/${roomId}`);
+            const res = await fetch(`${API_BASE}/room-users/${roomId}`);
             const users = await res.json();
             if (Array.isArray(users) && users.length === 1 && users[0]) {
               filteredRooms.push(roomId);
