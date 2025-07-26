@@ -543,8 +543,13 @@ export default function RoomPage() {
           setRunning(false);
           setDnf(true); // DNF nếu hết giờ chuẩn bị
           pressStartRef.current = null;
-          // Lưu kết quả DNF
-          setMyResults(r => [...r, null]);
+          // Lưu kết quả DNF và gửi lên server, chuyển lượt cho đối thủ
+          setMyResults(r => {
+            const newR = [...r, null];
+            const socket = getSocket();
+            socket.emit("solve", { roomId, userName, time: null });
+            return newR;
+          });
           setTurn('opponent');
           setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000); // Giả lập đối thủ giải
           return 0;
