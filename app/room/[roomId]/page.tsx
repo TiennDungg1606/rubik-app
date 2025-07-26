@@ -9,11 +9,13 @@ declare global {
 }
 import { getSocket } from "@/lib/socket";
 
-  // Trạng thái thông báo tráo scramble
-const [showScrambleMsg, setShowScrambleMsg] = useState<boolean>(false);
+// ...existing code...
+
+
 
 // Scramble giống TimerTab.tsx
 function generateScramble() {
+
   const moves = ["U", "D", "L", "R", "F", "B"];
   const suffix = ["", "'", "2"];
   let scramble = [];
@@ -64,6 +66,8 @@ function calcStats(times: (number|null)[]) {
 
 
 export default function RoomPage() {
+  // Trạng thái thông báo tráo scramble
+  const [showScrambleMsg, setShowScrambleMsg] = useState<boolean>(false);
   const router = useRouter();
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(false);
