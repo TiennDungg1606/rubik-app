@@ -993,25 +993,48 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
           style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
-          onClick={() => {
-            if (waiting || myResults.length >= 5) return;
-            if (!prep && !running && turn === 'me') {
-              setPrep(true);
-              setPrepTime(15);
-              setDnf(false);
-            } else if (prep && !running) {
-              setPrep(false);
-              setCanStart(true);
-            } else if (running) {
-              setRunning(false);
-              if (intervalRef.current) clearInterval(intervalRef.current);
-              // Không gửi kết quả ngay, chỉ lưu vào pendingResult
-              setPendingResult(timerRef.current);
-              setPendingType('normal');
-              setCanStart(false);
-              // Không setTurn('opponent') ở đây
+          {...(isMobile ? {
+            onTouchStart: (e) => {
+              // Nếu chạm vào webcam thì bỏ qua
+              const webcamEls = document.querySelectorAll('.webcam-area');
+              for (let i = 0; i < webcamEls.length; i++) {
+                if (webcamEls[i].contains(e.target as Node)) return;
+              }
+              if (waiting || myResults.length >= 5) return;
+              if (!prep && !running && turn === 'me') {
+                setPrep(true);
+                setPrepTime(15);
+                setDnf(false);
+              } else if (prep && !running) {
+                setPrep(false);
+                setCanStart(true);
+              } else if (running) {
+                setRunning(false);
+                if (intervalRef.current) clearInterval(intervalRef.current);
+                setPendingResult(timerRef.current);
+                setPendingType('normal');
+                setCanStart(false);
+              }
             }
-          }}
+          } : {
+            onClick: () => {
+              if (waiting || myResults.length >= 5) return;
+              if (!prep && !running && turn === 'me') {
+                setPrep(true);
+                setPrepTime(15);
+                setDnf(false);
+              } else if (prep && !running) {
+                setPrep(false);
+                setCanStart(true);
+              } else if (running) {
+                setRunning(false);
+                if (intervalRef.current) clearInterval(intervalRef.current);
+                setPendingResult(timerRef.current);
+                setPendingType('normal');
+                setCanStart(false);
+              }
+            }
+          })}
         >
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận */}
           {pendingResult !== null && !running && !prep ? (

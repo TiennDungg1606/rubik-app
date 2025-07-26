@@ -13,12 +13,15 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const API_BASE = "https://rubik-socket-server-production-3b21.up.railway.app";
   // Lấy danh sách phòng đang hoạt động
   useEffect(() => {
-    // Lấy danh sách phòng và lọc chỉ phòng có đúng 1 người chơi
-    fetch(`${API_BASE}/active-rooms`)
-      .then(res => res.json())
-      .then(async (roomIds) => {
-        if (!Array.isArray(roomIds)) return setRooms([]);
-        // Lấy số lượng user cho từng phòng
+    let stopped = false;
+    async function fetchRooms() {
+      try {
+        const res = await fetch(`${API_BASE}/active-rooms`);
+        const roomIds = await res.json();
+        if (!Array.isArray(roomIds)) {
+          setRooms([]);
+          return;
+        }
         const filteredRooms: string[] = [];
         for (const roomId of roomIds) {
           try {
@@ -30,8 +33,18 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           } catch {}
         }
         setRooms(filteredRooms);
-      })
-      .catch(() => setRooms([]));
+      } catch {
+        setRooms([]);
+      }
+    }
+    fetchRooms();
+    const interval = setInterval(() => {
+      if (!stopped) fetchRooms();
+    }, 3000);
+    return () => {
+      stopped = true;
+      clearInterval(interval);
+    };
   }, []);
 
   // Kiểm tra hợp lệ mã phòng: 6 ký tự, chỉ chữ và số
@@ -93,7 +106,17 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           </div>
           {/* Hiển thị các phòng */}
           {rooms.map((room, idx) => (
-            <div key={room} onClick={() => setRoomInput(room)} className="flex flex-col items-center cursor-pointer">
+            <div
+              key={room}
+              onClick={() => {
+                setRoomInput(room);
+                setTimeout(() => {
+                  // Gọi handleJoinRoom sau khi setRoomInput
+                  handleJoinRoom();
+                }, 0);
+              }}
+              className="flex flex-col items-center cursor-pointer"
+            >
               <div className="w-24 h-24 bg-blue-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
                 {/* Icon dạng lưới */}
                 <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
