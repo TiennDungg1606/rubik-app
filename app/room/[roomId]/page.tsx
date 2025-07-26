@@ -87,6 +87,8 @@ export default function RoomPage() {
   const [running, setRunning] = useState<boolean>(false);
   const [prep, setPrep] = useState<boolean>(false);
   const [prepTime, setPrepTime] = useState<number>(15);
+  // Ref lưu thời điểm bắt đầu nhấn Space hoặc chạm (dùng cho cả desktop và mobile)
+  const pressStartRef = useRef<number | null>(null);
   const [canStart, setCanStart] = useState<boolean>(false);
   const [spaceHeld, setSpaceHeld] = useState<boolean>(false);
   const [users, setUsers] = useState<string[]>([]);
@@ -484,48 +486,47 @@ export default function RoomPage() {
     }
   }, [prep, running]);
 
-  // Timer logic: desktop chỉ phím Space mới vào chuẩn bị, nhấn giữ/thả Space để bắt đầu, khi timer đang chạy nhấn phím bất kỳ để dừng, chuột click không có tác dụng
+
+  // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    if (waiting || running || prep || turn !== 'me' || myResults.length >= 5) return;
+    if (waiting || running || turn !== 'me' || myResults.length >= 5) return;
+    let spaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (waiting || running || prep || turn !== 'me' || myResults.length >= 5) return;
-      if (e.code === "Space") {
+      if (e.code !== "Space") return;
+      if (prep) {
+        if (!spaceHeld) {
+          pressStartRef.current = Date.now();
+          spaceHeld = true;
+        }
+      } else if (!prep && !running) {
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
+        pressStartRef.current = Date.now();
+        spaceHeld = true;
       }
     };
-    window.addEventListener("keydown", handleKeyDown, { once: true });
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return;
+      if (prep && spaceHeld) {
+        const now = Date.now();
+        const start = pressStartRef.current;
+        pressStartRef.current = null;
+        spaceHeld = false;
+        if (start && now - start >= 500) {
+          setPrep(false);
+          setCanStart(true);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
     };
   }, [isMobile, waiting, running, prep, turn, myResults.length]);
-
-  // Desktop: Khi đang chuẩn bị, nhấn giữ/thả Space để bắt đầu
-  useEffect(() => {
-    if (isMobile) return;
-    if (!prep || waiting) return;
-    let spaceDown = false;
-    const handleSpaceDown = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !spaceDown) {
-        spaceDown = true;
-      }
-    };
-    const handleSpaceUp = (e: KeyboardEvent) => {
-      if (e.code === "Space" && spaceDown) {
-        spaceDown = false;
-        setPrep(false);
-        setCanStart(true);
-      }
-    };
-    window.addEventListener("keydown", handleSpaceDown);
-    window.addEventListener("keyup", handleSpaceUp);
-    return () => {
-      window.removeEventListener("keydown", handleSpaceDown);
-      window.removeEventListener("keyup", handleSpaceUp);
-    };
-  }, [isMobile, prep, waiting]);
 
   // Đếm ngược 15s chuẩn bị
   useEffect(() => {
@@ -972,7 +973,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
           style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
-          {...(isMobile ? {
+        {...(isMobile ? {
             onTouchStart: (e) => {
               if (pendingResult !== null) return;
               // Nếu chạm vào webcam thì bỏ qua
@@ -982,7 +983,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }
               if (waiting || myResults.length >= 5) return;
               // Đánh dấu touch bắt đầu
-              (window as any)._timerTouchActive = true;
+              pressStartRef.current = Date.now();
             },
             onTouchEnd: (e) => {
               if (pendingResult !== null) return;
@@ -992,19 +993,22 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
               if (waiting || myResults.length >= 5) return;
+              const now = Date.now();
+              const start = pressStartRef.current;
+              pressStartRef.current = null;
               // 1. Tap and release to enter prep
               if (!prep && !running && turn === 'me') {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
-                (window as any)._timerTouchActive = false;
                 return;
               }
-              // 2. In prep, tap and release to start timer
+              // 2. In prep, giữ >=0.5s rồi thả ra để start timer
               if (prep && !running) {
-                setPrep(false);
-                setCanStart(true);
-                (window as any)._timerTouchActive = false;
+                if (start && now - start >= 500) {
+                  setPrep(false);
+                  setCanStart(true);
+                }
                 return;
               }
               // 3. When running, tap and release to stop timer
@@ -1014,7 +1018,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 setPendingResult(timerRef.current);
                 setPendingType('normal');
                 setCanStart(false);
-                (window as any)._timerTouchActive = false;
                 return;
               }
             }
