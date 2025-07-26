@@ -953,43 +953,56 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
               if (waiting || myResults.length >= 5) return;
-              // WCA logic: tap to prepare, hold/release to start, tap to stop
+              // 1. Tap and release to enter prep
               if (!prep && !running && turn === 'me') {
+                (window as any)._timerTouchMode = 'prep';
+              }
+              // 2. In prep, tap and hold to start timer
+              else if (prep && !running) {
+                (window as any)._timerTouchMode = 'holdToStart';
+                (window as any)._timerTouchHoldStart = Date.now();
+              }
+              // 3. When running, tap to stop
+              else if (running) {
+                (window as any)._timerTouchMode = 'stop';
+              }
+            },
+            onTouchEnd: (e) => {
+              if (pendingResult !== null) return;
+              // Nếu chạm vào webcam thì bỏ qua
+              const webcamEls = document.querySelectorAll('.webcam-area');
+              for (let i = 0; i < webcamEls.length; i++) {
+                if (webcamEls[i].contains(e.target as Node)) return;
+              }
+              if (waiting || myResults.length >= 5) return;
+              // 1. Tap and release to enter prep
+              if ((window as any)._timerTouchMode === 'prep' && !prep && !running && turn === 'me') {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
-                // Đánh dấu đã bắt đầu chạm để chuẩn bị cho hold
-                (window as any)._timerTouchHold = true;
-              } else if (canStart && !running) {
-                // Khi đã sẵn sàng bắt đầu (sau khi thả), chạm giữ để bắt đầu
-                setRunning(true);
-                setTimer(0);
-                timerRef.current = 0;
-                intervalRef.current = setInterval(() => {
-                  setTimer(t => {
-                    timerRef.current = t + 10;
-                    return t + 10;
-                  });
-                }, 10);
-                setCanStart(false);
-                setPrep(false);
-                (window as any)._timerTouchHold = false;
-              } else if (running) {
-                // Khi đang chạy, chạm 1 lần để dừng
+                (window as any)._timerTouchMode = null;
+                return;
+              }
+              // 2. In prep, tap and hold >=1s then release to start timer
+              if ((window as any)._timerTouchMode === 'holdToStart' && prep && !running) {
+                const holdTime = Date.now() - ((window as any)._timerTouchHoldStart || 0);
+                if (holdTime >= 1000) {
+                  setPrep(false);
+                  setCanStart(true);
+                }
+                (window as any)._timerTouchMode = null;
+                (window as any)._timerTouchHoldStart = null;
+                return;
+              }
+              // 3. When running, tap to stop
+              if ((window as any)._timerTouchMode === 'stop' && running) {
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
                 setPendingResult(timerRef.current);
                 setPendingType('normal');
                 setCanStart(false);
-                (window as any)._timerTouchHold = false;
-              }
-            },
-            onTouchEnd: (e) => {
-              if (pendingResult !== null) return;
-              if (prep && !running && !waiting && (window as any)._timerTouchHold) {
-                setPrep(false);
-                setCanStart(true);
-                (window as any)._timerTouchHold = false;
+                (window as any)._timerTouchMode = null;
+                return;
               }
             }
           } : {
