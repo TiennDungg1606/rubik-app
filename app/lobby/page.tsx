@@ -5,6 +5,7 @@ import TimerTab from "./components/TimerTab";
 import RoomTab from "./components/RoomTab";
 import AccountTab from "./components/AccountTab";
 import AccountTabWrapper from "./components/AccountTabWrapper";
+import ProfileTab from "./components/ProfileTab";
 import NewTab from "./components/NewTab";
 import AboutTab from "./components/AboutTab";
 import ShopTab from "./components/ShopTab";
@@ -21,12 +22,14 @@ type User = {
   email?: string;
   firstName?: string;
   lastName?: string;
+  birthday?: string;
   // Thêm các trường khác nếu cần
 };
 
 export default function Lobby() {
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     function checkDevice() {
@@ -51,13 +54,16 @@ export default function Lobby() {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
+  // Luôn fetch user khi vào trang
   useEffect(() => {
-    if (tab === "account") {
-      fetch("/api/user/me", { credentials: "include" })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => setUser(data));
-    }
-  }, [tab]);
+    fetch("/api/user/me", { credentials: "include" })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!data) return;
+        if (data.user) setUser(data.user);
+        else setUser(data);
+      });
+  }, []);
 
   const handleCreateRoom = () => {
     const roomId = generateRoomId();
@@ -106,13 +112,33 @@ export default function Lobby() {
           <button className={`text-base font-semibold transition-colors ${tab === "room" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("room")}>Room</button>
           <button className={`text-base font-semibold transition-colors ${tab === "shop" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("shop")}>Shop</button>
           <button className={`text-base font-semibold transition-colors ${tab === "about" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("about")}>About</button>
-          <button className={`text-base font-semibold transition-colors ${tab === "account" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("account")}>Account</button>
+          {/* Ẩn tab Account trên menu */}
         </div>
-        <button className="text-white font-semibold text-base hover:text-red-400 transition-colors" onClick={() => {
-          fetch('/api/user/logout', { method: 'POST' }).then(() => {
-            router.push('/');
-          });
-        }}>Sign out</button>
+        {/* Avatar + Popup menu */}
+        <div className="relative">
+          <button
+            className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg border-2 border-white shadow hover:opacity-90 transition-all"
+            onClick={() => setShowProfileMenu(v => !v)}
+            title="Tài khoản"
+          >
+            {user && (user.firstName || user.lastName)
+              ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
+              : <span>👤</span>}
+          </button>
+          {showProfileMenu && (
+            <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/30" onClick={() => setShowProfileMenu(false)}>
+              <ProfileTab
+                user={user}
+                onLogout={() => {
+                  fetch('/api/user/logout', { method: 'POST' }).then(() => {
+                    router.push('/');
+                  });
+                }}
+                onThemeSwitch={() => {}}
+              />
+            </div>
+          )}
+        </div>
       </nav>
       {/* Tab Content */}
       {tab === "timer" && (
@@ -138,9 +164,7 @@ export default function Lobby() {
       {tab === "about" && (
         <AboutTab />
       )}
-      {tab === "account" && (
-        <AccountTabWrapper />
-      )}
+      {/* Không render AccountTabWrapper nữa, đã chuyển vào avatar menu */}
     </main>
   );
 }

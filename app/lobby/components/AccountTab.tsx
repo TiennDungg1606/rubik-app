@@ -1,4 +1,4 @@
-  import React from "react";
+import React from "react";
 import { useState } from "react";
 
 type AccountTabProps = {
@@ -114,7 +114,10 @@ export default function AccountTab({ user, loading }: AccountTabProps) {
           {showBirthdayForm && (
             <form className="flex flex-col gap-2 mt-2 bg-gray-900 p-4 rounded-xl border border-blue-400" onSubmit={handleBirthdayChange}>
               <input type="date" className="px-2 py-1 rounded bg-gray-800 text-white border border-gray-600" value={newBirthday} onChange={e => setNewBirthday(e.target.value)} required />
-              <button type="submit" className="px-4 py-2 bg-blue-500 hover:bg-blue-600 transition-all duration-150 text-white rounded-lg font-semibold shadow" disabled={birthdayLoading}>Lưu</button>
+              <div className="flex gap-2">
+                <button type="submit" className="px-4 py-2 bg-blue-500 hover:bg-blue-600 transition-all duration-150 text-white rounded-lg font-semibold shadow" disabled={birthdayLoading}>Lưu</button>
+                <button type="button" className="px-4 py-2 bg-gray-600 hover:bg-gray-700 transition-all duration-150 text-white rounded-lg font-semibold shadow" onClick={() => setShowBirthdayForm(false)}>Hủy</button>
+              </div>
               {birthdayError && <div className="text-red-400 text-sm">{birthdayError}</div>}
               {birthdaySuccess && <div className="text-green-400 text-sm">{birthdaySuccess}</div>}
             </form>
@@ -127,7 +130,10 @@ export default function AccountTab({ user, loading }: AccountTabProps) {
               <input type="password" className="px-2 py-1 rounded bg-gray-800 text-white border border-gray-600" placeholder="Mật khẩu cũ" value={oldPassword} onChange={e => setOldPassword(e.target.value)} required />
               <input type="password" className="px-2 py-1 rounded bg-gray-800 text-white border border-gray-600" placeholder="Mật khẩu mới" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
               <input type="password" className="px-2 py-1 rounded bg-gray-800 text-white border border-gray-600" placeholder="Xác nhận mật khẩu mới" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
-              <button type="submit" className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 transition-all duration-150 text-white rounded-lg font-semibold shadow" disabled={passwordLoading}>Lưu</button>
+              <div className="flex gap-2">
+                <button type="submit" className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 transition-all duration-150 text-white rounded-lg font-semibold shadow" disabled={passwordLoading}>Lưu</button>
+                <button type="button" className="px-4 py-2 bg-gray-600 hover:bg-gray-700 transition-all duration-150 text-white rounded-lg font-semibold shadow" onClick={() => setShowPasswordForm(false)}>Hủy</button>
+              </div>
               {passwordError && <div className="text-red-400 text-sm">{passwordError}</div>}
               {passwordSuccess && <div className="text-green-400 text-sm">{passwordSuccess}</div>}
             </form>
