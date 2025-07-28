@@ -6,7 +6,7 @@ import { createStringeeClient, createStringeeCall } from "@/lib/stringeeClient";
 import { useRouter } from "next/navigation";
 // Đảm bảo window.userName luôn có giá trị đúng khi vào phòng
 declare global {
-  interface Window { userName?: string; userId?: string }
+  interface Window { userName?: string }
 }
 import { getSocket } from "@/lib/socket";
 
@@ -104,11 +104,10 @@ export default function RoomPage() {
   const [pendingResult, setPendingResult] = useState<number|null>(null);
   const [pendingType, setPendingType] = useState<'normal'|'+2'|'dnf'>('normal');
   const [opponentTime, setOpponentTime] = useState<number|null>(null);
-  const [userId, setUserId] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [isCreator, setIsCreator] = useState<boolean>(false);
   const [showRules, setShowRules] = useState(false); // State for luật thi đấu modal
-  const [opponentId, setOpponentId] = useState<string>("");
+
   const [opponentName, setOpponentName] = useState<string>('Đối thủ');
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
@@ -170,21 +169,16 @@ export default function RoomPage() {
 
   // Đảm bảo userName luôn đúng khi vào phòng (nếu window.userName chưa có)
   useEffect(() => {
-    if (typeof window !== 'undefined' && !(window as any).userId) {
+    if (typeof window !== 'undefined' && !window.userName) {
       fetch('/api/user/me', { credentials: 'include' })
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data && data.user && data.user._id) {
-            (window as any).userId = data.user._id;
-            (window as any).userName = data.user.firstName + ' ' + data.user.lastName;
-            setUserId(data.user._id);
-            setUserName(data.user.firstName + ' ' + data.user.lastName);
+          if (data && data.firstName && data.lastName) {
+            window.userName = data.firstName + ' ' + data.lastName;
+            // Reload lại trang để lấy đúng userName
             window.location.reload();
           }
         });
-    } else {
-      setUserId((window as any).userId || "");
-      setUserName((window as any).userName || "");
     }
   }, []);
 
@@ -407,18 +401,18 @@ export default function RoomPage() {
 
   // Kết nối socket, join room, lắng nghe users và kết quả đối thủ
   useEffect(() => {
-    if (!userId) return;
     const socket = getSocket();
-    socket.emit("join-room", { roomId, userName: userId });
+    socket.emit("join-room", { roomId, userName });
     socket.on("room-users", (roomUsers: string[]) => {
+      // Lọc bỏ null/undefined và chỉ giữ string hợp lệ
       const filteredUsers = (roomUsers || []).filter(u => typeof u === 'string' && u);
       setUsers(filteredUsers);
       setWaiting(filteredUsers.length < 2);
-      // Xác định đối thủ qua userId
-      const oppId = filteredUsers.find(u => u !== userId);
-      setOpponentId(oppId || "");
+      // Xác định tên đối thủ
+      const opp = filteredUsers.find(u => u !== userName);
+      if (opp) setOpponentName(opp);
     });
-    socket.on("opponent-solve", ({ userName: oppId, time }: { userName: string, time: number|null }) => {
+    socket.on("opponent-solve", ({ userName: oppName, time }: { userName: string, time: number|null }) => {
       setOpponentResults(r => [...r, time]);
       setTurn('me');
     });
@@ -426,17 +420,17 @@ export default function RoomPage() {
       socket.off("room-users");
       socket.off("opponent-solve");
     };
-  }, [roomId, userId]);
+  }, [roomId, userName]);
 
 
   // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
   useEffect(() => {
-    if (isCreator && typeof userId === 'string') {
-      setUsers([userId]);
+    if (isCreator && typeof userName === 'string') {
+      setUsers([userName]);
       setWaiting(true);
       setTurn('me'); // Chủ phòng luôn được chơi trước
     }
-  }, [isCreator, userId]);
+  }, [isCreator, userName]);
 
   // Khi đủ 2 người, nếu không phải chủ phòng thì phải chờ đối thủ chơi trước
   useEffect(() => {
@@ -483,7 +477,138 @@ export default function RoomPage() {
 
 
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
-// ...existing code...
+  useEffect(() => {
+    if (isMobile) return;
+    if (waiting || running || turn !== 'me' || myResults.length >= 5) return;
+    let spaceHeld = false;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return;
+      if (prep) {
+        if (!spaceHeld) {
+          pressStartRef.current = Date.now();
+          spaceHeld = true;
+        }
+      } else if (!prep && !running) {
+        setPrep(true);
+        setPrepTime(15);
+        setDnf(false);
+        pressStartRef.current = Date.now();
+        spaceHeld = true;
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return;
+      if (prep && spaceHeld) {
+        const now = Date.now();
+        const start = pressStartRef.current;
+        pressStartRef.current = null;
+        spaceHeld = false;
+        if (start && now - start >= 300) {
+          setPrep(false);
+          setCanStart(true);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [isMobile, waiting, running, prep, turn, myResults.length]);
+
+  // Đếm ngược 15s chuẩn bị
+  useEffect(() => {
+    if (!prep || waiting) return;
+    setCanStart(false);
+    setSpaceHeld(false);
+    setDnf(false);
+    prepIntervalRef.current = setInterval(() => {
+      setPrepTime(t => {
+        if (t <= 1) {
+          clearInterval(prepIntervalRef.current!);
+          setPrep(false);
+          setCanStart(false);
+          setRunning(false);
+          setDnf(true); // DNF nếu hết giờ chuẩn bị
+          pressStartRef.current = null;
+          // Lưu kết quả DNF và gửi lên server, chuyển lượt cho đối thủ
+          setMyResults(r => {
+            const newR = [...r, null];
+            const socket = getSocket();
+            socket.emit("solve", { roomId, userName, time: null });
+            return newR;
+          });
+          setTurn('opponent');
+          setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000); // Giả lập đối thủ giải
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => {
+      if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
+    };
+  }, [prep, waiting]);
+
+
+  // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
+  useEffect(() => {
+    if (!canStart || waiting) return;
+    setRunning(true);
+    setTimer(0);
+    timerRef.current = 0;
+    intervalRef.current = setInterval(() => {
+      setTimer(t => {
+        timerRef.current = t + 10;
+        return t + 10;
+      });
+    }, 10);
+    // Khi dừng timer, chỉ lưu vào pendingResult, không gửi lên server ngay
+    const stopTimer = () => {
+      setRunning(false);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setPendingResult(timerRef.current);
+      setPendingType('normal');
+      setCanStart(false);
+      // Không setTurn('opponent') ở đây, chờ xác nhận
+    };
+    const handleAnyKey = (e: KeyboardEvent) => {
+      if (waiting) return;
+      if (e.type === 'keydown') {
+        stopTimer();
+      }
+    };
+    const handleMouse = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+    const handleTouch = (e: TouchEvent) => {
+      if (!isMobile) return;
+      const webcamEls = document.querySelectorAll('.webcam-area');
+      for (let i = 0; i < webcamEls.length; i++) {
+        if (webcamEls[i].contains(e.target as Node)) return;
+      }
+      stopTimer();
+    };
+    if (isMobile) {
+      window.addEventListener('touchstart', handleTouch);
+    } else {
+      window.addEventListener("keydown", handleAnyKey);
+      window.addEventListener("mousedown", handleMouse, true);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (isMobile) {
+        window.removeEventListener('touchstart', handleTouch);
+      } else {
+        window.removeEventListener("keydown", handleAnyKey);
+        window.removeEventListener("mousedown", handleMouse, true);
+      }
+    };
+    // eslint-disable-next-line
+  }, [canStart, waiting, roomId, userName, isMobile]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
