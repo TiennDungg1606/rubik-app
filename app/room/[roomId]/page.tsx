@@ -337,9 +337,8 @@ export default function RoomPage() {
         });
         stringeeClientRef.current.on("connect", () => {
           console.log('[StringeeClient connect] Connected', { myId, oppId, users });
-          // Initiator: always the second user in array
-          const isInitiator = users[1] === myId;
-          if (isInitiator) {
+          // Initiator: chủ phòng luôn là người gọi
+          if (isCreator) {
             // Make call to opponent
             if (mediaStreamRef.current) {
               const call = createStringeeCall(stringeeClientRef.current, myId, oppId, mediaStreamRef.current);
