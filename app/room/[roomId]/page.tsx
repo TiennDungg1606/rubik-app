@@ -332,17 +332,17 @@ export default function RoomPage() {
         if (!token) throw new Error("No Stringee token");
         // Create Stringee client
         stringeeClientRef.current = createStringeeClient(token);
-        // Đăng ký event incomingcall ngay sau khi tạo client
+        // Đăng ký event incomingcall đúng chuẩn mẫu Stringee
         stringeeClientRef.current.on("incomingcall", (call: any) => {
           console.log("[StringeeClient incomingcall] Có cuộc gọi đến", call);
           stringeeCallRef.current = call;
-          if (mediaStreamRef.current) {
-            console.log('[incomingcall] mediaStreamRef.current:', mediaStreamRef.current);
-            call.answer(mediaStreamRef.current);
-            console.log('[StringeeCall answer] Đã trả lời cuộc gọi với stream', mediaStreamRef.current);
-          } else {
-            console.warn('[incomingcall] mediaStreamRef.current is null, không thể trả lời cuộc gọi');
-          }
+          navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
+            call.answer(stream);
+            if (myVideoRef.current) myVideoRef.current.srcObject = stream;
+            console.log('[StringeeCall answer] Đã trả lời cuộc gọi với stream', stream);
+          }).catch((err) => {
+            console.warn('[incomingcall] Không lấy được media stream:', err);
+          });
           call.on("addstream", (evt: any) => {
             console.log("[StringeeCall addstream] Đã nhận stream đối thủ", evt.stream);
             if (opponentVideoRef.current) {
