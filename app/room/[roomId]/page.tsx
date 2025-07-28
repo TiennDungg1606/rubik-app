@@ -325,6 +325,10 @@ export default function RoomPage() {
         if (!token) throw new Error("No Stringee token");
         // Create Stringee client
         stringeeClientRef.current = createStringeeClient(token);
+        // Lắng nghe sự kiện xác thực
+        stringeeClientRef.current.on("authen", (res: any) => {
+          console.log("[StringeeClient authen]", res);
+        });
         stringeeClientRef.current.on("connect", () => {
           // Initiator: always the second user in array
           const isInitiator = users[1] === myId;
