@@ -19,7 +19,18 @@ export async function POST(req) {
     return new Response(JSON.stringify({ error: 'Tài khoản hoặc mật khẩu không đúng' }), { status: 401 });
   }
   const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
-  return new Response(JSON.stringify({ success: true }), {
+  // Trả về userId và thông tin user cho frontend
+  return new Response(JSON.stringify({
+    success: true,
+    user: {
+      _id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      birthday: user.birthday
+    },
+    userId: user._id
+  }), {
     status: 200,
     headers: {
       'Set-Cookie': `token=${token}; Path=/; HttpOnly; Max-Age=604800; SameSite=Lax`
