@@ -338,6 +338,7 @@ export default function RoomPage() {
               const call = createStringeeCall(stringeeClientRef.current, myId, oppId, mediaStreamRef.current);
               stringeeCallRef.current = call;
               call.on("addstream", (evt: any) => {
+                console.log("[StringeeCall addstream] Đã nhận stream đối thủ", evt.stream);
                 if (opponentVideoRef.current) {
                   opponentVideoRef.current.srcObject = evt.stream;
                 }
@@ -347,11 +348,13 @@ export default function RoomPage() {
           } else {
             // Listen for incoming call
             stringeeClientRef.current.on("incomingcall", (call: any) => {
+              console.log("[StringeeClient incomingcall] Có cuộc gọi đến", call);
               stringeeCallRef.current = call;
               if (mediaStreamRef.current) {
                 call.answer(mediaStreamRef.current);
               }
               call.on("addstream", (evt: any) => {
+                console.log("[StringeeCall addstream] Đã nhận stream đối thủ", evt.stream);
                 if (opponentVideoRef.current) {
                   opponentVideoRef.current.srcObject = evt.stream;
                 }
