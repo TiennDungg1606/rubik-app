@@ -124,7 +124,9 @@ export default function RoomPage() {
     // Cleanup Stringee call/client
     if (stringeeCallRef.current) {
       console.log('[cleanupResources] Ending StringeeCall');
-      stringeeCallRef.current.end();
+      if (typeof stringeeCallRef.current.end === 'function') {
+        stringeeCallRef.current.end();
+      }
       stringeeCallRef.current = null;
     }
     if (stringeeClientRef.current) {
@@ -360,13 +362,19 @@ export default function RoomPage() {
               console.log("[StringeeClient incomingcall] Có cuộc gọi đến", call);
               stringeeCallRef.current = call;
               if (mediaStreamRef.current) {
+                console.log('[incomingcall] mediaStreamRef.current:', mediaStreamRef.current);
                 call.answer(mediaStreamRef.current);
                 console.log('[StringeeCall answer] Đã trả lời cuộc gọi với stream', mediaStreamRef.current);
+              } else {
+                console.warn('[incomingcall] mediaStreamRef.current is null, không thể trả lời cuộc gọi');
               }
               call.on("addstream", (evt: any) => {
                 console.log("[StringeeCall addstream] Đã nhận stream đối thủ", evt.stream);
                 if (opponentVideoRef.current) {
                   opponentVideoRef.current.srcObject = evt.stream;
+                  console.log('[addstream] Đã gán stream cho opponentVideoRef');
+                } else {
+                  console.warn('[addstream] opponentVideoRef.current is null');
                 }
               });
               call.on("end", () => {
