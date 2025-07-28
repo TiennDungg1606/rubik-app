@@ -1,7 +1,8 @@
 
 "use client";
 import { useEffect, useRef, useState } from "react";
-import Peer from "simple-peer";
+// import Peer from "simple-peer"; // REMOVED
+import { createStringeeClient, createStringeeCall } from "@/lib/stringeeClient";
 import { useRouter } from "next/navigation";
 // Đảm bảo window.userName luôn có giá trị đúng khi vào phòng
 declare global {
@@ -78,7 +79,9 @@ export default function RoomPage() {
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream|null>(null);
   const [streamReady, setStreamReady] = useState<boolean>(false);
-  const peerRef = useRef<any>(null);
+  // REMOVE peerRef, use stringeeClientRef and stringeeCallRef
+  const stringeeClientRef = useRef<any>(null);
+  const stringeeCallRef = useRef<any>(null);
   const [roomId, setRoomId] = useState<string>("");
   const [scramble, setScramble] = useState<string>("");
   const [scrambleIndex, setScrambleIndex] = useState<number>(0);
@@ -116,10 +119,14 @@ export default function RoomPage() {
 
   // Hàm rời phòng: cleanup và chuyển hướng về lobby
   function cleanupResources() {
-    // Cleanup peer
-    if (peerRef.current) {
-      peerRef.current.destroy();
-      peerRef.current = null;
+    // Cleanup Stringee call/client
+    if (stringeeCallRef.current) {
+      stringeeCallRef.current.end();
+      stringeeCallRef.current = null;
+    }
+    if (stringeeClientRef.current) {
+      stringeeClientRef.current.disconnect();
+      stringeeClientRef.current = null;
     }
     // Cleanup local stream
     if (mediaStreamRef.current) {
@@ -300,101 +307,83 @@ export default function RoomPage() {
   // always keep timerRef in sync
   useEffect(() => { timerRef.current = timer; }, [timer]);
 
-  // --- WebRTC peer connection effect: only create peer when users.length === 2, always cleanup otherwise ---
+  // --- Stringee video call effect: only create call when users.length === 2, always cleanup otherwise ---
   useEffect(() => {
     if (!mediaStreamRef.current || !userName || !roomId) return;
-    const socket = getSocket();
-
-    function cleanupPeer(shouldDestroy = true) {
-      if (shouldDestroy && peerRef.current) {
-        console.log('[CLEANUP] Destroying peer');
-        peerRef.current.destroy();
-        peerRef.current = null;
+    if (users.length !== 2) {
+      // Not enough users for call
+      if (stringeeCallRef.current) {
+        stringeeCallRef.current.end();
+        stringeeCallRef.current = null;
       }
-      // Không clear opponentVideoRef ở đây nữa
+      return;
     }
-
-    function clearOpponentVideo() {
-      if (opponentVideoRef.current) {
-        console.log('[CLEANUP] Clearing opponent video srcObject');
-        opponentVideoRef.current.srcObject = null;
-      }
+    // Always destroy previous call
+    if (stringeeCallRef.current) {
+      stringeeCallRef.current.end();
+      stringeeCallRef.current = null;
     }
-
-    function setupPeer(filteredUsers: string[]) {
-      // Chỉ destroy peer khi đủ 2 user, còn thiếu user thì giữ nguyên peer
-      if (filteredUsers.length !== 2) {
-        console.log('Not enough users for peer connection');
-        cleanupPeer(false); // Không destroy peer
-        return;
-      }
-      cleanupPeer(true); // Đủ 2 user thì destroy peer cũ trước khi tạo mới
-      if (!mediaStreamRef.current) {
-        console.warn('[WebRTC] No local media stream, cannot create peer');
-        return;
-      }
-      const isInitiator = (filteredUsers[1] === userName);
-      console.log('setupPeer called', filteredUsers, 'userName:', userName, 'initiator:', isInitiator);
-      const peer = new Peer({
-        initiator: isInitiator,
-        trickle: false,
-        stream: mediaStreamRef.current,
-        config: {
-          iceServers: [
-            { url: "stun:global.stun.twilio.com:3478", urls: "stun:global.stun.twilio.com:3478" },
-            { url: "turn:global.turn.twilio.com:3478?transport=udp", urls: "turn:global.turn.twilio.com:3478?transport=udp", username: "4b757b5987da950233c0bc0a94ca3fbddfa375bc53e816b0184d958e0f09f49f", credential: "jf58N0MnDLhVKIacvs9xqp7i90LQf6FetFM0rY734fg=" },
-            { url: "turn:global.turn.twilio.com:3478?transport=tcp", urls: "turn:global.turn.twilio.com:3478?transport=tcp", username: "4b757b5987da950233c0bc0a94ca3fbddfa375bc53e816b0184d958e0f09f49f", credential: "jf58N0MnDLhVKIacvs9xqp7i90LQf6FetFM0rY734fg=" },
-            { url: "turn:global.turn.twilio.com:443?transport=tcp", urls: "turn:global.turn.twilio.com:443?transport=tcp", username: "4b757b5987da950233c0bc0a94ca3fbddfa375bc53e816b0184d958e0f09f49f", credential: "jf58N0MnDLhVKIacvs9xqp7i90LQf6FetFM0rY734fg=" }
-          ]
-        }
+    // Get Stringee token from backend
+    const myId = userName;
+    const oppId = opponentName || users.find(u => u !== userName);
+    if (!myId || !oppId) return;
+    fetch("/api/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: myId })
+    })
+      .then(res => res.json())
+      .then(({ token }) => {
+        if (!token) throw new Error("No Stringee token");
+        // Create Stringee client
+        stringeeClientRef.current = createStringeeClient(token);
+        stringeeClientRef.current.on("connect", () => {
+          // Initiator: always the second user in array
+          const isInitiator = users[1] === myId;
+          if (isInitiator) {
+            // Make call to opponent
+            if (mediaStreamRef.current) {
+              const call = createStringeeCall(stringeeClientRef.current, myId, oppId, mediaStreamRef.current);
+              stringeeCallRef.current = call;
+              call.on("addstream", (evt: any) => {
+                if (opponentVideoRef.current) {
+                  opponentVideoRef.current.srcObject = evt.stream;
+                }
+              });
+              call.makeCall();
+            }
+          } else {
+            // Listen for incoming call
+            stringeeClientRef.current.on("incomingcall", (call: any) => {
+            stringeeCallRef.current = call;
+            if (mediaStreamRef.current) {
+              call.answer(mediaStreamRef.current);
+            }
+            call.on("addstream", (evt: any) => {
+              if (opponentVideoRef.current) {
+                opponentVideoRef.current.srcObject = evt.stream;
+              }
+            });
+            });
+          }
+        });
+      })
+      .catch((err) => {
+        console.error("Stringee setup error", err);
       });
-      peerRef.current = peer;
-      peer.on('signal', (data: any) => {
-        socket.emit('signal', { roomId, userName, signal: data });
-      });
-      peer.on('connect', () => {
-        console.log('Peer connected!');
-      });
-      peer.on('error', (err: any) => {
-        console.error('Peer error:', err);
-      });
-      peer.on('stream', (stream: MediaStream) => {
-        if (opponentVideoRef.current) {
-          opponentVideoRef.current.srcObject = stream;
-          console.log('[WebRTC] Set remote stream to opponent video');
-        }
-      });
-      peer.on('close', () => {
-        clearOpponentVideo();
-      });
-    }
-
-    // Lắng nghe users thay đổi từ socket
-    const handleRoomUsers = (roomUsers: string[]) => {
-      const filteredUsers = (roomUsers || []).filter((u: string) => typeof u === 'string' && u);
-      setUsers(filteredUsers);
-      setWaiting(filteredUsers.length < 2);
-      // Xác định tên đối thủ
-      const opp = filteredUsers.find((u: string) => u !== userName);
-      if (opp) setOpponentName(opp);
-      setupPeer(filteredUsers);
-    };
-    const handleSignal = ({ userName: from, signal }: { userName: string, signal: any }) => {
-      if (from !== userName && peerRef.current) {
-        peerRef.current.signal(signal);
-      }
-    };
-    socket.emit('join-room', { roomId, userName });
-    socket.on('room-users', handleRoomUsers);
-    socket.on('signal', handleSignal);
-    // Cleanup khi effect unmount hoặc dependency thay đổi
+    // Cleanup
     return () => {
-      cleanupPeer();
-      socket.off('room-users', handleRoomUsers);
-      socket.off('signal', handleSignal);
+      if (stringeeCallRef.current) {
+        stringeeCallRef.current.end();
+        stringeeCallRef.current = null;
+      }
+      if (stringeeClientRef.current) {
+        stringeeClientRef.current.disconnect();
+        stringeeClientRef.current = null;
+      }
     };
     // eslint-disable-next-line
-  }, [roomId, userName, mediaStreamRef.current]);
+  }, [roomId, userName, users.length, opponentName, mediaStreamRef.current]);
 
 
 

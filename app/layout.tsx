@@ -29,6 +29,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Stringee SDK cho video call */}
+        <script src="https://cdn.stringee.com/sdk/web/latest/stringee-web-sdk.min.js"></script>
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* Bỏ SessionProviderWrapper, render children trực tiếp */}
         {children}
