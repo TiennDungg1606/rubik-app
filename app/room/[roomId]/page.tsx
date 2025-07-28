@@ -331,6 +331,30 @@ export default function RoomPage() {
         if (!token) throw new Error("No Stringee token");
         // Create Stringee client
         stringeeClientRef.current = createStringeeClient(token);
+        // Đăng ký event incomingcall ngay sau khi tạo client
+        stringeeClientRef.current.on("incomingcall", (call: any) => {
+          console.log("[StringeeClient incomingcall] Có cuộc gọi đến", call);
+          stringeeCallRef.current = call;
+          if (mediaStreamRef.current) {
+            console.log('[incomingcall] mediaStreamRef.current:', mediaStreamRef.current);
+            call.answer(mediaStreamRef.current);
+            console.log('[StringeeCall answer] Đã trả lời cuộc gọi với stream', mediaStreamRef.current);
+          } else {
+            console.warn('[incomingcall] mediaStreamRef.current is null, không thể trả lời cuộc gọi');
+          }
+          call.on("addstream", (evt: any) => {
+            console.log("[StringeeCall addstream] Đã nhận stream đối thủ", evt.stream);
+            if (opponentVideoRef.current) {
+              opponentVideoRef.current.srcObject = evt.stream;
+              console.log('[addstream] Đã gán stream cho opponentVideoRef');
+            } else {
+              console.warn('[addstream] opponentVideoRef.current is null');
+            }
+          });
+          call.on("end", () => {
+            console.log('[StringeeCall end] Cuộc gọi đã kết thúc');
+          });
+        });
         // Lắng nghe sự kiện xác thực
         stringeeClientRef.current.on("authen", (res: any) => {
           console.log("[StringeeClient authen]", res);
@@ -355,31 +379,6 @@ export default function RoomPage() {
               call.makeCall();
               console.log('[StringeeCall makeCall] Đã gọi tới đối thủ', oppId);
             }
-          } else {
-            // Listen for incoming call
-            stringeeClientRef.current.on("incomingcall", (call: any) => {
-              console.log("[StringeeClient incomingcall] Có cuộc gọi đến", call);
-              stringeeCallRef.current = call;
-              if (mediaStreamRef.current) {
-                console.log('[incomingcall] mediaStreamRef.current:', mediaStreamRef.current);
-                call.answer(mediaStreamRef.current);
-                console.log('[StringeeCall answer] Đã trả lời cuộc gọi với stream', mediaStreamRef.current);
-              } else {
-                console.warn('[incomingcall] mediaStreamRef.current is null, không thể trả lời cuộc gọi');
-              }
-              call.on("addstream", (evt: any) => {
-                console.log("[StringeeCall addstream] Đã nhận stream đối thủ", evt.stream);
-                if (opponentVideoRef.current) {
-                  opponentVideoRef.current.srcObject = evt.stream;
-                  console.log('[addstream] Đã gán stream cho opponentVideoRef');
-                } else {
-                  console.warn('[addstream] opponentVideoRef.current is null');
-                }
-              });
-              call.on("end", () => {
-                console.log('[StringeeCall end] Cuộc gọi đã kết thúc');
-              });
-            });
           }
         });
         stringeeClientRef.current.on("disconnect", () => {
