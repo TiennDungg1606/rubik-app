@@ -183,7 +183,8 @@ export default function RoomPage() {
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data && data.user && data.user._id) {
-            setUserId(data.user._id);
+            // Chỉ lấy 6 ký tự cuối của ObjectId
+            setUserId(typeof data.user._id === 'string' && data.user._id.length >= 6 ? data.user._id.slice(-6) : data.user._id);
             if (data.user.firstName && data.user.lastName) {
               setUserName(data.user.firstName + ' ' + data.user.lastName);
             } else {
