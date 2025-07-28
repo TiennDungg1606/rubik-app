@@ -361,16 +361,38 @@ export default function RoomPage() {
         });
         stringeeClientRef.current.on("connect", () => {
           console.log('[StringeeClient connect] Connected', { myId, oppId, users });
+          // Log chi tiết userId, oppId, token, mediaStream
+          console.log('[DEBUG] myId:', myId, 'oppId:', oppId, 'isCreator:', isCreator);
+          console.log('[DEBUG] mediaStreamRef.current:', mediaStreamRef.current);
+          // Kiểm tra token
+          fetch('/api/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: myId })
+          })
+            .then(res => res.json())
+            .then(({ token }) => {
+              console.log('[DEBUG] Stringee token:', token);
+            });
           // Initiator: chủ phòng luôn là người gọi
           if (isCreator) {
             // Make call to opponent
             if (mediaStreamRef.current) {
+              console.log('[DEBUG] Tạo StringeeCall với:', {
+                client: stringeeClientRef.current,
+                from: myId,
+                to: oppId,
+                stream: mediaStreamRef.current
+              });
               const call = createStringeeCall(stringeeClientRef.current, myId, oppId, mediaStreamRef.current);
               stringeeCallRef.current = call;
               call.on("addstream", (evt: any) => {
                 console.log("[StringeeCall addstream] Đã nhận stream đối thủ", evt.stream);
                 if (opponentVideoRef.current) {
                   opponentVideoRef.current.srcObject = evt.stream;
+                  console.log('[addstream] Đã gán stream cho opponentVideoRef');
+                } else {
+                  console.warn('[addstream] opponentVideoRef.current is null');
                 }
               });
               call.on("end", () => {
