@@ -123,15 +123,18 @@ export default function RoomPage() {
   function cleanupResources() {
     // Cleanup Stringee call/client
     if (stringeeCallRef.current) {
+      console.log('[cleanupResources] Ending StringeeCall');
       stringeeCallRef.current.end();
       stringeeCallRef.current = null;
     }
     if (stringeeClientRef.current) {
+      console.log('[cleanupResources] Disconnecting StringeeClient');
       stringeeClientRef.current.disconnect();
       stringeeClientRef.current = null;
     }
     // Cleanup local stream
     if (mediaStreamRef.current) {
+      console.log('[cleanupResources] Stopping media tracks');
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
@@ -140,6 +143,7 @@ export default function RoomPage() {
     if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
   }
   function handleLeaveRoom() {
+    console.log('[handleLeaveRoom] User leaving room', { userId, userName, isCreator });
     cleanupResources();
     window.location.href = '/lobby';
     setTimeout(() => {
@@ -330,6 +334,7 @@ export default function RoomPage() {
           console.log("[StringeeClient authen]", res);
         });
         stringeeClientRef.current.on("connect", () => {
+          console.log('[StringeeClient connect] Connected', { myId, oppId, users });
           // Initiator: always the second user in array
           const isInitiator = users[1] === myId;
           if (isInitiator) {
@@ -343,7 +348,11 @@ export default function RoomPage() {
                   opponentVideoRef.current.srcObject = evt.stream;
                 }
               });
+              call.on("end", () => {
+                console.log('[StringeeCall end] Cuộc gọi đã kết thúc');
+              });
               call.makeCall();
+              console.log('[StringeeCall makeCall] Đã gọi tới đối thủ', oppId);
             }
           } else {
             // Listen for incoming call
@@ -352,6 +361,7 @@ export default function RoomPage() {
               stringeeCallRef.current = call;
               if (mediaStreamRef.current) {
                 call.answer(mediaStreamRef.current);
+                console.log('[StringeeCall answer] Đã trả lời cuộc gọi với stream', mediaStreamRef.current);
               }
               call.on("addstream", (evt: any) => {
                 console.log("[StringeeCall addstream] Đã nhận stream đối thủ", evt.stream);
@@ -359,8 +369,14 @@ export default function RoomPage() {
                   opponentVideoRef.current.srcObject = evt.stream;
                 }
               });
+              call.on("end", () => {
+                console.log('[StringeeCall end] Cuộc gọi đã kết thúc');
+              });
             });
           }
+        });
+        stringeeClientRef.current.on("disconnect", () => {
+          console.log('[StringeeClient disconnect] Đã ngắt kết nối');
         });
       })
       .catch((err) => {
