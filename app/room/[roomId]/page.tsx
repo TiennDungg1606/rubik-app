@@ -94,7 +94,9 @@ export default function RoomPage() {
   const pressStartRef = useRef<number | null>(null);
   const [canStart, setCanStart] = useState<boolean>(false);
   const [spaceHeld, setSpaceHeld] = useState<boolean>(false);
-  const [users, setUsers] = useState<string[]>([]);
+  const [users, setUsers] = useState<string[]>([]); // userId array
+  const [userId, setUserId] = useState<string>("");
+  const [opponentId, setOpponentId] = useState<string>("");
   const [waiting, setWaiting] = useState<boolean>(true);
   const [turn, setTurn] = useState<'me'|'opponent'>('opponent');
   const [myResults, setMyResults] = useState<(number|null)[]>([]);
@@ -104,11 +106,11 @@ export default function RoomPage() {
   const [pendingResult, setPendingResult] = useState<number|null>(null);
   const [pendingType, setPendingType] = useState<'normal'|'+2'|'dnf'>('normal');
   const [opponentTime, setOpponentTime] = useState<number|null>(null);
-  const [userName, setUserName] = useState<string>("");
+  const [userName, setUserName] = useState<string>(""); // display name
   const [isCreator, setIsCreator] = useState<boolean>(false);
   const [showRules, setShowRules] = useState(false); // State for luật thi đấu modal
 
-  const [opponentName, setOpponentName] = useState<string>('Đối thủ');
+  const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
 
@@ -168,15 +170,19 @@ export default function RoomPage() {
   }, []);
 
   // Đảm bảo userName luôn đúng khi vào phòng (nếu window.userName chưa có)
+  // Lấy userId và userName từ DB, lưu vào state
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.userName) {
+    if (typeof window !== 'undefined') {
       fetch('/api/user/me', { credentials: 'include' })
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data && data.firstName && data.lastName) {
-            window.userName = data.firstName + ' ' + data.lastName;
-            // Reload lại trang để lấy đúng userName
-            window.location.reload();
+          if (data && data.user && data.user._id) {
+            setUserId(data.user._id);
+            if (data.user.firstName && data.user.lastName) {
+              setUserName(data.user.firstName + ' ' + data.user.lastName);
+            } else {
+              setUserName('Không xác định');
+            }
           }
         });
     }
@@ -271,25 +277,7 @@ export default function RoomPage() {
   }, [roomId]);
 
   // userName luôn phải lấy từ DB, không được rỗng
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (window.userName) {
-        setUserName(window.userName);
-      } else {
-        fetch('/api/user/me', { credentials: 'include' })
-          .then(res => res.ok ? res.json() : null)
-          .then(data => {
-            if (data && data.user && data.user.firstName && data.user.lastName) {
-              const name = data.user.firstName + ' ' + data.user.lastName;
-              window.userName = name;
-              setUserName(name);
-            } else {
-              setUserName('Không xác định');
-            }
-          });
-      }
-    }
-  }, []);
+  // Đã lấy userId/userName ở effect trên, không cần lặp lại
 
   // Kiểm tra nếu là người tạo phòng (tức là vừa tạo phòng mới) (hydration-safe)
   useEffect(() => {
@@ -309,7 +297,7 @@ export default function RoomPage() {
 
   // --- Stringee video call effect: only create call when users.length === 2, always cleanup otherwise ---
   useEffect(() => {
-    if (!mediaStreamRef.current || !userName || !roomId) return;
+    if (!mediaStreamRef.current || !userId || !roomId) return;
     if (users.length !== 2) {
       // Not enough users for call
       if (stringeeCallRef.current) {
@@ -324,8 +312,8 @@ export default function RoomPage() {
       stringeeCallRef.current = null;
     }
     // Get Stringee token from backend
-    const myId = userName;
-    const oppId = opponentName || users.find(u => u !== userName);
+    const myId = userId;
+    const oppId = users.find(u => u !== userId);
     if (!myId || !oppId) return;
     fetch("/api/token", {
       method: "POST",
@@ -355,15 +343,15 @@ export default function RoomPage() {
           } else {
             // Listen for incoming call
             stringeeClientRef.current.on("incomingcall", (call: any) => {
-            stringeeCallRef.current = call;
-            if (mediaStreamRef.current) {
-              call.answer(mediaStreamRef.current);
-            }
-            call.on("addstream", (evt: any) => {
-              if (opponentVideoRef.current) {
-                opponentVideoRef.current.srcObject = evt.stream;
+              stringeeCallRef.current = call;
+              if (mediaStreamRef.current) {
+                call.answer(mediaStreamRef.current);
               }
-            });
+              call.on("addstream", (evt: any) => {
+                if (opponentVideoRef.current) {
+                  opponentVideoRef.current.srcObject = evt.stream;
+                }
+              });
             });
           }
         });
@@ -383,7 +371,7 @@ export default function RoomPage() {
       }
     };
     // eslint-disable-next-line
-  }, [roomId, userName, users.length, opponentName, mediaStreamRef.current]);
+  }, [roomId, userId, users.length, mediaStreamRef.current]);
 
 
 
@@ -402,35 +390,41 @@ export default function RoomPage() {
   // Kết nối socket, join room, lắng nghe users và kết quả đối thủ
   useEffect(() => {
     const socket = getSocket();
-    socket.emit("join-room", { roomId, userName });
-    socket.on("room-users", (roomUsers: string[]) => {
-      // Lọc bỏ null/undefined và chỉ giữ string hợp lệ
-      const filteredUsers = (roomUsers || []).filter(u => typeof u === 'string' && u);
-      setUsers(filteredUsers);
+    if (!userId) return;
+    socket.emit("join-room", { roomId, userId, userName });
+    socket.on("room-users", (roomUsers: Array<{ userId: string, userName: string }>) => {
+      // roomUsers là mảng object { userId, userName }
+      const filteredUsers = (roomUsers || []).filter(u => u && typeof u.userId === 'string');
+      setUsers(filteredUsers.map(u => u.userId));
       setWaiting(filteredUsers.length < 2);
-      // Xác định tên đối thủ
-      const opp = filteredUsers.find(u => u !== userName);
-      if (opp) setOpponentName(opp);
+      // Xác định đối thủ
+      const opp = filteredUsers.find(u => u.userId !== userId);
+      if (opp) {
+        setOpponentId(opp.userId);
+        setOpponentName(opp.userName || 'Đối thủ');
+      }
     });
-    socket.on("opponent-solve", ({ userName: oppName, time }: { userName: string, time: number|null }) => {
+    socket.on("opponent-solve", ({ userId: oppId, userName: oppName, time }: { userId: string, userName: string, time: number|null }) => {
       setOpponentResults(r => [...r, time]);
       setTurn('me');
+      setOpponentId(oppId);
+      setOpponentName(oppName || 'Đối thủ');
     });
     return () => {
       socket.off("room-users");
       socket.off("opponent-solve");
     };
-  }, [roomId, userName]);
+  }, [roomId, userId, userName]);
 
 
   // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
   useEffect(() => {
-    if (isCreator && typeof userName === 'string') {
-      setUsers([userName]);
+    if (isCreator && typeof userId === 'string') {
+      setUsers([userId]);
       setWaiting(true);
       setTurn('me'); // Chủ phòng luôn được chơi trước
     }
-  }, [isCreator, userName]);
+  }, [isCreator, userId]);
 
   // Khi đủ 2 người, nếu không phải chủ phòng thì phải chờ đối thủ chơi trước
   useEffect(() => {
@@ -536,7 +530,7 @@ export default function RoomPage() {
           setMyResults(r => {
             const newR = [...r, null];
             const socket = getSocket();
-            socket.emit("solve", { roomId, userName, time: null });
+            socket.emit("solve", { roomId, userId, userName, time: null });
             return newR;
           });
           setTurn('opponent');
@@ -1063,7 +1057,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   setMyResults(r => {
                     const newR = [...r, result];
                     const socket = getSocket();
-                    socket.emit("solve", { roomId, userName, time: result === null ? null : result });
+                    socket.emit("solve", { roomId, userId, userName, time: result === null ? null : result });
                     return newR;
                   });
                   setPendingResult(null);
@@ -1082,7 +1076,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   setMyResults(r => {
                     const newR = [...r, result];
                     const socket = getSocket();
-                    socket.emit("solve", { roomId, userName, time: result });
+                    socket.emit("solve", { roomId, userId, userName, time: result });
                     return newR;
                   });
                   setPendingResult(null);
@@ -1099,7 +1093,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   setMyResults(r => {
                     const newR = [...r, null];
                     const socket = getSocket();
-                    socket.emit("solve", { roomId, userName, time: null });
+                    socket.emit("solve", { roomId, userId, userName, time: null });
                     return newR;
                   });
                   setPendingResult(null);
