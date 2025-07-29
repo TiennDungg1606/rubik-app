@@ -106,25 +106,27 @@ export default function RoomPage() {
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
 
-  // Tự động tạo roomUrl khi vào phòng nếu chưa có
+  // Tự động tạo roomUrl khi đủ 2 người và chưa có roomUrl
   useEffect(() => {
     if (!roomId) return;
     if (roomUrl) return;
-    fetch('/api/create-room', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId })
-    })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data && data.roomUrl) {
-          setRoomUrl(data.roomUrl);
-        }
+    if (users.length === 2) {
+      fetch('/api/create-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId })
       })
-      .catch(err => {
-        console.error('Lỗi tạo roomUrl:', err);
-      });
-  }, [roomId, roomUrl]);
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && data.roomUrl) {
+            setRoomUrl(data.roomUrl);
+          }
+        })
+        .catch(err => {
+          console.error('Lỗi tạo roomUrl:', err);
+        });
+    }
+  }, [roomId, roomUrl, users.length]);
 
 
   // ...giữ nguyên toàn bộ logic và return JSX phía sau...
@@ -1006,7 +1008,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         // Log roomUrl để debug
         console.log('[RoomPage] Render VideoCall with roomUrl:', roomUrl);
         return roomUrl ? (
-          <VideoCall roomUrl={roomUrl} camOn={camOn} micOn={micOn} />
+          <VideoCall key={roomUrl} roomUrl={roomUrl} camOn={camOn} micOn={micOn} />
         ) : null;
       })()}
     </div>
