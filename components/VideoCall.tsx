@@ -18,6 +18,10 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
   // Nếu có ref truyền từ ngoài thì dùng, không thì tạo ref nội bộ
   const localVideoRef = propLocalVideoRef || useRef<HTMLVideoElement>(null);
   const remoteVideoRef = propRemoteVideoRef || useRef<HTMLVideoElement>(null);
+  // State cho local stream preview
+  const localStreamRef = useRef<MediaStream|null>(null);
+  // State: đã có call Stringee chưa
+  const hasCallRef = useRef(false);
 
   // Parse roomUrl to get access_token, userId, opponentId
   let access_token = '';
@@ -33,6 +37,43 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
   } catch (e) {
     console.error('[VideoCall] roomUrl parse error:', e, roomUrl);
   }
+
+  // Luôn show local cam preview khi vào phòng (dù chưa có call)
+  useEffect(() => {
+    let stopped = false;
+    if (localVideoRef.current) {
+      // Nếu đã có call Stringee thì không cần getUserMedia nữa
+      if (hasCallRef.current) return;
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+          if (stopped) return;
+          localStreamRef.current = stream;
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
+            localVideoRef.current.muted = true; // luôn mute local để tránh vọng mic
+            localVideoRef.current.style.display = camOn ? '' : 'none';
+          }
+          // Tắt/bật cam/mic ban đầu
+          stream.getVideoTracks().forEach(track => { track.enabled = camOn; });
+          stream.getAudioTracks().forEach(track => { track.enabled = micOn; });
+        })
+        .catch(err => {
+          console.error('[VideoCall] getUserMedia error:', err);
+        });
+    }
+    return () => {
+      stopped = true;
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = null;
+        localVideoRef.current.style.display = 'none';
+      }
+    };
+    // eslint-disable-next-line
+  }, [localVideoRef, camOn, micOn]);
 
   // Nếu chưa có access_token, thử lấy từ API (dùng userId)
   useEffect(() => {
@@ -50,14 +91,9 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         });
     }
   }, [access_token, userId]);
-  // Khởi tạo StringeeClient và connect, xác thực bên thứ 3
+  // Khởi tạo StringeeClient/call khi đủ 2 người (có opponentId)
   useEffect(() => {
-    if (!access_token || !userId) return;
-    // Kiểm tra WebRTC support
-    if (typeof window !== 'undefined' && (window as any).StringeeUtil) {
-      // eslint-disable-next-line no-undef
-      console.log('StringeeUtil.isWebRTCSupported:', (window as any).StringeeUtil.isWebRTCSupported());
-    }
+    if (!access_token || !userId || !opponentId) return;
     // Cleanup old client/call
     if (clientRef.current) {
       try { clientRef.current.disconnect(); } catch {}
@@ -73,9 +109,9 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       console.error('[VideoCall] StringeeClient not found on window');
       return;
     }
-    // Xác thực bên thứ 3: access_token phải được cấp từ server (đã lấy ở trên)
     const client = new StringeeClient();
     clientRef.current = client;
+    hasCallRef.current = false;
     // Listen events
     client.on('connect', () => {
       console.log('[VideoCall] client connected');
@@ -124,6 +160,12 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
     }
 
     function setupCallEvents(call: any) {
+      hasCallRef.current = true;
+      // Khi đã có call, tắt local preview stream (nếu có)
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
       call.on('addlocaltrack', (localtrack: any) => {
         console.log('[VideoCall] addlocaltrack', localtrack);
         localTrackRef.current = localtrack;
@@ -132,7 +174,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         if (vid && el instanceof HTMLVideoElement) {
           vid.srcObject = el.srcObject;
           vid.muted = true;
-          vid.style.display = '';
+          vid.style.display = camOn ? '' : 'none';
         }
       });
       call.on('addremotetrack', (remotetrack: any) => {
@@ -178,6 +220,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
 
     // Cleanup on unmount
     return () => {
+      hasCallRef.current = false;
       if (callRef.current) {
         try { callRef.current.hangup(); } catch {}
         callRef.current = null;
@@ -196,16 +239,24 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       }
     };
     // eslint-disable-next-line
-  }, [roomUrl]);
+  }, [roomUrl, opponentId, camOn, micOn]);
 
   // React to cam/mic changes
   useEffect(() => {
+    // Nếu đã có call Stringee thì thao tác lên call
     if (callRef.current) {
       try {
         callRef.current.enableLocalVideo(camOn);
         callRef.current.mute(!micOn);
       } catch (e) {
         console.error('[VideoCall] cam/mic toggle error', e);
+      }
+    } else if (localStreamRef.current) {
+      // Nếu chưa có call, thao tác trực tiếp lên local stream
+      localStreamRef.current.getVideoTracks().forEach(track => { track.enabled = camOn; });
+      localStreamRef.current.getAudioTracks().forEach(track => { track.enabled = micOn; });
+      if (localVideoRef.current) {
+        localVideoRef.current.style.display = camOn ? '' : 'none';
       }
     }
   }, [camOn, micOn]);
