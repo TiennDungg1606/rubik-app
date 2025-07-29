@@ -104,11 +104,27 @@ export default function RoomPage() {
   const [isCreator, setIsCreator] = useState<boolean>(false);
   const [showRules, setShowRules] = useState(false); // State for luật thi đấu modal
 
+
   const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
+
+  // Lắng nghe sự kiện đối thủ tắt/bật cam để hiện overlay đúng
+  useEffect(() => {
+    const socket = getSocket();
+    const handleOpponentCamToggle = ({ userId: fromId, camOn, userName: fromName }: { userId: string, camOn: boolean, userName?: string }) => {
+      if (fromId !== userId) {
+        setOpponentCamOn(camOn);
+        if (fromName) setOpponentName(fromName);
+      }
+    };
+    socket.on('user-cam-toggle', handleOpponentCamToggle);
+    return () => {
+      socket.off('user-cam-toggle', handleOpponentCamToggle);
+    };
+  }, [userId]);
 
   // Lấy access_token cho Stringee khi vào phòng (dùng userId và opponentId)
   useEffect(() => {
