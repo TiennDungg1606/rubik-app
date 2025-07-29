@@ -63,6 +63,9 @@ function calcStats(times: (number|null)[]) {
 
 
 export default function RoomPage() {
+  // Ref cho video local và remote để truyền vào VideoCall
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
   // Trạng thái thông báo tráo scramble
   const [showScrambleMsg, setShowScrambleMsg] = useState<boolean>(false);
   const router = useRouter();
@@ -799,10 +802,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             {/* Video element for local webcam */}
             <video
               id="my-video"
+              ref={localVideoRef}
               autoPlay
               muted
               playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', position: 'absolute', top: 0, left: 0, zIndex: 1, display: camOn ? 'block' : 'none' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: camOn ? 'block' : 'none' }}
             />
             <button
               className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
@@ -998,9 +1002,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             {/* Video element for remote webcam */}
             <video
               id="opponent-video"
+              ref={remoteVideoRef}
               autoPlay
               playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', position: 'absolute', top: 0, left: 0, zIndex: 2, background: '#111', display: 'none' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', background: '#111', display: 'none' }}
             />
           </div>
           <span className={mobileShrink ? "font-semibold text-[8px] text-pink-300" : "font-semibold text-lg text-pink-300"}>{opponentName}</span>
@@ -1009,7 +1014,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
 
       {/* Mount VideoCall (Stringee) sau webcam row để quản lý stream */}
       {roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0 ? (
-        <VideoCall key={roomUrl} roomUrl={roomUrl} camOn={camOn} micOn={micOn} />
+        <VideoCall
+          key={roomUrl}
+          roomUrl={roomUrl}
+          camOn={camOn}
+          micOn={micOn}
+          localVideoRef={localVideoRef}
+          remoteVideoRef={remoteVideoRef}
+        />
       ) : null}
     </div>
   );

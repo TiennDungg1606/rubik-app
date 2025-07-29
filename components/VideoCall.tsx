@@ -4,17 +4,20 @@ interface VideoCallProps {
   roomUrl: string;
   camOn: boolean;
   micOn: boolean;
+  localVideoRef?: React.RefObject<HTMLVideoElement | null>;
+  remoteVideoRef?: React.RefObject<HTMLVideoElement | null>;
 }
 
 
 // roomUrl: dạng JSON.stringify({ access_token, userId, opponentId })
-const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn }) => {
+const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideoRef: propLocalVideoRef, remoteVideoRef: propRemoteVideoRef }) => {
   const clientRef = useRef<any>(null);
   const callRef = useRef<any>(null);
   const localTrackRef = useRef<any>(null);
   const remoteTrackRef = useRef<any>(null);
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  // Nếu có ref truyền từ ngoài thì dùng, không thì tạo ref nội bộ
+  const localVideoRef = propLocalVideoRef || useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = propRemoteVideoRef || useRef<HTMLVideoElement>(null);
 
   // Parse roomUrl to get access_token, userId, opponentId
   let access_token = '';
@@ -207,13 +210,17 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn }) => {
     }
   }, [camOn, micOn]);
 
-  // Render hidden video elements (will be attached by Stringee)
-  return (
-    <>
-      <video ref={localVideoRef} id="my-video" autoPlay muted playsInline style={{ display: 'none', width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, position: 'absolute', top: 0, left: 0, zIndex: 1 }} />
-      <video ref={remoteVideoRef} id="opponent-video" autoPlay playsInline style={{ display: 'none', width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, position: 'absolute', top: 0, left: 0, zIndex: 2, background: '#111' }} />
-    </>
-  );
+  // Nếu không nhận ref từ ngoài thì render video ở đây (giữ tương thích cũ)
+  if (!propLocalVideoRef && !propRemoteVideoRef) {
+    return (
+      <>
+        <video ref={localVideoRef} id="my-video" autoPlay muted playsInline style={{ display: 'none', width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12 }} />
+        <video ref={remoteVideoRef} id="opponent-video" autoPlay playsInline style={{ display: 'none', width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, background: '#111' }} />
+      </>
+    );
+  }
+  // Nếu đã nhận ref từ ngoài thì không render video ở đây
+  return null;
 };
 
 export default VideoCall;
