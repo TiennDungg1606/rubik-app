@@ -251,6 +251,11 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       } catch (e) {
         console.error('[VideoCall] cam/mic toggle error', e);
       }
+      // Đảm bảo disable luôn audio track local khi tắt mic
+      if (localTrackRef.current && localTrackRef.current._localStream) {
+        const tracks = localTrackRef.current._localStream.getAudioTracks();
+        tracks.forEach((track: MediaStreamTrack) => { track.enabled = micOn; });
+      }
     } else if (localStreamRef.current) {
       // Nếu chưa có call, thao tác trực tiếp lên local stream
       localStreamRef.current.getVideoTracks().forEach(track => { track.enabled = camOn; });
