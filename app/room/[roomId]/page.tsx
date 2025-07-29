@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useRef, useState } from "react";
 // import Peer from "simple-peer"; // REMOVED
@@ -9,10 +8,7 @@ declare global {
   interface Window { userName?: string }
 }
 import { getSocket } from "@/lib/socket";
-
-// ...existing code...
-
-
+import dynamic from 'next/dynamic';
 
 // Scramble giống TimerTab.tsx
 function generateScramble() {
@@ -113,6 +109,28 @@ export default function RoomPage() {
   const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
+  // Thêm khai báo biến roomUrl đúng chuẩn
+  const [roomUrl, setRoomUrl] = useState<string>('');
+
+  // Tự động tạo roomUrl khi vào phòng nếu chưa có
+  useEffect(() => {
+    if (!roomId) return;
+    if (roomUrl) return;
+    fetch('/api/create-room', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId })
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.roomUrl) {
+          setRoomUrl(data.roomUrl);
+        }
+      })
+      .catch(err => {
+        console.error('Lỗi tạo roomUrl:', err);
+      });
+  }, [roomId, roomUrl]);
 
 
   // ...giữ nguyên toàn bộ logic và return JSX phía sau...
@@ -982,20 +1000,25 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
-            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
+            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-blue-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-blue-400"}
             style={mobileShrink
               ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
-            <video
-              ref={myVideoRef}
-              autoPlay
-              muted={true}
-              className={mobileShrink ? "w-full h-full object-cover rounded bg-black border border-blue-400" : "w-full h-full object-cover rounded-2xl bg-black border-4 border-blue-400"}
-              style={mobileShrink ? { maxHeight: 90, minHeight: 40 } : isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
-            />
+            {/* VideoCall sẽ render video local */}
+            {roomUrl ? (
+              <VideoCall roomUrl={roomUrl} camOn={camOn} micOn={micOn} type="local" />
+            ) : (
+              <video
+                ref={myVideoRef}
+                autoPlay
+                playsInline
+                muted
+                style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000', borderRadius: 12 }}
+              />
+            )}
             <button
               className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
               style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
@@ -1138,7 +1161,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >+2</button>
               <button
-                className={mobileShrink ? `px-1 py-0.5 text-[9px] rounded bg-red-600 font-bold text-white` : `px-3 py-1 text-base rounded-lg bg-red-600 font-bold text-white`}
+                className={mobileShrink ? `px-1 py-0.5 text-[9px] rounded bg-red-600 font-bold text-white` : `px-3 py-1 text-base rounded-lg bg-red-600 hover:bg-red-700 font-bold text-white`}
                 onClick={e => {
                   e.stopPropagation();
                   // Gửi kết quả DNF ngay
@@ -1180,19 +1203,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
-            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl"}
+            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-pink-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-pink-400"}
             style={mobileShrink
               ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
-            <video
-              ref={opponentVideoRef}
-              autoPlay
-              className={mobileShrink ? "w-full h-full object-cover rounded bg-black border border-pink-400" : "w-full h-full object-cover rounded-2xl bg-black border-4 border-pink-400"}
-              style={mobileShrink ? { maxHeight: 90, minHeight: 40 } : isMobile ? { maxHeight: 240, minHeight: 120 } : {}}
-            />
+            {/* VideoCall sẽ render video remote, khung viền vẫn giữ nguyên */}
+            {roomUrl && (
+              <VideoCall roomUrl={roomUrl} camOn={camOn} micOn={micOn} type="remote" />
+            )}
           </div>
           <span className={mobileShrink ? "font-semibold text-[8px] text-pink-300" : "font-semibold text-lg text-pink-300"}>{opponentName}</span>
         </div>
@@ -1200,4 +1221,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     </div>
   );
 }
+
+// Dynamic import cho VideoCall tránh lỗi SSR, không cần generic
+const VideoCall = dynamic(() => import('@/components/VideoCall'), { ssr: false });
 
