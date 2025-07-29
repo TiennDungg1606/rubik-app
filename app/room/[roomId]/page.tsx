@@ -125,8 +125,10 @@ export default function RoomPage() {
         })
         .then(data => {
           console.log('[RoomPage] Kết quả trả về từ /api/create-room:', data);
-          if (data && data.roomUrl) {
-            setRoomUrl(data.roomUrl);
+          if (data && (data.roomUrl || data.room_url)) {
+            const url = data.roomUrl || data.room_url;
+            setRoomUrl(url);
+            console.log('[RoomPage] Đã nhận roomUrl:', url);
           } else {
             console.error('[RoomPage] Không nhận được roomUrl từ API:', data);
           }
