@@ -106,38 +106,31 @@ export default function RoomPage() {
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
 
-  // Luôn tạo roomUrl khi vào phòng nếu chưa có (dù là chủ phòng hay đối thủ)
+  // Lấy access_token cho Stringee khi vào phòng (dùng userId và opponentId)
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !userId || !opponentId) return;
     if (roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0) return;
-    if (users.length >= 1) {
-      fetch('/api/create-room', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId })
+    // Gọi API lấy access_token cho userId
+    fetch('/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.access_token) {
+          // Tạo roomUrl đúng định dạng JSON cho VideoCall
+          const url = JSON.stringify({ access_token: data.access_token, userId, opponentId });
+          setRoomUrl(url);
+          console.log('[RoomPage] Đã nhận roomUrl:', url);
+        } else {
+          console.error('[RoomPage] Không nhận được access_token từ API:', data);
+        }
       })
-        .then(res => {
-          if (!res.ok) {
-            console.error('[RoomPage] API /api/create-room trả về lỗi:', res.status, res.statusText);
-            return null;
-          }
-          return res.json();
-        })
-        .then(data => {
-          console.log('[RoomPage] Kết quả trả về từ /api/create-room:', data);
-          if (data && (data.roomUrl || data.room_url)) {
-            const url = data.roomUrl || data.room_url;
-            setRoomUrl(url);
-            console.log('[RoomPage] Đã nhận roomUrl:', url);
-          } else {
-            console.error('[RoomPage] Không nhận được roomUrl từ API:', data);
-          }
-        })
-        .catch(err => {
-          console.error('[RoomPage] Lỗi fetch /api/create-room:', err);
-        });
-    }
-  }, [roomId, users.length]);
+      .catch(err => {
+        console.error('[RoomPage] Lỗi fetch /api/token:', err);
+      });
+  }, [roomId, userId, opponentId, roomUrl]);
 
 
   // ...giữ nguyên toàn bộ logic và return JSX phía sau...
