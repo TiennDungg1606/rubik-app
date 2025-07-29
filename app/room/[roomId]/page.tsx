@@ -116,14 +116,23 @@ export default function RoomPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId })
       })
-        .then(res => res.ok ? res.json() : null)
+        .then(res => {
+          if (!res.ok) {
+            console.error('[RoomPage] API /api/create-room trả về lỗi:', res.status, res.statusText);
+            return null;
+          }
+          return res.json();
+        })
         .then(data => {
+          console.log('[RoomPage] Kết quả trả về từ /api/create-room:', data);
           if (data && data.roomUrl) {
             setRoomUrl(data.roomUrl);
+          } else {
+            console.error('[RoomPage] Không nhận được roomUrl từ API:', data);
           }
         })
         .catch(err => {
-          console.error('Lỗi tạo roomUrl:', err);
+          console.error('[RoomPage] Lỗi fetch /api/create-room:', err);
         });
     }
   }, [roomId, users.length]);
