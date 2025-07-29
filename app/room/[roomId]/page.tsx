@@ -1000,18 +1000,19 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <span className={mobileShrink ? "font-semibold text-[8px] text-pink-300" : "font-semibold text-lg text-pink-300"}>{opponentName}</span>
         </div>
       </div>
+
+      {/* Mount VideoCall (Daily) sau webcam row để quản lý stream */}
+      {(() => {
+        // Log roomUrl để debug
+        console.log('[RoomPage] Render VideoCall with roomUrl:', roomUrl);
+        return roomUrl ? (
+          <VideoCall roomUrl={roomUrl} camOn={camOn} micOn={micOn} />
+        ) : null;
+      })()}
     </div>
   );
 }
 
 // Dynamic import cho VideoCall tránh lỗi SSR, không cần generic
 const VideoCall = dynamic(() => import('@/components/VideoCall'), { ssr: false });
-
-// Mount VideoCall once, hidden, to manage streams and attach to video elements by id
-// Place at the end of the main return
-// ...existing code...
-// (inside the main return, after the webcam row)
-// {roomUrl && (
-//   <VideoCall roomUrl={roomUrl} camOn={camOn} micOn={micOn} />
-// )}
 
