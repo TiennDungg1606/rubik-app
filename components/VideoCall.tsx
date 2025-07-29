@@ -263,6 +263,15 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       // Đảm bảo luôn cập nhật lại display khi camOn thay đổi
       if (localVideoRef.current) {
         localVideoRef.current.style.display = camOn ? '' : 'none';
+        // Nếu camOn=true mà srcObject bị mất (do detach trước đó), attach lại local track
+        if (camOn && localTrackRef.current && localTrackRef.current.attach) {
+          // Nếu srcObject null hoặc không có track, attach lại
+          const el = localTrackRef.current.attach();
+          if (el instanceof HTMLVideoElement && (!localVideoRef.current.srcObject || (localVideoRef.current.srcObject instanceof MediaStream && (localVideoRef.current.srcObject as MediaStream).getVideoTracks().length === 0))) {
+            localVideoRef.current.srcObject = el.srcObject;
+            localVideoRef.current.muted = true;
+          }
+        }
       }
     } else if (localStreamRef.current) {
       // Nếu chưa có call, thao tác trực tiếp lên local stream
