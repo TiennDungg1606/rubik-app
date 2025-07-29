@@ -71,13 +71,7 @@ export default function RoomPage() {
   const [isMobileLandscape, setIsMobileLandscape] = useState<boolean>(false);
   const [camOn, setCamOn] = useState<boolean>(true);
   const [micOn, setMicOn] = useState<boolean>(true);
-  const myVideoRef = useRef<HTMLVideoElement>(null);
-  const opponentVideoRef = useRef<HTMLVideoElement>(null);
-  const mediaStreamRef = useRef<MediaStream|null>(null);
-  const [streamReady, setStreamReady] = useState<boolean>(false);
-  // REMOVE peerRef, use stringeeClientRef and stringeeCallRef
-  const stringeeClientRef = useRef<any>(null);
-  const stringeeCallRef = useRef<any>(null);
+  // Đã loại bỏ các ref và state liên quan đến Stringee và mediaStream, chỉ giữ lại state cho Daily.co và socket
   const [roomId, setRoomId] = useState<string>("");
   const [scramble, setScramble] = useState<string>("");
   const [scrambleIndex, setScrambleIndex] = useState<number>(0);
@@ -137,50 +131,15 @@ export default function RoomPage() {
 
   // --- Effects and logic below ---
 
-  // Hàm rời phòng: cleanup và chuyển hướng về lobby
-  function cleanupResources() {
-    // Cleanup Stringee call/client
-    if (stringeeCallRef.current) {
-      console.log('[cleanupResources] Ending StringeeCall');
-      if (typeof stringeeCallRef.current.end === 'function') {
-        stringeeCallRef.current.end();
-      }
-      stringeeCallRef.current = null;
-    }
-    if (stringeeClientRef.current) {
-      console.log('[cleanupResources] Disconnecting StringeeClient');
-      stringeeClientRef.current.disconnect();
-      stringeeClientRef.current = null;
-    }
-    // Cleanup local stream
-    if (mediaStreamRef.current) {
-      console.log('[cleanupResources] Stopping media tracks');
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-      mediaStreamRef.current = null;
-    }
-    // Cleanup video element
-    if (myVideoRef.current) myVideoRef.current.srcObject = null;
-    if (opponentVideoRef.current) opponentVideoRef.current.srcObject = null;
-  }
+  // Hàm rời phòng: chỉ chuyển hướng về lobby
   function handleLeaveRoom() {
-    console.log('[handleLeaveRoom] User leaving room', { userId, userName, isCreator });
-    cleanupResources();
     window.location.href = '/lobby';
     setTimeout(() => {
       window.location.reload();
     }, 1300);
   }
 
-  // Cleanup khi đóng tab hoặc reload
-  useEffect(() => {
-    function handleBeforeUnload() {
-      cleanupResources();
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
+  // Đã loại bỏ cleanup Stringee khi đóng tab hoặc reload
 
   // Reload khi rời phòng bằng nút back (popstate)
   useEffect(() => {
@@ -213,50 +172,7 @@ export default function RoomPage() {
     }
   }, []);
 
-  // All variable and hook declarations must be above this line
-  // (removed duplicate/old peer connection effect)
-  // Lấy camera/mic và gán vào myVideoRef khi vào phòng
-
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    async function getMedia() {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        mediaStreamRef.current = stream;
-        setStreamReady(true); // trigger effect to set video srcObject
-      } catch (err) {
-        // eslint-disable-next-line no-alert
-        alert('Không truy cập được camera/mic. Vui lòng kiểm tra lại quyền trình duyệt!');
-      }
-    }
-    getMedia();
-    return () => {};
-    // eslint-disable-next-line
-  }, []);
-
-  // Đảm bảo luôn gán lại stream cho myVideoRef khi stream đã sẵn sàng hoặc khi cam/mic thay đổi hoặc streamReady hoặc mediaStreamRef.current thay đổi
-  useEffect(() => {
-    let retryInterval: NodeJS.Timeout | null = null;
-    function assignStream() {
-      if (myVideoRef.current && mediaStreamRef.current) {
-        if (myVideoRef.current.srcObject !== mediaStreamRef.current) {
-          myVideoRef.current.srcObject = mediaStreamRef.current;
-        }
-        // Nếu video đã có stream, clear interval
-        if (myVideoRef.current.readyState >= 2) {
-          if (retryInterval) clearInterval(retryInterval);
-        }
-      }
-    }
-    assignStream();
-    // Fallback: liên tục thử gán lại stream nếu video chưa hiện
-    retryInterval = setInterval(() => {
-      assignStream();
-    }, 500);
-    return () => {
-      if (retryInterval) clearInterval(retryInterval);
-    };
-  }, [streamReady, camOn, micOn, mediaStreamRef.current]);
+  // Đã loại bỏ effect lấy media stream và gán vào video element cũ
 
 
 
@@ -320,142 +236,9 @@ export default function RoomPage() {
   // always keep timerRef in sync
   useEffect(() => { timerRef.current = timer; }, [timer]);
 
-  // --- Stringee video call effect: only create call when users.length === 2, always cleanup otherwise ---
-  useEffect(() => {
-    if (!mediaStreamRef.current || !userId || !roomId) return;
-    if (users.length !== 2) {
-      // Not enough users for call
-      if (stringeeCallRef.current) {
-        stringeeCallRef.current.end();
-        stringeeCallRef.current = null;
-      }
-      return;
-    }
-    // Always destroy previous call
-    if (stringeeCallRef.current) {
-      stringeeCallRef.current.end();
-      stringeeCallRef.current = null;
-    }
-    // Get Stringee token from backend
-    const myId = userId;
-    const oppId = users.find(u => u !== userId);
-    if (!myId || !oppId) return;
-    fetch("/api/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: myId })
-    })
-      .then(res => res.json())
-      .then(({ token }) => {
-        if (!token) throw new Error("No Stringee token");
-        // Create Stringee client
-        stringeeClientRef.current = createStringeeClient(token);
-        // Đăng ký event incomingcall đúng chuẩn mẫu Stringee
-        stringeeClientRef.current.on("incomingcall", (call: any) => {
-          console.log("[StringeeClient incomingcall] Có cuộc gọi đến", call);
-          stringeeCallRef.current = call;
-          navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-            call.answer(stream);
-            if (myVideoRef.current) myVideoRef.current.srcObject = stream;
-            console.log('[StringeeCall answer] Đã trả lời cuộc gọi với stream', stream);
-          }).catch((err) => {
-            console.warn('[incomingcall] Không lấy được media stream:', err);
-          });
-          call.on("addstream", (evt: any) => {
-            console.log("[StringeeCall addstream] Đã nhận stream đối thủ", evt.stream);
-            if (opponentVideoRef.current) {
-              opponentVideoRef.current.srcObject = evt.stream;
-              console.log('[addstream] Đã gán stream cho opponentVideoRef');
-            } else {
-              console.warn('[addstream] opponentVideoRef.current is null');
-            }
-          });
-          call.on("end", () => {
-            console.log('[StringeeCall end] Cuộc gọi đã kết thúc');
-          });
-        });
-        // Lắng nghe sự kiện xác thực
-        stringeeClientRef.current.on("authen", (res: any) => {
-          console.log("[StringeeClient authen]", res);
-        });
-        stringeeClientRef.current.on("connect", () => {
-          console.log('[StringeeClient connect] Connected', { myId, oppId, users });
-          // Log chi tiết userId, oppId, token, mediaStream
-          console.log('[DEBUG] myId:', myId, 'oppId:', oppId, 'isCreator:', isCreator);
-          console.log('[DEBUG] mediaStreamRef.current:', mediaStreamRef.current);
-          // Kiểm tra token
-          fetch('/api/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: myId })
-          })
-            .then(res => res.json())
-            .then(({ token }) => {
-              console.log('[DEBUG] Stringee token:', token);
-            });
-          // Initiator: chủ phòng luôn là người gọi
-          if (isCreator) {
-            // Make call to opponent
-            if (mediaStreamRef.current) {
-              console.log('[DEBUG] Tạo StringeeCall với:', {
-                client: stringeeClientRef.current,
-                from: myId,
-                to: oppId,
-                stream: mediaStreamRef.current
-              });
-              const call = createStringeeCall(stringeeClientRef.current, myId, oppId, mediaStreamRef.current);
-              stringeeCallRef.current = call;
-              call.on("addstream", (evt: any) => {
-                console.log("[StringeeCall addstream] Đã nhận stream đối thủ", evt.stream);
-                if (opponentVideoRef.current) {
-                  opponentVideoRef.current.srcObject = evt.stream;
-                  console.log('[addstream] Đã gán stream cho opponentVideoRef');
-                } else {
-                  console.warn('[addstream] opponentVideoRef.current is null');
-                }
-              });
-              call.on("end", () => {
-                console.log('[StringeeCall end] Cuộc gọi đã kết thúc');
-              });
-              call.makeCall();
-              console.log('[StringeeCall makeCall] Đã gọi tới đối thủ', oppId);
-            }
-          }
-        });
-        stringeeClientRef.current.on("disconnect", () => {
-          console.log('[StringeeClient disconnect] Đã ngắt kết nối');
-        });
-      })
-      .catch((err) => {
-        console.error("Stringee setup error", err);
-      });
-    // Cleanup
-    return () => {
-      if (stringeeCallRef.current) {
-        stringeeCallRef.current.end();
-        stringeeCallRef.current = null;
-      }
-      if (stringeeClientRef.current) {
-        stringeeClientRef.current.disconnect();
-        stringeeClientRef.current = null;
-      }
-    };
-    // eslint-disable-next-line
-  }, [roomId, userId, users.length, mediaStreamRef.current]);
 
 
 
-  // Khi bật/tắt cam/mic chỉ enable/disable track, không tạo lại peer/stream
-  useEffect(() => {
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getVideoTracks().forEach(track => {
-        track.enabled = camOn;
-      });
-      mediaStreamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = micOn;
-      });
-    }
-  }, [camOn, micOn]);
 
   // Kết nối socket, join room, lắng nghe users và kết quả đối thủ
   useEffect(() => {
@@ -1007,18 +790,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
-            {/* VideoCall sẽ render video local */}
-            {roomUrl ? (
-              <VideoCall roomUrl={roomUrl} camOn={camOn} micOn={micOn} type="local" />
-            ) : (
-              <video
-                ref={myVideoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{ width: '100%', height: '100%', objectFit: 'cover', background: '#000', borderRadius: 12 }}
-              />
-            )}
+            {/* Video element for local webcam */}
+            <video
+              id="my-video"
+              autoPlay
+              muted
+              playsInline
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', position: 'absolute', top: 0, left: 0, zIndex: 1, display: camOn ? 'block' : 'none' }}
+            />
             <button
               className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
               style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
@@ -1210,10 +989,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
-            {/* VideoCall sẽ render video remote, khung viền vẫn giữ nguyên */}
-            {roomUrl && (
-              <VideoCall roomUrl={roomUrl} camOn={camOn} micOn={micOn} type="remote" />
-            )}
+            {/* Video element for remote webcam */}
+            <video
+              id="opponent-video"
+              autoPlay
+              playsInline
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', position: 'absolute', top: 0, left: 0, zIndex: 2, background: '#111', display: 'none' }}
+            />
           </div>
           <span className={mobileShrink ? "font-semibold text-[8px] text-pink-300" : "font-semibold text-lg text-pink-300"}>{opponentName}</span>
         </div>
@@ -1224,4 +1006,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
 
 // Dynamic import cho VideoCall tránh lỗi SSR, không cần generic
 const VideoCall = dynamic(() => import('@/components/VideoCall'), { ssr: false });
+
+// Mount VideoCall once, hidden, to manage streams and attach to video elements by id
+// Place at the end of the main return
+// ...existing code...
+// (inside the main return, after the webcam row)
+// {roomUrl && (
+//   <VideoCall roomUrl={roomUrl} camOn={camOn} micOn={micOn} />
+// )}
 
