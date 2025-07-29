@@ -174,7 +174,10 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         if (vid && el instanceof HTMLVideoElement) {
           vid.srcObject = el.srcObject;
           vid.muted = true;
-          vid.style.display = camOn ? '' : 'none';
+        }
+        // Đảm bảo luôn cập nhật lại display khi camOn thay đổi
+        if (localVideoRef.current) {
+          localVideoRef.current.style.display = camOn ? '' : 'none';
         }
       });
       call.on('addremotetrack', (remotetrack: any) => {
@@ -256,6 +259,10 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       if (localTrackRef.current && localTrackRef.current._localStream) {
         const audioTracks = localTrackRef.current._localStream.getAudioTracks();
         audioTracks.forEach((track: MediaStreamTrack) => { track.enabled = micOn; });
+      }
+      // Đảm bảo luôn cập nhật lại display khi camOn thay đổi
+      if (localVideoRef.current) {
+        localVideoRef.current.style.display = camOn ? '' : 'none';
       }
     } else if (localStreamRef.current) {
       // Nếu chưa có call, thao tác trực tiếp lên local stream
