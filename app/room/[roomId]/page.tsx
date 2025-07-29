@@ -1006,8 +1006,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       {/* Mount VideoCall (Daily) sau webcam row để quản lý stream */}
       {(() => {
         // Log roomUrl để debug
-        console.log('[RoomPage] Render VideoCall with roomUrl:', roomUrl);
-        return roomUrl ? (
+        console.log('[RoomPage] Render VideoCall with roomUrl:', roomUrl, '| typeof:', typeof roomUrl, '| length:', roomUrl?.length);
+        if (roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0) {
+          console.log('[RoomPage] VideoCall sẽ được mount với roomUrl:', roomUrl);
+        } else {
+          console.warn('[RoomPage] Không mount VideoCall vì roomUrl chưa sẵn sàng:', roomUrl);
+        }
+        return roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0 ? (
           <VideoCall key={roomUrl} roomUrl={roomUrl} camOn={camOn} micOn={micOn} />
         ) : null;
       })()}

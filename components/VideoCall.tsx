@@ -11,7 +11,9 @@ interface VideoCallProps {
 }
 
 
-const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn }) => {
+const VideoCall: React.FC<VideoCallProps> = (props) => {
+  console.log('[VideoCall] [INIT] mount, props:', props);
+  const { roomUrl, camOn, micOn } = props;
   const callObjectRef = useRef<DailyCall | null>(null);
 
   useEffect(() => {
