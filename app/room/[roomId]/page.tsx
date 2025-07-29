@@ -72,8 +72,10 @@ export default function RoomPage() {
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState<boolean>(false);
-  // Gộp cam+mic thành 1 state
-  const [mediaOn, setMediaOn] = useState<boolean>(true);
+  const [camOn, setCamOn] = useState<boolean>(true);
+  // opponentCamOn: trạng thái cam của đối thủ (mặc định true)
+  const [opponentCamOn, setOpponentCamOn] = useState<boolean>(true);
+  const [micOn, setMicOn] = useState<boolean>(true);
   // Đã loại bỏ các ref và state liên quan đến Stringee và mediaStream, chỉ giữ lại state cho Daily.co và socket
   const [roomId, setRoomId] = useState<string>("");
   const [scramble, setScramble] = useState<string>("");
@@ -806,14 +808,28 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               autoPlay
               muted
               playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: mediaOn ? 'block' : 'none' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }}
             />
+            {/* Chỉ che overlay local khi camOn=false */}
+            {!camOn && (
+              <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>Đã tắt camera</span>
+              </div>
+            )}
             <button
-              className={mobileShrink ? `absolute bottom-1 left-1 px-1 py-0.5 rounded text-[8px] ${mediaOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-4 py-2 rounded text-base ${mediaOn ? 'bg-gray-700' : 'bg-red-600'}`}
+              className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
               style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
-              onClick={() => setMediaOn(v => !v)}
+              onClick={() => {
+                setCamOn(v => {
+                  const newVal = !v;
+                  // Gửi trạng thái camOn mới cho đối thủ qua socket
+                  const socket = getSocket();
+                  socket.emit('user-cam-toggle', { roomId, userId, camOn: newVal });
+                  return newVal;
+                });
+              }}
               type="button"
-            >{mediaOn ? 'Tắt cam + mic' : 'Bật cam + mic'}</button>
+            >{camOn ? 'Tắt cam' : 'Bật cam'}</button>
           </div>
           <span className={mobileShrink ? "font-semibold text-[8px] text-blue-300" : "font-semibold text-lg text-blue-300"}>{userName}</span>
         </div>
@@ -999,8 +1015,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               ref={remoteVideoRef}
               autoPlay
               playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', background: '#111', display: 'none' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', background: '#111', display: 'block' }}
             />
+            {/* Overlay che webcam remote khi opponentCamOn=false (tức đối thủ đã tắt cam) */}
+            {!opponentCamOn && (
+              <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>Đối thủ không bật camera</span>
+              </div>
+            )}
           </div>
           <span className={mobileShrink ? "font-semibold text-[8px] text-pink-300" : "font-semibold text-lg text-pink-300"}>{opponentName}</span>
         </div>
@@ -1011,7 +1033,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <VideoCall
           key={roomUrl}
           roomUrl={roomUrl}
-          mediaOn={mediaOn}
+          camOn={camOn}
+          micOn={micOn}
           localVideoRef={localVideoRef}
           remoteVideoRef={remoteVideoRef}
         />
