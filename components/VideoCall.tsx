@@ -239,7 +239,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       }
     };
     // eslint-disable-next-line
-  }, [roomUrl, opponentId, camOn, micOn]);
+  }, [roomUrl, opponentId]);
 
   // React to cam/mic changes
   useEffect(() => {
