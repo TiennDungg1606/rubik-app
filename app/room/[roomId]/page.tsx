@@ -106,11 +106,11 @@ export default function RoomPage() {
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
 
-  // Tự động tạo roomUrl khi đủ 2 người và chưa có roomUrl
+  // Luôn tạo roomUrl khi vào phòng nếu chưa có (dù là chủ phòng hay đối thủ)
   useEffect(() => {
     if (!roomId) return;
-    if (roomUrl) return;
-    if (users.length === 2) {
+    if (roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0) return;
+    if (users.length >= 1) {
       fetch('/api/create-room', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -126,7 +126,7 @@ export default function RoomPage() {
           console.error('Lỗi tạo roomUrl:', err);
         });
     }
-  }, [roomId, roomUrl, users.length]);
+  }, [roomId, users.length]);
 
 
   // ...giữ nguyên toàn bộ logic và return JSX phía sau...
