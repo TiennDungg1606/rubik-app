@@ -1,6 +1,8 @@
 // ...existing code...
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 
@@ -31,7 +33,10 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {/* Stringee SDK cho video call */}
-        <script src="https://cdn.stringee.com/sdk/web/latest/stringee-web-sdk.min.js"></script>
+        <Script
+          src="https://cdn.stringee.com/sdk/web/latest/stringee-web-sdk.min.js"
+          strategy="beforeInteractive"
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* Bỏ SessionProviderWrapper, render children trực tiếp */}
