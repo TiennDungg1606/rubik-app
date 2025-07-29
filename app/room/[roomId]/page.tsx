@@ -72,8 +72,8 @@ export default function RoomPage() {
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState<boolean>(false);
-  const [camOn, setCamOn] = useState<boolean>(true);
-  const [micOn, setMicOn] = useState<boolean>(true);
+  // Gộp cam+mic thành 1 state
+  const [mediaOn, setMediaOn] = useState<boolean>(true);
   // Đã loại bỏ các ref và state liên quan đến Stringee và mediaStream, chỉ giữ lại state cho Daily.co và socket
   const [roomId, setRoomId] = useState<string>("");
   const [scramble, setScramble] = useState<string>("");
@@ -806,20 +806,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               autoPlay
               muted
               playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: camOn ? 'block' : 'none' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: mediaOn ? 'block' : 'none' }}
             />
             <button
-              className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
+              className={mobileShrink ? `absolute bottom-1 left-1 px-1 py-0.5 rounded text-[8px] ${mediaOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-4 py-2 rounded text-base ${mediaOn ? 'bg-gray-700' : 'bg-red-600'}`}
               style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
-              onClick={() => setCamOn(v => !v)}
+              onClick={() => setMediaOn(v => !v)}
               type="button"
-            >{camOn ? 'Tắt cam' : 'Bật cam'}</button>
-            <button
-              className={mobileShrink ? `absolute bottom-0.5 right-0.5 px-0.5 py-0.5 rounded text-[8px] ${micOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 right-3 px-3 py-1 rounded text-base ${micOn ? 'bg-gray-700' : 'bg-red-600'}`}
-              style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
-              onClick={() => setMicOn(v => !v)}
-              type="button"
-            >{micOn ? 'Tắt mic' : 'Bật mic'}</button>
+            >{mediaOn ? 'Tắt cam + mic' : 'Bật cam + mic'}</button>
           </div>
           <span className={mobileShrink ? "font-semibold text-[8px] text-blue-300" : "font-semibold text-lg text-blue-300"}>{userName}</span>
         </div>
@@ -1017,8 +1011,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <VideoCall
           key={roomUrl}
           roomUrl={roomUrl}
-          camOn={camOn}
-          micOn={micOn}
+          mediaOn={mediaOn}
           localVideoRef={localVideoRef}
           remoteVideoRef={remoteVideoRef}
         />
