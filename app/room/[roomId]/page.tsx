@@ -808,44 +808,50 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
           style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
-          <div
-            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-blue-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-blue-400"}
-            style={mobileShrink
-              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
-              : isMobile && !isPortrait
-                ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
-                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
-          >
-            {/* Video element for local webcam */}
-            <video
-              id="my-video"
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }}
-            />
-            {/* Overlay che webcam local khi camOn=false, pointerEvents none để không che nút */}
-            {!camOn && (
-              <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>Đã tắt camera</span>
-              </div>
-            )}
-            <button
-              className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
-              style={mobileShrink ? { minWidth: 0, minHeight: 0, pointerEvents: 'auto', zIndex: 3 } : { pointerEvents: 'auto', zIndex: 3 }}
-              onClick={() => {
-                setCamOn(v => {
-                  const newVal = !v;
-                  // Gửi trạng thái camOn mới cho đối thủ qua socket, kèm userName
-                  const socket = getSocket();
-                  socket.emit('user-cam-toggle', { roomId, userId, camOn: newVal, userName });
-                  return newVal;
-                });
-              }}
-              type="button"
-            >{camOn ? 'Tắt cam' : 'Bật cam'}</button>
-          </div>
+        <div
+          className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-blue-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-blue-400"}
+          style={mobileShrink
+            ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
+            : isMobile && !isPortrait
+              ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
+              : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+        >
+          {/* Video element for local webcam */}
+          <video
+            id="my-video"
+            ref={localVideoRef}
+            autoPlay
+            muted
+            playsInline
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }}
+          />
+          {/* Overlay che webcam local khi camOn=false, pointerEvents none để không che nút */}
+          {!camOn && (
+            <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>Đã tắt camera</span>
+            </div>
+          )}
+          {/* Overlay thông báo khi chưa đủ 2 người */}
+          {waiting && (
+            <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.85, borderRadius: 'inherit', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+              <span style={{ color: '#fff', fontWeight: 600, fontSize: mobileShrink ? 11 : 20, textAlign: 'center' }}>Camera của bạn sẽ hiện khi đối thủ vào</span>
+            </div>
+          )}
+          <button
+            className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
+            style={mobileShrink ? { minWidth: 0, minHeight: 0, pointerEvents: 'auto', zIndex: 4 } : { pointerEvents: 'auto', zIndex: 4 }}
+            onClick={() => {
+              setCamOn(v => {
+                const newVal = !v;
+                // Gửi trạng thái camOn mới cho đối thủ qua socket, kèm userName
+                const socket = getSocket();
+                socket.emit('user-cam-toggle', { roomId, userId, camOn: newVal, userName });
+                return newVal;
+              });
+            }}
+            type="button"
+          >{camOn ? 'Tắt cam' : 'Bật cam'}</button>
+        </div>
           <span className={mobileShrink ? "font-semibold text-[8px] text-blue-300" : "font-semibold text-lg text-blue-300"}>{userName}</span>
         </div>
         {/* Timer ở giữa - cột 2 */}
