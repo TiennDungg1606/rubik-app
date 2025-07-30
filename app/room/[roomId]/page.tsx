@@ -376,7 +376,7 @@ export default function RoomPage() {
         const start = pressStartRef.current;
         pressStartRef.current = null;
         spaceHeld = false;
-        if (start && now - start >= 300) {
+        if (start && now - start >= 50) {
           setPrep(false);
           setCanStart(true);
         }
@@ -890,7 +890,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }
               // 2. In prep, giữ >=0.5s rồi thả ra để start timer
               if (prep && !running) {
-                if (start && now - start >= 300) {
+                if (start && now - start >= 50) {
                   setPrep(false);
                   setCanStart(true);
                 }

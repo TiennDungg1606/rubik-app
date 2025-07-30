@@ -83,7 +83,7 @@ export default function TimerTab() {
         setTimerState("preparing");
         setPrepTime(15);
       } else if (timerState === "preparing") {
-        if (start && now - start >= 300) {
+        if (start && now - start >= 50) {
           setTimerState("running");
           setStartTime(Date.now());
         }
@@ -536,7 +536,7 @@ export default function TimerTab() {
                     setTimerState('preparing');
                     setPrepTime(15);
                   } else if (timerState === 'preparing') {
-                    if (start && now - start >= 300) {
+                    if (start && now - start >= 50) {
                       setTimerState('running');
                       setStartTime(Date.now());
                     }
