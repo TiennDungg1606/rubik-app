@@ -353,33 +353,38 @@ export default function RoomPage() {
   useEffect(() => {
     if (isMobile) return;
     if (waiting || running || turn !== 'me' || myResults.length >= 5) return;
-    let spaceHeld = false;
+    let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
       if (prep) {
-        if (!spaceHeld) {
+        if (!localSpaceHeld) {
           pressStartRef.current = Date.now();
-          spaceHeld = true;
+          localSpaceHeld = true;
+          setSpaceHeld(true); // Đang giữ phím
         }
       } else if (!prep && !running) {
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
         pressStartRef.current = Date.now();
-        spaceHeld = true;
+        localSpaceHeld = true;
+        setSpaceHeld(true); // Đang giữ phím
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (prep && spaceHeld) {
+      if (prep && localSpaceHeld) {
         const now = Date.now();
         const start = pressStartRef.current;
         pressStartRef.current = null;
-        spaceHeld = false;
+        localSpaceHeld = false;
+        setSpaceHeld(false); // Thả phím
         if (start && now - start >= 50) {
           setPrep(false);
           setCanStart(true);
         }
+      } else {
+        setSpaceHeld(false); // Thả phím
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -869,6 +874,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               if (waiting || myResults.length >= 5) return;
               // Đánh dấu touch bắt đầu
               pressStartRef.current = Date.now();
+              setSpaceHeld(true); // Đang giữ tay
             },
             onTouchEnd: (e) => {
               if (pendingResult !== null) return;
@@ -881,6 +887,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               const now = Date.now();
               const start = pressStartRef.current;
               pressStartRef.current = null;
+              setSpaceHeld(false); // Thả tay
               // 1. Tap and release to enter prep
               if (!prep && !running && turn === 'me') {
                 setPrep(true);
