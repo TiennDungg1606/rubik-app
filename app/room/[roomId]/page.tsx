@@ -1000,19 +1000,23 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </div>
           ) : null}
           <div
-            className={mobileShrink ? "text-2xl font-bold text-yellow-300 drop-shadow select-none px-2 py-2 rounded" : "text-8xl font-['Digital-7'] font-bold text-yellow-300 drop-shadow-lg select-none px-8 py-4 rounded-2xl"}
+            className={
+              mobileShrink
+                ? `text-2xl font-bold drop-shadow select-none px-2 py-2 rounded ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
+                : `text-8xl font-['Digital-7'] font-bold drop-shadow-lg select-none px-8 py-4 rounded-2xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
+            }
             style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 32, textAlign: 'center', fontSize: 32, padding: 2 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '180px', textAlign: 'center', fontSize: 80, padding: 8 }}
           >
-              {prep ? (
-                <span className={mobileShrink ? "text-[20px]" : undefined}>Chuẩn bị: {prepTime}s</span>
-              ) : dnf ? (
-                <span className={mobileShrink ? "text-[20px] text-red-400" : "text-red-400"}>DNF</span>
-              ) : (
-                <>
-                  <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 32 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 80 }}>{(timer/1000).toFixed(3)}</span>
-                  <span className={mobileShrink ? "ml-1 align-bottom" : "ml-2 align-bottom"} style={mobileShrink ? { fontFamily: 'font-mono', fontWeight: 400, fontSize: 12, lineHeight: 1 } : { fontFamily: 'font-mono', fontWeight: 400, fontSize: '1em', lineHeight: 1 }}>s</span>
-                </>
-              )}
+            {prep ? (
+              <span className={mobileShrink ? "text-[20px]" : undefined}>Chuẩn bị: {prepTime}s</span>
+            ) : dnf ? (
+              <span className={mobileShrink ? "text-[20px] text-red-400" : "text-red-400"}>DNF</span>
+            ) : (
+              <>
+                <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 32 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 80 }}>{(timer/1000).toFixed(3)}</span>
+                <span className={mobileShrink ? "ml-1 align-bottom" : "ml-2 align-bottom"} style={mobileShrink ? { fontFamily: 'font-mono', fontWeight: 400, fontSize: 12, lineHeight: 1 } : { fontFamily: 'font-mono', fontWeight: 400, fontSize: '1em', lineHeight: 1 }}>s</span>
+              </>
+            )}
           </div>
           {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
           {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
