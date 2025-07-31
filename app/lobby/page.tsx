@@ -10,6 +10,7 @@ import NewTab from "./components/NewTab";
 import AboutTab from "./components/AboutTab";
 import ShopTab from "./components/ShopTab";
 import { useRouter } from "next/navigation";
+import GoogleAd from "@/components/GoogleAd";
 
 
 
@@ -92,89 +93,97 @@ export default function Lobby() {
     );
   }
   return (
-    <main className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans backdrop-blur-3xl" style={{ backgroundImage: 'url(/images.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-      {/* Tab Navigation Bar */}
-      <nav className="w-full max-w-2xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-6 py-3 mt-2 mb-2">
-        <div className="flex items-center gap-6">
-          <svg width="32" height="32" viewBox="0 0 64 64" fill="none" className="mr-2 drop-shadow-lg" style={{marginLeft: -8}} xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
-            <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
-            <rect x="44" y="2" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
-            <rect x="2" y="23" width="18" height="18" rx="3" fill="#FDE047" stroke="#222" strokeWidth="2"/>
-            <rect x="23" y="23" width="18" height="18" rx="3" fill="#22D3EE" stroke="#222" strokeWidth="2"/>
-            <rect x="44" y="23" width="18" height="18" rx="3" fill="#22C55E" stroke="#222" strokeWidth="2"/>
-            <rect x="2" y="44" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
-            <rect x="23" y="44" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
-            <rect x="44" y="44" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
-          </svg>
-          <button className={`text-base font-semibold transition-colors ${tab === "new" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("new")}>New</button>
-          <button
-            className={`text-base font-semibold transition-colors ${tab === "timer" ? "text-blue-400" : "text-white hover:text-blue-400"}`}
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                window.open("https://cstimer.net", "_blank");
-              }
-              // Không setTab("timer") để không chuyển tab trong app
-            }}
-          >
-            Timer
-          </button>
-          <button className={`text-base font-semibold transition-colors ${tab === "room" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("room")}>Room</button>
-          <button className={`text-base font-semibold transition-colors ${tab === "shop" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("shop")}>Shop</button>
-          <button className={`text-base font-semibold transition-colors ${tab === "about" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("about")}>About</button>
-          {/* Ẩn tab Account trên menu */}
+    <>
+      <main className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans backdrop-blur-3xl" style={{ backgroundImage: 'url(/images.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        {/* Tab Navigation Bar */}
+        <nav className="w-full max-w-2xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-6 py-3 mt-2 mb-2">
+          <div className="flex items-center gap-6">
+            <svg width="32" height="32" viewBox="0 0 64 64" fill="none" className="mr-2 drop-shadow-lg" style={{marginLeft: -8}} xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="2" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
+              <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
+              <rect x="44" y="2" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
+              <rect x="2" y="23" width="18" height="18" rx="3" fill="#FDE047" stroke="#222" strokeWidth="2"/>
+              <rect x="23" y="23" width="18" height="18" rx="3" fill="#22D3EE" stroke="#222" strokeWidth="2"/>
+              <rect x="44" y="23" width="18" height="18" rx="3" fill="#22C55E" stroke="#222" strokeWidth="2"/>
+              <rect x="2" y="44" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
+              <rect x="23" y="44" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
+              <rect x="44" y="44" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
+            </svg>
+            <button className={`text-base font-semibold transition-colors ${tab === "new" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("new")}>New</button>
+            <button
+              className={`text-base font-semibold transition-colors ${tab === "timer" ? "text-blue-400" : "text-white hover:text-blue-400"}`}
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.open("https://cstimer.net", "_blank");
+                }
+                // Không setTab("timer") để không chuyển tab trong app
+              }}
+            >
+              Timer
+            </button>
+            <button className={`text-base font-semibold transition-colors ${tab === "room" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("room")}>Room</button>
+            <button className={`text-base font-semibold transition-colors ${tab === "shop" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("shop")}>Shop</button>
+            <button className={`text-base font-semibold transition-colors ${tab === "about" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("about")}>About</button>
+            {/* Ẩn tab Account trên menu */}
+          </div>
+          {/* Avatar + Popup menu */}
+          <div className="relative">
+            <button
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg border-2 border-white shadow hover:opacity-90 transition-all"
+              onClick={() => setShowProfileMenu(v => !v)}
+              title="Tài khoản"
+            >
+              {user && (user.firstName || user.lastName)
+                ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
+                : <span>👤</span>}
+            </button>
+            {showProfileMenu && (
+              <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/30" onClick={() => setShowProfileMenu(false)}>
+                <ProfileTab
+                  user={user}
+                  onLogout={() => {
+                    fetch('/api/user/logout', { method: 'POST' }).then(() => {
+                      router.push('/');
+                    });
+                  }}
+                  onThemeSwitch={() => {}}
+                />
+              </div>
+            )}
+          </div>
+        </nav>
+        {/* Tab Content */}
+        {tab === "timer" && (
+          <TimerTab />
+        )}
+        {tab === "room" && (
+          <>
+            <RoomTab
+              roomInput={roomInput}
+              setRoomInput={setRoomInput}
+              handleCreateRoom={handleCreateRoom}
+              handleJoinRoom={handleJoinRoom}
+            />
+            {joinError && <div className="text-red-400 text-center mt-2">{joinError}</div>}
+          </>
+        )}
+        {tab === "new" && (
+          <NewTab />
+        )}
+        {tab === "shop" && (
+          <ShopTab />
+        )}
+        {tab === "about" && (
+          <AboutTab />
+        )}
+        {/* Không render AccountTabWrapper nữa, đã chuyển vào avatar menu */}
+      </main>
+      {/* Google AdSense quảng cáo mép dưới màn hình */}
+      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50, background: 'rgba(0,0,0,0.01)' }} className="flex justify-center w-full pointer-events-none">
+        <div className="pointer-events-auto w-full max-w-2xl">
+          <GoogleAd />
         </div>
-        {/* Avatar + Popup menu */}
-        <div className="relative">
-          <button
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg border-2 border-white shadow hover:opacity-90 transition-all"
-            onClick={() => setShowProfileMenu(v => !v)}
-            title="Tài khoản"
-          >
-            {user && (user.firstName || user.lastName)
-              ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
-              : <span>👤</span>}
-          </button>
-          {showProfileMenu && (
-            <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/30" onClick={() => setShowProfileMenu(false)}>
-              <ProfileTab
-                user={user}
-                onLogout={() => {
-                  fetch('/api/user/logout', { method: 'POST' }).then(() => {
-                    router.push('/');
-                  });
-                }}
-                onThemeSwitch={() => {}}
-              />
-            </div>
-          )}
-        </div>
-      </nav>
-      {/* Tab Content */}
-      {tab === "timer" && (
-        <TimerTab />
-      )}
-      {tab === "room" && (
-        <>
-          <RoomTab
-            roomInput={roomInput}
-            setRoomInput={setRoomInput}
-            handleCreateRoom={handleCreateRoom}
-            handleJoinRoom={handleJoinRoom}
-          />
-          {joinError && <div className="text-red-400 text-center mt-2">{joinError}</div>}
-        </>
-      )}
-      {tab === "new" && (
-        <NewTab />
-      )}
-      {tab === "shop" && (
-        <ShopTab />
-      )}
-      {tab === "about" && (
-        <AboutTab />
-      )}
-      {/* Không render AccountTabWrapper nữa, đã chuyển vào avatar menu */}
-    </main>
+      </div>
+    </>
   );
 }
