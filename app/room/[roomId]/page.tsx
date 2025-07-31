@@ -352,10 +352,11 @@ export default function RoomPage() {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    if (waiting || running || turn !== 'me' || myResults.length >= 5) return;
+    if (waiting || running || turn !== 'me' || myResults.length >= 5 || pendingResult !== null) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
+      if (pendingResult !== null) return; // Không cho vào prep khi đang chờ xác nhận kết quả
       if (prep) {
         if (!localSpaceHeld) {
           pressStartRef.current = Date.now();
@@ -915,7 +916,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
           } : {
             onClick: () => {
-              if (waiting || myResults.length >= 5) return;
+              if (waiting || myResults.length >= 5 || pendingResult !== null) return;
               if (!prep && !running && turn === 'me') {
                 setPrep(true);
                 setPrepTime(15);
