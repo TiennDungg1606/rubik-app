@@ -726,7 +726,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 if(!chatInput.trim())return;
                 const socket = getSocket();
                 socket.emit("chat",{roomId,userId,userName,message:chatInput});
-                setChatMessages(msgs=>[...msgs,{from:userId,name:userName,text:chatInput}]);
                 setChatInput("");
               }}>
               <input
