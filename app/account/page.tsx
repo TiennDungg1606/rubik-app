@@ -25,7 +25,7 @@ export default function AccountPage() {
     // Nếu sau 5s vẫn loading, chuyển về trang đăng nhập
     const timeout = setTimeout(() => {
       if (loading) {
-        window.location.href = "/account"; // hoặc /login nếu đúng route đăng nhập
+        window.location.href = "/login";
       }
     }, 6000);
     return () => clearTimeout(timeout);

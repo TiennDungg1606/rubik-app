@@ -536,7 +536,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     if (userName && roomId) return;
     const timeout = setTimeout(() => {
       if (!userName || !roomId) {
-        window.location.href = '/account'; // hoặc '/login' tùy route đăng nhập
+        window.location.href = '/login'; // hoặc '/login' tùy route đăng nhập
       }
     }, 6000);
     return () => clearTimeout(timeout);
