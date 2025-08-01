@@ -60,7 +60,7 @@ export default function Lobby() {
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (!data || !data.user) {
-          router.replace("/login");
+          router.replace("/");
           return;
         }
         setUser(data.user);
