@@ -66,6 +66,11 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setError(err);
       return;
     }
+    // Kiểm tra mã phòng có trong danh sách phòng đang hoạt động không
+    if (!rooms.includes(roomInput)) {
+      setError("Mã phòng không tồn tại.");
+      return;
+    }
     setError("");
     handleJoinRoom(roomInput);
   }

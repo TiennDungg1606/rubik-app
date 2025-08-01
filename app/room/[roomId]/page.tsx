@@ -103,6 +103,20 @@ export default function RoomPage() {
   const [userName, setUserName] = useState<string>(""); // display name
   const [isCreator, setIsCreator] = useState<boolean>(false);
   const [showRules, setShowRules] = useState(false); // State for luật thi đấu modal
+  // State cho chat
+  type ChatMsg = { from: string; name: string; text: string };
+  const [showChat, setShowChat] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
+  // Lắng nghe tin nhắn chat qua socket
+  useEffect(() => {
+    const socket = getSocket();
+    const handleChat = (data: { userId: string; userName: string; message: string }) => {
+      setChatMessages(msgs => [...msgs, { from: data.userId, name: data.userName, text: data.message }]);
+    };
+    socket.on("chat", handleChat);
+    return () => { socket.off("chat", handleChat); };
+  }, [userId]);
 
 
   const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
@@ -536,9 +550,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     if (userName && roomId) return;
     const timeout = setTimeout(() => {
       if (!userName || !roomId) {
-        window.location.href = '/login'; // hoặc '/login' tùy route đăng nhập
+        window.location.href = '/'; // hoặc '/login' tùy route đăng nhập
       }
-    }, 6000);
+    }, 5000);
     return () => clearTimeout(timeout);
   }, [userName, roomId]);
   if (!userName || !roomId) {
@@ -654,11 +668,84 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>  
         </div>
       )}
-      {/* Khối trên cùng: Tên phòng và scramble */}
+      {/* Khối trên cùng: Tên phòng và scramble với 2 nút bo góc nằm ngang hàng với Phòng: [id] */}
       <div className="w-full flex flex-col items-center justify-center mb-0.5">
-        <h2 className={mobileShrink ? "text-[14px] font-bold mb-1" : "text-3xl font-bold mb-2"}>
-          Phòng: <span className="text-blue-400">{roomId}</span>
-        </h2>
+        <div className={mobileShrink ? "flex flex-row items-center justify-center w-full mb-1" : "flex flex-row items-center justify-center w-full mb-2"}>
+          {/* Nút Draw Scramble bên trái */}
+          <button
+            className={mobileShrink ? "px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold shadow mr-2" : "px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold shadow mr-4"}
+            style={mobileShrink ? { borderRadius: 8 } : { borderRadius: 12 }}
+            type="button"
+            onClick={() => {
+              const socket = getSocket();
+              socket.emit("next-scramble", { roomId });
+            }}
+          >Draw Scramble</button>
+          <h2 className={mobileShrink ? "text-[14px] font-bold m-0" : "text-3xl font-bold m-0"}>
+            Phòng: <span className="text-blue-400">{roomId}</span>
+          </h2>
+          {/* Nút Chat bên phải */}
+          <button
+            className={mobileShrink ? "px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold shadow ml-2" : "px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold shadow ml-4"}
+            style={mobileShrink ? { borderRadius: 8 } : { borderRadius: 12 }}
+            type="button"
+            onClick={() => setShowChat(true)}
+          >Chat</button>
+      {/* Chat modal */}
+      {showChat && (
+        <div className="fixed z-[200] flex items-center justify-center inset-0 bg-black bg-opacity-30" style={{backdropFilter:'blur(2px)'}}>
+          <div className={mobileShrink ? "bg-gray-900 rounded-xl shadow-lg border-2 border-blue-400 flex flex-col" : "bg-gray-900 rounded-2xl shadow-2xl border-4 border-blue-400 flex flex-col"}
+            style={mobileShrink ? { width: 260, height: 340, maxWidth: '95vw', maxHeight: '90vh', position: 'relative' } : { width: 400, height: 500, maxWidth: '95vw', maxHeight: '90vh', position: 'relative' }}>
+            <button
+              onClick={() => setShowChat(false)}
+              className={mobileShrink ? "absolute top-1 right-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold z-10" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold z-10"}
+              style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
+              type="button"
+            >Đóng</button>
+            <div className={mobileShrink ? "text-[13px] font-bold text-green-300 mb-1 text-center pt-2" : "text-xl font-bold text-green-300 mb-3 text-center pt-4"}>
+              Chat phòng
+            </div>
+            <div className={mobileShrink ? "flex-1 overflow-y-auto px-2 pb-2" : "flex-1 overflow-y-auto px-4 pb-4"} style={{display:'flex',flexDirection:'column',gap:mobileShrink?4:8}}>
+              {chatMessages.length === 0 && (
+                <div className="text-gray-400 text-center mt-4">Chưa có tin nhắn nào</div>
+              )}
+              {chatMessages.map((msg, idx) => (
+                <div key={idx} style={{display:'flex',justifyContent:msg.from===userId?'flex-end':'flex-start'}}>
+                  <div className={msg.from===userId
+                    ? (mobileShrink ? "bg-blue-700 text-white font-bold rounded-lg px-2 py-1 text-[11px] max-w-[70%] ml-auto" : "bg-blue-700 text-white font-bold rounded-xl px-3 py-2 text-base max-w-[70%] ml-auto")
+                    : (mobileShrink ? "bg-gray-700 text-white font-bold rounded-lg px-2 py-1 text-[11px] max-w-[70%] mr-auto" : "bg-gray-700 text-white font-bold rounded-xl px-3 py-2 text-base max-w-[70%] mr-auto")
+                  }>
+                    <span>{msg.text}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <form className={mobileShrink ? "flex flex-row items-center px-2 pb-2 pt-1 gap-1" : "flex flex-row items-center px-4 pb-4 pt-2 gap-2"}
+              style={{borderTop:'1px solid #444'}} onSubmit={e=>{
+                e.preventDefault();
+                if(!chatInput.trim())return;
+                const socket = getSocket();
+                socket.emit("chat",{roomId,userId,userName,message:chatInput});
+                setChatMessages(msgs=>[...msgs,{from:userId,name:userName,text:chatInput}]);
+                setChatInput("");
+              }}>
+              <input
+                className={mobileShrink ? "flex-1 rounded bg-gray-800 text-white px-2 py-1 text-[12px] border border-gray-600 focus:outline-none" : "flex-1 rounded-lg bg-gray-800 text-white px-3 py-2 text-base border border-gray-600 focus:outline-none"}
+                type="text"
+                placeholder="Nhập tin nhắn..."
+                value={chatInput}
+                onChange={e=>setChatInput(e.target.value)}
+                autoFocus
+                maxLength={200}
+              />
+              <button type="submit" className={mobileShrink ? "px-2 py-1 bg-blue-700 hover:bg-blue-800 rounded text-white text-[13px] font-bold flex items-center justify-center" : "px-3 py-2 bg-blue-700 hover:bg-blue-800 rounded-lg text-white text-lg font-bold flex items-center justify-center"} style={{minWidth:mobileShrink?32:44}}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={mobileShrink?"w-4 h-4":"w-6 h-6"}><path strokeLinecap="round" strokeLinejoin="round" d="M3 21l18-9-18-9v7l13 2-13 2v7z" /></svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+        </div>
         <div className={mobileShrink ? "mb-1 px-2 py-1 bg-gray-800 rounded text-[16px] font-mono font-bold tracking-widest select-all w-[90vw] max-w-[340px] overflow-x-auto whitespace-normal" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
           style={mobileShrink ? { fontSize: 16, minWidth: '60vw', maxWidth: 340, overflowX: 'auto', whiteSpace: 'normal' } : {}}>
           {scramble}
