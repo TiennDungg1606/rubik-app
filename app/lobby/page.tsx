@@ -54,13 +54,22 @@ export default function Lobby() {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
-  // Luôn fetch user khi vào trang
+  // Luôn fetch user khi vào trang, nếu không có tài khoản (cookie không có token) thì chuyển về trang chủ
   useEffect(() => {
+    // Kiểm tra cookie token trước khi fetch
+    const hasToken = () => {
+      if (typeof document === 'undefined') return false;
+      return document.cookie.split(';').some(c => c.trim().startsWith('token='));
+    };
+    if (!hasToken()) {
+      router.replace("/");
+      return;
+    }
     fetch("/api/user/me", { credentials: "include" })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (!data || !data.user) {
-          router.replace("/login");
+          router.replace("/");
           return;
         }
         setUser(data.user);

@@ -14,22 +14,26 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Kiểm tra cookie token trước khi fetch
+    const hasToken = () => {
+      if (typeof document === 'undefined') return false;
+      return document.cookie.split(';').some(c => c.trim().startsWith('token='));
+    };
+    if (!hasToken()) {
+      window.location.href = "/";
+      return;
+    }
     fetch("/api/user/me", { credentials: "include" })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (!data) setUser(null);
-        else if (data.user) setUser(data.user);
-        else setUser(data);
+        if (!data || !data.user) {
+          window.location.href = "/";
+          return;
+        }
+        setUser(data.user);
         setLoading(false);
       });
-    // Nếu sau 5s vẫn loading, chuyển về trang đăng nhập
-    const timeout = setTimeout(() => {
-      if (loading) {
-        window.location.href = "/login";
-      }
-    }, 6000);
-    return () => clearTimeout(timeout);
-  }, [loading]);
+  }, []);
 
   if (loading) return <div className="text-white p-8">Loading...</div>;
   if (!user) return <div className="text-red-400 p-8">Bạn chưa đăng nhập.</div>;
