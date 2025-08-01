@@ -22,7 +22,14 @@ export default function AccountPage() {
         else setUser(data);
         setLoading(false);
       });
-  }, []);
+    // Nếu sau 5s vẫn loading, chuyển về trang đăng nhập
+    const timeout = setTimeout(() => {
+      if (loading) {
+        window.location.href = "/account"; // hoặc /login nếu đúng route đăng nhập
+      }
+    }, 6000);
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   if (loading) return <div className="text-white p-8">Loading...</div>;
   if (!user) return <div className="text-red-400 p-8">Bạn chưa đăng nhập.</div>;

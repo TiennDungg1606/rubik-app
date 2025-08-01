@@ -531,6 +531,16 @@ function formatStat(val: number|null, showDNF: boolean = false) {
   return (val/1000).toFixed(3);
 }
 
+  // Nếu sau 5s vẫn chưa có userName hoặc roomId, tự động chuyển về trang đăng nhập
+  useEffect(() => {
+    if (userName && roomId) return;
+    const timeout = setTimeout(() => {
+      if (!userName || !roomId) {
+        window.location.href = '/account'; // hoặc '/login' tùy route đăng nhập
+      }
+    }, 6000);
+    return () => clearTimeout(timeout);
+  }, [userName, roomId]);
   if (!userName || !roomId) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-black text-white">

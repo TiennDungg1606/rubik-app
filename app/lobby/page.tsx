@@ -59,11 +59,13 @@ export default function Lobby() {
     fetch("/api/user/me", { credentials: "include" })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (!data) return;
-        if (data.user) setUser(data.user);
-        else setUser(data);
+        if (!data || !data.user) {
+          router.replace("/login");
+          return;
+        }
+        setUser(data.user);
       });
-  }, []);
+  }, [router]);
 
   const handleCreateRoom = () => {
     const roomId = generateRoomId();
