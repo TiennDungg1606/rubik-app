@@ -111,6 +111,68 @@ export default function RoomPage() {
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   // State cho Draw Scramble modal
 
+  // Kiểm tra trận đấu đã kết thúc chưa (cả 2 người đã giải đủ 5 lượt)
+  const isGameFinished = myResults.length >= 5 && opponentResults.length >= 5;
+
+  // Hàm xuất kết quả ra file txt
+  const exportResults = () => {
+    const myStats = calcStats(myResults);
+    const oppStats = calcStats(opponentResults);
+    
+    let content = `KẾT QUẢ THI ĐẤU RUBIK'S CUBE\n`;
+    content += `Phòng: ${roomId}\n`;
+    content += `Ngày: ${new Date().toLocaleDateString('vi-VN')}\n`;
+    content += `Thời gian: ${new Date().toLocaleTimeString('vi-VN')}\n\n`;
+    
+    content += `NGƯỜI CHƠI 1: ${userName}\n`;
+    content += `Kết quả từng lượt:\n`;
+    myResults.forEach((result, index) => {
+      content += `  Lượt ${index + 1}: ${result === null ? 'DNF' : formatTime(result)}\n`;
+    });
+    content += `Thống kê:\n`;
+    content += `  Best: ${myStats.best !== null ? formatTime(myStats.best) : 'DNF'}\n`;
+    content += `  Worst: ${myStats.worst !== null ? formatTime(myStats.worst) : 'DNF'}\n`;
+    content += `  Mean: ${myStats.mean !== null ? formatStat(myStats.mean) : 'DNF'}\n`;
+    content += `  Ao5: ${myStats.ao5 !== null ? formatStat(myStats.ao5) : 'DNF'}\n\n`;
+    
+    content += `NGƯỜI CHƠI 2: ${opponentName}\n`;
+    content += `Kết quả từng lượt:\n`;
+    opponentResults.forEach((result, index) => {
+      content += `  Lượt ${index + 1}: ${result === null ? 'DNF' : formatTime(result)}\n`;
+    });
+    content += `Thống kê:\n`;
+    content += `  Best: ${oppStats.best !== null ? formatTime(oppStats.best) : 'DNF'}\n`;
+    content += `  Worst: ${oppStats.worst !== null ? formatTime(oppStats.worst) : 'DNF'}\n`;
+    content += `  Mean: ${oppStats.mean !== null ? formatStat(oppStats.mean) : 'DNF'}\n`;
+    content += `  Ao5: ${oppStats.ao5 !== null ? formatStat(oppStats.ao5) : 'DNF'}\n\n`;
+    
+    // Xác định người thắng
+    let winner = '';
+    if (myStats.ao5 !== null && oppStats.ao5 !== null) {
+      winner = myStats.ao5 < oppStats.ao5 ? userName : opponentName;
+    } else if (myStats.ao5 !== null && oppStats.ao5 === null) {
+      winner = userName;
+    } else if (myStats.ao5 === null && oppStats.ao5 !== null) {
+      winner = opponentName;
+    } else {
+      winner = 'Hòa (cả 2 đều DNF)';
+    }
+    
+    content += `KẾT QUẢ CUỐI CÙNG:\n`;
+    content += `Người thắng: ${winner}\n`;
+    
+    // Tạo file và tải xuống
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ket-qua-thi-dau-${roomId}-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // Lắng nghe tin nhắn chat qua socket
   useEffect(() => {
     const socket = getSocket();
@@ -1132,6 +1194,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>
           {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
           {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
+          {isGameFinished && (
+            <div className={mobileShrink ? "mt-2" : "mt-4"}>
+              <button
+                onClick={exportResults}
+                className={mobileShrink ? "px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-[12px] font-bold rounded-lg shadow" : "px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-lg font-bold rounded-xl shadow-lg"}
+                type="button"
+              >
+                📄 Xuất kết quả
+              </button>
+            </div>
+          )}
         </div>
         {/* Webcam đối thủ - cột 3 */}
         <div
