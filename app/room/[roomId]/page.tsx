@@ -398,10 +398,12 @@ export default function RoomPage() {
     const socket = getSocket();
     let scrambleMsgTimeout: NodeJS.Timeout | null = null;
     const handleScramble = ({ scramble, index }: { scramble: string, index: number }) => {
+      console.log("🔄 Received new scramble, prep:", prep, "running:", running);
       setScramble(scramble);
       setScrambleIndex(index);
       // Reset trạng thái cho vòng mới (chỉ khi không đang trong prep hoặc running)
       if (!prep && !running) {
+        console.log("🔄 Resetting timer due to new scramble");
         setPrep(false);
         setCanStart(false);
         setSpaceHeld(false);
@@ -409,6 +411,8 @@ export default function RoomPage() {
         setDnf(false);
         setPendingResult(null);
         setPendingType('normal');
+      } else {
+        console.log("🔄 Skipping timer reset - prep or running in progress");
       }
       setShowScrambleMsg(true); // Hiện thông báo tráo scramble
       if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
@@ -444,27 +448,31 @@ export default function RoomPage() {
       
       // Nếu timer đang chạy, dừng timer ngay lập tức
       if (running) {
+        console.log("🛑 Stopping timer with Space key");
         setRunning(false);
         if (intervalRef.current) clearInterval(intervalRef.current);
         setPendingResult(timerRef.current);
         setPendingType('normal');
         setCanStart(false);
+        console.log("📊 Pending result set:", timerRef.current);
         return;
       }
       
       if (prep) {
-        if (!localSpaceHeld) {
-          pressStartRef.current = Date.now();
-          localSpaceHeld = true;
-          setSpaceHeld(true); // Đang giữ phím
-        }
+        // Đang trong prep mode, bắt đầu giữ phím
+        pressStartRef.current = Date.now();
+        localSpaceHeld = true;
+        setSpaceHeld(true); // Đang giữ phím
+        console.log("🔒 Starting to hold Space in prep mode");
       } else if (!prep && !running) {
+        // Bắt đầu prep mode
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
         pressStartRef.current = Date.now();
         localSpaceHeld = true;
         setSpaceHeld(true); // Đang giữ phím
+        console.log("⏰ Starting prep mode (15s countdown)");
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -477,11 +485,14 @@ export default function RoomPage() {
         setSpaceHeld(false); // Thả phím
         if (start && now - start >= 50) {
           // Giữ Space >= 50ms: bắt đầu timer ngay lập tức
+          console.log("🎯 Held Space for", now - start, "ms - starting timer immediately");
           setPrep(false);
           setCanStart(true);
           console.log("🎯 Timer ready to start immediately!");
+        } else if (start) {
+          // Giữ Space < 50ms: tiếp tục đếm ngược 15s
+          console.log("⏰ Held Space for", now - start, "ms - continuing 15s countdown");
         }
-        // Nếu giữ < 50ms: tiếp tục đếm ngược 15s
       } else {
         setSpaceHeld(false); // Thả phím
       }
@@ -532,6 +543,7 @@ export default function RoomPage() {
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
     if (!canStart) return; // Bỏ waiting check
+    console.log("🚀 Starting timer from canStart effect");
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -551,6 +563,8 @@ export default function RoomPage() {
       // Không setTurn('opponent') ở đây, chờ xác nhận
     };
     const handleAnyKey = (e: KeyboardEvent) => {
+      // Không dừng timer nếu đang nhấn Space (Space có logic riêng)
+      if (e.code === "Space") return;
       if (e.type === 'keydown') {
         stopTimer();
       }
@@ -600,15 +614,19 @@ export default function RoomPage() {
   useEffect(() => {
     const totalSolves = myResults.length + opponentResults.length;
     if (totalSolves === 0) return;
-    if (myResults.length > 0 && myResults.length > opponentResults.length) return; // chờ đối thủ
     
-    // Chỉ reset khi không đang trong prep mode hoặc running
-    if (!prep && !running) {
+    // Chỉ reset timer khi đối thủ vừa giải xong và đến lượt mình
+    // Điều kiện: đối thủ có kết quả mới (opponentResults.length > myResults.length)
+    // VÀ không đang trong prep mode hoặc running
+    if (opponentResults.length > myResults.length && !prep && !running) {
+      console.log("🔄 Resetting timer - opponent finished, my turn now");
       setPrep(false);
       setCanStart(false);
       setSpaceHeld(false);
       setTimer(0);
       setDnf(false);
+      setPendingResult(null);
+      setPendingType('normal');
     }
     
     // Chỉ đổi scramble khi tổng số lượt giải là số chẵn (sau mỗi vòng)
@@ -1075,11 +1093,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               
               // Nếu timer đang chạy, dừng timer ngay lập tức
               if (running) {
+                console.log("🛑 Stopping timer with Space key");
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
                 setPendingResult(timerRef.current);
                 setPendingType('normal');
                 setCanStart(false);
+                console.log("📊 Pending result set:", timerRef.current);
                 return;
               }
               
@@ -1135,6 +1155,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               
               // Nếu timer đang chạy, dừng timer ngay lập tức
               if (running) {
+                console.log("🛑 Stopping timer with Space key");
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
                 setPendingResult(timerRef.current);
