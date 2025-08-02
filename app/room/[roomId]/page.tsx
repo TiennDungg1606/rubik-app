@@ -312,8 +312,8 @@ export default function RoomPage() {
       // Logic trao quyền chủ phòng: nếu chủ phòng rời phòng và chỉ còn 1 người, người còn lại trở thành chủ phòng
       if (filteredUsers.length === 1) {
         const remainingUser = filteredUsers[0];
-        if (remainingUser && remainingUser.userId === userId) {
-          // Nếu chỉ còn 1 người và đó là mình, thì trở thành chủ phòng
+        if (remainingUser && remainingUser.userId === userId && !isSpectator) {
+          // Nếu chỉ còn 1 người và đó là mình (không phải spectator), thì trở thành chủ phòng
           if (!isCreator) {
             setIsCreator(true);
             setShowOwnerNotification(true);
@@ -323,10 +323,10 @@ export default function RoomPage() {
           }
         }
       } else if (filteredUsers.length === 2) {
-        // Nếu có 2 người, kiểm tra xem mình có phải là người đầu tiên không
+        // Nếu có 2 người, kiểm tra xem mình có phải là người đầu tiên không (và không phải spectator)
         const firstUser = filteredUsers[0];
-        if (firstUser && firstUser.userId === userId) {
-          // Nếu mình là người đầu tiên trong danh sách, trở thành chủ phòng
+        if (firstUser && firstUser.userId === userId && !isSpectator) {
+          // Nếu mình là người đầu tiên trong danh sách và không phải spectator, trở thành chủ phòng
           if (!isCreator) {
             setIsCreator(true);
             setShowOwnerNotification(true);
@@ -335,7 +335,7 @@ export default function RoomPage() {
             setTimeout(() => setShowOwnerNotification(false), 5000);
           }
         } else {
-          // Nếu không phải người đầu tiên, không phải chủ phòng
+          // Nếu không phải người đầu tiên hoặc là spectator, không phải chủ phòng
           setIsCreator(false);
         }
       }
@@ -344,7 +344,10 @@ export default function RoomPage() {
       if (filteredUsers.length >= 2 && !isUserInRoom) {
         // Người xem: lấy người chơi đầu tiên làm opponentId để xem camera
         setOpponentId(filteredUsers[0].userId);
-        setOpponentName(filteredUsers[0].userName || 'Người chơi 1');
+        // Hiển thị tên của cả 2 người chơi cho spectator
+        const player1Name = filteredUsers[0].userName || 'Người chơi 1';
+        const player2Name = filteredUsers[1].userName || 'Người chơi 2';
+        setOpponentName(`${player1Name} vs ${player2Name}`);
       } else if (isUserInRoom) {
         // Người chơi: lấy đối thủ
         const opp = filteredUsers.find(u => u.userId !== userId);
@@ -356,7 +359,9 @@ export default function RoomPage() {
     });
     socket.on("opponent-solve", ({ userId: oppId, userName: oppName, time }: { userId: string, userName: string, time: number|null }) => {
       setOpponentResults(r => [...r, time]);
-      setTurn('me');
+      if (!isSpectator) {
+        setTurn('me');
+      }
       setOpponentId(oppId);
       setOpponentName(oppName || 'Đối thủ');
     });
@@ -374,19 +379,19 @@ export default function RoomPage() {
 
   // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
   useEffect(() => {
-    if (isCreator && typeof userId === 'string') {
+    if (isCreator && typeof userId === 'string' && !isSpectator) {
       setUsers([userId]);
       setWaiting(true);
       setTurn('me'); // Chủ phòng luôn được chơi trước
     }
-  }, [isCreator, userId]);
+  }, [isCreator, userId, isSpectator]);
 
   // Khi đủ 2 người, nếu không phải chủ phòng thì phải chờ đối thủ chơi trước
   useEffect(() => {
-    if (!isCreator && users.length === 2) {
+    if (!isCreator && users.length === 2 && !isSpectator) {
       setTurn('opponent');
     }
-  }, [isCreator, users.length]);
+  }, [isCreator, users.length, isSpectator]);
 
   // Nhận scramble từ server qua socket, hiện thông báo tráo scramble đúng 5s
   useEffect(() => {
@@ -427,8 +432,8 @@ export default function RoomPage() {
 
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
-    if (isMobile || isSpectator) return;
-    if (waiting || running || turn !== 'me' || myResults.length >= 5 || pendingResult !== null) return;
+    if (isMobile) return;
+    if (waiting || running || (!isSpectator && turn !== 'me') || myResults.length >= 5 || pendingResult !== null) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -540,7 +545,7 @@ export default function RoomPage() {
       return false;
     };
     const handleTouch = (e: TouchEvent) => {
-      if (!isMobile || isSpectator) return;
+      if (!isMobile) return;
       const webcamEls = document.querySelectorAll('.webcam-area');
       for (let i = 0; i < webcamEls.length; i++) {
         if (webcamEls[i].contains(e.target as Node)) return;
@@ -1036,7 +1041,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
           style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
-        {...(!isSpectator ? (isMobile ? {
+        {...(isMobile ? {
             onTouchStart: (e) => {
               if (pendingResult !== null) return;
               // Nếu chạm vào webcam thì bỏ qua
@@ -1045,6 +1050,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
               if (waiting || myResults.length >= 5) return;
+              if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
               // Đánh dấu touch bắt đầu
               pressStartRef.current = Date.now();
               setSpaceHeld(true); // Đang giữ tay
@@ -1057,12 +1063,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
               if (waiting || myResults.length >= 5) return;
+              if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
               const now = Date.now();
               const start = pressStartRef.current;
               pressStartRef.current = null;
               setSpaceHeld(false); // Thả tay
               // 1. Tap and release to enter prep
-              if (!prep && !running && turn === 'me') {
+              if (!prep && !running && (isSpectator || turn === 'me')) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
@@ -1089,7 +1096,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           } : {
             onClick: () => {
               if (waiting || myResults.length >= 5 || pendingResult !== null) return;
-              if (!prep && !running && turn === 'me') {
+              if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
+              if (!prep && !running && (isSpectator || turn === 'me')) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
@@ -1116,7 +1124,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 setCanStart(false);
               }
             }
-          }) : {})}
+          })}
         >
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận (chỉ cho người chơi) */}
           {!isSpectator && pendingResult !== null && !running && !prep ? (
