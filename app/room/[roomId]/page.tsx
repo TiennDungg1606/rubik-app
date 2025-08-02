@@ -106,17 +106,22 @@ export default function RoomPage() {
   // State cho chat
   type ChatMsg = { from: string; name: string; text: string };
   const [showChat, setShowChat] = useState(false);
+  const [unreadChat, setUnreadChat] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
+  // State cho Draw Scramble modal
+
   // Lắng nghe tin nhắn chat qua socket
   useEffect(() => {
     const socket = getSocket();
     const handleChat = (data: { userId: string; userName: string; message: string }) => {
       setChatMessages(msgs => [...msgs, { from: data.userId, name: data.userName, text: data.message }]);
+      // Nếu là tin nhắn từ đối thủ và chưa mở chat thì hiện badge đỏ
+      if (data.userId !== userId && !showChat) setUnreadChat(true);
     };
     socket.on("chat", handleChat);
     return () => { socket.off("chat", handleChat); };
-  }, [userId]);
+  }, [userId, showChat]);
 
 
   const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
@@ -523,12 +528,8 @@ export default function RoomPage() {
     setSpaceHeld(false);
     setTimer(0);
     setDnf(false);
-    // Chỉ đổi scramble khi tổng số lượt giải là số chẵn (sau mỗi vòng)
-    if (totalSolves % 2 === 0 && totalSolves < 10) {
-      // Gửi yêu cầu đổi scramble lên server (nếu là chủ phòng)
-      const socket = getSocket();
-      socket.emit("next-scramble", { roomId });
-    }
+    // Server sẽ tự động gửi scramble mới khi tổng số lượt giải là số chẵn (sau mỗi vòng)
+    // Không cần gửi event next-scramble từ client
   }, [myResults, opponentResults]);
 
   // Tính toán thống kê
@@ -676,21 +677,26 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             className={mobileShrink ? "px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold shadow mr-2" : "px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold shadow mr-4"}
             style={mobileShrink ? { borderRadius: 8 } : { borderRadius: 12 }}
             type="button"
-            onClick={() => {
-              const socket = getSocket();
-              socket.emit("next-scramble", { roomId });
-            }}
+                            onClick={() => {}}
           >Draw Scramble</button>
           <h2 className={mobileShrink ? "text-[14px] font-bold m-0" : "text-3xl font-bold m-0"}>
             Phòng: <span className="text-blue-400">{roomId}</span>
           </h2>
           {/* Nút Chat bên phải */}
           <button
-            className={mobileShrink ? "px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold shadow ml-2" : "px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold shadow ml-4"}
+            className={mobileShrink ? "px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold shadow ml-2 flex items-center justify-center relative" : "px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold shadow ml-4 flex items-center justify-center relative"}
             style={mobileShrink ? { borderRadius: 8 } : { borderRadius: 12 }}
             type="button"
-            onClick={() => setShowChat(true)}
-          >Chat</button>
+            onClick={() => { setShowChat(true); setUnreadChat(false); }}
+            aria-label="Chat"
+          >
+            {/* Chat bubble emoji 🗨️ */}
+            <span style={{fontSize: mobileShrink ? 20 : 28, lineHeight: 1}}>🗨️</span>
+            {/* Badge đỏ khi có tin nhắn mới từ đối thủ */}
+            {unreadChat && (
+              <span style={{position:'absolute',top:mobileShrink?2:4,right:mobileShrink?2:4,width:mobileShrink?8:12,height:mobileShrink?8:12,background:'#f00',borderRadius:'50%',border:'2px solid #fff',display:'block'}}></span>
+            )}
+          </button>
       {/* Chat modal */}
       {showChat && (
         <div className="fixed z-[200] flex items-center justify-center inset-0 bg-black bg-opacity-30" style={{backdropFilter:'blur(2px)'}}>
@@ -744,6 +750,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>
         </div>
       )}
+      
+
         </div>
         <div className={mobileShrink ? "mb-1 px-2 py-1 bg-gray-800 rounded text-[16px] font-mono font-bold tracking-widest select-all w-[90vw] max-w-[340px] overflow-x-auto whitespace-normal" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
           style={mobileShrink ? { fontSize: 16, minWidth: '60vw', maxWidth: 340, overflowX: 'auto', whiteSpace: 'normal' } : {}}>
