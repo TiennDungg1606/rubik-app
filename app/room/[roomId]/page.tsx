@@ -400,14 +400,16 @@ export default function RoomPage() {
     const handleScramble = ({ scramble, index }: { scramble: string, index: number }) => {
       setScramble(scramble);
       setScrambleIndex(index);
-      // Reset trạng thái cho vòng mới
-      setPrep(false);
-      setCanStart(false);
-      setSpaceHeld(false);
-      setTimer(0);
-      setDnf(false);
-      setPendingResult(null);
-      setPendingType('normal');
+      // Reset trạng thái cho vòng mới (chỉ khi không đang trong prep hoặc running)
+      if (!prep && !running) {
+        setPrep(false);
+        setCanStart(false);
+        setSpaceHeld(false);
+        setTimer(0);
+        setDnf(false);
+        setPendingResult(null);
+        setPendingType('normal');
+      }
       setShowScrambleMsg(true); // Hiện thông báo tráo scramble
       if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
       scrambleMsgTimeout = setTimeout(() => {
@@ -421,7 +423,7 @@ export default function RoomPage() {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
       if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
     };
-  }, [roomId]);
+  }, [roomId, prep, running]);
   // Ẩn thông báo tráo scramble khi có người bắt đầu giải (bắt đầu chuẩn bị hoặc chạy)
   useEffect(() => {
     if (prep || running) {
@@ -433,7 +435,7 @@ export default function RoomPage() {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    if (waiting || running || (!isSpectator && turn !== 'me') || myResults.length >= 5 || pendingResult !== null) return;
+    if (running || (!isSpectator && turn !== 'me') || myResults.length >= 5 || pendingResult !== null) return; // Bỏ waiting check
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -475,11 +477,11 @@ export default function RoomPage() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, turn, myResults.length, isSpectator]);
+  }, [isMobile, running, prep, turn, myResults.length, isSpectator]);
 
   // Đếm ngược 15s chuẩn bị
   useEffect(() => {
-    if (!prep || waiting) return;
+    if (!prep) return; // Chỉ cần kiểm tra prep, không cần kiểm tra waiting
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
@@ -509,7 +511,7 @@ export default function RoomPage() {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting]);
+  }, [prep]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
@@ -585,18 +587,23 @@ export default function RoomPage() {
     const totalSolves = myResults.length + opponentResults.length;
     if (totalSolves === 0) return;
     if (myResults.length > 0 && myResults.length > opponentResults.length) return; // chờ đối thủ
-    setPrep(false);
-    setCanStart(false);
-    setSpaceHeld(false);
-    setTimer(0);
-    setDnf(false);
+    
+    // Chỉ reset khi không đang trong prep mode hoặc running
+    if (!prep && !running) {
+      setPrep(false);
+      setCanStart(false);
+      setSpaceHeld(false);
+      setTimer(0);
+      setDnf(false);
+    }
+    
     // Chỉ đổi scramble khi tổng số lượt giải là số chẵn (sau mỗi vòng)
     if (totalSolves % 2 === 0 && totalSolves < 10) {
       // Gửi yêu cầu đổi scramble lên server (nếu là chủ phòng)
       const socket = getSocket();
       socket.emit("next-scramble", { roomId });
     }
-  }, [myResults, opponentResults]);
+  }, [myResults, opponentResults, prep, running]);
 
   // Tính toán thống kê
   const myStats = calcStats(myResults);
@@ -1049,7 +1056,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               for (let i = 0; i < webcamEls.length; i++) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
-              if (waiting || myResults.length >= 5) return;
+              if (myResults.length >= 5) return; // Bỏ waiting check
               if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
               // Đánh dấu touch bắt đầu
               pressStartRef.current = Date.now();
@@ -1062,7 +1069,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               for (let i = 0; i < webcamEls.length; i++) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
-              if (waiting || myResults.length >= 5) return;
+              if (myResults.length >= 5) return; // Bỏ waiting check
               if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
               const now = Date.now();
               const start = pressStartRef.current;
@@ -1095,7 +1102,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
           } : {
             onClick: () => {
-              if (waiting || myResults.length >= 5 || pendingResult !== null) return;
+              if (myResults.length >= 5 || pendingResult !== null) return; // Bỏ waiting check
               if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
               if (!prep && !running && (isSpectator || turn === 'me')) {
                 setPrep(true);
