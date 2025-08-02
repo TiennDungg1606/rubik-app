@@ -145,8 +145,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             {competingRooms.map((room: string) => (
               <div
                 key={room}
-                onClick={() => handleJoinRoom(room)}
-                className="flex flex-col items-center cursor-pointer"
+                // onClick={() => handleJoinRoom(room)} // Tạm thời vô hiệu hóa
+                className="flex flex-col items-center cursor-not-allowed opacity-60" // Thay đổi style để thể hiện không thể click
               >
                 <div className="w-24 h-24 bg-red-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
                   {/* Icon dạng lưới với màu đỏ */}
@@ -165,6 +165,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   )}
                 </div>
                 <div className="text-base text-gray-200">{room}</div>
+                <div className="text-xs text-gray-400 mt-1">(Tạm thời khóa)</div>
               </div>
             ))}
             {competingRooms.length === 0 && (

@@ -435,11 +435,23 @@ export default function RoomPage() {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    if (running || (!isSpectator && turn !== 'me') || myResults.length >= 5 || pendingResult !== null) return; // Bỏ waiting check
+    // Khóa timer sau khi giải xong (có pendingResult) hoặc đã đủ 5 lượt
+    if (running || (!isSpectator && turn !== 'me') || myResults.length >= 5 || pendingResult !== null) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
       if (pendingResult !== null) return; // Không cho vào prep khi đang chờ xác nhận kết quả
+      
+      // Nếu timer đang chạy, dừng timer ngay lập tức
+      if (running) {
+        setRunning(false);
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        setPendingResult(timerRef.current);
+        setPendingType('normal');
+        setCanStart(false);
+        return;
+      }
+      
       if (prep) {
         if (!localSpaceHeld) {
           pressStartRef.current = Date.now();
@@ -464,9 +476,12 @@ export default function RoomPage() {
         localSpaceHeld = false;
         setSpaceHeld(false); // Thả phím
         if (start && now - start >= 50) {
+          // Giữ Space >= 50ms: bắt đầu timer ngay lập tức
           setPrep(false);
           setCanStart(true);
+          console.log("🎯 Timer ready to start immediately!");
         }
+        // Nếu giữ < 50ms: tiếp tục đếm ngược 15s
       } else {
         setSpaceHeld(false); // Thả phím
       }
@@ -482,7 +497,7 @@ export default function RoomPage() {
   // Đếm ngược 15s chuẩn bị
   useEffect(() => {
     if (!prep) return; // Chỉ cần kiểm tra prep, không cần kiểm tra waiting
-    setCanStart(false);
+    // Không reset canStart khi vào prep mode, chỉ reset khi hết thời gian
     setSpaceHeld(false);
     setDnf(false);
     prepIntervalRef.current = setInterval(() => {
@@ -516,7 +531,7 @@ export default function RoomPage() {
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
-    if (!canStart || waiting) return;
+    if (!canStart) return; // Bỏ waiting check
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -536,7 +551,6 @@ export default function RoomPage() {
       // Không setTurn('opponent') ở đây, chờ xác nhận
     };
     const handleAnyKey = (e: KeyboardEvent) => {
-      if (waiting) return;
       if (e.type === 'keydown') {
         stopTimer();
       }
@@ -570,7 +584,7 @@ export default function RoomPage() {
       }
     };
     // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile, isSpectator]);
+  }, [canStart, roomId, userName, isMobile, isSpectator]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
@@ -1058,6 +1072,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }
               if (myResults.length >= 5) return; // Bỏ waiting check
               if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
+              
+              // Nếu timer đang chạy, dừng timer ngay lập tức
+              if (running) {
+                setRunning(false);
+                if (intervalRef.current) clearInterval(intervalRef.current);
+                setPendingResult(timerRef.current);
+                setPendingType('normal');
+                setCanStart(false);
+                return;
+              }
+              
               // Đánh dấu touch bắt đầu
               pressStartRef.current = Date.now();
               setSpaceHeld(true); // Đang giữ tay
@@ -1085,9 +1110,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               // 2. In prep, giữ >=0.5s rồi thả ra để start timer
               if (prep && !running) {
                 if (start && now - start >= 50) {
+                  // Giữ touch >= 50ms: bắt đầu timer ngay lập tức
                   setPrep(false);
                   setCanStart(true);
+                  console.log("🎯 Timer ready to start immediately (touch)!");
                 }
+                // Nếu giữ < 50ms: tiếp tục đếm ngược 15s
                 return;
               }
               // 3. When running, tap and release to stop timer
@@ -1104,13 +1132,26 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             onClick: () => {
               if (myResults.length >= 5 || pendingResult !== null) return; // Bỏ waiting check
               if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
+              
+              // Nếu timer đang chạy, dừng timer ngay lập tức
+              if (running) {
+                setRunning(false);
+                if (intervalRef.current) clearInterval(intervalRef.current);
+                setPendingResult(timerRef.current);
+                setPendingType('normal');
+                setCanStart(false);
+                return;
+              }
+              
               if (!prep && !running && (isSpectator || turn === 'me')) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
               } else if (prep && !running) {
+                // Click trong prep mode: bắt đầu timer ngay lập tức
                 setPrep(false);
                 setCanStart(true);
+                console.log("🎯 Timer ready to start immediately (click)!");
               } else if (canStart && !running) {
                 setRunning(true);
                 setTimer(0);
