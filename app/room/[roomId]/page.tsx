@@ -109,70 +109,6 @@ export default function RoomPage() {
   const [unreadChat, setUnreadChat] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
-  // State cho Draw Scramble modal
-
-  // Kiểm tra trận đấu đã kết thúc chưa (cả 2 người đã giải đủ 5 lượt)
-  const isGameFinished = myResults.length >= 5 && opponentResults.length >= 5;
-
-  // Hàm xuất kết quả ra file txt
-  const exportResults = () => {
-    const myStats = calcStats(myResults);
-    const oppStats = calcStats(opponentResults);
-    
-    let content = `KẾT QUẢ THI ĐẤU RUBIK'S CUBE\n`;
-    content += `Phòng: ${roomId}\n`;
-    content += `Ngày: ${new Date().toLocaleDateString('vi-VN')}\n`;
-    content += `Thời gian: ${new Date().toLocaleTimeString('vi-VN')}\n\n`;
-    
-    content += `NGƯỜI CHƠI 1: ${userName}\n`;
-    content += `Kết quả từng lượt:\n`;
-    myResults.forEach((result, index) => {
-      content += `  Lượt ${index + 1}: ${result === null ? 'DNF' : formatTime(result)}\n`;
-    });
-    content += `Thống kê:\n`;
-    content += `  Best: ${myStats.best !== null ? formatTime(myStats.best) : 'DNF'}\n`;
-    content += `  Worst: ${myStats.worst !== null ? formatTime(myStats.worst) : 'DNF'}\n`;
-    content += `  Mean: ${myStats.mean !== null ? formatStat(myStats.mean) : 'DNF'}\n`;
-    content += `  Ao5: ${myStats.ao5 !== null ? formatStat(myStats.ao5) : 'DNF'}\n\n`;
-    
-    content += `NGƯỜI CHƠI 2: ${opponentName}\n`;
-    content += `Kết quả từng lượt:\n`;
-    opponentResults.forEach((result, index) => {
-      content += `  Lượt ${index + 1}: ${result === null ? 'DNF' : formatTime(result)}\n`;
-    });
-    content += `Thống kê:\n`;
-    content += `  Best: ${oppStats.best !== null ? formatTime(oppStats.best) : 'DNF'}\n`;
-    content += `  Worst: ${oppStats.worst !== null ? formatTime(oppStats.worst) : 'DNF'}\n`;
-    content += `  Mean: ${oppStats.mean !== null ? formatStat(oppStats.mean) : 'DNF'}\n`;
-    content += `  Ao5: ${oppStats.ao5 !== null ? formatStat(oppStats.ao5) : 'DNF'}\n\n`;
-    
-    // Xác định người thắng
-    let winner = '';
-    if (myStats.ao5 !== null && oppStats.ao5 !== null) {
-      winner = myStats.ao5 < oppStats.ao5 ? userName : opponentName;
-    } else if (myStats.ao5 !== null && oppStats.ao5 === null) {
-      winner = userName;
-    } else if (myStats.ao5 === null && oppStats.ao5 !== null) {
-      winner = opponentName;
-    } else {
-      winner = 'Hòa (cả 2 đều DNF)';
-    }
-    
-    content += `KẾT QUẢ CUỐI CÙNG:\n`;
-    content += `Người thắng: ${winner}\n`;
-    
-    // Tạo file và tải xuống
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ket-qua-thi-dau-${roomId}-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   // Lắng nghe tin nhắn chat qua socket
   useEffect(() => {
     const socket = getSocket();
@@ -590,8 +526,12 @@ export default function RoomPage() {
     setSpaceHeld(false);
     setTimer(0);
     setDnf(false);
-    // Server sẽ tự động gửi scramble mới khi tổng số lượt giải là số chẵn (sau mỗi vòng)
-    // Không cần gửi event next-scramble từ client
+    // Chỉ đổi scramble khi tổng số lượt giải là số chẵn (sau mỗi vòng)
+    if (totalSolves % 2 === 0 && totalSolves < 10) {
+      // Gửi yêu cầu đổi scramble lên server (nếu là chủ phòng)
+      const socket = getSocket();
+      socket.emit("next-scramble", { roomId });
+    }
   }, [myResults, opponentResults]);
 
   // Tính toán thống kê
@@ -739,7 +679,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             className={mobileShrink ? "px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold shadow mr-2" : "px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold shadow mr-4"}
             style={mobileShrink ? { borderRadius: 8 } : { borderRadius: 12 }}
             type="button"
-                            onClick={() => {}}
+            onClick={() => {
+              const socket = getSocket();
+              socket.emit("next-scramble", { roomId });
+            }}
           >Draw Scramble</button>
           <h2 className={mobileShrink ? "text-[14px] font-bold m-0" : "text-3xl font-bold m-0"}>
             Phòng: <span className="text-blue-400">{roomId}</span>
@@ -812,8 +755,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>
         </div>
       )}
-      
-
         </div>
         <div className={mobileShrink ? "mb-1 px-2 py-1 bg-gray-800 rounded text-[16px] font-mono font-bold tracking-widest select-all w-[90vw] max-w-[340px] overflow-x-auto whitespace-normal" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
           style={mobileShrink ? { fontSize: 16, minWidth: '60vw', maxWidth: 340, overflowX: 'auto', whiteSpace: 'normal' } : {}}>
@@ -1194,17 +1135,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>
           {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
           {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
-          {isGameFinished && (
-            <div className={mobileShrink ? "mt-2" : "mt-4"}>
-              <button
-                onClick={exportResults}
-                className={mobileShrink ? "px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-[12px] font-bold rounded-lg shadow" : "px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-lg font-bold rounded-xl shadow-lg"}
-                type="button"
-              >
-                📄 Xuất kết quả
-              </button>
-            </div>
-          )}
         </div>
         {/* Webcam đối thủ - cột 3 */}
         <div

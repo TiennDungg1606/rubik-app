@@ -78,11 +78,15 @@ export default function Lobby() {
   const [joinError, setJoinError] = useState("");
 
   // Hàm join phòng: không kiểm tra phòng, luôn cho phép vào
-  const handleJoinRoom = (roomId: string) => {
+  const handleJoinRoom = (roomId: string, isSpectator?: boolean) => {
     const code = roomId.trim().toUpperCase();
     if (!code) return;
     setJoinError("");
-    router.push(`/room/${code}`);
+    if (isSpectator) {
+      router.push(`/room/${code}?spectator=1`);
+    } else {
+      router.push(`/room/${code}`);
+    }
   };
 
   if (isMobile && isPortrait) {

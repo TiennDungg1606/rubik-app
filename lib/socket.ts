@@ -6,7 +6,13 @@ let socket: Socket;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io("https://rubik-socket-server-production-3b21.up.railway.app", {
+    // Sử dụng localhost khi development, production server khi production
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const serverUrl = isDevelopment 
+      ? "http://localhost:3001" 
+      : "https://rubik-socket-server-production-3b21.up.railway.app";
+    
+    socket = io(serverUrl, {
       transports: ["websocket"], // required if Railway blocks polling
     });
 
