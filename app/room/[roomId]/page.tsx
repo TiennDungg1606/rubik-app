@@ -105,9 +105,9 @@ export default function RoomPage() {
   const [showRules, setShowRules] = useState(false); // State for luật thi đấu modal
   // State cho chat
   type ChatMsg = { from: string; name: string; text: string };
-  const [showChat, setShowChat] = useState(false);
+  const [showChat, setShowChat] = useState<boolean>(false);
   const [unreadChat, setUnreadChat] = useState(false);
-  const [chatInput, setChatInput] = useState("");
+  const [chatInput, setChatInput] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   // Lắng nghe tin nhắn chat qua socket
   useEffect(() => {
@@ -122,11 +122,14 @@ export default function RoomPage() {
   }, [userId, showChat]);
 
 
-  const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
+  const [opponentName, setOpponentName] = useState<string>("Đối thủ"); // display name
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
+  const [isSpectator, setIsSpectator] = useState<boolean>(false);
+  const [showRoleModal, setShowRoleModal] = useState<boolean>(false);
+  const [showOwnerNotification, setShowOwnerNotification] = useState<boolean>(false);
 
   // Lắng nghe sự kiện đối thủ tắt/bật cam để hiện overlay đúng
   useEffect(() => {
@@ -287,17 +290,68 @@ export default function RoomPage() {
   useEffect(() => {
     const socket = getSocket();
     if (!userId) return;
-    socket.emit("join-room", { roomId, userId, userName });
+    
+    // Tự động xác định spectator: nếu đã có 2 người trong phòng và user chưa có trong danh sách
+    const shouldBeSpectator = users.length >= 2 && !users.includes(userId);
+    socket.emit("join-room", { roomId, userId, userName, isSpectator: shouldBeSpectator });
+    
     socket.on("room-users", (roomUsers: Array<{ userId: string, userName: string }>) => {
       // roomUsers là mảng object { userId, userName }
       const filteredUsers = (roomUsers || []).filter(u => u && typeof u.userId === 'string');
       setUsers(filteredUsers.map(u => u.userId));
       setWaiting(filteredUsers.length < 2);
-      // Xác định đối thủ
-      const opp = filteredUsers.find(u => u.userId !== userId);
-      if (opp) {
-        setOpponentId(opp.userId);
-        setOpponentName(opp.userName || 'Đối thủ');
+      
+      // Tự động xác định người xem: nếu đã có 2 người chơi thì người mới vào sẽ là spectator
+      const isUserInRoom = filteredUsers.some(u => u.userId === userId);
+      if (filteredUsers.length >= 2 && !isUserInRoom) {
+        setIsSpectator(true);
+      } else if (isUserInRoom) {
+        setIsSpectator(false);
+      }
+      
+      // Logic trao quyền chủ phòng: nếu chủ phòng rời phòng và chỉ còn 1 người, người còn lại trở thành chủ phòng
+      if (filteredUsers.length === 1) {
+        const remainingUser = filteredUsers[0];
+        if (remainingUser && remainingUser.userId === userId) {
+          // Nếu chỉ còn 1 người và đó là mình, thì trở thành chủ phòng
+          if (!isCreator) {
+            setIsCreator(true);
+            setShowOwnerNotification(true);
+            console.log(`🎯 ${userName} trở thành chủ phòng mới`);
+            // Tự động ẩn thông báo sau 5 giây
+            setTimeout(() => setShowOwnerNotification(false), 5000);
+          }
+        }
+      } else if (filteredUsers.length === 2) {
+        // Nếu có 2 người, kiểm tra xem mình có phải là người đầu tiên không
+        const firstUser = filteredUsers[0];
+        if (firstUser && firstUser.userId === userId) {
+          // Nếu mình là người đầu tiên trong danh sách, trở thành chủ phòng
+          if (!isCreator) {
+            setIsCreator(true);
+            setShowOwnerNotification(true);
+            console.log(`🎯 ${userName} trở thành chủ phòng mới`);
+            // Tự động ẩn thông báo sau 5 giây
+            setTimeout(() => setShowOwnerNotification(false), 5000);
+          }
+        } else {
+          // Nếu không phải người đầu tiên, không phải chủ phòng
+          setIsCreator(false);
+        }
+      }
+      
+      // Xác định đối thủ: nếu là người chơi thì lấy đối thủ, nếu là spectator thì lấy người chơi đầu tiên
+      if (filteredUsers.length >= 2 && !isUserInRoom) {
+        // Người xem: lấy người chơi đầu tiên làm opponentId để xem camera
+        setOpponentId(filteredUsers[0].userId);
+        setOpponentName(filteredUsers[0].userName || 'Người chơi 1');
+      } else if (isUserInRoom) {
+        // Người chơi: lấy đối thủ
+        const opp = filteredUsers.find(u => u.userId !== userId);
+        if (opp) {
+          setOpponentId(opp.userId);
+          setOpponentName(opp.userName || 'Đối thủ');
+        }
       }
     });
     socket.on("opponent-solve", ({ userId: oppId, userName: oppName, time }: { userId: string, userName: string, time: number|null }) => {
@@ -306,11 +360,16 @@ export default function RoomPage() {
       setOpponentId(oppId);
       setOpponentName(oppName || 'Đối thủ');
     });
+    socket.on("room-full", ({ message }: { message: string }) => {
+      alert(message);
+      window.location.href = '/lobby';
+    });
     return () => {
       socket.off("room-users");
       socket.off("opponent-solve");
+      socket.off("room-full");
     };
-  }, [roomId, userId, userName]);
+  }, [roomId, userId, userName, isSpectator, users]);
 
 
   // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
@@ -368,7 +427,7 @@ export default function RoomPage() {
 
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
-    if (isMobile) return;
+    if (isMobile || isSpectator) return;
     if (waiting || running || turn !== 'me' || myResults.length >= 5 || pendingResult !== null) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -411,7 +470,7 @@ export default function RoomPage() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, turn, myResults.length]);
+  }, [isMobile, waiting, running, prep, turn, myResults.length, isSpectator]);
 
   // Đếm ngược 15s chuẩn bị
   useEffect(() => {
@@ -481,7 +540,7 @@ export default function RoomPage() {
       return false;
     };
     const handleTouch = (e: TouchEvent) => {
-      if (!isMobile) return;
+      if (!isMobile || isSpectator) return;
       const webcamEls = document.querySelectorAll('.webcam-area');
       for (let i = 0; i < webcamEls.length; i++) {
         if (webcamEls[i].contains(e.target as Node)) return;
@@ -504,7 +563,7 @@ export default function RoomPage() {
       }
     };
     // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile]);
+  }, [canStart, waiting, roomId, userName, isMobile, isSpectator]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
@@ -734,7 +793,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             <form className={mobileShrink ? "flex flex-row items-center px-2 pb-2 pt-1 gap-1" : "flex flex-row items-center px-4 pb-4 pt-2 gap-2"}
               style={{borderTop:'1px solid #444'}} onSubmit={e=>{
                 e.preventDefault();
-                if(!chatInput.trim())return;
+                if(!chatInput.trim() || isSpectator)return;
                 const socket = getSocket();
                 socket.emit("chat",{roomId,userId,userName,message:chatInput});
                 setChatInput("");
@@ -742,13 +801,19 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               <input
                 className={mobileShrink ? "flex-1 rounded bg-gray-800 text-white px-2 py-1 text-[12px] border border-gray-600 focus:outline-none" : "flex-1 rounded-lg bg-gray-800 text-white px-3 py-2 text-base border border-gray-600 focus:outline-none"}
                 type="text"
-                placeholder="Nhập tin nhắn..."
+                placeholder={isSpectator ? "Người xem không thể chat..." : "Nhập tin nhắn..."}
                 value={chatInput}
                 onChange={e=>setChatInput(e.target.value)}
                 autoFocus
                 maxLength={200}
+                disabled={isSpectator}
               />
-              <button type="submit" className={mobileShrink ? "px-2 py-1 bg-blue-700 hover:bg-blue-800 rounded text-white text-[13px] font-bold flex items-center justify-center" : "px-3 py-2 bg-blue-700 hover:bg-blue-800 rounded-lg text-white text-lg font-bold flex items-center justify-center"} style={{minWidth:mobileShrink?32:44}}>
+              <button 
+                type="submit" 
+                className={mobileShrink ? "px-2 py-1 bg-blue-700 hover:bg-blue-800 rounded text-white text-[13px] font-bold flex items-center justify-center" : "px-3 py-2 bg-blue-700 hover:bg-blue-800 rounded-lg text-white text-lg font-bold flex items-center justify-center"} 
+                style={{minWidth:mobileShrink?32:44}}
+                disabled={isSpectator}
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={mobileShrink?"w-4 h-4":"w-6 h-6"}><path strokeLinecap="round" strokeLinejoin="round" d="M3 21l18-9-18-9v7l13 2-13 2v7z" /></svg>
               </button>
             </form>
@@ -971,7 +1036,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
           style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
-        {...(isMobile ? {
+        {...(!isSpectator ? (isMobile ? {
             onTouchStart: (e) => {
               if (pendingResult !== null) return;
               // Nếu chạm vào webcam thì bỏ qua
@@ -1051,10 +1116,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 setCanStart(false);
               }
             }
-          })}
+          }) : {})}
         >
-          {/* Nếu có pendingResult thì hiện 3 nút xác nhận */}
-          {pendingResult !== null && !running && !prep ? (
+          {/* Nếu có pendingResult thì hiện 3 nút xác nhận (chỉ cho người chơi) */}
+          {!isSpectator && pendingResult !== null && !running && !prep ? (
             <div className="flex flex-row items-center justify-center gap-1 mb-1">
               <button
                 className={mobileShrink ? "px-1 py-0.5 text-[9px] rounded bg-green-600 hover:bg-green-700 font-bold text-white" : "px-3 py-1 text-base rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white"}
@@ -1133,9 +1198,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               </>
             )}
           </div>
-          {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
-          {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
+          {!isSpectator && running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
+          {!isSpectator && prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
+          {isSpectator && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>👁️ Chế độ xem</div>}
         </div>
+        
+
         {/* Webcam đối thủ - cột 3 */}
         <div
           className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
@@ -1179,6 +1247,16 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           remoteVideoRef={remoteVideoRef}
         />
       ) : null}
+
+      {/* Thông báo khi trở thành chủ phòng mới */}
+      {showOwnerNotification && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🎯</span>
+            <span>Bạn đã trở thành chủ phòng mới!</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

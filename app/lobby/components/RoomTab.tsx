@@ -11,6 +11,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [error, setError] = useState("");
   const [activeRooms, setActiveRooms] = useState<string[]>([]);
   const [competingRooms, setCompetingRooms] = useState<string[]>([]);
+  const [roomSpectators, setRoomSpectators] = useState<{[key: string]: number}>({});
   // Sử dụng localhost khi development, production server khi production
   const isDevelopment = process.env.NODE_ENV === 'development';
   const API_BASE = isDevelopment 
@@ -52,9 +53,23 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         
         setActiveRooms(active);
         setCompetingRooms(competing);
+        
+        // Lấy số lượng spectator cho các phòng đang thi đấu
+        const spectatorCounts: {[key: string]: number} = {};
+        for (const roomId of competing) {
+          try {
+            const res = await fetch(`${API_BASE}/room-spectators/${roomId}`);
+            const spectators = await res.json();
+            if (Array.isArray(spectators)) {
+              spectatorCounts[roomId] = spectators.length;
+            }
+          } catch {}
+        }
+        setRoomSpectators(spectatorCounts);
       } catch {
         setActiveRooms([]);
         setCompetingRooms([]);
+        setRoomSpectators({});
       }
     }
     fetchRooms();
@@ -142,6 +157,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   </div>
                   {/* Icon thi đấu */}
                   <span className="absolute top-1 right-1 text-yellow-300">⚡</span>
+                  {/* Số lượng spectator */}
+                  {roomSpectators[room] > 0 && (
+                    <span className="absolute bottom-1 left-1 text-xs bg-black bg-opacity-50 text-white px-1 rounded">
+                      👁️ {roomSpectators[room]}/5
+                    </span>
+                  )}
                 </div>
                 <div className="text-base text-gray-200">{room}</div>
               </div>
