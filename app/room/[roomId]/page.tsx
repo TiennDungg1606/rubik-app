@@ -736,7 +736,19 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Nút Chat */}
         {/* Nút tái đấu */}
         <div className="flex items-center">
-          <button>
+          <button
+            onClick={handleRematch}
+            disabled={rematchPending || users.length < 2}
+            className={
+              mobileShrink
+                ? `px-1 py-0.5 bg-green-600 hover:bg-green-700 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 bg-green-600 hover:bg-green-700 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
+            }
+            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+            type="button"
+            aria-label="Tái đấu"
+            title="Tái đấu"
+          >
             {/* Icon vòng lặp/refresh */}
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
               <path d="M24 8a16 16 0 1 1-11.31 4.69" stroke="white" strokeWidth="3" fill="none"/>
@@ -1390,15 +1402,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >Xuất kết quả</button>
-              <button
-                className={mobileShrink ? "px-2 py-1 text-[10px] rounded bg-green-600 hover:bg-green-700 font-bold text-white" : "px-4 py-2 text-base rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white"}
-                onClick={() => {
-                  // Gửi sự kiện tái đấu lên server để cả phòng cùng reset và nhận scramble mới
-                  const socket = getSocket();
-                  socket.emit("rematch", { roomId, userId });
-                }}
-                style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
-              >Tái đấu</button>
+
             </div>
           )}
           <div
