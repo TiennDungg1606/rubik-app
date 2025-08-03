@@ -1310,9 +1310,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         >
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận */}
           {pendingResult !== null && !running && !prep ? (
-            <div className="flex flex-row items-center justify-center gap-1 mb-1">
+            <div className="flex flex-row items-center justify-center gap-2 mb-2">
               <button
-                className={mobileShrink ? "px-1 py-0.5 text-[9px] rounded bg-green-600 hover:bg-green-700 font-bold text-white" : "px-3 py-1 text-base rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white"}
+                className={mobileShrink ? "px-2 py-1 text-[13px] rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white" : "px-5 py-2 text-xl rounded-2xl bg-green-600 hover:bg-green-700 font-bold text-white"}
                 onClick={e => {
                   e.stopPropagation();
                   // Gửi kết quả bình thường
@@ -1332,7 +1332,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >Gửi</button>
               <button
-                className={mobileShrink ? `px-1 py-0.5 text-[9px] rounded bg-yellow-500 font-bold text-white` : `px-3 py-1 text-base rounded-lg bg-yellow-500 font-bold text-white`}
+                className={mobileShrink ? `px-2 py-1 text-[13px] rounded-lg bg-yellow-500 font-bold text-white` : `px-5 py-2 text-xl rounded-2xl bg-yellow-500 font-bold text-white`}
                 onClick={e => {
                   e.stopPropagation();
                   // Gửi kết quả +2 ngay
@@ -1351,7 +1351,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >+2</button>
               <button
-                className={mobileShrink ? `px-1 py-0.5 text-[9px] rounded bg-red-600 font-bold text-white` : `px-3 py-1 text-base rounded-lg bg-red-600 hover:bg-red-700 font-bold text-white`}
+                className={mobileShrink ? `px-2 py-1 text-[13px] rounded-lg bg-red-600 font-bold text-white` : `px-5 py-2 text-xl rounded-2xl bg-red-600 hover:bg-red-700 font-bold text-white`}
                 onClick={e => {
                   e.stopPropagation();
                   // Gửi kết quả DNF ngay
@@ -1466,10 +1466,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <div
             className={
               mobileShrink
-                ? `text-2xl font-bold drop-shadow select-none px-2 py-2 rounded ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
-                : `text-8xl font-['Digital-7'] font-bold drop-shadow-lg select-none px-8 py-4 rounded-2xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
+                ? `text-3xl font-bold drop-shadow select-none px-3 py-3 rounded-xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
+                : `text-9xl font-['Digital-7'] font-bold drop-shadow-2xl select-none px-12 py-8 rounded-3xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
             }
-            style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 32, textAlign: 'center', fontSize: 32, padding: 2 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '180px', textAlign: 'center', fontSize: 80, padding: 8 }}
+            style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 40, textAlign: 'center', fontSize: 40, padding: 6 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '220px', textAlign: 'center', fontSize: 110, padding: 18 }}
           >
             {prep ? (
               <span className={mobileShrink ? "text-[20px]" : undefined}>Chuẩn bị: {prepTime}s</span>
