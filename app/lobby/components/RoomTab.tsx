@@ -138,7 +138,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       {/* Danh sách phòng đang thi đấu */}
       <div className="w-full max-w-3xl mb-8">
         <div className="text-lg font-semibold mb-4 text-center text-white">
-          🏆 Phòng đang thi đấu ({competingRooms.length} phòng)
+          🔴 Phòng đang thi đấu ({competingRooms.length} phòng)
         </div>
         <div className="h-64 overflow-y-auto border border-gray-700 rounded-lg p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 justify-items-center">
@@ -156,7 +156,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     ))}
                   </div>
                   {/* Icon thi đấu */}
-                  <span className="absolute top-1 right-1 text-yellow-300">⚡</span>
+                  <span className="absolute top-1 right-1 text-yellow-300"></span>
                   {/* Số lượng spectator */}
                   {roomSpectators[room] > 0 && (
                     <span className="absolute bottom-1 left-1 text-xs bg-black bg-opacity-50 text-white px-1 rounded">
@@ -180,7 +180,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       {/* Danh sách phòng đang hoạt động */}
       <div className="w-full max-w-3xl">
         <div className="text-lg font-semibold mb-4 text-center text-white">
-          🔵 Phòng đang hoạt động ({activeRooms.length} phòng)
+          🟢 Phòng đang hoạt động ({activeRooms.length} phòng)
         </div>
         <div className="h-64 overflow-y-auto border border-gray-700 rounded-lg p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 justify-items-center">
@@ -204,7 +204,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     ))}
                   </div>
                   {/* Icon chờ người */}
-                  <span className="absolute top-1 right-1 text-green-300">👤</span>
+                  <span className="absolute top-1 right-1 text-green-300"></span>
                 </div>
                 <div className="text-base text-gray-200">{room}</div>
               </div>

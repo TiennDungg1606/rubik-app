@@ -67,6 +67,8 @@ export default function RoomPage() {
   const [showChat, setShowChat] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<{from: 'me'|'opponent', text: string}[]>([]);
+  const [hasNewChat, setHasNewChat] = useState(false);
+  const audioRef = useRef<HTMLAudioElement|null>(null);
 
   // Ref cho video local và remote để truyền vào VideoCall
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -123,6 +125,12 @@ export default function RoomPage() {
       // Nếu là tin nhắn của mình thì bỏ qua (đã hiển thị local)
       if (data.userId === userId) return;
       setChatMessages(msgs => [...msgs, { from: 'opponent', text: data.message }]);
+      setHasNewChat(true);
+      // Phát âm thanh ting
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      }
     };
     socket.on('chat', handleChat);
     return () => {
@@ -634,9 +642,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
       >
         {/* Nút Chat */}
-        <div className="flex items-center">
+        <div className="flex items-center relative">
           <button
-            onClick={() => setShowChat(true)}
+            onClick={() => { setShowChat(true); setHasNewChat(false); }}
             className={
               mobileShrink
                 ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
@@ -648,7 +656,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             title="Chat"
           >
             <span role="img" aria-label="Chat">💬</span>
+            {/* Chấm đỏ báo tin nhắn mới */}
+            {hasNewChat && (
+              <span style={{ position: 'absolute', top: 2, right: 2, width: mobileShrink ? 8 : 12, height: mobileShrink ? 8 : 12, background: '#f00', borderRadius: '50%', display: 'inline-block', border: '2px solid white', zIndex: 10 }}></span>
+            )}
           </button>
+          {/* Âm thanh ting */}
+          <audio ref={audioRef} src="/ting.mp3" preload="auto" />
         </div>
       {/* Modal chat nổi */}
       {showChat && (
