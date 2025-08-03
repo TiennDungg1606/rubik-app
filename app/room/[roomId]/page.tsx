@@ -636,10 +636,10 @@ useEffect(() => {
     timerRef.current = 0;
     intervalRef.current = setInterval(() => {
       setTimer(t => {
-        timerRef.current = t + 10;
-        return t + 10;
+        timerRef.current = t + 1;
+        return t + 1;
       });
-    }, 10);
+    }, 1);
     // Khi dừng timer, chỉ lưu vào pendingResult, không gửi lên server ngay
     const stopTimer = () => {
       setRunning(false);
