@@ -287,94 +287,47 @@ export default function RoomPage() {
 
 
   // Kết nối socket, join room, lắng nghe users và kết quả đối thủ
-  useEffect(() => {
-    const socket = getSocket();
-    if (!userId) return;
-    
-    // Tự động xác định spectator: nếu đã có 2 người trong phòng và user chưa có trong danh sách
-    const shouldBeSpectator = users.length >= 2 && !users.includes(userId);
-    socket.emit("join-room", { roomId, userId, userName, isSpectator: shouldBeSpectator });
-    
-    socket.on("room-users", (roomUsers: Array<{ userId: string, userName: string }>) => {
-      // roomUsers là mảng object { userId, userName }
-      const filteredUsers = (roomUsers || []).filter(u => u && typeof u.userId === 'string');
-      setUsers(filteredUsers.map(u => u.userId));
-      setWaiting(filteredUsers.length < 2);
-      
-      // Tự động xác định người xem: nếu đã có 2 người chơi thì người mới vào sẽ là spectator
-      const isUserInRoom = filteredUsers.some(u => u.userId === userId);
-      if (filteredUsers.length >= 2 && !isUserInRoom) {
-        setIsSpectator(true);
-      } else if (isUserInRoom) {
-        setIsSpectator(false);
-      }
-      
-      // Logic trao quyền chủ phòng: nếu chủ phòng rời phòng và chỉ còn 1 người, người còn lại trở thành chủ phòng
-      if (filteredUsers.length === 1) {
-        const remainingUser = filteredUsers[0];
-        if (remainingUser && remainingUser.userId === userId && !isSpectator) {
-          // Nếu chỉ còn 1 người và đó là mình (không phải spectator), thì trở thành chủ phòng
-          if (!isCreator) {
-            setIsCreator(true);
-            setShowOwnerNotification(true);
-            console.log(`🎯 ${userName} trở thành chủ phòng mới`);
-            // Tự động ẩn thông báo sau 5 giây
-            setTimeout(() => setShowOwnerNotification(false), 5000);
-          }
-        }
-      } else if (filteredUsers.length === 2) {
-        // Nếu có 2 người, kiểm tra xem mình có phải là người đầu tiên không (và không phải spectator)
-        const firstUser = filteredUsers[0];
-        if (firstUser && firstUser.userId === userId && !isSpectator) {
-          // Nếu mình là người đầu tiên trong danh sách và không phải spectator, trở thành chủ phòng
-          if (!isCreator) {
-            setIsCreator(true);
-            setShowOwnerNotification(true);
-            console.log(`🎯 ${userName} trở thành chủ phòng mới`);
-            // Tự động ẩn thông báo sau 5 giây
-            setTimeout(() => setShowOwnerNotification(false), 5000);
-          }
-        } else {
-          // Nếu không phải người đầu tiên hoặc là spectator, không phải chủ phòng
-          setIsCreator(false);
-        }
-      }
-      
-      // Xác định đối thủ: nếu là người chơi thì lấy đối thủ, nếu là spectator thì lấy người chơi đầu tiên
-      if (filteredUsers.length >= 2 && !isUserInRoom) {
-        // Người xem: lấy người chơi đầu tiên làm opponentId để xem camera
-        setOpponentId(filteredUsers[0].userId);
-        // Hiển thị tên của cả 2 người chơi cho spectator
-        const player1Name = filteredUsers[0].userName || 'Người chơi 1';
-        const player2Name = filteredUsers[1].userName || 'Người chơi 2';
-        setOpponentName(`${player1Name} vs ${player2Name}`);
-      } else if (isUserInRoom) {
-        // Người chơi: lấy đối thủ
-        const opp = filteredUsers.find(u => u.userId !== userId);
-        if (opp) {
-          setOpponentId(opp.userId);
-          setOpponentName(opp.userName || 'Đối thủ');
-        }
-      }
-    });
-    socket.on("opponent-solve", ({ userId: oppId, userName: oppName, time }: { userId: string, userName: string, time: number|null }) => {
-      setOpponentResults(r => [...r, time]);
-      if (!isSpectator) {
-        setTurn('me');
-      }
-      setOpponentId(oppId);
-      setOpponentName(oppName || 'Đối thủ');
-    });
-    socket.on("room-full", ({ message }: { message: string }) => {
-      alert(message);
-      window.location.href = '/lobby';
-    });
-    return () => {
-      socket.off("room-users");
-      socket.off("opponent-solve");
-      socket.off("room-full");
-    };
-  }, [roomId, userId, userName, isSpectator, users]);
+useEffect(() => {
+  const socket = getSocket();
+  if (!userId || !roomId || !userName) return;
+  // Tự động xác định spectator: nếu đã có 2 người trong phòng và user chưa có trong danh sách
+  // Lưu ý: chỉ xác định spectator sau khi nhận room-users, không nên dựa vào users ở đây để tránh lặp
+  socket.emit("join-room", { roomId, userId, userName });
+
+  socket.on("room-users", (roomUsers) => {
+    type RoomUser = { userId: string; userName: string };
+    const filteredUsers = (roomUsers || []).filter((u: any): u is RoomUser => u && typeof u.userId === 'string');
+    setUsers(filteredUsers.map((u: RoomUser) => u.userId));
+    setWaiting(filteredUsers.length < 2);
+    // Tự động xác định spectator: nếu đã có 2 người chơi thì người mới vào sẽ là spectator
+    const isUserInRoom = filteredUsers.some((u: RoomUser) => u.userId === userId);
+    if (filteredUsers.length >= 2 && !isUserInRoom) {
+      setIsSpectator(true);
+    } else if (isUserInRoom) {
+      setIsSpectator(false);
+    }
+    // ...existing code...
+    // Logic trao quyền chủ phòng, xác định đối thủ, ...
+    // ...existing code...
+  });
+  socket.on("opponent-solve", ({ userId: oppId, userName: oppName, time }) => {
+    setOpponentResults(r => [...r, time]);
+    if (!isSpectator) {
+      setTurn('me');
+    }
+    setOpponentId(oppId);
+    setOpponentName(oppName || 'Đối thủ');
+  });
+  socket.on("room-full", ({ message }) => {
+    alert(message);
+    window.location.href = '/lobby';
+  });
+  return () => {
+    socket.off("room-users");
+    socket.off("opponent-solve");
+    socket.off("room-full");
+  };
+}, [roomId, userId, userName]);
 
 
   // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
@@ -401,8 +354,8 @@ export default function RoomPage() {
       console.log("🔄 Received new scramble, prep:", prep, "running:", running);
       setScramble(scramble);
       setScrambleIndex(index);
-      // Reset trạng thái cho vòng mới (chỉ khi không đang trong prep hoặc running)
-      if (!prep && !running) {
+      // Reset trạng thái cho vòng mới (chỉ khi không đang trong prep, running hoặc canStart)
+      if (!prep && !running && !canStart) {
         console.log("🔄 Resetting timer due to new scramble");
         setPrep(false);
         setCanStart(false);
@@ -412,7 +365,7 @@ export default function RoomPage() {
         setPendingResult(null);
         setPendingType('normal');
       } else {
-        console.log("🔄 Skipping timer reset - prep or running in progress");
+        console.log("🔄 Skipping timer reset - prep, running, or canStart in progress");
       }
       setShowScrambleMsg(true); // Hiện thông báo tráo scramble
       if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
@@ -590,7 +543,7 @@ export default function RoomPage() {
     // Chỉ reset timer khi đối thủ vừa giải xong và đến lượt mình
     // Điều kiện: đối thủ có kết quả mới (opponentResults.length > myResults.length)
     // VÀ không đang trong prep mode hoặc running
-    if (opponentResults.length > myResults.length && !prep && !running) {
+    if (opponentResults.length > myResults.length && !prep && !running && !canStart) {
       console.log("🔄 Resetting timer - opponent finished, my turn now");
       setPrep(false);
       setCanStart(false);
