@@ -63,6 +63,11 @@ function calcStats(times: (number|null)[]) {
 
 
 export default function RoomPage() {
+  // State cho chat
+  const [showChat, setShowChat] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<{from: 'me'|'opponent', text: string}[]>([]);
+
   // Ref cho video local và remote để truyền vào VideoCall
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -111,6 +116,19 @@ export default function RoomPage() {
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
 
+    // Lắng nghe tin nhắn chat từ đối thủ (đặt sau khi đã có userId, userName)
+  useEffect(() => {
+    const socket = getSocket();
+    const handleChat = (data: { userId: string, userName: string, message: string }) => {
+      // Nếu là tin nhắn của mình thì bỏ qua (đã hiển thị local)
+      if (data.userId === userId) return;
+      setChatMessages(msgs => [...msgs, { from: 'opponent', text: data.message }]);
+    };
+    socket.on('chat', handleChat);
+    return () => {
+      socket.off('chat', handleChat);
+    };
+  }, [userId]);
   // Lắng nghe sự kiện đối thủ tắt/bật cam để hiện overlay đúng
   useEffect(() => {
     const socket = getSocket();
@@ -591,39 +609,148 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         onClick={handleLeaveRoom}
         className={
           mobileShrink
-            ? "absolute top-0.5 left-0.5 z-50 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-[9px] rounded font-bold shadow-lg min-w-0 min-h-0"
-            : "fixed top-4 left-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg"
+            ? "absolute top-0.5 left-0.5 z-50 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-[9px] rounded font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
+            : "fixed top-4 left-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg flex items-center justify-center"
         }
         style={mobileShrink ? { fontSize: 9, minWidth: 0, minHeight: 0, padding: 1 } : {}}
         type="button"
-      >Rời phòng</button>
-      {/* Nút luật thi đấu ở góc trên bên phải */}
+        aria-label="Rời phòng"
+        title="Rời phòng"
+      >
+        {/* Icon logout/exit SVG */}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
+          <rect x="10" y="8" width="28" height="32" rx="3" stroke="white" strokeWidth="3" fill="none"/>
+          <path d="M34 24H18" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+          <path d="M24 16l-8 8 8 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {/* Nút Chat và nút luật thi đấu ở góc trên bên phải */}
       <div
         className={
           mobileShrink
-            ? "absolute top-0.5 right-0.5 z-50 flex flex-col items-center"
-            : "fixed top-4 right-4 z-50 flex flex-col items-center"
+            ? "absolute top-0.5 right-0.5 z-50 flex flex-row items-center gap-1"
+            : "fixed top-4 right-4 z-50 flex flex-row items-center gap-2"
         }
         style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
       >
-        <button
-          onClick={() => setShowRules(true)}
-          className={
-            mobileShrink
-              ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
-              : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center"
-          }
-          style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
-          type="button"
-          aria-label="Luật thi đấu"
-          title="Luật thi đấu"
+        {/* Nút Chat */}
+        <div className="flex items-center">
+          <button
+            onClick={() => setShowChat(true)}
+            className={
+              mobileShrink
+                ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
+                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+            }
+            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+            type="button"
+            aria-label="Chat"
+            title="Chat"
+          >
+            <span role="img" aria-label="Chat">💬</span>
+          </button>
+        </div>
+      {/* Modal chat nổi */}
+      {showChat && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60"
+          style={{ backdropFilter: 'blur(2px)' }}
         >
-          <span role="img" aria-label="Luật thi đấu">📜</span>
-        </button>
-        <span
-          className={mobileShrink ? "text-[9px] text-blue-200 font-semibold mt-0.5" : "text-base text-blue-200 font-semibold mt-1"}
-          style={mobileShrink ? { lineHeight: '12px' } : {}}
-        >Luật thi đấu</span>
+          <div
+            className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[320px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[420px] border-4 border-blue-400 relative flex flex-col"}
+            style={mobileShrink ? { fontSize: 10, overflow: 'hidden' } : { overflow: 'hidden' }}
+          >
+            <button
+              onClick={() => setShowChat(false)}
+              className={mobileShrink ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"}
+              style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
+              type="button"
+            >Đóng</button>
+            <div className={mobileShrink ? "text-[11px] font-bold text-blue-300 mb-1 text-center" : "text-xl font-bold text-blue-300 mb-3 text-center"}>
+              Chat phòng
+            </div>
+            <div
+              className={mobileShrink ? "flex-1 overflow-y-auto pr-1 mb-1" : "flex-1 overflow-y-auto pr-2 mb-2"}
+              style={mobileShrink ? { maxHeight: 200 } : { maxHeight: 300 }}
+            >
+              {chatMessages.length === 0 && (
+                <div className="text-gray-400 text-center mt-4">Chưa có tin nhắn nào</div>
+              )}
+              {chatMessages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={
+                    msg.from === 'me'
+                      ? (mobileShrink ? "flex justify-end mb-1" : "flex justify-end mb-2")
+                      : (mobileShrink ? "flex justify-start mb-1" : "flex justify-start mb-2")
+                  }
+                >
+                  <div
+                    className={
+                      msg.from === 'me'
+                        ? (mobileShrink ? "bg-blue-500 text-white px-2 py-1 rounded-lg max-w-[70%] text-[10px]" : "bg-blue-500 text-white px-3 py-2 rounded-lg max-w-[70%] text-base")
+                        : (mobileShrink ? "bg-gray-700 text-white px-2 py-1 rounded-lg max-w-[70%] text-[10px]" : "bg-gray-700 text-white px-3 py-2 rounded-lg max-w-[70%] text-base")
+                    }
+                    style={{ wordBreak: 'break-word' }}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <form
+              className={mobileShrink ? "flex flex-row items-center gap-1 mt-1" : "flex flex-row items-center gap-2 mt-2"}
+              onSubmit={e => {
+                e.preventDefault();
+                if (chatInput.trim() === "") return;
+                setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput }]);
+                // Gửi chat qua socket cho đối thủ
+                const socket = getSocket();
+                socket.emit('chat', { roomId, userId, userName, message: chatInput });
+                setChatInput("");
+              }}
+            >
+              <input
+                type="text"
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                className={mobileShrink ? "flex-1 px-1 py-1 rounded bg-gray-800 text-white text-[10px] border border-gray-600" : "flex-1 px-3 py-2 rounded-lg bg-gray-800 text-white text-base border border-gray-600"}
+                placeholder="Nhập tin nhắn..."
+                autoFocus
+              />
+              <button
+                type="submit"
+                className={mobileShrink ? "px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold flex items-center justify-center" : "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold flex items-center justify-center"}
+                style={{ minWidth: mobileShrink ? 28 : 40, minHeight: mobileShrink ? 28 : 40, padding: 0 }}
+                aria-label="Gửi"
+                title="Gửi"
+              >
+                {/* Icon máy bay giấy */}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width={mobileShrink ? 16 : 22} height={mobileShrink ? 16 : 22} style={{ display: 'block' }}>
+                  <path d="M2 21L23 12L2 3L5 12L2 21Z" fill="white"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+        {/* Nút luật thi đấu */}
+        <div className="flex items-center">
+          <button
+            onClick={() => setShowRules(true)}
+            className={
+              mobileShrink
+                ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
+                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+            }
+            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+            type="button"
+            aria-label="Luật thi đấu"
+            title="Luật thi đấu"
+          >
+            <span role="img" aria-label="Luật thi đấu">📜</span>
+          </button>
+        </div>
       </div>
       {/* Modal luật thi đấu */}
       {showRules && (
@@ -1035,21 +1162,66 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               <button
                 className={mobileShrink ? "px-2 py-1 text-[10px] rounded bg-blue-600 hover:bg-blue-700 font-bold text-white" : "px-4 py-2 text-base rounded-lg bg-blue-600 hover:bg-blue-700 font-bold text-white"}
                 onClick={() => {
-                  // Tạo nội dung file txt
-                  let txt = `KẾT QUẢ PHÒNG: ${roomId}\n\n`;
-                  txt += `Tên 1: ${userName}\n`;
-                  txt += `Tên 2: ${opponentName}\n\n`;
-                  txt += `--- Kết quả từng lượt ---\n`;
-                  for (let i = 0; i < 5; i++) {
-                    const myVal = (myResults && myResults[i] !== undefined) ? myResults[i] : null;
-                    const oppVal = (opponentResults && opponentResults[i] !== undefined) ? opponentResults[i] : null;
-                    txt += `Lượt ${i+1}: ${userName}: ${myVal === null ? 'DNF' : (typeof myVal === 'number' ? (myVal/1000).toFixed(3) + 's' : '')} | ${opponentName}: ${oppVal === null ? 'DNF' : (typeof oppVal === 'number' ? (oppVal/1000).toFixed(3) + 's' : '')}\n`;
-                  }
-                  txt += `\n--- Tổng hợp ---\n`;
+                  // Lấy ngày và thời gian hiện tại
+                  const now = new Date();
+                  const pad = (n: number) => n.toString().padStart(2, '0');
+                  const dateStr = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
+                  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+                  // Tính toán thống kê
                   const myStats = calcStats(myResults);
                   const oppStats = calcStats(opponentResults);
-                  txt += `${userName}: Best: ${myStats.best !== null ? (myStats.best/1000).toFixed(3)+'s' : 'DNF'}, Worst: ${myStats.worst !== null ? (myStats.worst/1000).toFixed(3)+'s' : 'DNF'}, Mean: ${myStats.mean !== null ? (myStats.mean/1000).toFixed(3)+'s' : 'DNF'}, Ao5: ${myStats.ao5 !== null ? (myStats.ao5/1000).toFixed(3)+'s' : 'DNF'}\n`;
-                  txt += `${opponentName}: Best: ${oppStats.best !== null ? (oppStats.best/1000).toFixed(3)+'s' : 'DNF'}, Worst: ${oppStats.worst !== null ? (oppStats.worst/1000).toFixed(3)+'s' : 'DNF'}, Mean: ${oppStats.mean !== null ? (oppStats.mean/1000).toFixed(3)+'s' : 'DNF'}, Ao5: ${oppStats.ao5 !== null ? (oppStats.ao5/1000).toFixed(3)+'s' : 'DNF'}\n`;
+
+                  // Xác định người thắng
+                  let winner = '';
+                  if (myStats.ao5 !== null && oppStats.ao5 !== null) {
+                    if (myStats.ao5 < oppStats.ao5) winner = userName;
+                    else if (myStats.ao5 > oppStats.ao5) winner = opponentName;
+                    else winner = 'Hòa';
+                  } else if (myStats.ao5 !== null) winner = userName;
+                  else if (oppStats.ao5 !== null) winner = opponentName;
+                  else winner = 'Không xác định';
+
+                  // Tạo nội dung file txt theo mẫu
+                  let txt = '';
+                  txt += `KẾT QUẢ THI ĐẤU RUBIK'S CUBE\n`;
+                  txt += `Phòng: ${roomId}\n`;
+                  txt += `Ngày: ${dateStr}\n`;
+                  txt += `Thời gian: ${timeStr}\n`;
+                  txt += `\n`;
+
+                  // Người chơi 1
+                  txt += `NGƯỜI CHƠI 1: ${userName}\n`;
+                  txt += `Kết quả từng lượt:\n`;
+                  for (let i = 0; i < 5; i++) {
+                    const val = (myResults && myResults[i] !== undefined) ? myResults[i] : null;
+                    txt += `  Lượt ${i+1}: ${val === null ? 'DNF' : (typeof val === 'number' ? (val/1000).toFixed(3) : '')}\n`;
+                  }
+                  txt += `Thống kê:\n`;
+                  txt += `  Best: ${myStats.best !== null ? (myStats.best/1000).toFixed(3) : 'DNF'}\n`;
+                  txt += `  Worst: ${myStats.worst !== null ? (myStats.worst/1000).toFixed(3) : 'DNF'}\n`;
+                  txt += `  Mean: ${myStats.mean !== null ? (myStats.mean/1000).toFixed(3) : 'DNF'}\n`;
+                  txt += `  Ao5: ${myStats.ao5 !== null ? (myStats.ao5/1000).toFixed(3) : 'DNF'}\n`;
+                  txt += `\n`;
+
+                  // Người chơi 2
+                  txt += `NGƯỜI CHƠI 2: ${opponentName}\n`;
+                  txt += `Kết quả từng lượt:\n`;
+                  for (let i = 0; i < 5; i++) {
+                    const val = (opponentResults && opponentResults[i] !== undefined) ? opponentResults[i] : null;
+                    txt += `  Lượt ${i+1}: ${val === null ? 'DNF' : (typeof val === 'number' ? (val/1000).toFixed(3) : '')}\n`;
+                  }
+                  txt += `Thống kê:\n`;
+                  txt += `  Best: ${oppStats.best !== null ? (oppStats.best/1000).toFixed(3) : 'DNF'}\n`;
+                  txt += `  Worst: ${oppStats.worst !== null ? (oppStats.worst/1000).toFixed(3) : 'DNF'}\n`;
+                  txt += `  Mean: ${oppStats.mean !== null ? (oppStats.mean/1000).toFixed(3) : 'DNF'}\n`;
+                  txt += `  Ao5: ${oppStats.ao5 !== null ? (oppStats.ao5/1000).toFixed(3) : 'DNF'}\n`;
+                  txt += `\n`;
+
+                  // Kết quả cuối cùng
+                  txt += `KẾT QUẢ CUỐI CÙNG:\n`;
+                  txt += `Người thắng: ${winner}\n`;
+
                   // Tạo file và tải về
                   const blob = new Blob([txt], { type: 'text/plain' });
                   const url = URL.createObjectURL(blob);
