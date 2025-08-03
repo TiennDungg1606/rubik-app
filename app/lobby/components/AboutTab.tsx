@@ -23,6 +23,13 @@ export default function AboutTab() {
           Tiktok
         </a>
       </div>
+      {/* QR chuyển tiền */}
+      <div className="mt-6 flex flex-col items-center justify-center">
+        <span className="text-green-400 font-bold mb-2">Ủng hộ tác giả - Quét mã QR chuyển khoản</span>
+        {/* Đổi src bên dưới thành tên file ảnh QR bạn sẽ upload vào public, ví dụ: /qr-chuyen-tien.png */}
+        <img src="/qr-chuyen-tien.png" alt="QR chuyển khoản ủng hộ" className="w-48 h-48 rounded-lg border-4 border-green-400 shadow-lg bg-white object-contain" style={{maxWidth:192, maxHeight:192}} />
+        <span className="text-xs text-gray-300 mt-2">Cảm ơn bạn đã ủng hộ!</span>
+      </div>
     </section>
   );
 }

@@ -48,20 +48,23 @@ export default function NewTab() {
       <div className="mb-4">
         <h3 className="text-lg font-bold text-blue-300 drop-shadow">Cập nhật website</h3>
         <ul className="list-disc list-inside text-white font-semibold text-base ml-4">
-          <li>Thêm tab New để xem tin tức mới nhất về website và cộng đồng Rubik.</li>
-          <li>Cải thiện giao diện và trải nghiệm người dùng trên mobile.</li>
-          <li>Sửa các lỗi nhỏ và tối ưu hiệu năng.</li>
+          <li>Làm mới lại danh sách phòng của tab Room (Lưu ý: không thể xem phòng ngkhac giải!).</li>
+          <li>Thêm chức năng tái đấu với xác nhận từ đối thủ.</li>
+          <li>Thêm tin nhắn Chat và âm thanh khi có tin nhắn chat mới.</li>
+          <li>Thêm nút xuât kết quả sau trận đấu (trong phòng).</li> 
+          <li>Thêm QR donate ủng hộ ad để có kinh phí năng cấp server.</li>         
+          <li>Giao diện tối ưu cho cả desktop và mobile, trải nghiệm tốt hơn.</li>
         </ul>
       </div>
       <div className="mb-4">
-        <h3 className="text-lg font-bold text-purple-400 drop-shadow">Bản cập nhật kế tiếp</h3>
+        <h3 className="text-lg font-bold text-purple-400 drop-shadow">Dự kiến cập nhật tiếp theo (T9/2025)</h3>
         <ul className="list-disc list-inside text-white font-semibold text-base ml-4">
           <li>Thêm tính năng xếp hạng huy hiệu rank từ Đồng I đến Thách Đấu.</li>
           <li>Thêm phòng chơi thường và chơi xếp hạng.</li>
           <li>Thêm bảng xếp hạng thành tích toàn server.</li>
-          <li>Thêm các gian hàng về rubik giá cả hợp lý.</li>
-          <li>Thay đổi backend server vào tháng 9 (có thể không).</li>          
-          <li>Hỗ trợ nhiều loại sự kiện Rubik hơn.</li>
+          <li>Làm lại tab Timer.</li>
+          <li>Thêm các gian hàng về rubik giá cả hợp lý.</li>         
+          <li>Hỗ trợ nhiều loại sự kiện Rubik hơn (2x2, 4x4).</li>
           <li>Cập nhật giao diện đẹp hơn.</li>
         </ul>
       </div>

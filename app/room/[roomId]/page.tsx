@@ -87,6 +87,7 @@ export default function RoomPage() {
   const [roomId, setRoomId] = useState<string>("");
   const [scramble, setScramble] = useState<string>("");
   const [scrambleIndex, setScrambleIndex] = useState<number>(0);
+  const [scrambles, setScrambles] = useState<string[]>([]); // Lưu 5 scramble đã dùng
   const [timer, setTimer] = useState<number>(0);
   const timerRef = useRef<number>(0);
   const [running, setRunning] = useState<boolean>(false);
@@ -122,6 +123,7 @@ export default function RoomPage() {
    // State cho tái đấu
   const [rematchModal, setRematchModal] = useState<{show: boolean, from: 'me'|'opponent'|null}>({show: false, from: null});
   const [rematchPending, setRematchPending] = useState(false); // Đang chờ đối phương đồng ý
+  const [rematchDeclined, setRematchDeclined] = useState(false); // Đối phương đã từ chối
 
 // ... (các khai báo state khác)
 
@@ -162,6 +164,8 @@ useEffect(() => {
   const handleRematchDeclined = () => {
     setRematchPending(false);
     setRematchModal({ show: false, from: null });
+    setRematchDeclined(true);
+    setTimeout(() => setRematchDeclined(false), 2500); // Ẩn sau 2.5s
   };
   socket.on('rematch-request', handleRematchRequest);
   socket.on('rematch-accepted', handleRematchAccepted);
@@ -449,6 +453,11 @@ useEffect(() => {
     const handleScramble = ({ scramble, index }: { scramble: string, index: number }) => {
       setScramble(scramble);
       setScrambleIndex(index);
+      setScrambles(prev => {
+        const arr = [...prev];
+        arr[index] = scramble;
+        return arr.slice(0, 5); // chỉ giữ 5 scramble
+      });
       // Reset trạng thái cho vòng mới
       setPrep(false);
       setCanStart(false);
@@ -727,19 +736,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Nút Chat */}
         {/* Nút tái đấu */}
         <div className="flex items-center">
-          <button
-            onClick={handleRematch}
-            disabled={rematchPending || users.length < 2}
-            className={
-              mobileShrink
-                ? `px-1 py-0.5 bg-green-600 hover:bg-green-700 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 bg-green-600 hover:bg-green-700 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
-            }
-            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
-            type="button"
-            aria-label="Tái đấu"
-            title="Tái đấu"
-          >
+          <button>
             {/* Icon vòng lặp/refresh */}
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
               <path d="M24 8a16 16 0 1 1-11.31 4.69" stroke="white" strokeWidth="3" fill="none"/>
@@ -764,6 +761,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-40" style={{ backdropFilter: 'blur(1px)' }}>
           <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[220px] h-[100px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[320px] max-w-[95vw] h-[120px] border-4 border-green-400 flex flex-col items-center justify-center"}>
             <div className="text-base font-semibold text-green-200 text-center">Đang chờ đối phương xác nhận tái đấu...</div>
+          </div>
+        </div>
+      )}
+      {/* Modal thông báo đối phương đã từ chối tái đấu */}
+      {rematchDeclined && (
+        <div className="fixed inset-0 z-[201] flex items-center justify-center bg-black bg-opacity-40" style={{ backdropFilter: 'blur(1px)' }}>
+          <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[80vw] max-w-[200px] h-[80px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[300px] max-w-[90vw] h-[100px] border-4 border-red-400 flex flex-col items-center justify-center"}>
+            <div className="text-base font-semibold text-red-300 text-center">Đối thủ đã từ chối tái đấu</div>
           </div>
         </div>
       )}
@@ -1328,6 +1333,15 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   txt += `Ngày: ${dateStr}\n`;
                   txt += `Thời gian: ${timeStr}\n`;
                   txt += `\n`;
+
+                  // Thêm scramble đã dùng cho 5 lượt
+                  if (Array.isArray(scrambles) && scrambles.length >= 5) {
+                    txt += `SCRAMBLE ĐÃ SỬ DỤNG:\n`;
+                    for (let i = 0; i < 5; i++) {
+                      txt += `  Lượt ${i+1}: ${scrambles[i] || ''}\n`;
+                    }
+                    txt += `\n`;
+                  }
 
                   // Người chơi 1
                   txt += `NGƯỜI CHƠI 1: ${userName}\n`;
