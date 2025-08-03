@@ -436,65 +436,37 @@ export default function RoomPage() {
   }, [prep, running]);
 
 
-  // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
+  // Khôi phục logic Space key như phiên bản cũ, ngưỡng 50ms
   useEffect(() => {
     if (isMobile) return;
-    // Khóa timer sau khi giải xong (có pendingResult) hoặc đã đủ 5 lượt
-    if (running || (!isSpectator && turn !== 'me') || myResults.length >= 5 || pendingResult !== null) return;
-    let localSpaceHeld = false;
+    if (waiting || running || turn !== 'me' || myResults.length >= 5 || pendingResult !== null) return;
+    let spaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (pendingResult !== null) return; // Không cho vào prep khi đang chờ xác nhận kết quả
-      
-      // Nếu timer đang chạy, dừng timer ngay lập tức
-      if (running) {
-        console.log("🛑 Stopping timer with Space key");
-        setRunning(false);
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        setPendingResult(timerRef.current);
-        setPendingType('normal');
-        setCanStart(false);
-        console.log("📊 Pending result set:", timerRef.current);
-        return;
-      }
-      
       if (prep) {
-        // Đang trong prep mode, bắt đầu giữ phím
-        pressStartRef.current = Date.now();
-        localSpaceHeld = true;
-        setSpaceHeld(true); // Đang giữ phím
-        console.log("🔒 Starting to hold Space in prep mode");
+        if (!spaceHeld) {
+          pressStartRef.current = Date.now();
+          spaceHeld = true;
+        }
       } else if (!prep && !running) {
-        // Bắt đầu prep mode
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
         pressStartRef.current = Date.now();
-        localSpaceHeld = true;
-        setSpaceHeld(true); // Đang giữ phím
-        console.log("⏰ Starting prep mode (15s countdown)");
+        spaceHeld = true;
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (prep && localSpaceHeld) {
+      if (prep && spaceHeld) {
         const now = Date.now();
         const start = pressStartRef.current;
         pressStartRef.current = null;
-        localSpaceHeld = false;
-        setSpaceHeld(false); // Thả phím
+        spaceHeld = false;
         if (start && now - start >= 50) {
-          // Giữ Space >= 50ms: bắt đầu timer ngay lập tức
-          console.log("🎯 Held Space for", now - start, "ms - starting timer immediately");
           setPrep(false);
           setCanStart(true);
-          console.log("🎯 Timer ready to start immediately!");
-        } else if (start) {
-          // Giữ Space < 50ms: tiếp tục đếm ngược 15s
-          console.log("⏰ Held Space for", now - start, "ms - continuing 15s countdown");
         }
-      } else {
-        setSpaceHeld(false); // Thả phím
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -503,7 +475,7 @@ export default function RoomPage() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, running, prep, turn, myResults.length, isSpectator]);
+  }, [isMobile, waiting, running, prep, turn, myResults.length, pendingResult]);
 
   // Đếm ngược 15s chuẩn bị
   useEffect(() => {
