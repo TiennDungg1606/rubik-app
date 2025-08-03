@@ -1068,22 +1068,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               <button
                 className={mobileShrink ? "px-2 py-1 text-[10px] rounded bg-green-600 hover:bg-green-700 font-bold text-white" : "px-4 py-2 text-base rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white"}
                 onClick={() => {
-                  // Reset toàn bộ trạng thái như phòng mới, giữ quyền chủ phòng
-                  setMyResults([]);
-                  setOpponentResults([]);
-                  setScramble("");
-                  setScrambleIndex(0);
-                  setPrep(false);
-                  setCanStart(false);
-                  setSpaceHeld(false);
-                  setTimer(0);
-                  setDnf(false);
-                  setPendingResult(null);
-                  setPendingType('normal');
-                  setOpponentTime(null);
-                  // Gửi yêu cầu tạo scramble mới lên server
+                  // Gửi sự kiện tái đấu lên server để cả phòng cùng reset và nhận scramble mới
                   const socket = getSocket();
-                  socket.emit("next-scramble", { roomId });
+                  socket.emit("rematch", { roomId, userId });
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >Tái đấu</button>
