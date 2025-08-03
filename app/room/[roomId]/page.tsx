@@ -124,11 +124,39 @@ export default function RoomPage() {
   const [rematchModal, setRematchModal] = useState<{show: boolean, from: 'me'|'opponent'|null}>({show: false, from: null});
   const [rematchPending, setRematchPending] = useState(false); // Đang chờ đối phương đồng ý
   const [rematchDeclined, setRematchDeclined] = useState(false); // Đối phương đã từ chối
+  const [rematchJustAccepted, setRematchJustAccepted] = useState(false);
 
 // ... (các khai báo state khác)
 
-
-// ... (các khai báo state khác)
+// Lắng nghe sự kiện reset phòng từ server (khi chỉ còn 1 người)
+useEffect(() => {
+  const socket = getSocket();
+  const handleRoomReset = () => {
+    setMyResults([]);
+    setOpponentResults([]);
+    setScramble("");
+    setScrambleIndex(0);
+    setScrambles([]);
+    setPrep(false);
+    setCanStart(false);
+    setSpaceHeld(false);
+    setTimer(0);
+    setDnf(false);
+    setPendingResult(null);
+    setPendingType('normal');
+    setOpponentId("");
+    setOpponentName("Đối thủ");
+    setRoomUrl("");
+    setRematchPending(false);
+    setRematchModal({ show: false, from: null });
+    setRematchDeclined(false);
+    setTurn('me'); // Chủ phòng luôn được chơi trước
+  };
+  socket.on('room-reset', handleRoomReset);
+  return () => {
+    socket.off('room-reset', handleRoomReset);
+  };
+}, [roomId]);
 
 // Đặt effect lắng nghe rematch ở cuối cùng, sau tất cả các state liên quan
 
@@ -145,7 +173,6 @@ useEffect(() => {
   };
   // Khi đối phương đồng ý tái đấu
   const handleRematchAccepted = () => {
-    // Reset toàn bộ kết quả, scramble, index, giữ quyền chủ phòng
     setMyResults([]);
     setOpponentResults([]);
     setScramble("");
@@ -154,7 +181,7 @@ useEffect(() => {
     setPendingType('normal');
     setTurn(isCreator ? 'me' : 'opponent');
     setRematchPending(false);
-    // Không gửi next-scramble, chỉ chờ server gửi scramble đầu tiên
+    setRematchJustAccepted(true); // Đánh dấu vừa tái đấu xong
   };
   // Khi đối phương từ chối tái đấu
   const handleRematchDeclined = () => {
@@ -172,6 +199,44 @@ useEffect(() => {
     socket.off('rematch-declined', handleRematchDeclined);
   };
 }, [userId, roomId, isCreator]);
+
+// --- EFFECT LẮNG NGHE SCRAMBLE ---
+useEffect(() => {
+  const socket = getSocket();
+  let scrambleMsgTimeout: NodeJS.Timeout | null = null;
+  const handleScramble = ({ scramble, index }: { scramble: string, index: number }) => {
+    setScramble(scramble);
+    setScrambleIndex(index);
+    setScrambles(prev => {
+      const arr = [...prev];
+      arr[index] = scramble;
+      return arr.slice(0, 5); // chỉ giữ 5 scramble
+    });
+    // Reset trạng thái cho vòng mới
+    setPrep(false);
+    setCanStart(false);
+    setSpaceHeld(false);
+    setTimer(0);
+    setDnf(false);
+    setPendingResult(null);
+    setPendingType('normal');
+    setShowScrambleMsg(true); // Hiện thông báo tráo scramble
+    if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
+    scrambleMsgTimeout = setTimeout(() => {
+      setShowScrambleMsg(false);
+    }, 10000);
+    // Nếu vừa tái đấu xong thì reset cờ
+    setRematchJustAccepted(false);
+  };
+  socket.on("scramble", handleScramble);
+  return () => {
+    socket.off("scramble", handleScramble);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
+    if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
+  };
+}, [roomId]);
+
   // Hàm gửi yêu cầu tái đấu
   function handleRematch() {
     const socket = getSocket();
