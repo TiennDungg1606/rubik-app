@@ -276,6 +276,27 @@ export default function RoomPage() {
       const filteredUsers = (roomUsers || []).filter(u => u && typeof u.userId === 'string');
       setUsers(filteredUsers.map(u => u.userId));
       setWaiting(filteredUsers.length < 2);
+      // Nếu chỉ còn 1 người trong phòng, reset toàn bộ trạng thái, scramble, kết quả, trở thành chủ phòng
+      if (filteredUsers.length === 1 && filteredUsers[0].userId === userId) {
+        setIsCreator(true);
+        setMyResults([]);
+        setOpponentResults([]);
+        setScramble("");
+        setScrambleIndex(0);
+        setPrep(false);
+        setCanStart(false);
+        setSpaceHeld(false);
+        setTimer(0);
+        setDnf(false);
+        setPendingResult(null);
+        setPendingType('normal');
+        setOpponentId("");
+        setOpponentName("Đối thủ");
+        setRoomUrl("");
+        // Gửi yêu cầu tạo scramble mới lên server (nếu cần)
+        const socket = getSocket();
+        socket.emit("next-scramble", { roomId });
+      }
       // Xác định đối thủ
       const opp = filteredUsers.find(u => u.userId !== userId);
       if (opp) {
@@ -1007,6 +1028,67 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               >DNF</button>
             </div>
           ) : null}
+
+          {/* Nút Xuất kết quả và Tái đấu sau khi trận đấu kết thúc */}
+          {myResults.length >= 5 && opponentResults.length >= 5 && (
+            <div className="flex flex-row items-center justify-center gap-2 mb-2">
+              <button
+                className={mobileShrink ? "px-2 py-1 text-[10px] rounded bg-blue-600 hover:bg-blue-700 font-bold text-white" : "px-4 py-2 text-base rounded-lg bg-blue-600 hover:bg-blue-700 font-bold text-white"}
+                onClick={() => {
+                  // Tạo nội dung file txt
+                  let txt = `KẾT QUẢ PHÒNG: ${roomId}\n\n`;
+                  txt += `Tên 1: ${userName}\n`;
+                  txt += `Tên 2: ${opponentName}\n\n`;
+                  txt += `--- Kết quả từng lượt ---\n`;
+                  for (let i = 0; i < 5; i++) {
+                    const myVal = (myResults && myResults[i] !== undefined) ? myResults[i] : null;
+                    const oppVal = (opponentResults && opponentResults[i] !== undefined) ? opponentResults[i] : null;
+                    txt += `Lượt ${i+1}: ${userName}: ${myVal === null ? 'DNF' : (typeof myVal === 'number' ? (myVal/1000).toFixed(3) + 's' : '')} | ${opponentName}: ${oppVal === null ? 'DNF' : (typeof oppVal === 'number' ? (oppVal/1000).toFixed(3) + 's' : '')}\n`;
+                  }
+                  txt += `\n--- Tổng hợp ---\n`;
+                  const myStats = calcStats(myResults);
+                  const oppStats = calcStats(opponentResults);
+                  txt += `${userName}: Best: ${myStats.best !== null ? (myStats.best/1000).toFixed(3)+'s' : 'DNF'}, Worst: ${myStats.worst !== null ? (myStats.worst/1000).toFixed(3)+'s' : 'DNF'}, Mean: ${myStats.mean !== null ? (myStats.mean/1000).toFixed(3)+'s' : 'DNF'}, Ao5: ${myStats.ao5 !== null ? (myStats.ao5/1000).toFixed(3)+'s' : 'DNF'}\n`;
+                  txt += `${opponentName}: Best: ${oppStats.best !== null ? (oppStats.best/1000).toFixed(3)+'s' : 'DNF'}, Worst: ${oppStats.worst !== null ? (oppStats.worst/1000).toFixed(3)+'s' : 'DNF'}, Mean: ${oppStats.mean !== null ? (oppStats.mean/1000).toFixed(3)+'s' : 'DNF'}, Ao5: ${oppStats.ao5 !== null ? (oppStats.ao5/1000).toFixed(3)+'s' : 'DNF'}\n`;
+                  // Tạo file và tải về
+                  const blob = new Blob([txt], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `ketqua_${roomId}.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  }, 100);
+                }}
+                style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
+              >Xuất kết quả</button>
+              <button
+                className={mobileShrink ? "px-2 py-1 text-[10px] rounded bg-green-600 hover:bg-green-700 font-bold text-white" : "px-4 py-2 text-base rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white"}
+                onClick={() => {
+                  // Reset toàn bộ trạng thái như phòng mới, giữ quyền chủ phòng
+                  setMyResults([]);
+                  setOpponentResults([]);
+                  setScramble("");
+                  setScrambleIndex(0);
+                  setPrep(false);
+                  setCanStart(false);
+                  setSpaceHeld(false);
+                  setTimer(0);
+                  setDnf(false);
+                  setPendingResult(null);
+                  setPendingType('normal');
+                  setOpponentTime(null);
+                  // Gửi yêu cầu tạo scramble mới lên server
+                  const socket = getSocket();
+                  socket.emit("next-scramble", { roomId });
+                }}
+                style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
+              >Tái đấu</button>
+            </div>
+          )}
           <div
             className={
               mobileShrink
