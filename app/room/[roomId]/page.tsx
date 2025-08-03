@@ -103,33 +103,13 @@ export default function RoomPage() {
   const [userName, setUserName] = useState<string>(""); // display name
   const [isCreator, setIsCreator] = useState<boolean>(false);
   const [showRules, setShowRules] = useState(false); // State for luật thi đấu modal
-  // State cho chat
-  type ChatMsg = { from: string; name: string; text: string };
-  const [showChat, setShowChat] = useState<boolean>(false);
-  const [unreadChat, setUnreadChat] = useState(false);
-  const [chatInput, setChatInput] = useState<string>("");
-  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
-  // Lắng nghe tin nhắn chat qua socket
-  useEffect(() => {
-    const socket = getSocket();
-    const handleChat = (data: { userId: string; userName: string; message: string }) => {
-      setChatMessages(msgs => [...msgs, { from: data.userId, name: data.userName, text: data.message }]);
-      // Nếu là tin nhắn từ đối thủ và chưa mở chat thì hiện badge đỏ
-      if (data.userId !== userId && !showChat) setUnreadChat(true);
-    };
-    socket.on("chat", handleChat);
-    return () => { socket.off("chat", handleChat); };
-  }, [userId, showChat]);
 
 
-  const [opponentName, setOpponentName] = useState<string>("Đối thủ"); // display name
+  const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
-  const [isSpectator, setIsSpectator] = useState<boolean>(false);
-  const [showRoleModal, setShowRoleModal] = useState<boolean>(false);
-  const [showOwnerNotification, setShowOwnerNotification] = useState<boolean>(false);
 
   // Lắng nghe sự kiện đối thủ tắt/bật cam để hiện overlay đúng
   useEffect(() => {
@@ -287,86 +267,66 @@ export default function RoomPage() {
 
 
   // Kết nối socket, join room, lắng nghe users và kết quả đối thủ
-useEffect(() => {
-  const socket = getSocket();
-  if (!userId || !roomId || !userName) return;
-  // Tự động xác định spectator: nếu đã có 2 người trong phòng và user chưa có trong danh sách
-  // Lưu ý: chỉ xác định spectator sau khi nhận room-users, không nên dựa vào users ở đây để tránh lặp
-  socket.emit("join-room", { roomId, userId, userName });
-
-  socket.on("room-users", (roomUsers) => {
-    type RoomUser = { userId: string; userName: string };
-    const filteredUsers = (roomUsers || []).filter((u: any): u is RoomUser => u && typeof u.userId === 'string');
-    setUsers(filteredUsers.map((u: RoomUser) => u.userId));
-    setWaiting(filteredUsers.length < 2);
-    // Tự động xác định spectator: nếu đã có 2 người chơi thì người mới vào sẽ là spectator
-    const isUserInRoom = filteredUsers.some((u: RoomUser) => u.userId === userId);
-    if (filteredUsers.length >= 2 && !isUserInRoom) {
-      setIsSpectator(true);
-    } else if (isUserInRoom) {
-      setIsSpectator(false);
-    }
-    // ...existing code...
-    // Logic trao quyền chủ phòng, xác định đối thủ, ...
-    // ...existing code...
-  });
-  socket.on("opponent-solve", ({ userId: oppId, userName: oppName, time }) => {
-    setOpponentResults(r => [...r, time]);
-    if (!isSpectator) {
+  useEffect(() => {
+    const socket = getSocket();
+    if (!userId) return;
+    socket.emit("join-room", { roomId, userId, userName });
+    socket.on("room-users", (roomUsers: Array<{ userId: string, userName: string }>) => {
+      // roomUsers là mảng object { userId, userName }
+      const filteredUsers = (roomUsers || []).filter(u => u && typeof u.userId === 'string');
+      setUsers(filteredUsers.map(u => u.userId));
+      setWaiting(filteredUsers.length < 2);
+      // Xác định đối thủ
+      const opp = filteredUsers.find(u => u.userId !== userId);
+      if (opp) {
+        setOpponentId(opp.userId);
+        setOpponentName(opp.userName || 'Đối thủ');
+      }
+    });
+    socket.on("opponent-solve", ({ userId: oppId, userName: oppName, time }: { userId: string, userName: string, time: number|null }) => {
+      setOpponentResults(r => [...r, time]);
       setTurn('me');
-    }
-    setOpponentId(oppId);
-    setOpponentName(oppName || 'Đối thủ');
-  });
-  socket.on("room-full", ({ message }) => {
-    alert(message);
-    window.location.href = '/lobby';
-  });
-  return () => {
-    socket.off("room-users");
-    socket.off("opponent-solve");
-    socket.off("room-full");
-  };
-}, [roomId, userId, userName]);
+      setOpponentId(oppId);
+      setOpponentName(oppName || 'Đối thủ');
+    });
+    return () => {
+      socket.off("room-users");
+      socket.off("opponent-solve");
+    };
+  }, [roomId, userId, userName]);
 
 
   // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
   useEffect(() => {
-    if (isCreator && typeof userId === 'string' && !isSpectator) {
+    if (isCreator && typeof userId === 'string') {
       setUsers([userId]);
       setWaiting(true);
       setTurn('me'); // Chủ phòng luôn được chơi trước
     }
-  }, [isCreator, userId, isSpectator]);
+  }, [isCreator, userId]);
 
   // Khi đủ 2 người, nếu không phải chủ phòng thì phải chờ đối thủ chơi trước
   useEffect(() => {
-    if (!isCreator && users.length === 2 && !isSpectator) {
+    if (!isCreator && users.length === 2) {
       setTurn('opponent');
     }
-  }, [isCreator, users.length, isSpectator]);
+  }, [isCreator, users.length]);
 
   // Nhận scramble từ server qua socket, hiện thông báo tráo scramble đúng 5s
   useEffect(() => {
     const socket = getSocket();
     let scrambleMsgTimeout: NodeJS.Timeout | null = null;
     const handleScramble = ({ scramble, index }: { scramble: string, index: number }) => {
-      console.log("🔄 Received new scramble, prep:", prep, "running:", running);
       setScramble(scramble);
       setScrambleIndex(index);
-      // Reset trạng thái cho vòng mới (chỉ khi không đang trong prep, running hoặc canStart)
-      if (!prep && !running && !canStart) {
-        console.log("🔄 Resetting timer due to new scramble");
-        setPrep(false);
-        setCanStart(false);
-        setSpaceHeld(false);
-        setTimer(0);
-        setDnf(false);
-        setPendingResult(null);
-        setPendingType('normal');
-      } else {
-        console.log("🔄 Skipping timer reset - prep, running, or canStart in progress");
-      }
+      // Reset trạng thái cho vòng mới
+      setPrep(false);
+      setCanStart(false);
+      setSpaceHeld(false);
+      setTimer(0);
+      setDnf(false);
+      setPendingResult(null);
+      setPendingType('normal');
       setShowScrambleMsg(true); // Hiện thông báo tráo scramble
       if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
       scrambleMsgTimeout = setTimeout(() => {
@@ -380,7 +340,7 @@ useEffect(() => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
       if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
     };
-  }, [roomId, prep, running]);
+  }, [roomId]);
   // Ẩn thông báo tráo scramble khi có người bắt đầu giải (bắt đầu chuẩn bị hoặc chạy)
   useEffect(() => {
     if (prep || running) {
@@ -389,37 +349,43 @@ useEffect(() => {
   }, [prep, running]);
 
 
-  // Khôi phục logic Space key như phiên bản cũ, ngưỡng 50ms
+  // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
     if (waiting || running || turn !== 'me' || myResults.length >= 5 || pendingResult !== null) return;
-    let spaceHeld = false;
+    let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
+      if (pendingResult !== null) return; // Không cho vào prep khi đang chờ xác nhận kết quả
       if (prep) {
-        if (!spaceHeld) {
+        if (!localSpaceHeld) {
           pressStartRef.current = Date.now();
-          spaceHeld = true;
+          localSpaceHeld = true;
+          setSpaceHeld(true); // Đang giữ phím
         }
       } else if (!prep && !running) {
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
         pressStartRef.current = Date.now();
-        spaceHeld = true;
+        localSpaceHeld = true;
+        setSpaceHeld(true); // Đang giữ phím
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (prep && spaceHeld) {
+      if (prep && localSpaceHeld) {
         const now = Date.now();
         const start = pressStartRef.current;
         pressStartRef.current = null;
-        spaceHeld = false;
+        localSpaceHeld = false;
+        setSpaceHeld(false); // Thả phím
         if (start && now - start >= 50) {
           setPrep(false);
           setCanStart(true);
         }
+      } else {
+        setSpaceHeld(false); // Thả phím
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -428,12 +394,12 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, turn, myResults.length, pendingResult]);
+  }, [isMobile, waiting, running, prep, turn, myResults.length]);
 
   // Đếm ngược 15s chuẩn bị
   useEffect(() => {
-    if (!prep) return; // Chỉ cần kiểm tra prep, không cần kiểm tra waiting
-    // Không reset canStart khi vào prep mode, chỉ reset khi hết thời gian
+    if (!prep || waiting) return;
+    setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
     prepIntervalRef.current = setInterval(() => {
@@ -462,13 +428,12 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep]);
+  }, [prep, waiting]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
-    if (!canStart) return; // Bỏ waiting check
-    console.log("🚀 Starting timer from canStart effect");
+    if (!canStart || waiting) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -488,8 +453,7 @@ useEffect(() => {
       // Không setTurn('opponent') ở đây, chờ xác nhận
     };
     const handleAnyKey = (e: KeyboardEvent) => {
-      // Không dừng timer nếu đang nhấn Space (Space có logic riêng)
-      if (e.code === "Space") return;
+      if (waiting) return;
       if (e.type === 'keydown') {
         stopTimer();
       }
@@ -523,7 +487,7 @@ useEffect(() => {
       }
     };
     // eslint-disable-next-line
-  }, [canStart, roomId, userName, isMobile, isSpectator]);
+  }, [canStart, waiting, roomId, userName, isMobile]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
@@ -539,28 +503,19 @@ useEffect(() => {
   useEffect(() => {
     const totalSolves = myResults.length + opponentResults.length;
     if (totalSolves === 0) return;
-    
-    // Chỉ reset timer khi đối thủ vừa giải xong và đến lượt mình
-    // Điều kiện: đối thủ có kết quả mới (opponentResults.length > myResults.length)
-    // VÀ không đang trong prep mode hoặc running
-    if (opponentResults.length > myResults.length && !prep && !running && !canStart) {
-      console.log("🔄 Resetting timer - opponent finished, my turn now");
-      setPrep(false);
-      setCanStart(false);
-      setSpaceHeld(false);
-      setTimer(0);
-      setDnf(false);
-      setPendingResult(null);
-      setPendingType('normal');
-    }
-    
+    if (myResults.length > 0 && myResults.length > opponentResults.length) return; // chờ đối thủ
+    setPrep(false);
+    setCanStart(false);
+    setSpaceHeld(false);
+    setTimer(0);
+    setDnf(false);
     // Chỉ đổi scramble khi tổng số lượt giải là số chẵn (sau mỗi vòng)
     if (totalSolves % 2 === 0 && totalSolves < 10) {
       // Gửi yêu cầu đổi scramble lên server (nếu là chủ phòng)
       const socket = getSocket();
       socket.emit("next-scramble", { roomId });
     }
-  }, [myResults, opponentResults, prep, running]);
+  }, [myResults, opponentResults]);
 
   // Tính toán thống kê
   const myStats = calcStats(myResults);
@@ -576,16 +531,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
   return (val/1000).toFixed(3);
 }
 
-  // Nếu sau 5s vẫn chưa có userName hoặc roomId, tự động chuyển về trang đăng nhập
-  useEffect(() => {
-    if (userName && roomId) return;
-    const timeout = setTimeout(() => {
-      if (!userName || !roomId) {
-        window.location.href = '/'; // hoặc '/login' tùy route đăng nhập
-      }
-    }, 5000);
-    return () => clearTimeout(timeout);
-  }, [userName, roomId]);
   if (!userName || !roomId) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-black text-white">
@@ -699,97 +644,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>  
         </div>
       )}
-      {/* Khối trên cùng: Tên phòng và scramble với 2 nút bo góc nằm ngang hàng với Phòng: [id] */}
+      {/* Khối trên cùng: Tên phòng và scramble */}
       <div className="w-full flex flex-col items-center justify-center mb-0.5">
-        <div className={mobileShrink ? "flex flex-row items-center justify-center w-full mb-1" : "flex flex-row items-center justify-center w-full mb-2"}>
-          {/* Nút Draw Scramble bên trái */}
-          <button
-            className={mobileShrink ? "px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold shadow mr-2" : "px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold shadow mr-4"}
-            style={mobileShrink ? { borderRadius: 8 } : { borderRadius: 12 }}
-            type="button"
-            onClick={() => {
-              const socket = getSocket();
-              socket.emit("next-scramble", { roomId });
-            }}
-          >Draw Scramble</button>
-          <h2 className={mobileShrink ? "text-[14px] font-bold m-0" : "text-3xl font-bold m-0"}>
-            Phòng: <span className="text-blue-400">{roomId}</span>
-          </h2>
-          {/* Nút Chat bên phải */}
-          <button
-            className={mobileShrink ? "px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold shadow ml-2 flex items-center justify-center relative" : "px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold shadow ml-4 flex items-center justify-center relative"}
-            style={mobileShrink ? { borderRadius: 8 } : { borderRadius: 12 }}
-            type="button"
-            onClick={() => { setShowChat(true); setUnreadChat(false); }}
-            aria-label="Chat"
-          >
-            {/* Chat bubble emoji 🗨️ */}
-            <span style={{fontSize: mobileShrink ? 20 : 28, lineHeight: 1}}>🗨️</span>
-            {/* Badge đỏ khi có tin nhắn mới từ đối thủ */}
-            {unreadChat && (
-              <span style={{position:'absolute',top:mobileShrink?2:4,right:mobileShrink?2:4,width:mobileShrink?8:12,height:mobileShrink?8:12,background:'#f00',borderRadius:'50%',border:'2px solid #fff',display:'block'}}></span>
-            )}
-          </button>
-      {/* Chat modal */}
-      {showChat && (
-        <div className="fixed z-[200] flex items-center justify-center inset-0 bg-black bg-opacity-30" style={{backdropFilter:'blur(2px)'}}>
-          <div className={mobileShrink ? "bg-gray-900 rounded-xl shadow-lg border-2 border-blue-400 flex flex-col" : "bg-gray-900 rounded-2xl shadow-2xl border-4 border-blue-400 flex flex-col"}
-            style={mobileShrink ? { width: 260, height: 340, maxWidth: '95vw', maxHeight: '90vh', position: 'relative' } : { width: 400, height: 500, maxWidth: '95vw', maxHeight: '90vh', position: 'relative' }}>
-            <button
-              onClick={() => setShowChat(false)}
-              className={mobileShrink ? "absolute top-1 right-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold z-10" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold z-10"}
-              style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
-              type="button"
-            >Đóng</button>
-            <div className={mobileShrink ? "text-[13px] font-bold text-green-300 mb-1 text-center pt-2" : "text-xl font-bold text-green-300 mb-3 text-center pt-4"}>
-              Chat phòng
-            </div>
-            <div className={mobileShrink ? "flex-1 overflow-y-auto px-2 pb-2" : "flex-1 overflow-y-auto px-4 pb-4"} style={{display:'flex',flexDirection:'column',gap:mobileShrink?4:8}}>
-              {chatMessages.length === 0 && (
-                <div className="text-gray-400 text-center mt-4">Chưa có tin nhắn nào</div>
-              )}
-              {chatMessages.map((msg, idx) => (
-                <div key={idx} style={{display:'flex',justifyContent:msg.from===userId?'flex-end':'flex-start'}}>
-                  <div className={msg.from===userId
-                    ? (mobileShrink ? "bg-blue-700 text-white font-bold rounded-lg px-2 py-1 text-[11px] max-w-[70%] ml-auto" : "bg-blue-700 text-white font-bold rounded-xl px-3 py-2 text-base max-w-[70%] ml-auto")
-                    : (mobileShrink ? "bg-gray-700 text-white font-bold rounded-lg px-2 py-1 text-[11px] max-w-[70%] mr-auto" : "bg-gray-700 text-white font-bold rounded-xl px-3 py-2 text-base max-w-[70%] mr-auto")
-                  }>
-                    <span>{msg.text}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <form className={mobileShrink ? "flex flex-row items-center px-2 pb-2 pt-1 gap-1" : "flex flex-row items-center px-4 pb-4 pt-2 gap-2"}
-              style={{borderTop:'1px solid #444'}} onSubmit={e=>{
-                e.preventDefault();
-                if(!chatInput.trim() || isSpectator)return;
-                const socket = getSocket();
-                socket.emit("chat",{roomId,userId,userName,message:chatInput});
-                setChatInput("");
-              }}>
-              <input
-                className={mobileShrink ? "flex-1 rounded bg-gray-800 text-white px-2 py-1 text-[12px] border border-gray-600 focus:outline-none" : "flex-1 rounded-lg bg-gray-800 text-white px-3 py-2 text-base border border-gray-600 focus:outline-none"}
-                type="text"
-                placeholder={isSpectator ? "Người xem không thể chat..." : "Nhập tin nhắn..."}
-                value={chatInput}
-                onChange={e=>setChatInput(e.target.value)}
-                autoFocus
-                maxLength={200}
-                disabled={isSpectator}
-              />
-              <button 
-                type="submit" 
-                className={mobileShrink ? "px-2 py-1 bg-blue-700 hover:bg-blue-800 rounded text-white text-[13px] font-bold flex items-center justify-center" : "px-3 py-2 bg-blue-700 hover:bg-blue-800 rounded-lg text-white text-lg font-bold flex items-center justify-center"} 
-                style={{minWidth:mobileShrink?32:44}}
-                disabled={isSpectator}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={mobileShrink?"w-4 h-4":"w-6 h-6"}><path strokeLinecap="round" strokeLinejoin="round" d="M3 21l18-9-18-9v7l13 2-13 2v7z" /></svg>
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-        </div>
+        <h2 className={mobileShrink ? "text-[14px] font-bold mb-1" : "text-3xl font-bold mb-2"}>
+          Phòng: <span className="text-blue-400">{roomId}</span>
+        </h2>
         <div className={mobileShrink ? "mb-1 px-2 py-1 bg-gray-800 rounded text-[16px] font-mono font-bold tracking-widest select-all w-[90vw] max-w-[340px] overflow-x-auto whitespace-normal" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
           style={mobileShrink ? { fontSize: 16, minWidth: '60vw', maxWidth: 340, overflowX: 'auto', whiteSpace: 'normal' } : {}}>
           {scramble}
@@ -1013,21 +872,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               for (let i = 0; i < webcamEls.length; i++) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
-              if (myResults.length >= 5) return; // Bỏ waiting check
-              if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
-              
-              // Nếu timer đang chạy, dừng timer ngay lập tức
-              if (running) {
-                console.log("🛑 Stopping timer with Space key");
-                setRunning(false);
-                if (intervalRef.current) clearInterval(intervalRef.current);
-                setPendingResult(timerRef.current);
-                setPendingType('normal');
-                setCanStart(false);
-                console.log("📊 Pending result set:", timerRef.current);
-                return;
-              }
-              
+              if (waiting || myResults.length >= 5) return;
               // Đánh dấu touch bắt đầu
               pressStartRef.current = Date.now();
               setSpaceHeld(true); // Đang giữ tay
@@ -1039,14 +884,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               for (let i = 0; i < webcamEls.length; i++) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
-              if (myResults.length >= 5) return; // Bỏ waiting check
-              if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
+              if (waiting || myResults.length >= 5) return;
               const now = Date.now();
               const start = pressStartRef.current;
               pressStartRef.current = null;
               setSpaceHeld(false); // Thả tay
               // 1. Tap and release to enter prep
-              if (!prep && !running && (isSpectator || turn === 'me')) {
+              if (!prep && !running && turn === 'me') {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
@@ -1055,12 +899,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               // 2. In prep, giữ >=0.5s rồi thả ra để start timer
               if (prep && !running) {
                 if (start && now - start >= 50) {
-                  // Giữ touch >= 50ms: bắt đầu timer ngay lập tức
                   setPrep(false);
                   setCanStart(true);
-                  console.log("🎯 Timer ready to start immediately (touch)!");
                 }
-                // Nếu giữ < 50ms: tiếp tục đếm ngược 15s
                 return;
               }
               // 3. When running, tap and release to stop timer
@@ -1075,29 +916,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
           } : {
             onClick: () => {
-              if (myResults.length >= 5 || pendingResult !== null) return; // Bỏ waiting check
-              if (!isSpectator && turn !== 'me') return; // Chỉ kiểm tra turn nếu không phải spectator
-              
-              // Nếu timer đang chạy, dừng timer ngay lập tức
-              if (running) {
-                console.log("🛑 Stopping timer with Space key");
-                setRunning(false);
-                if (intervalRef.current) clearInterval(intervalRef.current);
-                setPendingResult(timerRef.current);
-                setPendingType('normal');
-                setCanStart(false);
-                return;
-              }
-              
-              if (!prep && !running && (isSpectator || turn === 'me')) {
+              if (waiting || myResults.length >= 5 || pendingResult !== null) return;
+              if (!prep && !running && turn === 'me') {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
               } else if (prep && !running) {
-                // Click trong prep mode: bắt đầu timer ngay lập tức
                 setPrep(false);
                 setCanStart(true);
-                console.log("🎯 Timer ready to start immediately (click)!");
               } else if (canStart && !running) {
                 setRunning(true);
                 setTimer(0);
@@ -1120,8 +946,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
           })}
         >
-          {/* Nếu có pendingResult thì hiện 3 nút xác nhận (chỉ cho người chơi) */}
-          {!isSpectator && pendingResult !== null && !running && !prep ? (
+          {/* Nếu có pendingResult thì hiện 3 nút xác nhận */}
+          {pendingResult !== null && !running && !prep ? (
             <div className="flex flex-row items-center justify-center gap-1 mb-1">
               <button
                 className={mobileShrink ? "px-1 py-0.5 text-[9px] rounded bg-green-600 hover:bg-green-700 font-bold text-white" : "px-3 py-1 text-base rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white"}
@@ -1200,12 +1026,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               </>
             )}
           </div>
-          {!isSpectator && running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
-          {!isSpectator && prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
-          {isSpectator && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>👁️ Chế độ xem</div>}
+          {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
+          {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
         </div>
-        
-
         {/* Webcam đối thủ - cột 3 */}
         <div
           className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
@@ -1249,20 +1072,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           remoteVideoRef={remoteVideoRef}
         />
       ) : null}
-
-      {/* Thông báo khi trở thành chủ phòng mới */}
-      {showOwnerNotification && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🎯</span>
-            <span>Bạn đã trở thành chủ phòng mới!</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 // Dynamic import cho VideoCall tránh lỗi SSR, không cần generic
 const VideoCall = dynamic(() => import('@/components/VideoCall'), { ssr: false });
-
