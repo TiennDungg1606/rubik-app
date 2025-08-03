@@ -154,11 +154,7 @@ useEffect(() => {
     setPendingType('normal');
     setTurn(isCreator ? 'me' : 'opponent');
     setRematchPending(false);
-    // Gửi yêu cầu tạo scramble mới lên server (5 cái)
-    const socket = getSocket();
-    for (let i = 0; i < 5; i++) {
-      socket.emit("next-scramble", { roomId });
-    }
+    // Không gửi next-scramble, chỉ chờ server gửi scramble đầu tiên
   };
   // Khi đối phương từ chối tái đấu
   const handleRematchDeclined = () => {
@@ -197,10 +193,7 @@ useEffect(() => {
       setPendingResult(null);
       setPendingType('normal');
       setTurn(isCreator ? 'me' : 'opponent');
-      // Gửi yêu cầu tạo scramble mới lên server (5 cái)
-      for (let i = 0; i < 5; i++) {
-        socket.emit("next-scramble", { roomId });
-      }
+      // Không gửi next-scramble, chỉ chờ server gửi scramble đầu tiên
     } else {
       socket.emit('rematch-declined', { roomId });
     }
