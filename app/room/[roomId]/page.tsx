@@ -83,6 +83,7 @@ export default function RoomPage() {
   const [opponentCamOn, setOpponentCamOn] = useState<boolean>(true);
   const [micOn, setMicOn] = useState<boolean>(true);
   // Đã loại bỏ các ref và state liên quan đến Stringee và mediaStream, chỉ giữ lại state cho Daily.co và socket
+ 
   const [roomId, setRoomId] = useState<string>("");
   const [scramble, setScramble] = useState<string>("");
   const [scrambleIndex, setScrambleIndex] = useState<number>(0);
@@ -118,6 +119,88 @@ export default function RoomPage() {
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
 
+   // State cho tái đấu
+  const [rematchModal, setRematchModal] = useState<{show: boolean, from: 'me'|'opponent'|null}>({show: false, from: null});
+  const [rematchPending, setRematchPending] = useState(false); // Đang chờ đối phương đồng ý
+
+// ... (các khai báo state khác)
+
+
+// ... (các khai báo state khác)
+
+// Đặt effect lắng nghe rematch ở cuối cùng, sau tất cả các state liên quan
+
+// --- EFFECT LẮNG NGHE REMATCH ---
+
+useEffect(() => {
+  const socket = getSocket();
+  if (!userId) return;
+  // Khi nhận được yêu cầu tái đấu
+  const handleRematchRequest = ({ fromUserId }: { fromUserId: string }) => {
+    if (fromUserId !== userId) {
+      setRematchModal({ show: true, from: 'opponent' });
+    }
+  };
+  // Khi đối phương đồng ý tái đấu
+  const handleRematchAccepted = () => {
+    // Reset toàn bộ kết quả, scramble, index, giữ quyền chủ phòng
+    setMyResults([]);
+    setOpponentResults([]);
+    setScramble("");
+    setScrambleIndex(0);
+    setPendingResult(null);
+    setPendingType('normal');
+    setTurn(isCreator ? 'me' : 'opponent');
+    setRematchPending(false);
+    // Gửi yêu cầu tạo scramble mới lên server (5 cái)
+    const socket = getSocket();
+    for (let i = 0; i < 5; i++) {
+      socket.emit("next-scramble", { roomId });
+    }
+  };
+  // Khi đối phương từ chối tái đấu
+  const handleRematchDeclined = () => {
+    setRematchPending(false);
+    setRematchModal({ show: false, from: null });
+  };
+  socket.on('rematch-request', handleRematchRequest);
+  socket.on('rematch-accepted', handleRematchAccepted);
+  socket.on('rematch-declined', handleRematchDeclined);
+  return () => {
+    socket.off('rematch-request', handleRematchRequest);
+    socket.off('rematch-accepted', handleRematchAccepted);
+    socket.off('rematch-declined', handleRematchDeclined);
+  };
+}, [userId, roomId, isCreator]);
+  // Hàm gửi yêu cầu tái đấu
+  function handleRematch() {
+    const socket = getSocket();
+    setRematchPending(true);
+    socket.emit('rematch-request', { roomId, fromUserId: userId });
+  }
+
+  // Hàm đối phương đồng ý hoặc từ chối
+  function respondRematch(accept: boolean) {
+    const socket = getSocket();
+    setRematchModal({ show: false, from: null });
+    if (accept) {
+      socket.emit('rematch-accepted', { roomId });
+      // Reset toàn bộ kết quả, scramble, index, giữ quyền chủ phòng
+      setMyResults([]);
+      setOpponentResults([]);
+      setScramble("");
+      setScrambleIndex(0);
+      setPendingResult(null);
+      setPendingType('normal');
+      setTurn(isCreator ? 'me' : 'opponent');
+      // Gửi yêu cầu tạo scramble mới lên server (5 cái)
+      for (let i = 0; i < 5; i++) {
+        socket.emit("next-scramble", { roomId });
+      }
+    } else {
+      socket.emit('rematch-declined', { roomId });
+    }
+  }
     // Lắng nghe tin nhắn chat từ đối thủ (đặt sau khi đã có userId, userName)
   useEffect(() => {
     const socket = getSocket();
@@ -632,7 +715,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <path d="M24 16l-8 8 8 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </button>
-      {/* Nút Chat và nút luật thi đấu ở góc trên bên phải */}
+      {/* Nút Chat, nút tái đấu và nút luật thi đấu ở góc trên bên phải */}
       <div
         className={
           mobileShrink
@@ -642,6 +725,48 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
       >
         {/* Nút Chat */}
+        {/* Nút tái đấu */}
+        <div className="flex items-center">
+          <button
+            onClick={handleRematch}
+            disabled={rematchPending || users.length < 2}
+            className={
+              mobileShrink
+                ? `px-1 py-0.5 bg-green-600 hover:bg-green-700 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 bg-green-600 hover:bg-green-700 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
+            }
+            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+            type="button"
+            aria-label="Tái đấu"
+            title="Tái đấu"
+          >
+            {/* Icon vòng lặp/refresh */}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
+              <path d="M24 8a16 16 0 1 1-11.31 4.69" stroke="white" strokeWidth="3" fill="none"/>
+              <path d="M12 8v5a1 1 0 0 0 1 1h5" stroke="white" strokeWidth="3" fill="none"/>
+            </svg>
+          </button>
+        </div>
+      {/* Modal xác nhận tái đấu khi nhận được yêu cầu từ đối phương */}
+      {rematchModal.show && rematchModal.from === 'opponent' && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-60" style={{ backdropFilter: 'blur(2px)' }}>
+          <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[160px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[200px] border-4 border-green-400 flex flex-col items-center justify-center"}>
+            <div className="text-lg font-bold text-green-300 mb-4 text-center">Đối thủ muốn tái đấu. Bạn có đồng ý không?</div>
+            <div className="flex flex-row gap-4 mt-2">
+              <button onClick={() => respondRematch(true)} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold">Đồng ý</button>
+              <button onClick={() => respondRematch(false)} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold">Từ chối</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal đang chờ đối phương đồng ý tái đấu */}
+      {rematchPending && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-40" style={{ backdropFilter: 'blur(1px)' }}>
+          <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[220px] h-[100px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[320px] max-w-[95vw] h-[120px] border-4 border-green-400 flex flex-col items-center justify-center"}>
+            <div className="text-base font-semibold text-green-200 text-center">Đang chờ đối phương xác nhận tái đấu...</div>
+          </div>
+        </div>
+      )}
         <div className="flex items-center relative">
           <button
             onClick={() => { setShowChat(true); setHasNewChat(false); }}
