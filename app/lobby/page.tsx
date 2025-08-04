@@ -23,34 +23,37 @@ type User = {
   firstName?: string;
   lastName?: string;
   birthday?: string;
+  customBg?: string;
   // Thêm các trường khác nếu cần
 };
 
 export default function Lobby() {
+  const [user, setUser] = useState<User | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [customBg, setCustomBg] = useState<string | null>(null);
   const [bgError, setBgError] = useState<string>("");
-  // Load custom background from localStorage
+  const [loadingBg, setLoadingBg] = useState(false);
+  // Lấy customBg từ user profile (MongoDB)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const bg = localStorage.getItem('customBg');
-      if (bg) setCustomBg(bg);
-    }
-  }, []);
+    if (user && user.customBg) setCustomBg(user.customBg);
+    else setCustomBg(null);
+  }, [user]);
 
-  // Xử lý upload ảnh nền cá nhân hóa
+  // Xử lý upload ảnh nền cá nhân hóa lên API MongoDB
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setBgError("");
+    setLoadingBg(true);
     const reader = new FileReader();
-    reader.onload = function(ev) {
+    reader.onload = async function(ev) {
       const img = new window.Image();
-      img.onload = function() {
+      img.onload = async function() {
         if (img.width < img.height) {
           setBgError("Vui lòng chọn ảnh ngang (chiều rộng lớn hơn chiều cao)!");
+          setLoadingBg(false);
           return;
         }
         // Resize/crop về 16:9, làm mờ
@@ -60,7 +63,11 @@ export default function Lobby() {
         canvas.width = targetW;
         canvas.height = targetH;
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx) {
+          setBgError('Không thể xử lý ảnh');
+          setLoadingBg(false);
+          return;
+        }
         // Tính toán crop 16:9
         const imgRatio = img.width / img.height;
         const targetRatio = targetW / targetH;
@@ -79,12 +86,39 @@ export default function Lobby() {
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.fillRect(0, 0, targetW, targetH);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        localStorage.setItem('customBg', dataUrl);
-        setCustomBg(dataUrl);
+        // Gửi lên API
+        try {
+          const res = await fetch('/api/user/custom-bg', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: dataUrl })
+          });
+          if (res.ok) {
+            setCustomBg(dataUrl);
+          } else {
+            setBgError('Lưu ảnh thất bại!');
+          }
+        } catch (err) {
+          setBgError('Lỗi mạng khi lưu ảnh!');
+        }
+        setLoadingBg(false);
       };
       img.src = ev.target?.result as string;
     };
     reader.readAsDataURL(file);
+  };
+
+  // Xóa ảnh nền khỏi server
+  const handleBgRemove = async () => {
+    setLoadingBg(true);
+    try {
+      const res = await fetch('/api/user/custom-bg', { method: 'DELETE' });
+      if (res.ok) setCustomBg(null);
+      else setBgError('Xóa ảnh thất bại!');
+    } catch (err) {
+      setBgError('Lỗi mạng khi xóa ảnh!');
+    }
+    setLoadingBg(false);
   };
 
   useEffect(() => {
@@ -107,7 +141,7 @@ export default function Lobby() {
   const [roomInput, setRoomInput] = useState("");
   // Mặc định tab New được chọn đầu tiên khi đăng nhập
   const [tab, setTab] = useState("new");
-  const [user, setUser] = useState<User | null>(null);
+  // Đã chuyển lên trên để tránh lỗi khai báo trước khi dùng
   const router = useRouter();
 
   // Luôn fetch user khi vào trang
@@ -149,6 +183,7 @@ export default function Lobby() {
       </div>
     );
   }
+  console.log('Render Lobby, customBg:', customBg?.slice(0, 50));
   return (
     <main
       className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans backdrop-blur-3xl"
@@ -160,9 +195,10 @@ export default function Lobby() {
       }}
     >
       {/* Hiển thị lỗi chọn ảnh nền nếu có */}
-      {bgError && (
-        <div className="fixed top-2 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-50 text-sm font-semibold animate-pulse">
-          {bgError}
+      {(bgError || loadingBg) && (
+        <div className="fixed top-2 left-1/2 -translate-x-1/2 px-4 py-2 rounded shadow-lg z-50 text-sm font-semibold animate-pulse"
+          style={{ background: loadingBg ? '#2563eb' : '#dc2626', color: 'white' }}>
+          {loadingBg ? 'Đang xử lý ảnh nền...' : bgError}
         </div>
       )}
       {/* Tab Navigation Bar */}
@@ -219,7 +255,7 @@ export default function Lobby() {
                   }}
                   onThemeSwitch={() => {}}
                   onBgUpload={handleBgUpload}
-                  onBgRemove={() => { localStorage.removeItem('customBg'); setCustomBg(null); }}
+                  onBgRemove={handleBgRemove}
                   hasCustomBg={!!customBg}
                 />
               </div>

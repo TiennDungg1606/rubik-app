@@ -44,7 +44,15 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch, 
             <path d="M21 19l-5.5-7-4.5 6-3-4-4 5" stroke="currentColor" strokeWidth="2" fill="none"/>
           </svg>
           Đổi ảnh nền
-          <input type="file" accept="image/*" onChange={onBgUpload} style={{ display: 'none' }} />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={e => {
+              console.log('ProfileTab input file onChange', e.target.files?.[0]);
+              if (onBgUpload) onBgUpload(e);
+            }}
+            style={{ display: 'none' }}
+          />
         </label>
         {hasCustomBg && (
           <button
