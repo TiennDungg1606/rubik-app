@@ -63,6 +63,7 @@ function calcStats(times: (number|null)[]) {
 
 
 export default function RoomPage() {
+  const [showCubeNet, setShowCubeNet] = useState(false);
   // State cho chat
   const [showChat, setShowChat] = useState(false);
   const [chatInput, setChatInput] = useState("");
@@ -127,6 +128,163 @@ export default function RoomPage() {
   const [rematchJustAccepted, setRematchJustAccepted] = useState(false);
 
 // ... (các khai báo state khác)
+
+// --- CubeNetModal component and scramble logic ---
+type Face = 'U' | 'D' | 'L' | 'R' | 'F' | 'B';
+type CubeState = Record<Face, string[]>;
+
+const solvedCubeStateTemplate: CubeState = {
+  B: Array(9).fill('blue'),
+  U: Array(9).fill('white'),
+  D: Array(9).fill('yellow'),
+  L: Array(9).fill('orange'),
+  R: Array(9).fill('red'),
+  F: Array(9).fill('green'),
+};
+
+function applyScrambleToCubeState(scramble: string): CubeState {
+  // Deep copy
+  let cubeState: CubeState = {
+    B: [...solvedCubeStateTemplate.B],
+    U: [...solvedCubeStateTemplate.U],
+    D: [...solvedCubeStateTemplate.D],
+    L: [...solvedCubeStateTemplate.L],
+    R: [...solvedCubeStateTemplate.R],
+    F: [...solvedCubeStateTemplate.F],
+  };
+  const moves = scramble.split(/\s+/);
+  moves.forEach((move: string) => {
+    if (!move) return;
+    let face = move[0] as Face;
+    let amount = move.includes("'") ? 3 : 1;
+    if (move.includes("2")) amount = 2;
+    for (let i = 0; i < amount; i++) {
+      rotateFace(face, cubeState);
+    }
+  });
+  return cubeState;
+}
+
+function rotateFace(face: Face, cubeState: CubeState) {
+  const faceColors = [...cubeState[face]];
+  cubeState[face][0] = faceColors[6];
+  cubeState[face][1] = faceColors[3];
+  cubeState[face][2] = faceColors[0];
+  cubeState[face][3] = faceColors[7];
+  cubeState[face][5] = faceColors[1];
+  cubeState[face][6] = faceColors[8];
+  cubeState[face][7] = faceColors[5];
+  cubeState[face][8] = faceColors[2];
+  switch (face) {
+    case 'F':
+      [cubeState.U[6], cubeState.U[7], cubeState.U[8],
+        cubeState.R[0], cubeState.R[3], cubeState.R[6],
+        cubeState.D[2], cubeState.D[1], cubeState.D[0],
+        cubeState.L[2], cubeState.L[5], cubeState.L[8]] =
+        [cubeState.L[8], cubeState.L[5], cubeState.L[2],
+          cubeState.U[6], cubeState.U[7], cubeState.U[8],
+          cubeState.R[0], cubeState.R[3], cubeState.R[6],
+          cubeState.D[0], cubeState.D[1], cubeState.D[2]];
+      break;
+    case 'U':
+      [cubeState.F[0], cubeState.F[1], cubeState.F[2],
+        cubeState.R[0], cubeState.R[1], cubeState.R[2],
+        cubeState.B[0], cubeState.B[1], cubeState.B[2],
+        cubeState.L[0], cubeState.L[1], cubeState.L[2]] =
+        [cubeState.R[0], cubeState.R[1], cubeState.R[2],
+          cubeState.B[0], cubeState.B[1], cubeState.B[2],
+          cubeState.L[0], cubeState.L[1], cubeState.L[2],
+          cubeState.F[0], cubeState.F[1], cubeState.F[2]];
+      break;
+    case 'D':
+      [cubeState.F[6], cubeState.F[7], cubeState.F[8],
+        cubeState.R[6], cubeState.R[7], cubeState.R[8],
+        cubeState.B[6], cubeState.B[7], cubeState.B[8],
+        cubeState.L[6], cubeState.L[7], cubeState.L[8]] =
+        [cubeState.L[6], cubeState.L[7], cubeState.L[8],
+          cubeState.F[6], cubeState.F[7], cubeState.F[8],
+          cubeState.R[6], cubeState.R[7], cubeState.R[8],
+          cubeState.B[6], cubeState.B[7], cubeState.B[8]];
+      break;
+    case 'R':
+      [cubeState.U[2], cubeState.U[5], cubeState.U[8],
+        cubeState.F[2], cubeState.F[5], cubeState.F[8],
+        cubeState.D[2], cubeState.D[5], cubeState.D[8],
+        cubeState.B[6], cubeState.B[3], cubeState.B[0]] =
+        [cubeState.F[2], cubeState.F[5], cubeState.F[8],
+          cubeState.D[2], cubeState.D[5], cubeState.D[8],
+          cubeState.B[6], cubeState.B[3], cubeState.B[0],
+          cubeState.U[2], cubeState.U[5], cubeState.U[8]];
+      break;
+    case 'L':
+      [cubeState.U[0], cubeState.U[3], cubeState.U[6],
+        cubeState.F[0], cubeState.F[3], cubeState.F[6],
+        cubeState.D[0], cubeState.D[3], cubeState.D[6],
+        cubeState.B[8], cubeState.B[5], cubeState.B[2]] =
+        [cubeState.B[8], cubeState.B[5], cubeState.B[2],
+          cubeState.U[0], cubeState.U[3], cubeState.U[6],
+          cubeState.F[0], cubeState.F[3], cubeState.F[6],
+          cubeState.D[0], cubeState.D[3], cubeState.D[6]];
+      break;
+    case 'B':
+      [cubeState.U[0], cubeState.U[1], cubeState.U[2],
+        cubeState.L[0], cubeState.L[3], cubeState.L[6],
+        cubeState.D[8], cubeState.D[7], cubeState.D[6],
+        cubeState.R[2], cubeState.R[5], cubeState.R[8]] =
+        [cubeState.R[2], cubeState.R[5], cubeState.R[8],
+          cubeState.U[2], cubeState.U[1], cubeState.U[0],
+          cubeState.L[6], cubeState.L[3], cubeState.L[0],
+          cubeState.D[8], cubeState.D[7], cubeState.D[6]];
+      break;
+  }
+}
+
+interface CubeNetModalProps {
+  scramble: string;
+  open: boolean;
+  onClose: () => void;
+}
+
+function CubeNetModal({ scramble, open, onClose }: CubeNetModalProps) {
+  const [cubeState, setCubeState] = useState<CubeState>(() => applyScrambleToCubeState(scramble || ''));
+  useEffect(() => {
+    setCubeState(applyScrambleToCubeState(scramble || ''));
+  }, [scramble]);
+  // Lưới net: U ở trên, D ở dưới, F ở giữa, L/R/B hai bên
+  const layoutGrid: (Face | '')[][] = [
+    ['', 'U', '', ''],
+    ['L', 'F', 'R', 'B'],
+    ['', 'D', '', ''],
+  ];
+  return open ? (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black bg-opacity-60" style={{ backdropFilter: 'blur(2px)' }}>
+      <div className="bg-pink-100 rounded-xl p-4 shadow-lg relative" style={{ minWidth: 320, minHeight: 320 }}>
+        <button onClick={onClose} className="absolute top-2 right-2 px-2 py-1 bg-red-500 hover:bg-red-700 text-white rounded font-bold">Đóng</button>
+        <div className="mb-2 text-center font-bold text-lg text-gray-700">Lưới Rubik theo scramble</div>
+        <div id="net-view" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 70px)', gridTemplateRows: 'repeat(3, 70px)', gap: 2, background: 'none' }}>
+          {layoutGrid.flatMap((row, rowIdx) =>
+            row.map((faceKey, colIdx) => {
+              if (faceKey === '') {
+                return <div key={`blank-${rowIdx}-${colIdx}`} className="net-face-empty" style={{ width: 70, height: 70, background: 'none' }}></div>;
+              } else {
+                return (
+                  <div key={faceKey} className="net-face" style={{ width: 70, height: 70, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+                    {cubeState[faceKey].map((color: string, i: number) => (
+                      <div key={i} className={`net-sticker`} style={{ width: 20, height: 20, background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+                    ))}
+                  </div>
+                );
+              }
+            })
+          )}
+        </div>
+        <div className="mt-3 text-gray-700 text-sm text-center font-mono">Scramble: <span className="font-bold">{scramble}</span></div>
+      </div>
+    </div>
+  ) : null;
+}
+// --- End CubeNetModal ---
+
 
 // Lắng nghe sự kiện reset phòng từ server (khi chỉ còn 1 người)
 useEffect(() => {
@@ -761,27 +919,51 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         backgroundColor: '#000',
       }}
     >
-      {/* Nút rời phòng */}
-      {/* Nút rời phòng: luôn cố định trên mobile landscape và desktop */}
-      <button
-        onClick={handleLeaveRoom}
+      {/* Nút rời phòng và nút 🧊 */}
+      <div
         className={
           mobileShrink
-            ? "absolute top-0.5 left-0.5 z-50 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-[9px] rounded font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
-            : "fixed top-4 left-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg flex items-center justify-center"
+            ? "absolute top-0.5 left-0.5 z-50 flex flex-row gap-1"
+            : "fixed top-4 left-4 z-50 flex flex-row gap-2"
         }
-        style={mobileShrink ? { fontSize: 9, minWidth: 0, minHeight: 0, padding: 1 } : {}}
-        type="button"
-        aria-label="Rời phòng"
-        title="Rời phòng"
+        style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
       >
-        {/* Icon logout/exit SVG */}
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
-          <rect x="10" y="8" width="28" height="32" rx="3" stroke="white" strokeWidth="3" fill="none"/>
-          <path d="M34 24H18" stroke="white" strokeWidth="3" strokeLinecap="round"/>
-          <path d="M24 16l-8 8 8 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
+        <button
+          onClick={handleLeaveRoom}
+          className={
+            mobileShrink
+              ? "px-1 py-0.5 bg-red-600 hover:bg-red-700 text-[9px] rounded font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
+              : "px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg flex items-center justify-center"
+          }
+          style={mobileShrink ? { fontSize: 9, minWidth: 0, minHeight: 0, padding: 1 } : {}}
+          type="button"
+          aria-label="Rời phòng"
+          title="Rời phòng"
+        >
+          {/* Icon logout/exit SVG */}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
+            <rect x="10" y="8" width="28" height="32" rx="3" stroke="white" strokeWidth="3" fill="none"/>
+            <path d="M34 24H18" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+            <path d="M24 16l-8 8 8 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button
+          className={
+            mobileShrink
+              ? "px-1 py-0.5 bg-gray-500 hover:bg-gray-700 text-[13px] rounded font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
+              : "px-4 py-2 bg-gray-500 hover:bg-gray-700 text-white rounded-lg font-bold shadow-lg flex items-center justify-center"
+          }
+          style={mobileShrink ? { fontSize: 13, minWidth: 0, minHeight: 0, padding: 1 } : { fontSize: 20 }}
+          type="button"
+          aria-label="Lưới scramble"
+          title="Lưới scramble"
+          onClick={() => setShowCubeNet(true)}
+        >
+          <span role="img" aria-label="ice">🧊</span>
+        </button>
+      {/* Modal lưới Rubik */}
+      <CubeNetModal scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} />
+      </div>
       {/* Nút Chat, nút tái đấu và nút luật thi đấu ở góc trên bên phải */}
       <div
         className={
@@ -799,8 +981,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             disabled={rematchPending || users.length < 2}
             className={
               mobileShrink
-                ? `px-1 py-0.5 bg-green-600 hover:bg-green-700 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 bg-green-600 hover:bg-green-700 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
+                ? `px-1 py-0.5 bg-gray-600 hover:bg-gray-700 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 bg-gray-600 hover:bg-gray-700 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
