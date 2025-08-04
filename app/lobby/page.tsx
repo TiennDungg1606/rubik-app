@@ -37,6 +37,7 @@ export default function Lobby() {
   const [loadingBg, setLoadingBg] = useState(false);
   // Lấy customBg từ user profile (MongoDB)
   useEffect(() => {
+    console.log('[Lobby] useEffect user:', user);
     if (user && user.customBg) setCustomBg(user.customBg);
     else setCustomBg(null);
   }, [user]);
@@ -44,10 +45,13 @@ export default function Lobby() {
   // Xử lý upload ảnh nền cá nhân hóa lên API MongoDB và refetch user
   const refetchUser = async () => {
     try {
-      const res = await fetch("/api/user/me", { credentials: "include" });
+      const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
       const data = await res.json();
+      console.log('[Lobby] refetchUser data:', data);
       if (data && data.user) setUser(data.user);
-    } catch {}
+    } catch (err) {
+      console.log('[Lobby] refetchUser error:', err);
+    }
   };
 
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,10 +59,12 @@ export default function Lobby() {
     if (!file) return;
     setBgError("");
     setLoadingBg(true);
+    console.log('[Lobby] handleBgUpload file:', file);
     const reader = new FileReader();
     reader.onload = async function(ev) {
       const img = new window.Image();
       img.onload = async function() {
+        console.log('[Lobby] handleBgUpload img loaded:', img.width, img.height);
         if (img.width < img.height) {
           setBgError("Vui lòng chọn ảnh ngang (chiều rộng lớn hơn chiều cao)!");
           setLoadingBg(false);
@@ -94,6 +100,7 @@ export default function Lobby() {
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.fillRect(0, 0, targetW, targetH);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        console.log('[Lobby] handleBgUpload dataUrl length:', dataUrl.length);
         // Gửi lên API
         try {
           const res = await fetch('/api/user/custom-bg', {
@@ -101,6 +108,7 @@ export default function Lobby() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: dataUrl })
           });
+          console.log('[Lobby] handleBgUpload POST result:', res.status);
           if (res.ok) {
             await refetchUser();
           } else {
@@ -108,6 +116,7 @@ export default function Lobby() {
           }
         } catch (err) {
           setBgError('Lỗi mạng khi lưu ảnh!');
+          console.log('[Lobby] handleBgUpload POST error:', err);
         }
         setLoadingBg(false);
       };
@@ -154,9 +163,10 @@ export default function Lobby() {
 
   // Luôn fetch user khi vào trang
   useEffect(() => {
-    fetch("/api/user/me", { credentials: "include" })
+    fetch("/api/user/me", { credentials: "include", cache: "no-store" })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
+        console.log('[Lobby] initial fetch user:', data);
         if (!data || !data.user) {
           router.replace("/");
           return;
@@ -191,6 +201,7 @@ export default function Lobby() {
       </div>
     );
   }
+  console.log('[Lobby] Render Lobby, customBg:', customBg?.slice(0, 50));
   return (
     <main
       className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans backdrop-blur-3xl"
