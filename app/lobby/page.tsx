@@ -41,7 +41,15 @@ export default function Lobby() {
     else setCustomBg(null);
   }, [user]);
 
-  // Xử lý upload ảnh nền cá nhân hóa lên API MongoDB
+  // Xử lý upload ảnh nền cá nhân hóa lên API MongoDB và refetch user
+  const refetchUser = async () => {
+    try {
+      const res = await fetch("/api/user/me", { credentials: "include" });
+      const data = await res.json();
+      if (data && data.user) setUser(data.user);
+    } catch {}
+  };
+
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -94,7 +102,7 @@ export default function Lobby() {
             body: JSON.stringify({ image: dataUrl })
           });
           if (res.ok) {
-            setCustomBg(dataUrl);
+            await refetchUser();
           } else {
             setBgError('Lưu ảnh thất bại!');
           }
@@ -108,12 +116,12 @@ export default function Lobby() {
     reader.readAsDataURL(file);
   };
 
-  // Xóa ảnh nền khỏi server
+  // Xóa ảnh nền khỏi server và refetch user
   const handleBgRemove = async () => {
     setLoadingBg(true);
     try {
       const res = await fetch('/api/user/custom-bg', { method: 'DELETE' });
-      if (res.ok) setCustomBg(null);
+      if (res.ok) await refetchUser();
       else setBgError('Xóa ảnh thất bại!');
     } catch (err) {
       setBgError('Lỗi mạng khi xóa ảnh!');
@@ -183,7 +191,6 @@ export default function Lobby() {
       </div>
     );
   }
-  console.log('Render Lobby, customBg:', customBg?.slice(0, 50));
   return (
     <main
       className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans backdrop-blur-3xl"

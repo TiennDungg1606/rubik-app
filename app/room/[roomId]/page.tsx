@@ -878,12 +878,12 @@ useEffect(() => {
 
 function formatTime(ms: number|null, showDNF: boolean = false) {
   if (ms === null) return showDNF ? 'DNF' : '';
-  return (ms/1000).toFixed(3);
+  return (ms/1000).toFixed(2);
 }
 
 function formatStat(val: number|null, showDNF: boolean = false) {
   if (val === null) return showDNF ? 'DNF' : '';
-  return (val/1000).toFixed(3);
+  return (val/1000).toFixed(2);
 }
 
   if (!userName || !roomId) {
@@ -1600,13 +1600,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   txt += `Kết quả từng lượt:\n`;
                   for (let i = 0; i < 5; i++) {
                     const val = (myResults && myResults[i] !== undefined) ? myResults[i] : null;
-                    txt += `  Lượt ${i+1}: ${val === null ? 'DNF' : (typeof val === 'number' ? (val/1000).toFixed(3) : '')}\n`;
+                    txt += `  Lượt ${i+1}: ${val === null ? 'DNF' : (typeof val === 'number' ? (val/1000).toFixed(2) : '')}\n`;
                   }
                   txt += `Thống kê:\n`;
-                  txt += `  Best: ${myStats.best !== null ? (myStats.best/1000).toFixed(3) : 'DNF'}\n`;
-                  txt += `  Worst: ${myStats.worst !== null ? (myStats.worst/1000).toFixed(3) : 'DNF'}\n`;
-                  txt += `  Mean: ${myStats.mean !== null ? (myStats.mean/1000).toFixed(3) : 'DNF'}\n`;
-                  txt += `  Ao5: ${myStats.ao5 !== null ? (myStats.ao5/1000).toFixed(3) : 'DNF'}\n`;
+                  txt += `  Best: ${myStats.best !== null ? (myStats.best/1000).toFixed(2) : 'DNF'}\n`;
+                  txt += `  Worst: ${myStats.worst !== null ? (myStats.worst/1000).toFixed(2) : 'DNF'}\n`;
+                  txt += `  Mean: ${myStats.mean !== null ? (myStats.mean/1000).toFixed(2) : 'DNF'}\n`;
+                  txt += `  Ao5: ${myStats.ao5 !== null ? (myStats.ao5/1000).toFixed(2) : 'DNF'}\n`;
                   txt += `\n`;
 
                   // Người chơi 2
@@ -1614,13 +1614,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   txt += `Kết quả từng lượt:\n`;
                   for (let i = 0; i < 5; i++) {
                     const val = (opponentResults && opponentResults[i] !== undefined) ? opponentResults[i] : null;
-                    txt += `  Lượt ${i+1}: ${val === null ? 'DNF' : (typeof val === 'number' ? (val/1000).toFixed(3) : '')}\n`;
+                    txt += `  Lượt ${i+1}: ${val === null ? 'DNF' : (typeof val === 'number' ? (val/1000).toFixed(2) : '')}\n`;
                   }
                   txt += `Thống kê:\n`;
-                  txt += `  Best: ${oppStats.best !== null ? (oppStats.best/1000).toFixed(3) : 'DNF'}\n`;
-                  txt += `  Worst: ${oppStats.worst !== null ? (oppStats.worst/1000).toFixed(3) : 'DNF'}\n`;
-                  txt += `  Mean: ${oppStats.mean !== null ? (oppStats.mean/1000).toFixed(3) : 'DNF'}\n`;
-                  txt += `  Ao5: ${oppStats.ao5 !== null ? (oppStats.ao5/1000).toFixed(3) : 'DNF'}\n`;
+                  txt += `  Best: ${oppStats.best !== null ? (oppStats.best/1000).toFixed(2) : 'DNF'}\n`;
+                  txt += `  Worst: ${oppStats.worst !== null ? (oppStats.worst/1000).toFixed(2) : 'DNF'}\n`;
+                  txt += `  Mean: ${oppStats.mean !== null ? (oppStats.mean/1000).toFixed(2) : 'DNF'}\n`;
+                  txt += `  Ao5: ${oppStats.ao5 !== null ? (oppStats.ao5/1000).toFixed(2) : 'DNF'}\n`;
                   txt += `\n`;
 
                   // Kết quả cuối cùng
@@ -1659,7 +1659,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               <span className={mobileShrink ? "text-[20px] text-red-400" : "text-red-400"}>DNF</span>
             ) : (
               <>
-                <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 32 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 80 }}>{(timer/1000).toFixed(3)}</span>
+                <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 32 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 80 }}>{(timer/1000).toFixed(2)}</span>
                 <span className={mobileShrink ? "ml-1 align-bottom" : "ml-2 align-bottom"} style={mobileShrink ? { fontFamily: 'font-mono', fontWeight: 400, fontSize: 12, lineHeight: 1 } : { fontFamily: 'font-mono', fontWeight: 400, fontSize: '1em', lineHeight: 1 }}>s</span>
               </>
             )}
