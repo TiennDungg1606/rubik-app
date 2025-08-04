@@ -9,10 +9,13 @@ interface ProfileTabProps {
   } | null;
   onLogout: () => void;
   onThemeSwitch?: () => void;
+  onBgUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBgRemove?: () => void;
+  hasCustomBg?: boolean;
 }
 
 
-const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch }) => {
+const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch, onBgUpload, onBgRemove, hasCustomBg }) => {
   return (
     <div className="mt-4 mr-4 w-[340px] max-w-full bg-[#181926] rounded-2xl shadow-2xl border border-blue-700 flex flex-col items-center p-0 relative">
       {/* Avatar lớn */}
@@ -33,8 +36,27 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch }
           <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.418 0-8 2.239-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.761-3.582-5-8-5Z"/></svg>
           Account Setting
         </button>
+        {/* Đổi ảnh nền cá nhân hóa - cùng style với Account Setting, icon hình bức ảnh */}
+        <label className="flex items-center gap-2 text-blue-400 hover:text-blue-600 font-bold transition text-base justify-start cursor-pointer mt-1">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+            <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
+            <circle cx="8" cy="10" r="2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M21 19l-5.5-7-4.5 6-3-4-4 5" stroke="currentColor" strokeWidth="2" fill="none"/>
+          </svg>
+          Đổi ảnh nền
+          <input type="file" accept="image/*" onChange={onBgUpload} style={{ display: 'none' }} />
+        </label>
+        {hasCustomBg && (
+          <button
+            className="ml-2 text-xs text-red-300 underline hover:text-red-500"
+            onClick={onBgRemove}
+            title="Xóa ảnh nền cá nhân hóa"
+          >
+            Xóa nền
+          </button>
+        )}
         <button
-          className="flex items-center gap-2 text-red-400 hover:text-red-600 font-bold transition text-base justify-start"
+          className="flex items-center gap-2 text-red-400 hover:text-red-600 font-bold transition text-base justify-start mt-2"
           onClick={onLogout}
         >Logout <img src="/power.svg" alt="logout" className="w-6 h-6 inline-block align-middle ml-1" /></button>
       </div>

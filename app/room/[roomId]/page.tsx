@@ -959,7 +959,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           title="Lưới scramble"
           onClick={() => setShowCubeNet(true)}
         >
-          <span role="img" aria-label="ice">🧊</span>
+          <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
         </button>
       {/* Modal lưới Rubik */}
       <CubeNetModal scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} />

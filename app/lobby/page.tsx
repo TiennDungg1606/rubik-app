@@ -30,6 +30,62 @@ export default function Lobby() {
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [customBg, setCustomBg] = useState<string | null>(null);
+  const [bgError, setBgError] = useState<string>("");
+  // Load custom background from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const bg = localStorage.getItem('customBg');
+      if (bg) setCustomBg(bg);
+    }
+  }, []);
+
+  // Xử lý upload ảnh nền cá nhân hóa
+  const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBgError("");
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const img = new window.Image();
+      img.onload = function() {
+        if (img.width < img.height) {
+          setBgError("Vui lòng chọn ảnh ngang (chiều rộng lớn hơn chiều cao)!");
+          return;
+        }
+        // Resize/crop về 16:9, làm mờ
+        const targetW = 1920;
+        const targetH = 1080;
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        // Tính toán crop 16:9
+        const imgRatio = img.width / img.height;
+        const targetRatio = targetW / targetH;
+        let sx = 0, sy = 0, sw = img.width, sh = img.height;
+        if (imgRatio > targetRatio) {
+          // Crop chiều ngang
+          sw = img.height * targetRatio;
+          sx = (img.width - sw) / 2;
+        } else {
+          // Crop chiều dọc
+          sh = img.width / targetRatio;
+          sy = (img.height - sh) / 2;
+        }
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+        // Overlay màu đen mờ
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(0, 0, targetW, targetH);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        localStorage.setItem('customBg', dataUrl);
+        setCustomBg(dataUrl);
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     function checkDevice() {
@@ -94,7 +150,21 @@ export default function Lobby() {
     );
   }
   return (
-    <main className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans backdrop-blur-3xl" style={{ backgroundImage: 'url(/images.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+    <main
+      className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans backdrop-blur-3xl"
+      style={{
+        backgroundImage: customBg ? `url(${customBg})` : 'url(/images.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        transition: 'background-image 0.3s',
+      }}
+    >
+      {/* Hiển thị lỗi chọn ảnh nền nếu có */}
+      {bgError && (
+        <div className="fixed top-2 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-50 text-sm font-semibold animate-pulse">
+          {bgError}
+        </div>
+      )}
       {/* Tab Navigation Bar */}
       <nav className="w-full max-w-2xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-6 py-3 mt-2 mb-2">
         <div className="flex items-center gap-6">
@@ -139,15 +209,20 @@ export default function Lobby() {
           </button>
           {showProfileMenu && (
             <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/30" onClick={() => setShowProfileMenu(false)}>
-              <ProfileTab
-                user={user}
-                onLogout={() => {
-                  fetch('/api/user/logout', { method: 'POST' }).then(() => {
-                    router.push('/');
-                  });
-                }}
-                onThemeSwitch={() => {}}
-              />
+              <div>
+                <ProfileTab
+                  user={user}
+                  onLogout={() => {
+                    fetch('/api/user/logout', { method: 'POST' }).then(() => {
+                      router.push('/');
+                    });
+                  }}
+                  onThemeSwitch={() => {}}
+                  onBgUpload={handleBgUpload}
+                  onBgRemove={() => { localStorage.removeItem('customBg'); setCustomBg(null); }}
+                  hasCustomBg={!!customBg}
+                />
+              </div>
             </div>
           )}
         </div>
