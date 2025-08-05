@@ -32,27 +32,24 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     async function fetchRooms() {
       try {
         const res = await fetch(`${API_BASE}/active-rooms`);
-        const roomIds = await res.json();
-        if (!Array.isArray(roomIds)) {
+        const roomObjs = await res.json();
+        if (!Array.isArray(roomObjs)) {
           setActiveRooms([]);
           setCompetingRooms([]);
           return;
         }
-        
         const active: string[] = [];
         const competing: string[] = [];
-        
-        for (const roomId of roomIds) {
+        for (const roomObj of roomObjs) {
+          const roomId = typeof roomObj === 'string' ? roomObj : roomObj.roomId;
+          if (!roomId) continue;
           try {
             const res = await fetch(`${API_BASE}/room-users/${roomId}`);
             const users = await res.json();
             if (Array.isArray(users) && users.length > 0) {
-              // Phòng có 1 người = đang hoạt động (chờ người thứ 2)
               if (users.length === 1) {
                 active.push(roomId);
-              }
-              // Phòng có 2 người = đang thi đấu
-              else if (users.length === 2) {
+              } else if (users.length === 2) {
                 competing.push(roomId);
               }
             }
