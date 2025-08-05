@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useRef, useState } from "react";
 import React from "react";
@@ -141,6 +142,18 @@ export default function RoomPage() {
   const [rematchJustAccepted, setRematchJustAccepted] = useState(false);
 
 // ... (các khai báo state khác)
+// Lắng nghe danh sách users trong phòng từ server để cập nhật trạng thái chờ đối thủ
+useEffect(() => {
+  const socket = getSocket();
+  const handleUsers = (usersArr: string[]) => {
+    setUsers(usersArr);
+    setWaiting(usersArr.length < 2);
+  };
+  socket.on('users', handleUsers);
+  return () => {
+    socket.off('users', handleUsers);
+  };
+}, []);
 
 // --- CubeNetModal component and scramble logic ---
 type Face = 'U' | 'D' | 'L' | 'R' | 'F' | 'B';
