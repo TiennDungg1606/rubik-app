@@ -1,9 +1,13 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import ReCAPTCHA from "react-google-recaptcha";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function AuthForm({ onLogin }) {
+  // Lấy site key từ biến môi trường NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+  const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
+  const recaptchaRef = useRef(null);
   const router = useRouter();
   const [form, setForm] = useState({
     email: "",
@@ -22,6 +26,7 @@ export default function AuthForm({ onLogin }) {
   const handleSubmit = async e => {
     e.preventDefault();
     setError(""); setSuccess("");
+    let recaptchaToken = null;
     if (tab === "register") {
       const hasNumber = /\d/;
       if (!form.firstName.trim() || hasNumber.test(form.firstName)) {
@@ -36,10 +41,19 @@ export default function AuthForm({ onLogin }) {
         setError("Password must be at least 8 characters");
         return;
       }
+      // Lấy token reCAPTCHA
+      if (recaptchaRef.current) {
+        recaptchaToken = await recaptchaRef.current.executeAsync();
+        recaptchaRef.current.reset();
+      }
+      if (!recaptchaToken) {
+        setError("Vui lòng xác thực captcha");
+        return;
+      }
     }
     const url = tab === "register" ? "/api/user/register" : "/api/user/login";
     const body = tab === "register"
-      ? { ...form }
+      ? { ...form, recaptchaToken }
       : { email: form.email, password: form.password };
     const res = await fetch(url, {
       method: "POST",
@@ -124,6 +138,13 @@ export default function AuthForm({ onLogin }) {
               <div className="mb-4">
                 <label className="block mb-1 text-gray-700 font-semibold">Birthday</label>
                 <input name="birthday" type="date" required value={form.birthday} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              </div>
+              <div className="mb-4">
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={RECAPTCHA_SITE_KEY}
+                  size="invisible"
+                />
               </div>
             </>
           )}
