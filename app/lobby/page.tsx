@@ -1,3 +1,7 @@
+// Khai báo window._roomPassword để tránh lỗi TS
+declare global {
+  interface Window { _roomPassword?: string }
+}
 "use client"
 
 import { useState, useEffect } from "react";
@@ -190,6 +194,15 @@ export default function Lobby() {
     const code = roomId.trim().toUpperCase();
     if (!code) return;
     setJoinError("");
+    // Lấy password từ window._roomPassword nếu có (do RoomTab truyền vào)
+    let password = "";
+    if (typeof window !== "undefined" && window._roomPassword) {
+      password = window._roomPassword;
+      // Lưu tạm vào sessionStorage để trang room/[roomId] lấy khi join-room
+      sessionStorage.setItem(`roomPassword_${code}`, password);
+      // Xóa biến tạm sau khi dùng
+      delete window._roomPassword;
+    }
     router.push(`/room/${code}`);
   };
 

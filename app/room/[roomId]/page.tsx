@@ -573,6 +573,29 @@ useEffect(() => {
     }
   }, []);
 
+  // Khi đã có roomId, join-room với password nếu có
+  useEffect(() => {
+    if (!roomId || !userName || !userId) return;
+    const socket = getSocket();
+    // Lấy password từ sessionStorage nếu có
+    let password = "";
+    if (typeof window !== "undefined") {
+      password = sessionStorage.getItem(`roomPassword_${roomId}`) || "";
+      // Xóa password sau khi dùng
+      sessionStorage.removeItem(`roomPassword_${roomId}`);
+    }
+    socket.emit("join-room", { roomId, userId, userName, password });
+    // Lắng nghe sai mật khẩu
+    const handleWrongPassword = (data: { message?: string }) => {
+      alert(data?.message || "Sai mật khẩu phòng!");
+      window.location.href = "/lobby";
+    };
+    socket.on("wrong-password", handleWrongPassword);
+    return () => {
+      socket.off("wrong-password", handleWrongPassword);
+    };
+  }, [roomId, userName, userId]);
+
   // Luôn khôi phục kết quả từ localStorage khi roomId thay đổi
   useEffect(() => {
     if (!roomId) return;

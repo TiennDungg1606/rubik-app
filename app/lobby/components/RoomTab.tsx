@@ -1,3 +1,7 @@
+// Khai báo window._roomPassword để tránh lỗi TS
+declare global {
+  interface Window { _roomPassword?: string }
+}
 import React, { useState, useEffect } from "react";
 
 type RoomTabProps = {
@@ -11,6 +15,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [error, setError] = useState("");
   const [activeRooms, setActiveRooms] = useState<string[]>([]);
   const [competingRooms, setCompetingRooms] = useState<string[]>([]);
+  // Lưu meta phòng để kiểm tra mật khẩu
+  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string }>>({});
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -40,9 +46,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         }
         const active: string[] = [];
         const competing: string[] = [];
+        const metaMap: Record<string, { password?: string }> = {};
         for (const roomObj of roomObjs) {
           const roomId = typeof roomObj === 'string' ? roomObj : roomObj.roomId;
+          const meta = typeof roomObj === 'object' && roomObj.meta ? roomObj.meta : {};
           if (!roomId) continue;
+          metaMap[roomId] = meta;
           try {
             const res = await fetch(`${API_BASE}/room-users/${roomId}`);
             const users = await res.json();
@@ -55,7 +64,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             }
           } catch {}
         }
-        
+        setRoomMetas(metaMap);
         setActiveRooms(active);
         setCompetingRooms(competing);
         
@@ -283,7 +292,18 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             {activeRooms.map((room: string) => (
               <div
                 key={room}
-                onClick={() => handleJoinRoom(room)}
+                onClick={async () => {
+                  const meta = roomMetas[room] || {};
+                  let password = "";
+                  if (meta.password) {
+                    password = window.prompt("Phòng này có mật khẩu. Vui lòng nhập mật khẩu để vào:") || "";
+                  }
+                  // handleJoinRoom cần truyền password nếu có
+                  // Nếu handleJoinRoom không nhận password, bạn cần sửa lại hàm này ở App để truyền password vào socket.emit
+                  // Ở đây tạm truyền qua window (hoặc sửa lại App để nhận password)
+                  window._roomPassword = password;
+                  handleJoinRoom(room);
+                }}
                 className="flex flex-col items-center cursor-pointer"
               >
                 <div className="w-24 h-24 bg-blue-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
