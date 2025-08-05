@@ -11,6 +11,14 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [error, setError] = useState("");
   const [activeRooms, setActiveRooms] = useState<string[]>([]);
   const [competingRooms, setCompetingRooms] = useState<string[]>([]);
+
+  // Modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [modalEvent, setModalEvent] = useState<'2x2' | '3x3'>("3x3");
+  const [modalRoomName, setModalRoomName] = useState("");
+  const [modalPassword, setModalPassword] = useState("");
+  const [modalPasswordConfirm, setModalPasswordConfirm] = useState("");
+  const [modalError, setModalError] = useState("");
   // Đã loại bỏ logic spectator
   // Sử dụng localhost khi development, production server khi production
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -83,6 +91,42 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     setError("");
   }
 
+  // Modal logic
+  function openCreateModal() {
+    setShowCreateModal(true);
+    setModalEvent("3x3");
+    setModalRoomName("");
+    setModalPassword("");
+    setModalPasswordConfirm("");
+    setModalError("");
+  }
+
+  function closeCreateModal() {
+    setShowCreateModal(false);
+    setModalError("");
+  }
+
+  function handleModalConfirm() {
+    // Validate room name
+    if (!modalRoomName.trim() || modalRoomName.length > 8) {
+      setModalError("Tên phòng phải từ 1 đến 8 ký tự.");
+      return;
+    }
+    // Validate password match
+    if (modalPassword !== modalPasswordConfirm) {
+      setModalError("Mật khẩu nhập lại không khớp.");
+      return;
+    }
+    // Có thể thêm validate khác nếu cần
+    setModalError("");
+    // Gọi hàm tạo phòng thực tế, truyền thêm thông tin mới
+    // handleCreateRoom có thể cần sửa lại để nhận thêm tham số nếu muốn lưu thông tin này
+    // Ở đây chỉ đóng modal, bạn có thể sửa lại logic này để truyền dữ liệu lên server nếu muốn
+    setShowCreateModal(false);
+    // TODO: Truyền modalRoomName, modalPassword, modalEvent cho handleCreateRoom nếu cần
+    handleCreateRoom();
+  }
+
   function handleJoin() {
     const err = validateRoomCode(roomInput);
     if (err) {
@@ -100,6 +144,72 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   return (
     <div className="w-full flex flex-col items-center justify-center">
+      {/* Modal tạo phòng */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-gray-900 rounded-xl shadow-2xl p-6 w-full max-w-2xl flex flex-row">
+            {/* Cột 1: Chọn thể loại rubik */}
+            <div className="flex flex-col items-center justify-start w-1/3 pr-4 border-r border-gray-700">
+              <div className="text-lg font-semibold text-white mb-4">Thể loại</div>
+              <button
+                className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '2x2' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                onClick={() => setModalEvent('2x2')}
+              >2x2</button>
+              <button
+                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '3x3' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                onClick={() => setModalEvent('3x3')}
+              >3x3</button>
+            </div>
+            {/* Cột 2: Nhập tên phòng, mật khẩu, xác nhận */}
+            <div className="flex-1 pl-6 flex flex-col justify-between">
+              <div>
+                <div className="text-lg font-semibold text-white mb-4">Tạo phòng mới</div>
+                <div className="mb-3">
+                  <label className="block text-gray-300 mb-1">Tên phòng (tối đa 8 ký tự)</label>
+                  <input
+                    className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    maxLength={8}
+                    value={modalRoomName}
+                    onChange={e => setModalRoomName(e.target.value)}
+                    placeholder="Nhập tên phòng"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block text-gray-300 mb-1">Mật khẩu (có thể để trống)</label>
+                  <input
+                    className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    type="password"
+                    value={modalPassword}
+                    onChange={e => setModalPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block text-gray-300 mb-1">Nhập lại mật khẩu</label>
+                  <input
+                    className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    type="password"
+                    value={modalPasswordConfirm}
+                    onChange={e => setModalPasswordConfirm(e.target.value)}
+                    placeholder="Nhập lại mật khẩu"
+                  />
+                </div>
+                {modalError && <div className="text-red-400 text-sm mb-2">{modalError}</div>}
+              </div>
+              <div className="flex flex-row justify-end gap-3 mt-4">
+                <button
+                  className="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-500 transition-colors"
+                  onClick={closeCreateModal}
+                >Hủy</button>
+                <button
+                  className="px-4 py-2 rounded bg-green-600 text-white font-bold hover:bg-green-500 transition-colors"
+                  onClick={handleModalConfirm}
+                >Xác nhận</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <h2 className="text-2xl font-bold mb-6">Phòng giải Rubik Online</h2>
       <div className="flex flex-col gap-4 w-full max-w-md bg-gray-800 rounded-xl p-8 shadow-lg mb-8">
         <div className="text-lg font-semibold text-center mb-2 text-white-300">
@@ -168,7 +278,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         <div className="h-64 overflow-y-auto border border-gray-700 rounded-lg p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 justify-items-center">
             {/* Nút tạo phòng */}
-            <div onClick={handleCreateRoom} className="flex flex-col items-center cursor-pointer">
+            <div onClick={openCreateModal} className="flex flex-col items-center cursor-pointer">
               <div className="w-24 h-24 bg-gray-700 rounded-xl flex items-center justify-center text-5xl text-gray-300 mb-2 hover:bg-gray-600 transition-all">+</div>
               <div className="text-base text-gray-200">Tạo phòng</div>
             </div>

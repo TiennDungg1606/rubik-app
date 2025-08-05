@@ -63,6 +63,18 @@ function calcStats(times: (number|null)[]) {
 
 
 export default function RoomPage() {
+  const [roomId, setRoomId] = useState<string>("");
+  // State cho meta phòng
+  const [roomMeta, setRoomMeta] = useState<{ displayName?: string; event?: string } | null>(null);
+  // Fetch meta phòng từ API
+  useEffect(() => {
+    if (!roomId) return;
+    fetch(`/api/room-meta/${roomId}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && (data.displayName || data.event)) setRoomMeta(data);
+      });
+  }, [roomId]);
   const [showCubeNet, setShowCubeNet] = useState(false);
   // State cho chat
   const [showChat, setShowChat] = useState(false);
@@ -85,7 +97,7 @@ export default function RoomPage() {
   const [micOn, setMicOn] = useState<boolean>(true);
   // Đã loại bỏ các ref và state liên quan đến Stringee và mediaStream, chỉ giữ lại state cho Daily.co và socket
  
-  const [roomId, setRoomId] = useState<string>("");
+  // (Đã di chuyển khai báo roomId lên đầu)
   const [scramble, setScramble] = useState<string>("");
   const [scrambleIndex, setScrambleIndex] = useState<number>(0);
   const [scrambles, setScrambles] = useState<string[]>([]); // Lưu 5 scramble đã dùng
@@ -919,6 +931,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         backgroundColor: '#000',
       }}
     >
+      {/* Hiển thị meta phòng */}
+      <div className="w-full flex flex-col items-center justify-center mt-2 mb-1">
+        {roomMeta && (
+          <div className={mobileShrink ? "text-[13px] font-semibold text-center mb-1" : "text-xl font-semibold text-center mb-2"}>
+            <span className="text-blue-300">Tên phòng:</span> <span className="text-white">{roomMeta.displayName || roomId}</span>
+            {roomMeta.event && (
+              <span className="ml-3 text-pink-300">Thể loại: <span className="font-bold">{roomMeta.event}</span></span>
+            )}
+          </div>
+        )}
+      </div>
       {/* Nút rời phòng và nút 🧊 */}
       <div
         className={
