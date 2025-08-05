@@ -1,9 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function AuthForm({ onLogin }) {
+  const recaptchaRef = useRef(null);
   const router = useRouter();
   const [form, setForm] = useState({
     email: "",
@@ -17,11 +18,31 @@ export default function AuthForm({ onLogin }) {
   const [success, setSuccess] = useState("");
   const [tab, setTab] = useState("login");
 
+
+  // Thêm script reCAPTCHA khi mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && tab === "register") {
+      if (!document.getElementById("recaptcha-script")) {
+        const script = document.createElement("script");
+        script.id = "recaptcha-script";
+        script.src = "https://www.google.com/recaptcha/api.js";
+        script.async = true;
+        script.defer = true;
+        document.body.appendChild(script);
+      } else if (window.grecaptcha && recaptchaRef.current) {
+        window.grecaptcha.render(recaptchaRef.current, {
+          sitekey: "YOUR_SITE_KEY"
+        });
+      }
+    }
+  }, [tab]);
+
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async e => {
     e.preventDefault();
     setError(""); setSuccess("");
+    let recaptchaToken = "";
     if (tab === "register") {
       const hasNumber = /\d/;
       if (!form.firstName.trim() || hasNumber.test(form.firstName)) {
@@ -36,10 +57,21 @@ export default function AuthForm({ onLogin }) {
         setError("Password must be at least 8 characters");
         return;
       }
+      // Lấy token reCAPTCHA v2 (checkbox)
+      if (window.grecaptcha) {
+        recaptchaToken = window.grecaptcha.getResponse();
+        if (!recaptchaToken) {
+          setError("Vui lòng xác thực captcha");
+          return;
+        }
+      } else {
+        setError("Captcha chưa sẵn sàng, vui lòng thử lại");
+        return;
+      }
     }
     const url = tab === "register" ? "/api/user/register" : "/api/user/login";
     const body = tab === "register"
-      ? { ...form }
+      ? { ...form, "g-recaptcha-response": recaptchaToken }
       : { email: form.email, password: form.password };
     const res = await fetch(url, {
       method: "POST",
@@ -51,8 +83,12 @@ export default function AuthForm({ onLogin }) {
       setError(data.error || "Có lỗi xảy ra");
     } else {
       if (tab === "register") {
-          setSuccess("Registration successful! You can now log in.");
+        setSuccess("Registration successful! You can now log in.");
         setForm({ email: "", password: "", firstName: "", lastName: "", birthday: "" });
+        // Reset reCAPTCHA v2 nếu có
+        if (window.grecaptcha && recaptchaRef.current) {
+          window.grecaptcha.reset();
+        }
         setTimeout(() => {
           setTab("login");
           setSuccess("");
@@ -124,6 +160,10 @@ export default function AuthForm({ onLogin }) {
               <div className="mb-4">
                 <label className="block mb-1 text-gray-700 font-semibold">Birthday</label>
                 <input name="birthday" type="date" required value={form.birthday} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              </div>
+              {/* Widget reCAPTCHA v2 (nếu dùng v2) */}
+              <div className="mb-4">
+                <div ref={recaptchaRef} className="g-recaptcha" data-sitekey="6Ld2h5srAAAAADRQnuz8QkFjjWKvxGfmONFZHycz"></div>
               </div>
             </>
           )}
