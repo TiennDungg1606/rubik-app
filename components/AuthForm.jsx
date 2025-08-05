@@ -60,12 +60,20 @@ export default function AuthForm({ onLogin }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (err) {
+      console.log("[AuthForm] Không parse được JSON từ response:", err);
+      setError("Lỗi hệ thống (không parse được JSON)");
+      return;
+    }
+    console.log("[AuthForm] Response đăng ký:", data);
     if (!res.ok) {
       setError(data.error || "Có lỗi xảy ra");
     } else {
       if (tab === "register") {
-          setSuccess("Registration successful! You can now log in.");
+        setSuccess("Registration successful! You can now log in.");
         setForm({ email: "", password: "", firstName: "", lastName: "", birthday: "" });
         setTimeout(() => {
           setTab("login");
