@@ -7,7 +7,7 @@ import React, { useState, useEffect } from "react";
 type RoomTabProps = {
   roomInput: string;
   setRoomInput: (v: string) => void;
-  handleCreateRoom: () => void;
+  handleCreateRoom: (event: '2x2' | '3x3', displayName: string, password: string) => void;
   handleJoinRoom: (roomId: string) => void;
 };
 
@@ -123,14 +123,10 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setModalError("Mật khẩu nhập lại không khớp.");
       return;
     }
-    // Có thể thêm validate khác nếu cần
     setModalError("");
-    // Gọi hàm tạo phòng thực tế, truyền thêm thông tin mới
-    // handleCreateRoom có thể cần sửa lại để nhận thêm tham số nếu muốn lưu thông tin này
-    // Ở đây chỉ đóng modal, bạn có thể sửa lại logic này để truyền dữ liệu lên server nếu muốn
     setShowCreateModal(false);
-    // TODO: Truyền modalRoomName, modalPassword, modalEvent cho handleCreateRoom nếu cần
-    handleCreateRoom();
+    // Truyền event, tên phòng, mật khẩu cho handleCreateRoom
+    handleCreateRoom(modalEvent, modalRoomName, modalPassword);
   }
 
   function handleJoin() {

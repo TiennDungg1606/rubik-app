@@ -577,14 +577,27 @@ useEffect(() => {
   useEffect(() => {
     if (!roomId || !userName || !userId) return;
     const socket = getSocket();
-    // Lấy password từ sessionStorage nếu có
+    // Lấy meta phòng từ sessionStorage nếu có (chỉ khi vừa tạo phòng)
     let password = "";
+    let event = undefined;
+    let displayName = undefined;
     if (typeof window !== "undefined") {
-      password = sessionStorage.getItem(`roomPassword_${roomId}`) || "";
-      // Xóa password sau khi dùng
-      sessionStorage.removeItem(`roomPassword_${roomId}`);
+      // Ưu tiên lấy meta nếu là người tạo phòng
+      const metaStr = sessionStorage.getItem(`roomMeta_${roomId}`);
+      if (metaStr) {
+        try {
+          const meta = JSON.parse(metaStr);
+          event = meta.event;
+          displayName = meta.displayName;
+          password = meta.password || "";
+        } catch {}
+        sessionStorage.removeItem(`roomMeta_${roomId}`);
+      } else {
+        password = sessionStorage.getItem(`roomPassword_${roomId}`) || "";
+        sessionStorage.removeItem(`roomPassword_${roomId}`);
+      }
     }
-    socket.emit("join-room", { roomId, userId, userName, password });
+    socket.emit("join-room", { roomId, userId, userName, event, displayName, password });
     // Lắng nghe sai mật khẩu
     const handleWrongPassword = (data: { message?: string }) => {
       alert(data?.message || "Sai mật khẩu phòng!");

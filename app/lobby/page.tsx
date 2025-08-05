@@ -179,10 +179,12 @@ export default function Lobby() {
       });
   }, [router]);
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = (event: '2x2' | '3x3', displayName: string, password: string) => {
     const roomId = generateRoomId();
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('justCreatedRoom', roomId);
+      // Lưu meta phòng để trang room/[roomId] lấy khi join-room
+      sessionStorage.setItem(`roomMeta_${roomId}`, JSON.stringify({ event, displayName, password }));
     }
     router.push(`/room/${roomId}`);
   };
