@@ -149,9 +149,9 @@ useEffect(() => {
     setUsers(usersArr);
     setWaiting(usersArr.length < 2);
   };
-  socket.on('users', handleUsers);
+  socket.on('room-users', handleUsers);
   return () => {
-    socket.off('users', handleUsers);
+    socket.off('room-users', handleUsers);
   };
 }, []);
 
