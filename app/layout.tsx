@@ -37,10 +37,6 @@ export default function RootLayout({
           src="https://cdn.stringee.com/sdk/web/latest/stringee-web-sdk.min.js"
           strategy="beforeInteractive"
         />
-        <Script
-          src="https://cdn.stringee.com/sdk/web/2.2.21/stringee-call2.min.js"
-          strategy="beforeInteractive"
-        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* Bỏ SessionProviderWrapper, render children trực tiếp */}
