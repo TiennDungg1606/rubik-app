@@ -185,6 +185,7 @@ export default function Lobby() {
       sessionStorage.setItem('justCreatedRoom', roomId);
       // Lưu meta phòng để trang room/[roomId] lấy khi join-room
       sessionStorage.setItem(`roomMeta_${roomId}`, JSON.stringify({ event, displayName, password }));
+      // Không lưu password vào roomPassword_{roomId} khi tạo phòng mới!
     }
     router.push(`/room/${roomId}`);
   };

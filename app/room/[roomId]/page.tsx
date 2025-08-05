@@ -643,55 +643,7 @@ useEffect(() => {
 
 
 
-  // Kết nối socket, join room, lắng nghe users và kết quả đối thủ
-  useEffect(() => {
-    const socket = getSocket();
-    if (!userId) return;
-    socket.emit("join-room", { roomId, userId, userName });
-    socket.on("room-users", (roomUsers: Array<{ userId: string, userName: string }>) => {
-      // roomUsers là mảng object { userId, userName }
-      const filteredUsers = (roomUsers || []).filter(u => u && typeof u.userId === 'string');
-      setUsers(filteredUsers.map(u => u.userId));
-      setWaiting(filteredUsers.length < 2);
-      // Nếu chỉ còn 1 người trong phòng, reset toàn bộ trạng thái, scramble, kết quả, trở thành chủ phòng
-      if (filteredUsers.length === 1 && filteredUsers[0].userId === userId) {
-        setIsCreator(true);
-        setMyResults([]);
-        setOpponentResults([]);
-        setScramble("");
-        setScrambleIndex(0);
-        setPrep(false);
-        setCanStart(false);
-        setSpaceHeld(false);
-        setTimer(0);
-        setDnf(false);
-        setPendingResult(null);
-        setPendingType('normal');
-        setOpponentId("");
-        setOpponentName("Đối thủ");
-        setRoomUrl("");
-        // Gửi yêu cầu tạo scramble mới lên server (nếu cần)
-        const socket = getSocket();
-        socket.emit("next-scramble", { roomId });
-      }
-      // Xác định đối thủ
-      const opp = filteredUsers.find(u => u.userId !== userId);
-      if (opp) {
-        setOpponentId(opp.userId);
-        setOpponentName(opp.userName || 'Đối thủ');
-      }
-    });
-    socket.on("opponent-solve", ({ userId: oppId, userName: oppName, time }: { userId: string, userName: string, time: number|null }) => {
-      setOpponentResults(r => [...r, time]);
-      setTurn('me');
-      setOpponentId(oppId);
-      setOpponentName(oppName || 'Đối thủ');
-    });
-    return () => {
-      socket.off("room-users");
-      socket.off("opponent-solve");
-    };
-  }, [roomId, userId, userName]);
+  // ĐÃ LOẠI BỎ effect thừa join-room không truyền password, event, displayName
 
 
   // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
