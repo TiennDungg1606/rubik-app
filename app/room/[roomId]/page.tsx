@@ -238,15 +238,25 @@ interface CubeNetModalProps {
 }
 
 function getSolvedCubeState(size: number): CubeState {
-  const n = size * size;
-  return {
-    B: Array(n).fill('blue'),
-    U: Array(n).fill('white'),
-    D: Array(n).fill('yellow'),
-    L: Array(n).fill('orange'),
-    R: Array(n).fill('red'),
-    F: Array(n).fill('green'),
-  };
+  if (size === 2) {
+    return {
+      B: Array(4).fill('blue'),
+      U: Array(4).fill('white'),
+      D: Array(4).fill('yellow'),
+      L: Array(4).fill('orange'),
+      R: Array(4).fill('red'),
+      F: Array(4).fill('green'),
+    };
+  } else {
+    return {
+      B: Array(9).fill('blue'),
+      U: Array(9).fill('white'),
+      D: Array(9).fill('yellow'),
+      L: Array(9).fill('orange'),
+      R: Array(9).fill('red'),
+      F: Array(9).fill('green'),
+    };
+  }
 }
 
 function applyScrambleToCubeState(scramble: string, size: number): CubeState {
@@ -266,11 +276,63 @@ function applyScrambleToCubeState(scramble: string, size: number): CubeState {
 }
 
 function rotateFace2x2(face: Face, cubeState: CubeState) {
+  // Xoay mặt 2x2 (4 sticker)
   const c = [...cubeState[face]];
   cubeState[face][0] = c[2];
   cubeState[face][1] = c[0];
   cubeState[face][2] = c[3];
   cubeState[face][3] = c[1];
+  // Xoay các cạnh xung quanh mặt
+  switch (face) {
+    case 'F': {
+      const temp = [cubeState.U[2], cubeState.U[3]];
+      [cubeState.U[2], cubeState.U[3]] = [cubeState.L[1], cubeState.L[3]];
+      [cubeState.L[1], cubeState.L[3]] = [cubeState.D[0], cubeState.D[1]];
+      [cubeState.D[0], cubeState.D[1]] = [cubeState.R[0], cubeState.R[2]];
+      [cubeState.R[0], cubeState.R[2]] = temp;
+      break;
+    }
+    case 'B': {
+      const temp = [cubeState.U[0], cubeState.U[1]];
+      [cubeState.U[0], cubeState.U[1]] = [cubeState.R[1], cubeState.R[3]];
+      [cubeState.R[1], cubeState.R[3]] = [cubeState.D[2], cubeState.D[3]];
+      [cubeState.D[2], cubeState.D[3]] = [cubeState.L[0], cubeState.L[2]];
+      [cubeState.L[0], cubeState.L[2]] = temp;
+      break;
+    }
+    case 'U': {
+      const temp = [cubeState.B[0], cubeState.B[1]];
+      [cubeState.B[0], cubeState.B[1]] = [cubeState.R[0], cubeState.R[1]];
+      [cubeState.R[0], cubeState.R[1]] = [cubeState.F[0], cubeState.F[1]];
+      [cubeState.F[0], cubeState.F[1]] = [cubeState.L[0], cubeState.L[1]];
+      [cubeState.L[0], cubeState.L[1]] = temp;
+      break;
+    }
+    case 'D': {
+      const temp = [cubeState.B[2], cubeState.B[3]];
+      [cubeState.B[2], cubeState.B[3]] = [cubeState.L[2], cubeState.L[3]];
+      [cubeState.L[2], cubeState.L[3]] = [cubeState.F[2], cubeState.F[3]];
+      [cubeState.F[2], cubeState.F[3]] = [cubeState.R[2], cubeState.R[3]];
+      [cubeState.R[2], cubeState.R[3]] = temp;
+      break;
+    }
+    case 'L': {
+      const temp = [cubeState.U[0], cubeState.U[2]];
+      [cubeState.U[0], cubeState.U[2]] = [cubeState.B[3], cubeState.B[1]];
+      [cubeState.B[3], cubeState.B[1]] = [cubeState.D[0], cubeState.D[2]];
+      [cubeState.D[0], cubeState.D[2]] = [cubeState.F[0], cubeState.F[2]];
+      [cubeState.F[0], cubeState.F[2]] = temp;
+      break;
+    }
+    case 'R': {
+      const temp = [cubeState.U[1], cubeState.U[3]];
+      [cubeState.U[1], cubeState.U[3]] = [cubeState.F[1], cubeState.F[3]];
+      [cubeState.F[1], cubeState.F[3]] = [cubeState.D[1], cubeState.D[3]];
+      [cubeState.D[1], cubeState.D[3]] = [cubeState.B[0], cubeState.B[2]];
+      [cubeState.B[0], cubeState.B[2]] = temp;
+      break;
+    }
+  }
 }
 
 function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
