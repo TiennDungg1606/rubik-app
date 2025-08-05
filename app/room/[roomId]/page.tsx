@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import React from "react";
 // import Peer from "simple-peer"; // REMOVED
 import { createStringeeClient, createStringeeCall } from "@/lib/stringeeClient";
 import { useRouter } from "next/navigation";
@@ -283,6 +284,28 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
     ['', 'D', '', ''],
   ];
   const faceSize = 70;
+  // Helper để render sticker cho từng mặt
+  function renderStickers(faceKey: Face) {
+    if (size === 2) {
+      // 2x2: 4 sticker, grid 2x2
+      return (
+        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+          {cubeState[faceKey].map((color: string, i: number) => (
+            <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+          ))}
+        </div>
+      );
+    } else {
+      // 3x3: 9 sticker, grid 3x3
+      return (
+        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+          {cubeState[faceKey].map((color: string, i: number) => (
+            <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+          ))}
+        </div>
+      );
+    }
+  }
   return open ? (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black bg-opacity-60" style={{ backdropFilter: 'blur(2px)' }}>
       <div className="bg-pink-100 rounded-xl p-4 shadow-lg relative" style={{ minWidth: 320, minHeight: 320 }}>
@@ -295,11 +318,7 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
                 return <div key={`blank-${rowIdx}-${colIdx}`} className="net-face-empty" style={{ width: faceSize, height: faceSize, background: 'none' }}></div>;
               } else {
                 return (
-                  <div key={faceKey} className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: `repeat(${size}, 1fr)`, gridTemplateRows: `repeat(${size}, 1fr)`, border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
-                    {cubeState[faceKey].map((color: string, i: number) => (
-                      <div key={i} className={`net-sticker`} style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
-                    ))}
-                  </div>
+                  <React.Fragment key={faceKey}>{renderStickers(faceKey as Face)}</React.Fragment>
                 );
               }
             })
