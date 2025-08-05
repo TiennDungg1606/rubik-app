@@ -154,28 +154,6 @@ const solvedCubeStateTemplate: CubeState = {
   F: Array(9).fill('green'),
 };
 
-function applyScrambleToCubeState(scramble: string): CubeState {
-  // Deep copy
-  let cubeState: CubeState = {
-    B: [...solvedCubeStateTemplate.B],
-    U: [...solvedCubeStateTemplate.U],
-    D: [...solvedCubeStateTemplate.D],
-    L: [...solvedCubeStateTemplate.L],
-    R: [...solvedCubeStateTemplate.R],
-    F: [...solvedCubeStateTemplate.F],
-  };
-  const moves = scramble.split(/\s+/);
-  moves.forEach((move: string) => {
-    if (!move) return;
-    let face = move[0] as Face;
-    let amount = move.includes("'") ? 3 : 1;
-    if (move.includes("2")) amount = 2;
-    for (let i = 0; i < amount; i++) {
-      rotateFace(face, cubeState);
-    }
-  });
-  return cubeState;
-}
 
 function rotateFace(face: Face, cubeState: CubeState) {
   const faceColors = [...cubeState[face]];
@@ -255,34 +233,71 @@ interface CubeNetModalProps {
   scramble: string;
   open: boolean;
   onClose: () => void;
+  size: number; // 2 hoặc 3
 }
 
-function CubeNetModal({ scramble, open, onClose }: CubeNetModalProps) {
-  const [cubeState, setCubeState] = useState<CubeState>(() => applyScrambleToCubeState(scramble || ''));
+function getSolvedCubeState(size: number): CubeState {
+  const n = size * size;
+  return {
+    B: Array(n).fill('blue'),
+    U: Array(n).fill('white'),
+    D: Array(n).fill('yellow'),
+    L: Array(n).fill('orange'),
+    R: Array(n).fill('red'),
+    F: Array(n).fill('green'),
+  };
+}
+
+function applyScrambleToCubeState(scramble: string, size: number): CubeState {
+  let cubeState = getSolvedCubeState(size);
+  const moves = scramble.split(/\s+/);
+  moves.forEach((move: string) => {
+    if (!move) return;
+    let face = move[0] as Face;
+    let amount = move.includes("'") ? 3 : 1;
+    if (move.includes("2")) amount = 2;
+    for (let i = 0; i < amount; i++) {
+      if (size === 2) rotateFace2x2(face, cubeState);
+      else rotateFace(face, cubeState);
+    }
+  });
+  return cubeState;
+}
+
+function rotateFace2x2(face: Face, cubeState: CubeState) {
+  const c = [...cubeState[face]];
+  cubeState[face][0] = c[2];
+  cubeState[face][1] = c[0];
+  cubeState[face][2] = c[3];
+  cubeState[face][3] = c[1];
+}
+
+function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
+  const [cubeState, setCubeState] = useState<CubeState>(() => applyScrambleToCubeState(scramble || '', size));
   useEffect(() => {
-    setCubeState(applyScrambleToCubeState(scramble || ''));
-  }, [scramble]);
-  // Lưới net: U ở trên, D ở dưới, F ở giữa, L/R/B hai bên
+    setCubeState(applyScrambleToCubeState(scramble || '', size));
+  }, [scramble, size]);
   const layoutGrid: (Face | '')[][] = [
     ['', 'U', '', ''],
     ['L', 'F', 'R', 'B'],
     ['', 'D', '', ''],
   ];
+  const faceSize = 70;
   return open ? (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black bg-opacity-60" style={{ backdropFilter: 'blur(2px)' }}>
       <div className="bg-pink-100 rounded-xl p-4 shadow-lg relative" style={{ minWidth: 320, minHeight: 320 }}>
         <button onClick={onClose} className="absolute top-2 right-2 px-2 py-1 bg-red-500 hover:bg-red-700 text-white rounded font-bold">Đóng</button>
-        <div className="mb-2 text-center font-bold text-lg text-gray-700">Lưới Rubik theo scramble</div>
-        <div id="net-view" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 70px)', gridTemplateRows: 'repeat(3, 70px)', gap: 2, background: 'none' }}>
+        <div className="mb-2 text-center font-bold text-lg text-gray-700"></div>
+        <div id="net-view" style={{ display: 'grid', gridTemplateColumns: `repeat(4, ${faceSize}px)`, gridTemplateRows: `repeat(3, ${faceSize}px)`, gap: 2, background: 'none' }}>
           {layoutGrid.flatMap((row, rowIdx) =>
             row.map((faceKey, colIdx) => {
               if (faceKey === '') {
-                return <div key={`blank-${rowIdx}-${colIdx}`} className="net-face-empty" style={{ width: 70, height: 70, background: 'none' }}></div>;
+                return <div key={`blank-${rowIdx}-${colIdx}`} className="net-face-empty" style={{ width: faceSize, height: faceSize, background: 'none' }}></div>;
               } else {
                 return (
-                  <div key={faceKey} className="net-face" style={{ width: 70, height: 70, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+                  <div key={faceKey} className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: `repeat(${size}, 1fr)`, gridTemplateRows: `repeat(${size}, 1fr)`, border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
                     {cubeState[faceKey].map((color: string, i: number) => (
-                      <div key={i} className={`net-sticker`} style={{ width: 20, height: 20, background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+                      <div key={i} className={`net-sticker`} style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
                     ))}
                   </div>
                 );
@@ -296,6 +311,12 @@ function CubeNetModal({ scramble, open, onClose }: CubeNetModalProps) {
   ) : null;
 }
 // --- End CubeNetModal ---
+  // Xác định loại cube (2x2 hoặc 3x3) dựa vào roomMeta.event
+  let cubeSize = 3;
+  if (roomMeta && roomMeta.event) {
+    if (typeof roomMeta.event === 'string' && roomMeta.event.includes('2x2')) cubeSize = 2;
+    else cubeSize = 3;
+  }
 
 
 // Lắng nghe sự kiện reset phòng từ server (khi chỉ còn 1 người)
@@ -973,7 +994,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
         </button>
       {/* Modal lưới Rubik */}
-      <CubeNetModal scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} />
+        <CubeNetModal scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
       </div>
       {/* Nút Chat, nút tái đấu và nút luật thi đấu ở góc trên bên phải */}
       <div
