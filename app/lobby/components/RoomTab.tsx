@@ -3,6 +3,7 @@ declare global {
   interface Window { _roomPassword?: string }
 }
 import React, { useState, useEffect } from "react";
+import { io } from "socket.io-client";
 
 type RoomTabProps = {
   roomInput: string;
@@ -35,6 +36,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   // Lấy danh sách phòng và phân loại
   useEffect(() => {
     let stopped = false;
+    let socket;
     async function fetchRooms() {
       try {
         const res = await fetch(`${API_BASE}/active-rooms`);
@@ -67,8 +69,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         setRoomMetas(metaMap);
         setActiveRooms(active);
         setCompetingRooms(competing);
-        
-        // Đã loại bỏ fetch số lượng spectator
       } catch {
         setActiveRooms([]);
         setCompetingRooms([]);
@@ -78,9 +78,15 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     const interval = setInterval(() => {
       if (!stopped) fetchRooms();
     }, 3000);
+    // Lắng nghe sự kiện update-active-rooms từ server để reload danh sách phòng ngay lập tức
+    socket = io(API_BASE, { transports: ["websocket"] });
+    socket.on("update-active-rooms", () => {
+      fetchRooms();
+    });
     return () => {
       stopped = true;
       clearInterval(interval);
+      if (socket) socket.disconnect();
     };
   }, []);
 
