@@ -1126,10 +1126,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
         </button>
       {/* Modal lưới Rubik */}
-        {/* Chỉ render CubeNetModal khi đã xác định được roomMeta.event (cubeSize) */}
-        {roomMeta && roomMeta.event && showCubeNet && (
-          <CubeNetModal scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
-        )}
+        {/* Luôn render CubeNetModal khi showCubeNet, truyền cubeSize đúng loại cube */}
+        <CubeNetModal scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
       </div>
       {/* Nút Chat, nút tái đấu và nút luật thi đấu ở góc trên bên phải */}
       <div
