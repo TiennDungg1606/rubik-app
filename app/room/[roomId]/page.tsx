@@ -1357,7 +1357,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <h2 className={mobileShrink ? "text-[14px] font-bold mb-1" : "text-3xl font-bold mb-2"}>
           Phòng: <span className="text-blue-400">{roomId}</span>
         </h2>
-        <div className={mobileShrink ? "scramble-bar-mobile" : "scramble-bar-desktop"}>
+        <div className={mobileShrink ? "mb-1 px-2 py-1 bg-gray-800 rounded text-[16px] font-mono font-bold tracking-widest select-all w-[90vw] max-w-[340px] overflow-x-auto whitespace-normal" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
+          style={mobileShrink ? { fontSize: 16, minWidth: '60vw', maxWidth: 340, overflowX: 'auto', whiteSpace: 'normal' } : {}}>
           {scramble}
         </div>
       </div>
