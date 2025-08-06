@@ -1,4 +1,5 @@
 
+
 "use client";
 import { useEffect, useRef, useState } from "react";
 import React from "react";
@@ -497,6 +498,30 @@ useEffect(() => {
     socket.off('rematch-declined', handleRematchDeclined);
   };
 }, [userId, roomId, isCreator]);
+
+// Lắng nghe sự kiện opponent-solve từ server để cập nhật kết quả đối thủ và chuyển lượt
+useEffect(() => {
+  const socket = getSocket();
+  const handleOpponentSolve = (data: { userId: string, userName: string, time: number }) => {
+    // Cập nhật kết quả đối thủ
+    setOpponentResults(prev => {
+      const arr = [...prev];
+      // Tìm vị trí đầu tiên chưa có kết quả
+      const idx = arr.findIndex(x => x === null || typeof x === 'undefined');
+      if (idx !== -1) arr[idx] = data.time;
+      else arr.push(data.time);
+      return arr.slice(0, 5);
+    });
+    // Nếu opponentName thay đổi thì cập nhật lại
+    if (data.userName && data.userName !== opponentName) setOpponentName(data.userName);
+    // Chuyển lượt về cho mình
+    setTurn('me');
+  };
+  socket.on('opponent-solve', handleOpponentSolve);
+  return () => {
+    socket.off('opponent-solve', handleOpponentSolve);
+  };
+}, [opponentName]);
 
 // --- EFFECT LẮNG NGHE SCRAMBLE ---
 useEffect(() => {
