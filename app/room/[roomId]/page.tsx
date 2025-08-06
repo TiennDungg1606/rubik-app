@@ -153,7 +153,8 @@ useEffect(() => {
       const opp = usersArr.find(u => u.userId !== userId);
       if (opp) {
         setOpponentId(opp.userId);
-        setOpponentName(opp.userName || 'Đối thủ');
+        // Nếu opponentName khác với tên mới từ server, hoặc đang là 'Đối thủ', thì cập nhật lại
+        setOpponentName(prev => (opp.userName && prev !== opp.userName ? opp.userName : (opp.userName || 'Đối thủ')));
       }
     }
   };
