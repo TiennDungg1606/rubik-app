@@ -16,7 +16,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [activeRooms, setActiveRooms] = useState<string[]>([]);
   const [competingRooms, setCompetingRooms] = useState<string[]>([]);
   // Lưu meta phòng để kiểm tra mật khẩu
-  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string; event?: string }>>({});
+  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string; event?: string; displayName?: string }>>({});
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -266,7 +266,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   {/* Icon thi đấu */}
                   <span className="absolute top-1 right-1 text-yellow-300"></span>
                 </div>
-                <div className="text-base text-gray-200">{room}</div>
+                <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
                 {/* Đã loại bỏ dòng (Tạm thời khóa chế độ xem) */}
               </div>
             ))}
