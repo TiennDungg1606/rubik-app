@@ -503,13 +503,13 @@ useEffect(() => {
 useEffect(() => {
   const socket = getSocket();
   const handleOpponentSolve = (data: { userId: string, userName: string, time: number }) => {
-    // Cập nhật kết quả đối thủ
+    // Cập nhật kết quả đối thủ: luôn thêm vào vị trí tiếp theo, không ghi đè DNF/null
     setOpponentResults(prev => {
       const arr = [...prev];
-      // Tìm vị trí đầu tiên chưa có kết quả
-      const idx = arr.findIndex(x => x === null || typeof x === 'undefined');
-      if (idx !== -1) arr[idx] = data.time;
-      else arr.push(data.time);
+      // Đếm số kết quả đã có (kể cả null)
+      const nextIdx = arr.length;
+      if (nextIdx < 5) arr[nextIdx] = data.time;
+      // Nếu đã đủ 5 kết quả thì không thêm nữa
       return arr.slice(0, 5);
     });
     // Nếu opponentName thay đổi thì cập nhật lại
@@ -1126,7 +1126,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
         </button>
       {/* Modal lưới Rubik */}
-        <CubeNetModal scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
+        {/* Chỉ render CubeNetModal khi đã xác định được roomMeta.event (cubeSize) */}
+        {roomMeta && roomMeta.event && showCubeNet && (
+          <CubeNetModal scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
+        )}
       </div>
       {/* Nút Chat, nút tái đấu và nút luật thi đấu ở góc trên bên phải */}
       <div
