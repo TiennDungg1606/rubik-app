@@ -142,27 +142,31 @@ export default function RoomPage() {
   const [rematchJustAccepted, setRematchJustAccepted] = useState(false);
 
 // ... (các khai báo state khác)
-// Lắng nghe danh sách users trong phòng từ server để cập nhật trạng thái chờ đối thủ
+// Lưu usersArr cuối cùng để xử lý khi userId đến sau
+const [pendingUsers, setPendingUsers] = useState<{ userId: string, userName: string }[] | null>(null);
+// Lắng nghe danh sách users trong phòng từ server
 useEffect(() => {
   const socket = getSocket();
   const handleUsers = (usersArr: { userId: string, userName: string }[]) => {
     setUsers(usersArr.map(u => u.userId));
     setWaiting(usersArr.length < 2);
-    // Tìm đối thủ (khác userId của mình)
-    if (userId) {
-      const opp = usersArr.find(u => u.userId !== userId);
-      if (opp) {
-        setOpponentId(opp.userId);
-        // Nếu opponentName khác với tên mới từ server, hoặc đang là 'Đối thủ', thì cập nhật lại
-        setOpponentName(prev => (opp.userName && prev !== opp.userName ? opp.userName : (opp.userName || 'Đối thủ')));
-      }
-    }
+    setPendingUsers(usersArr); // luôn lưu lại usersArr cuối cùng
   };
   socket.on('room-users', handleUsers);
   return () => {
     socket.off('room-users', handleUsers);
   };
-}, [userId]);
+}, []);
+
+// Khi userId hoặc pendingUsers thay đổi, luôn cập nhật opponentId/opponentName
+useEffect(() => {
+  if (!userId || !pendingUsers) return;
+  const opp = pendingUsers.find(u => u.userId !== userId);
+  if (opp) {
+    setOpponentId(opp.userId);
+    setOpponentName(opp.userName || 'Đối thủ');
+  }
+}, [userId, pendingUsers]);
 
 // --- CubeNetModal component and scramble logic ---
 type Face = 'U' | 'D' | 'L' | 'R' | 'F' | 'B';
