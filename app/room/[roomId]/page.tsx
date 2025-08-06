@@ -367,33 +367,22 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
   useEffect(() => {
     setCubeState(applyScrambleToCubeState(scramble || '', size));
   }, [scramble, size]);
+  const faceSize = 70;
+  // layoutGrid cho 2x2 và 3x3 giống nhau về vị trí, chỉ khác số sticker mỗi mặt
   const layoutGrid: (Face | '')[][] = [
     ['', 'U', '', ''],
     ['L', 'F', 'R', 'B'],
     ['', 'D', '', ''],
   ];
-  const faceSize = 70;
-  // Helper để render sticker cho từng mặt
   function renderStickers(faceKey: Face) {
-    if (size === 2) {
-      // 2x2: 4 sticker, grid 2x2
-      return (
-        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
-          {cubeState[faceKey].map((color: string, i: number) => (
-            <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
-          ))}
-        </div>
-      );
-    } else {
-      // 3x3: 9 sticker, grid 3x3
-      return (
-        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
-          {cubeState[faceKey].map((color: string, i: number) => (
-            <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
-          ))}
-        </div>
-      );
-    }
+    // Số dòng/cột = size
+    return (
+      <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: `repeat(${size}, 1fr)`, gridTemplateRows: `repeat(${size}, 1fr)`, border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+        {cubeState[faceKey].map((color: string, i: number) => (
+          <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+        ))}
+      </div>
+    );
   }
   return open ? (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black bg-opacity-60" style={{ backdropFilter: 'blur(2px)' }}>
