@@ -419,12 +419,11 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
   ) : null;
 }
 // --- End CubeNetModal ---
-  // Xác định loại cube (2x2 hoặc 3x3) dựa vào roomMeta.event
-  let cubeSize = 3;
-  if (roomMeta && roomMeta.event) {
-    if (typeof roomMeta.event === 'string' && roomMeta.event.includes('2x2')) cubeSize = 2;
-    else cubeSize = 3;
-  }
+  // Xác định loại cube (2x2 hoặc 3x3) dựa vào roomMeta.event, dùng useMemo để luôn cập nhật đúng
+  const cubeSize = React.useMemo(() => {
+    if (roomMeta && typeof roomMeta.event === 'string' && roomMeta.event.includes('2x2')) return 2;
+    return 3;
+  }, [roomMeta]);
 
 
 // Lắng nghe sự kiện reset phòng từ server (khi chỉ còn 1 người)
