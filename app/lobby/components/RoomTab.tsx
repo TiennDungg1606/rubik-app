@@ -16,7 +16,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [activeRooms, setActiveRooms] = useState<string[]>([]);
   const [competingRooms, setCompetingRooms] = useState<string[]>([]);
   // Lưu meta phòng để kiểm tra mật khẩu
-  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string }>>({});
+  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string; event?: string }>>({});
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -249,15 +249,22 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 className="flex flex-col items-center" // Hiển thị bình thường, không làm mờ
               >
                 <div className="w-24 h-24 bg-red-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
-                  {/* Icon dạng lưới với màu đỏ */}
-                  <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                    {Array.from({ length: 9 }).map((_, i) => (
-                      <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                    ))}
-                  </div>
+                  {/* Icon dạng lưới: 2x2 nếu là phòng 2x2, 3x3 nếu là phòng 3x3 */}
+                  {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' && roomMetas[room].event.includes('2x2') ? (
+                    <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                      {Array.from({ length: 9 }).map((_, i) => (
+                        <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                      ))}
+                    </div>
+                  )}
                   {/* Icon thi đấu */}
                   <span className="absolute top-1 right-1 text-yellow-300"></span>
-                  {/* Đã loại bỏ hiển thị số lượng spectator */}
                 </div>
                 <div className="text-base text-gray-200">{room}</div>
                 {/* Đã loại bỏ dòng (Tạm thời khóa chế độ xem) */}
@@ -303,12 +310,20 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 className="flex flex-col items-center cursor-pointer"
               >
                 <div className="w-24 h-24 bg-blue-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
-                  {/* Icon dạng lưới */}
-                  <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                    {Array.from({ length: 9 }).map((_, i) => (
-                      <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
-                    ))}
-                  </div>
+                  {/* Icon dạng lưới: 2x2 nếu là phòng 2x2, 3x3 nếu là phòng 3x3 */}
+                  {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' && roomMetas[room].event.includes('2x2') ? (
+                    <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                      {Array.from({ length: 9 }).map((_, i) => (
+                        <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                      ))}
+                    </div>
+                  )}
                   {/* Icon chờ người */}
                   <span className="absolute top-1 right-1 text-green-300"></span>
                 </div>
