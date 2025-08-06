@@ -375,14 +375,25 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
     ['', 'D', '', ''],
   ];
   function renderStickers(faceKey: Face) {
-    // Số dòng/cột = size
-    return (
-      <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: `repeat(${size}, 1fr)`, gridTemplateRows: `repeat(${size}, 1fr)`, border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
-        {cubeState[faceKey].map((color: string, i: number) => (
-          <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
-        ))}
-      </div>
-    );
+    // Nếu size=2, chỉ render đúng 4 sticker (2x2), không render 9 sticker
+    if (size === 2) {
+      return (
+        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+          {cubeState[faceKey].slice(0, 4).map((color: string, i: number) => (
+            <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+          ))}
+        </div>
+      );
+    } else {
+      // 3x3: 9 sticker
+      return (
+        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+          {cubeState[faceKey].slice(0, 9).map((color: string, i: number) => (
+            <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+          ))}
+        </div>
+      );
+    }
   }
   return open ? (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black bg-opacity-60" style={{ backdropFilter: 'blur(2px)' }}>
