@@ -145,15 +145,23 @@ export default function RoomPage() {
 // Lắng nghe danh sách users trong phòng từ server để cập nhật trạng thái chờ đối thủ
 useEffect(() => {
   const socket = getSocket();
-  const handleUsers = (usersArr: string[]) => {
-    setUsers(usersArr);
+  const handleUsers = (usersArr: { userId: string, userName: string }[]) => {
+    setUsers(usersArr.map(u => u.userId));
     setWaiting(usersArr.length < 2);
+    // Tìm đối thủ (khác userId của mình)
+    if (userId) {
+      const opp = usersArr.find(u => u.userId !== userId);
+      if (opp) {
+        setOpponentId(opp.userId);
+        setOpponentName(opp.userName || 'Đối thủ');
+      }
+    }
   };
   socket.on('room-users', handleUsers);
   return () => {
     socket.off('room-users', handleUsers);
   };
-}, []);
+}, [userId]);
 
 // --- CubeNetModal component and scramble logic ---
 type Face = 'U' | 'D' | 'L' | 'R' | 'F' | 'B';
