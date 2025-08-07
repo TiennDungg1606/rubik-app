@@ -173,14 +173,7 @@ useEffect(() => {
 type Face = 'U' | 'D' | 'L' | 'R' | 'F' | 'B';
 type CubeState = Record<Face, string[]>;
 
-const solvedCubeStateTemplate: CubeState = {
-  B: Array(9).fill('blue'),
-  U: Array(9).fill('white'),
-  D: Array(9).fill('yellow'),
-  L: Array(9).fill('orange'),
-  R: Array(9).fill('red'),
-  F: Array(9).fill('green'),
-};
+
 
 
 function rotateFace(face: Face, cubeState: CubeState) {
