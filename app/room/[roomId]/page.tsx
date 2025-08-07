@@ -72,9 +72,18 @@ export default function RoomPage() {
   // Fetch meta phòng từ API
   useEffect(() => {
     if (!roomId) return;
+    console.log('[Fetch meta phòng] roomId:', roomId);
     fetch(`/api/room-meta/${roomId}`)
-      .then(res => res.ok ? res.json() : null)
+      .then(res => {
+        console.log('[Fetch meta phòng] status:', res.status);
+        if (!res.ok) {
+          console.error('[Fetch meta phòng] Không lấy được meta phòng, status:', res.status);
+          return null;
+        }
+        return res.json();
+      })
       .then(data => {
+        console.log('[Fetch meta phòng] data:', data);
         if (data && (data.displayName || data.event)) setRoomMeta(data);
       });
   }, [roomId]);
