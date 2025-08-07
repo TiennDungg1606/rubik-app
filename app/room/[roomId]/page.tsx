@@ -69,9 +69,10 @@ export default function RoomPage() {
   const [roomId, setRoomId] = useState<string>("");
   // State cho meta phòng
   const [roomMeta, setRoomMeta] = useState<{ displayName?: string; event?: string } | null>(null);
+  const [joinedRoom, setJoinedRoom] = useState(false);
   // Fetch meta phòng từ API
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !joinedRoom) return;
     console.log('[Fetch meta phòng] roomId:', roomId);
     fetch(`/api/room-meta/${roomId.toUpperCase()}`)
       .then(res => {
@@ -86,7 +87,7 @@ export default function RoomPage() {
         console.log('[Fetch meta phòng] data:', data);
         if (data && (data.displayName || data.event)) setRoomMeta(data);
       });
-  }, [roomId]);
+  }, [roomId, joinedRoom]);
   const [showCubeNet, setShowCubeNet] = useState(false);
   // State cho chat
   const [showChat, setShowChat] = useState(false);
@@ -752,6 +753,11 @@ useEffect(() => {
       }
     }
     socket.emit("join-room", { roomId, userId, userName, event, displayName, password });
+    // Lắng nghe xác nhận đã join phòng
+    const handleRoomJoined = () => {
+      setJoinedRoom(true);
+    };
+    socket.on("room-joined", handleRoomJoined);
     // Lắng nghe sai mật khẩu
     const handleWrongPassword = (data: { message?: string }) => {
       alert(data?.message || "Sai mật khẩu phòng!");
@@ -759,6 +765,7 @@ useEffect(() => {
     };
     socket.on("wrong-password", handleWrongPassword);
     return () => {
+      socket.off("room-joined", handleRoomJoined);
       socket.off("wrong-password", handleWrongPassword);
     };
   }, [roomId, userName, userId]);
