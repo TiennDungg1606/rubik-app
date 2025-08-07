@@ -1119,7 +1119,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </button>
       {/* Modal lưới Rubik */}
         {/* Luôn render CubeNetModal khi showCubeNet, truyền cubeSize đúng loại cube */}
-        <CubeNetModal scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
+        <CubeNetModal key={`${scramble}-${cubeSize}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
       </div>
       {/* Nút Chat, nút tái đấu và nút luật thi đấu ở góc trên bên phải */}
       <div
