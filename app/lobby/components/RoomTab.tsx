@@ -333,7 +333,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   {/* Icon chờ người */}
                   <span className="absolute top-1 right-1 text-green-300"></span>
                 </div>
-                <div className="text-base text-gray-200">{room}</div>
+                <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
               </div>
             ))}
             {activeRooms.length === 0 && (
