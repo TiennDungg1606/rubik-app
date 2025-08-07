@@ -1113,7 +1113,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           type="button"
           aria-label="Lưới scramble"
           title="Lưới scramble"
-          onClick={() => setShowCubeNet(true)}
+          onClick={() => {
+            console.log('roomMeta.event:', roomMeta?.event);
+            console.log('cubeSize:', cubeSize);
+            setShowCubeNet(true);
+          }}
         >
           <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
         </button>
