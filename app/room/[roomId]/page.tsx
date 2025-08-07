@@ -1058,28 +1058,24 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           onClick={handleLeaveRoom}
           className={
             mobileShrink
-              ? "px-1 py-0.5 bg-red-600 hover:bg-red-700 text-[9px] rounded font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
-              : "px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg flex items-center justify-center"
+              ? "bg-red-600 hover:bg-red-700 text-[9px] rounded-full font-bold shadow-lg flex items-center justify-center"
+              : "bg-red-600 hover:bg-red-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center"
           }
-          style={mobileShrink ? { fontSize: 9, minWidth: 0, minHeight: 0, padding: 1 } : {}}
+          style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
           type="button"
           aria-label="Rời phòng"
           title="Rời phòng"
         >
           {/* Icon logout/exit SVG */}
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
-            <rect x="10" y="8" width="28" height="32" rx="3" stroke="white" strokeWidth="3" fill="none"/>
-            <path d="M34 24H18" stroke="white" strokeWidth="3" strokeLinecap="round"/>
-            <path d="M24 16l-8 8 8 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>↩</span>
         </button>
         <button
           className={
             mobileShrink
-              ? "px-1 py-0.5 bg-gray-500 hover:bg-gray-700 text-[13px] rounded font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
-              : "px-4 py-2 bg-gray-500 hover:bg-gray-700 text-white rounded-lg font-bold shadow-lg flex items-center justify-center"
+              ? "bg-gray-500 hover:bg-gray-700 text-[13px] rounded-full font-bold shadow-lg flex items-center justify-center"
+              : "bg-gray-500 hover:bg-gray-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center"
           }
-          style={mobileShrink ? { fontSize: 13, minWidth: 0, minHeight: 0, padding: 1 } : { fontSize: 20 }}
+          style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
           type="button"
           aria-label="Lưới scramble"
           title="Lưới scramble"
@@ -1713,6 +1709,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   let txt = '';
                   txt += `KẾT QUẢ THI ĐẤU RUBIK'S CUBE\n`;
                   txt += `Phòng: ${roomId}\n`;
+                  if (roomMeta?.event) {
+                    txt += `Thể loại: ${roomMeta.event}\n`;
+                  }
                   txt += `Ngày: ${dateStr}\n`;
                   txt += `Thời gian: ${timeStr}\n`;
                   txt += `\n`;
