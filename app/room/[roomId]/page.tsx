@@ -312,17 +312,19 @@ function rotateFace2x2(face: Face, cubeState: CubeState) {
   cubeState[face][1] = c[0];
   cubeState[face][2] = c[3];
   cubeState[face][3] = c[1];
-  // Xoay các cạnh xung quanh mặt
+  // Xoay các góc xung quanh mặt, học theo logic 3x3
   switch (face) {
     case 'F': {
+      // U[2], U[3] -> R[0], R[2] -> D[0], D[1] -> L[1], L[3] -> U[2], U[3]
       const temp = [cubeState.U[2], cubeState.U[3]];
-      [cubeState.U[2], cubeState.U[3]] = [cubeState.L[1], cubeState.L[3]];
-      [cubeState.L[1], cubeState.L[3]] = [cubeState.D[0], cubeState.D[1]];
+      [cubeState.U[2], cubeState.U[3]] = [cubeState.L[3], cubeState.L[1]];
+      [cubeState.L[3], cubeState.L[1]] = [cubeState.D[0], cubeState.D[1]];
       [cubeState.D[0], cubeState.D[1]] = [cubeState.R[0], cubeState.R[2]];
       [cubeState.R[0], cubeState.R[2]] = temp;
       break;
     }
     case 'B': {
+      // U[0], U[1] -> R[1], R[3] -> D[2], D[3] -> L[0], L[2] -> U[0], U[1]
       const temp = [cubeState.U[0], cubeState.U[1]];
       [cubeState.U[0], cubeState.U[1]] = [cubeState.R[1], cubeState.R[3]];
       [cubeState.R[1], cubeState.R[3]] = [cubeState.D[2], cubeState.D[3]];
@@ -331,22 +333,25 @@ function rotateFace2x2(face: Face, cubeState: CubeState) {
       break;
     }
     case 'U': {
-      const temp = [cubeState.B[0], cubeState.B[1]];
-      [cubeState.B[0], cubeState.B[1]] = [cubeState.R[0], cubeState.R[1]];
-      [cubeState.R[0], cubeState.R[1]] = [cubeState.F[0], cubeState.F[1]];
+      // F[0], F[1] -> L[0], L[1] -> B[0], B[1] -> R[0], R[1] -> F[0], F[1]
+      const temp = [cubeState.F[0], cubeState.F[1]];
       [cubeState.F[0], cubeState.F[1]] = [cubeState.L[0], cubeState.L[1]];
-      [cubeState.L[0], cubeState.L[1]] = temp;
+      [cubeState.L[0], cubeState.L[1]] = [cubeState.B[0], cubeState.B[1]];
+      [cubeState.B[0], cubeState.B[1]] = [cubeState.R[0], cubeState.R[1]];
+      [cubeState.R[0], cubeState.R[1]] = temp;
       break;
     }
     case 'D': {
-      const temp = [cubeState.B[2], cubeState.B[3]];
-      [cubeState.B[2], cubeState.B[3]] = [cubeState.L[2], cubeState.L[3]];
-      [cubeState.L[2], cubeState.L[3]] = [cubeState.F[2], cubeState.F[3]];
+      // F[2], F[3] -> R[2], R[3] -> B[2], B[3] -> L[2], L[3] -> F[2], F[3]
+      const temp = [cubeState.F[2], cubeState.F[3]];
       [cubeState.F[2], cubeState.F[3]] = [cubeState.R[2], cubeState.R[3]];
-      [cubeState.R[2], cubeState.R[3]] = temp;
+      [cubeState.R[2], cubeState.R[3]] = [cubeState.B[2], cubeState.B[3]];
+      [cubeState.B[2], cubeState.B[3]] = [cubeState.L[2], cubeState.L[3]];
+      [cubeState.L[2], cubeState.L[3]] = temp;
       break;
     }
     case 'L': {
+      // U[0], U[2] -> B[3], B[1] -> D[0], D[2] -> F[0], F[2] -> U[0], U[2]
       const temp = [cubeState.U[0], cubeState.U[2]];
       [cubeState.U[0], cubeState.U[2]] = [cubeState.B[3], cubeState.B[1]];
       [cubeState.B[3], cubeState.B[1]] = [cubeState.D[0], cubeState.D[2]];
@@ -355,6 +360,7 @@ function rotateFace2x2(face: Face, cubeState: CubeState) {
       break;
     }
     case 'R': {
+      // U[1], U[3] -> F[1], F[3] -> D[1], D[3] -> B[0], B[2] -> U[1], U[3]
       const temp = [cubeState.U[1], cubeState.U[3]];
       [cubeState.U[1], cubeState.U[3]] = [cubeState.F[1], cubeState.F[3]];
       [cubeState.F[1], cubeState.F[3]] = [cubeState.D[1], cubeState.D[3]];
