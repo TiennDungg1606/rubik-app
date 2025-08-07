@@ -73,7 +73,7 @@ export default function RoomPage() {
   useEffect(() => {
     if (!roomId) return;
     console.log('[Fetch meta phòng] roomId:', roomId);
-    fetch(`/api/room-meta/${roomId}`)
+    fetch(`/api/room-meta/${roomId.toUpperCase()}`)
       .then(res => {
         console.log('[Fetch meta phòng] status:', res.status);
         if (!res.ok) {
