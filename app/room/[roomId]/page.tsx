@@ -10,7 +10,7 @@ declare global {
 }
 import { getSocket } from "@/lib/socket";
 import dynamic from 'next/dynamic';
-
+import { applyScrambleToCubeState, rotateFace, rotateFace2x2, getSolvedCubeState, Face, CubeState } from '@/lib/rubikUtils';
 // Helper for stats (all in ms)
 // Tính toán thống kê chuẩn WCA, DNF là null, mọi kết quả đều 3 số thập phân
 function calcStats(times: (number|null)[]) {
@@ -164,79 +164,7 @@ type CubeState = Record<Face, string[]>;
 
 
 
-function rotateFace(face: Face, cubeState: CubeState) {
-  const faceColors = [...cubeState[face]];
-  cubeState[face][0] = faceColors[6];
-  cubeState[face][1] = faceColors[3];
-  cubeState[face][2] = faceColors[0];
-  cubeState[face][3] = faceColors[7];
-  cubeState[face][5] = faceColors[1];
-  cubeState[face][6] = faceColors[8];
-  cubeState[face][7] = faceColors[5];
-  cubeState[face][8] = faceColors[2];
-  switch (face) {
-    case 'F':
-      [cubeState.U[6], cubeState.U[7], cubeState.U[8],
-        cubeState.R[0], cubeState.R[3], cubeState.R[6],
-        cubeState.D[2], cubeState.D[1], cubeState.D[0],
-        cubeState.L[2], cubeState.L[5], cubeState.L[8]] =
-        [cubeState.L[8], cubeState.L[5], cubeState.L[2],
-          cubeState.U[6], cubeState.U[7], cubeState.U[8],
-          cubeState.R[0], cubeState.R[3], cubeState.R[6],
-          cubeState.D[0], cubeState.D[1], cubeState.D[2]];
-      break;
-    case 'U':
-      [cubeState.F[0], cubeState.F[1], cubeState.F[2],
-        cubeState.R[0], cubeState.R[1], cubeState.R[2],
-        cubeState.B[0], cubeState.B[1], cubeState.B[2],
-        cubeState.L[0], cubeState.L[1], cubeState.L[2]] =
-        [cubeState.R[0], cubeState.R[1], cubeState.R[2],
-          cubeState.B[0], cubeState.B[1], cubeState.B[2],
-          cubeState.L[0], cubeState.L[1], cubeState.L[2],
-          cubeState.F[0], cubeState.F[1], cubeState.F[2]];
-      break;
-    case 'D':
-      [cubeState.F[6], cubeState.F[7], cubeState.F[8],
-        cubeState.R[6], cubeState.R[7], cubeState.R[8],
-        cubeState.B[6], cubeState.B[7], cubeState.B[8],
-        cubeState.L[6], cubeState.L[7], cubeState.L[8]] =
-        [cubeState.L[6], cubeState.L[7], cubeState.L[8],
-          cubeState.F[6], cubeState.F[7], cubeState.F[8],
-          cubeState.R[6], cubeState.R[7], cubeState.R[8],
-          cubeState.B[6], cubeState.B[7], cubeState.B[8]];
-      break;
-    case 'R':
-      [cubeState.U[2], cubeState.U[5], cubeState.U[8],
-        cubeState.F[2], cubeState.F[5], cubeState.F[8],
-        cubeState.D[2], cubeState.D[5], cubeState.D[8],
-        cubeState.B[6], cubeState.B[3], cubeState.B[0]] =
-        [cubeState.F[2], cubeState.F[5], cubeState.F[8],
-          cubeState.D[2], cubeState.D[5], cubeState.D[8],
-          cubeState.B[6], cubeState.B[3], cubeState.B[0],
-          cubeState.U[2], cubeState.U[5], cubeState.U[8]];
-      break;
-    case 'L':
-      [cubeState.U[0], cubeState.U[3], cubeState.U[6],
-        cubeState.F[0], cubeState.F[3], cubeState.F[6],
-        cubeState.D[0], cubeState.D[3], cubeState.D[6],
-        cubeState.B[8], cubeState.B[5], cubeState.B[2]] =
-        [cubeState.B[8], cubeState.B[5], cubeState.B[2],
-          cubeState.U[0], cubeState.U[3], cubeState.U[6],
-          cubeState.F[0], cubeState.F[3], cubeState.F[6],
-          cubeState.D[0], cubeState.D[3], cubeState.D[6]];
-      break;
-    case 'B':
-      [cubeState.U[0], cubeState.U[1], cubeState.U[2],
-        cubeState.L[0], cubeState.L[3], cubeState.L[6],
-        cubeState.D[8], cubeState.D[7], cubeState.D[6],
-        cubeState.R[2], cubeState.R[5], cubeState.R[8]] =
-        [cubeState.R[2], cubeState.R[5], cubeState.R[8],
-          cubeState.U[2], cubeState.U[1], cubeState.U[0],
-          cubeState.L[6], cubeState.L[3], cubeState.L[0],
-          cubeState.D[8], cubeState.D[7], cubeState.D[6]];
-      break;
-  }
-}
+
 
 interface CubeNetModalProps {
   scramble: string;
@@ -245,79 +173,11 @@ interface CubeNetModalProps {
   size: number; // 2 hoặc 3
 }
 
-function getSolvedCubeState(size: number): CubeState {
-  if (size === 2) {
-    return {
-      B: Array(4).fill('blue'),
-      U: Array(4).fill('white'),
-      D: Array(4).fill('yellow'),
-      L: Array(4).fill('orange'),
-      R: Array(4).fill('red'),
-      F: Array(4).fill('green'),
-    };
-  } else {
-    return {
-      B: Array(9).fill('blue'),
-      U: Array(9).fill('white'),
-      D: Array(9).fill('yellow'),
-      L: Array(9).fill('orange'),
-      R: Array(9).fill('red'),
-      F: Array(9).fill('green'),
-    };
-  }
-}
 
-function applyScrambleToCubeState(scramble: string, size: number): CubeState {
-  let cubeState = getSolvedCubeState(size);
-  const moves = scramble.split(/\s+/);
-  moves.forEach((move: string) => {
-    if (!move) return;
-    let face = move[0] as Face;
-    let amount = move.includes("'") ? 3 : 1;
-    if (move.includes("2")) amount = 2;
-    for (let i = 0; i < amount; i++) {
-      if (size === 2) rotateFace2x2(face, cubeState);
-      else rotateFace(face, cubeState);
-    }
-  });
-  return cubeState;
-}
 
-function rotateFace2x2(face: Face, cubeState: CubeState) {
-  // Xoay mặt 2x2 (4 sticker)
-  const c = [...cubeState[face]];
-  cubeState[face][0] = c[2];
-  cubeState[face][1] = c[0];
-  cubeState[face][2] = c[3];
-  cubeState[face][3] = c[1];
-  // Xoay các góc xung quanh mặt, học theo logic 3x3
-  switch (face) {
-    case 'F': {
 
-      [cubeState.U[2], cubeState.U[3], cubeState.R[0], cubeState.R[2], cubeState.D[0], cubeState.D[1], cubeState.L[1], cubeState.L[3]] =
-        [cubeState.L[3], cubeState.L[1], cubeState.U[2], cubeState.U[3], cubeState.R[2], cubeState.R[0], cubeState.D[0], cubeState.D[1]];
-      break;
-    }
-    case 'U': {
 
-      [cubeState.F[0], cubeState.F[1], cubeState.L[0], cubeState.L[1], cubeState.B[0], cubeState.B[1], cubeState.R[0], cubeState.R[1]] =
-        [cubeState.R[0], cubeState.R[1], cubeState.F[0], cubeState.F[1], cubeState.L[0], cubeState.L[1], cubeState.B[0], cubeState.B[1]];
-      break;
-    }
-    case 'L': {
 
-      [cubeState.U[0], cubeState.U[2], cubeState.B[3], cubeState.B[1], cubeState.D[0], cubeState.D[2], cubeState.F[0], cubeState.F[2]] =
-        [cubeState.B[3], cubeState.B[1], cubeState.D[0], cubeState.D[2], cubeState.F[0], cubeState.F[2], cubeState.U[0], cubeState.U[2]];
-      break;
-    }
-    case 'R': {
-
-      [cubeState.U[1], cubeState.U[3], cubeState.F[1], cubeState.F[3], cubeState.D[1], cubeState.D[3], cubeState.B[2], cubeState.B[0]] =
-        [cubeState.F[1], cubeState.F[3], cubeState.D[1], cubeState.D[3], cubeState.B[2], cubeState.B[0], cubeState.U[1], cubeState.U[3]];
-      break;
-    }
-  }
-}
 
 function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
   const [cubeState, setCubeState] = useState<CubeState>(() => applyScrambleToCubeState(scramble || '', size));
@@ -1407,7 +1267,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 const oppAo5 = calcStats(opponentResults).ao5;
                 let winner = null;
                 if (myAo5 === null && oppAo5 === null) {
-                  return <span className={mobileShrink ? "text-[9px] font-semibold text-yellow-400" : "text-base font-semibold text-yellow-400"}>Trận đấu kết thúc, hòa</span>;
+                  return <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-400" : "text-2xl font-semibold text-yellow-400"}>Trận đấu kết thúc, hòa</span>;
                 } else if (myAo5 === null) {
                   winner = opponentName;
                 } else if (oppAo5 === null) {
@@ -1417,9 +1277,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 } else if (myAo5 > oppAo5) {
                   winner = opponentName;
                 } else {
-                  return <span className="text-base font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
+                  return <span className="text-2xl font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
                 }
-                  return <span className={mobileShrink ? "text-[9px] font-semibold text-green-400" : "text-base font-semibold text-green-400"}>Trận đấu kết thúc, {winner} thắng</span>;
+                  return <span className={mobileShrink ? "text-[10px] font-semibold text-green-400" : "text-2xl font-semibold text-green-400"}>Trận đấu kết thúc, {winner} thắng</span>;
               }
               // Đang trong trận
               let msg = "";
@@ -1435,7 +1295,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <>
                   <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
                   {showScrambleMsg && (
-                    <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-xl font-semibold text-yellow-300 block mt-2"}>Hai cuber hãy tráo scramble</span>
+                    <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>Hai cuber hãy tráo scramble</span>
                   )}
                 </>
               );
