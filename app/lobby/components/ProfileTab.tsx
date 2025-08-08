@@ -16,6 +16,14 @@ interface ProfileTabProps {
 
 
 const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch, onBgUpload, onBgRemove, hasCustomBg }) => {
+  // Tính toán lời chào theo giờ
+  let greeting = "";
+  const now = new Date();
+  const hour = now.getHours();
+  if (hour < 12) greeting = "Chào buổi sáng👋";
+  else if (hour < 18) greeting = "Chào buổi chiều👋";
+  else greeting = "Chào buổi tối👋";
+  const userName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "";
   return (
     <div className="mt-4 mr-4 w-[340px] max-w-full bg-[#181926] rounded-2xl shadow-2xl border border-blue-700 flex flex-col items-center p-0 relative">
       {/* Avatar lớn */}
@@ -26,6 +34,9 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch, 
             : <span>👤</span>}
         </div>
         <div className="text-lg font-semibold text-white mb-1">{user?.email || ""}</div>
+        <div className="text-base text-white-300 font-medium mb-1">
+          {greeting}{userName ? `, ${userName}` : ""} !
+        </div>
       </div>
       {/* Account Setting và Logout */}
       <div className="w-full flex flex-col gap-2 px-6 py-4 border-t border-gray-700 mt-auto">
@@ -43,7 +54,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch, 
             <circle cx="8" cy="10" r="2" stroke="currentColor" strokeWidth="2"/>
             <path d="M21 19l-5.5-7-4.5 6-3-4-4 5" stroke="currentColor" strokeWidth="2" fill="none"/>
           </svg>
-          Đổi ảnh nền
+          Change background
           <input
             type="file"
             accept="image/*"
@@ -64,9 +75,12 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch, 
           </button>
         )}
         <button
-          className="flex items-center gap-2 text-red-400 hover:text-red-600 font-bold transition text-base justify-start mt-2"
+          className="flex items-center gap-2 text-red-400 hover:text-red-600 font-bold transition text-base mt-2 px-0 py-0"
+          style={{ alignSelf: 'flex-start' }}
           onClick={onLogout}
-        >Logout <img src="/power.svg" alt="logout" className="w-6 h-6 inline-block align-middle ml-1" /></button>
+        >
+          Logout <img src="/power.svg" alt="logout" className="w-6 h-6 inline-block align-middle ml-1" />
+        </button>
       </div>
     </div>
   );

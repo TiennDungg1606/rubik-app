@@ -236,8 +236,8 @@ export default function Lobby() {
         </div>
       )}
       {/* Tab Navigation Bar */}
-      <nav className="w-full max-w-2xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-6 py-3 mt-2 mb-2">
-        <div className="flex items-center gap-6">
+  <nav className="w-full max-w-7xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-8 py-3 mt-2 mb-2 mx-auto">
+  <div className="flex items-center gap-4  ">
           <svg width="32" height="32" viewBox="0 0 64 64" fill="none" className="mr-2 drop-shadow-lg" style={{marginLeft: -8}} xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
             <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
@@ -249,21 +249,51 @@ export default function Lobby() {
             <rect x="23" y="44" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
             <rect x="44" y="44" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
           </svg>
-          <button className={`text-base font-semibold transition-colors ${tab === "new" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("new")}>New</button>
           <button
-            className={`text-base font-semibold transition-colors ${tab === "timer" ? "text-blue-400" : "text-white hover:text-blue-400"}`}
+            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+              ${tab === "new"
+                ? "bg-blue-100 text-blue-700 shadow-md"
+                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
+            `}
+            onClick={() => setTab("new")}
+          >New</button>
+          <button
+            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+              ${tab === "timer"
+                ? "bg-blue-100 text-blue-700 shadow-md"
+                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
+            `}
             onClick={() => {
               if (typeof window !== "undefined") {
                 window.open("https://cstimer.net", "_blank");
               }
               // Không setTab("timer") để không chuyển tab trong app
             }}
-          >
-            Timer
-          </button>
-          <button className={`text-base font-semibold transition-colors ${tab === "room" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("room")}>Room</button>
-          <button className={`text-base font-semibold transition-colors ${tab === "shop" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("shop")}>Shop</button>
-          <button className={`text-base font-semibold transition-colors ${tab === "about" ? "text-blue-400" : "text-white hover:text-blue-400"}`} onClick={() => setTab("about")}>About</button>
+          >Timer</button>
+          <button
+            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+              ${tab === "room"
+                ? "bg-blue-100 text-blue-700 shadow-md"
+                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
+            `}
+            onClick={() => setTab("room")}
+          >Room</button>
+          <button
+            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+              ${tab === "shop"
+                ? "bg-blue-100 text-blue-700 shadow-md"
+                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
+            `}
+            onClick={() => setTab("shop")}
+          >Shop</button>
+          <button
+            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+              ${tab === "about"
+                ? "bg-blue-100 text-blue-700 shadow-md"
+                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
+            `}
+            onClick={() => setTab("about")}
+          >About</button>
           {/* Ẩn tab Account trên menu */}
         </div>
         {/* Avatar + Popup menu */}
