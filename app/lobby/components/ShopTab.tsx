@@ -25,6 +25,46 @@ export default function ShopTab() {
                   QiYi X-Man Tornado V3M Pioneer UV 3x3x3 Maglev Magnetic Magic Speed Cube Qiyi XMD Tornado V3 M Pioneer UV Puzzle Toys tornado v3
                 </a>
               </li>
+              <li>
+                <a
+                  href="https://vt.tiktok.com/ZSSpDtyWv/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline font-semibold"
+                >
+                  QZCUBE Tianma X3 3x3 Core Magnetic Cube Professional 3x3x3 Puzzle Toys Speed Cube
+                </a>
+              </li> 
+              <li>
+                <a
+                  href="https://vt.tiktok.com/ZSSpUytcr/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline font-semibold"
+                >
+                  [XT3] Rubik 3x3 QiYi XT3 V1 M XMD X-Man 2024 Flagship Rubic Nam Châm 
+                </a>
+              </li>  
+              <li>
+                <a
+                  href="https://vt.tiktok.com/ZSSpUYNmq/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline font-semibold"
+                > 
+                  Khối Từ Tính, GAN Swift Block, 3x3, 355mm, Khối Tốc Độ 3x3 Từ Tính, Đổ Chơi Rubik, Rubik 3x3, Rubik Cube
+                </a>
+              </li> 
+              <li>
+                <a
+                  href="https://vt.tiktok.com/ZSSpUqSJy/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline font-semibold"
+                > 
+                  Rubik 3x3 Gan 356 ME 3x3 Magnetic Rubic 3 Tầng Có Nam Châm Gan 356M E Stickerless Đồ Chơi Trí Tuệ 3x3x3
+                </a>
+              </li>                           
             </ul>
           </div>
         </div>
