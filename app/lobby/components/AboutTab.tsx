@@ -9,8 +9,7 @@ export default function AboutTab() {
       <div className="text-white text-base font-bold mb-4">RubikApp là ứng dụng web hỗ trợ đo thời gian giải Rubik, lưu trữ kết quả, tham gia solo phòng 1vs1 và cập nhật tin tức Rubik quốc tế.</div>
       <ul className="list-disc list-inside text-white text-base ml-4 mb-6">
         <li>Hỗ trợ đo thời gian chuẩn WCA cho desktop và mobile.</li>
-        <li>Lưu trữ kết quả, tính toán best, mean, ao5, ao12.</li>
-        <li>Chế độ nhập thời gian bằng bàn phím.</li>
+        <li>Lưu trữ kết quả, tính toán best, ao5, ao12.</li>
         <li>Cập nhật tin tức Rubik quốc tế tự động.</li>
         <li>Giao diện hiện đại, responsive, dễ sử dụng.</li>
       </ul>

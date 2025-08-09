@@ -1,10 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 // Tái sử dụng AccountTab từ components
 import AccountTab from "../lobby/components/AccountTab";
 
 export default function AccountPage() {
+  const router = useRouter();
   const [user, setUser] = useState<{
     email?: string;
     firstName?: string;
@@ -44,19 +46,21 @@ export default function AccountPage() {
         backgroundColor: '#181926',
       }}
     >
-      <h1 className="text-3xl font-bold mb-6">Account Settings</h1>
-      <div className="w-full max-w-md bg-[#23243a]/70 rounded-2xl shadow-xl p-6 backdrop-blur-md">
-        <AccountTab user={user} />
+      <div className="w-full max-w-7xl px-2 md:px-6 flex items-center gap-3 mb-4">
         <button
-          className="w-full mt-4 py-2 px-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition"
-          onClick={() => {
-            // Chuyển hướng hoặc mở popup đổi tên tuỳ vào logic của bạn
-            window.alert('Tính năng đổi tên sẽ được bổ sung ở đây!');
-          }}
+          aria-label="Quay lại Lobby"
+          className="inline-flex items-center justify-center size-10 rounded-full border border-neutral-700 bg-black/30 hover:bg-black/50 transition"
+          onClick={() => router.push('/lobby')}
         >
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" d="M16.862 5.487a2.06 2.06 0 0 1 2.915 2.914l-9.193 9.193a2 2 0 0 1-.707.464l-3.11 1.037a.5.5 0 0 1-.633-.633l1.037-3.11a2 2 0 0 1 .464-.707l9.193-9.193Z"/></svg>
-          Thay đổi họ tên
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
+        <h1 className="text-3xl font-bold">Account Settings</h1>
+      </div>
+      <div className="w-full max-w-7xl px-2 md:px-6">
+        <AccountTab user={user} onUserUpdated={(u) => setUser(u)} />
+
       </div>
     </main>
   );
