@@ -1215,12 +1215,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       <div
         className={
           mobileShrink
-            ? "w-full flex flex-col gap-2 px-0 mb-1"
+            ? "w-full flex flex-row items-center gap-1 px-0 mb-1"
             : isMobileLandscape
               ? "w-full flex flex-row flex-wrap justify-between items-start gap-2 px-1 mb-4 overflow-x-auto"
               : "w-full flex flex-row justify-between items-start gap-4 mb-6"
         }
-        style={mobileShrink ? { maxWidth: '100vw', rowGap: 8 } : isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
+        style={mobileShrink ? { maxWidth: '100vw', columnGap: 4 } : isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
       >
         {/* Bảng tổng hợp bên trái */}
         <div
@@ -1363,7 +1363,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       {/* Đã xóa Timer phía trên, chỉ giữ lại Timer nằm ngang giữa hai webcam */}
       {/* Webcam + Timer ngang hàng, chia 3 cột: webcam - timer - webcam */}
       <div
-        className={mobileShrink ? "w-full flex flex-col gap-2 box-border mb-2" : "w-full flex flex-row justify-center items-center gap-4 box-border"}
+        className={mobileShrink ? "w-full flex flex-row justify-center items-center gap-2 box-border mb-2" : "w-full flex flex-row justify-center items-center gap-4 box-border"}
         style={mobileShrink ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' }}
       >
         {/* Webcam của bạn - cột 1 */}
