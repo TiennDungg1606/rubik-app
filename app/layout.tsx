@@ -37,6 +37,11 @@ export default function RootLayout({
           src="https://cdn.stringee.com/sdk/web/latest/stringee-web-sdk.min.js"
           strategy="beforeInteractive"
         />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* Bỏ SessionProviderWrapper, render children trực tiếp */}

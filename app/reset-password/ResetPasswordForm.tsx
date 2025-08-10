@@ -78,15 +78,18 @@ export default function ResetPasswordForm() {
         </div>
         <div className="mb-4">
           <label className="block mb-1 text-gray-700 font-semibold">Nhập lại mật khẩu</label>
-          <input
-            type="password"
-            required
-            minLength={6}
-            value={confirm}
-            onChange={e => setConfirm(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            placeholder="Nhập lại mật khẩu"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 pr-10"
+              placeholder="Nhập lại mật khẩu"
+            />
+            {/* Không cần thêm nút con mắt ở trường này, chỉ đồng bộ type với trường trên */}
+          </div>
         </div>
         {error && <div className="text-red-500 mb-2 text-center font-semibold">{error}</div>}
         {success && <div className="text-green-500 mb-2 text-center font-semibold">{success}</div>}
