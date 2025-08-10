@@ -44,6 +44,7 @@ function calcStats(times: (number|null)[]) {
 
 
 export default function RoomPage() {
+
   const [roomId, setRoomId] = useState<string>("");
   // State cho meta phòng
   const [roomMeta, setRoomMeta] = useState<{ displayName?: string; event?: string } | null>(null);
@@ -132,14 +133,24 @@ export default function RoomPage() {
 
 // ... (các khai báo state khác)
 // Lưu usersArr cuối cùng để xử lý khi userId đến sau
-const [pendingUsers, setPendingUsers] = useState<{ userId: string, userName: string }[] | null>(null);
+  const [pendingUsers, setPendingUsers] = useState<{ userId: string, userName: string }[] | null>(null);
   // Thêm state để kiểm soát việc hiện nút xác nhận sau 1s
   const [showConfirmButtons, setShowConfirmButtons] = useState(false);
+
+    // Ref cho khối chat để auto-scroll
+  const chatListRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll xuống cuối khi mở chat hoặc có tin nhắn mới
+  useEffect(() => {
+    if (showChat && chatListRef.current) {
+      chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+    }
+  }, [showChat, chatMessages]);
 
   useEffect(() => {
     if (pendingResult !== null && !running && !prep) {
       setShowConfirmButtons(false);
-      const timer = setTimeout(() => setShowConfirmButtons(true), 1000);
+      const timer = setTimeout(() => setShowConfirmButtons(true), 500);
       return () => clearTimeout(timer);
     } else {
       setShowConfirmButtons(false);
@@ -895,7 +906,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     <div
       className={
         mobileShrink
-          ? "h-screen w-screen flex flex-col items-center justify-start text-white py-1 overflow-x-hidden overflow-y-auto min-h-0 relative"
+          ? "min-h-screen w-screen flex flex-col items-center justify-start text-white py-1 overflow-x-auto relative"
           : "min-h-screen w-full flex flex-col items-center text-white py-4 overflow-hidden relative"
       }
       style={{
@@ -904,6 +915,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         backgroundColor: '#000',
+        minHeight: '100vh',
+        height: '100%',
       }}
     >
       {/* Hiển thị meta phòng */}
@@ -1065,6 +1078,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               Chat phòng
             </div>
             <div
+              ref={chatListRef}
               className={mobileShrink ? "flex-1 overflow-y-auto pr-1 mb-1" : "flex-1 overflow-y-auto pr-2 mb-2"}
               style={mobileShrink ? { maxHeight: 200 } : { maxHeight: 300 }}
             >
@@ -1201,12 +1215,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       <div
         className={
           mobileShrink
-            ? "w-full flex flex-row items-center gap-1 px-0 mb-1"
+            ? "w-full flex flex-col gap-2 px-0 mb-1"
             : isMobileLandscape
               ? "w-full flex flex-row flex-wrap justify-between items-start gap-2 px-1 mb-4 overflow-x-auto"
               : "w-full flex flex-row justify-between items-start gap-4 mb-6"
         }
-        style={mobileShrink ? { maxWidth: '100vw', columnGap: 4 } : isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
+        style={mobileShrink ? { maxWidth: '100vw', rowGap: 8 } : isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
       >
         {/* Bảng tổng hợp bên trái */}
         <div
@@ -1251,12 +1265,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={
             mobileShrink
-              ? "flex flex-col items-center justify-center min-w-[70px] max-w-[110px] mx-auto mb-1 w-auto"
+              ? "flex flex-col items-center justify-center min-w-[70px] max-w-[110px] mx-auto mb-1 w-auto overflow-y-auto"
               : isMobileLandscape
                 ? "flex flex-col items-center justify-center min-w-[120px] max-w-[180px] mx-auto mb-2 w-auto"
                 : "flex flex-col items-center justify-center min-w-[260px] max-w-[520px] mx-auto w-auto"
           }
-          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9, maxHeight: '180px' } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
           {/* Thanh trạng thái */}
           <div className="mb-2 w-full flex items-center justify-center">
@@ -1349,7 +1363,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       {/* Đã xóa Timer phía trên, chỉ giữ lại Timer nằm ngang giữa hai webcam */}
       {/* Webcam + Timer ngang hàng, chia 3 cột: webcam - timer - webcam */}
       <div
-        className={mobileShrink ? "w-full flex flex-row justify-center items-center gap-2 box-border mb-2" : "w-full flex flex-row justify-center items-center gap-4 box-border"}
+        className={mobileShrink ? "w-full flex flex-col gap-2 box-border mb-2" : "w-full flex flex-row justify-center items-center gap-4 box-border"}
         style={mobileShrink ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' }}
       >
         {/* Webcam của bạn - cột 1 */}
