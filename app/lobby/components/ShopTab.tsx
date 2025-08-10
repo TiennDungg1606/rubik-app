@@ -64,7 +64,47 @@ export default function ShopTab() {
                 > 
                   Rubik 3x3 Gan 356 ME 3x3 Magnetic Rubic 3 Tầng Có Nam Châm Gan 356M E Stickerless Đồ Chơi Trí Tuệ 3x3x3
                 </a>
-              </li>                           
+              </li>
+              <li>
+                <a
+                  href="https://vt.tiktok.com/ZSSsGAjAd/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline font-semibold"
+                > 
+                  Rubik 3x3 Moyu Meilong 3M V2 Nam Châm Từ Tính - Rubic Mod nam châm chính hãng Toy
+                </a>
+              </li> 
+              <li>
+                <a
+                  href="https://vt.tiktok.com/ZSSsGcQev/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline font-semibold"
+                > 
+                  Rubik 3x3 MoYu RS3M V5 RS3 M 3x3 Magnetic Ball Core UV Rubic 3 Tầng Cao Cấp Có Nam Châm Đồ Chơi Trí Tuệ Phát Triển Tư Duy Toy
+                </a>
+              </li>    
+              <li>
+                <a
+                  href="https://vt.tiktok.com/ZSSsGED2b/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline font-semibold"
+                > 
+                  Rubik 3x3 Gan Swift Block 2023 Stickerless Có Nam Châm - Rubik 3x3x3 - Đồ Chơi Giáo duc- ZyO Rubik
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://vt.tiktok.com/ZSSsGG8kB/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline font-semibold"
+                > 
+                  Rubik 3x3 MoYu Weilong WRM V10 Magnetics 3x3 Stickerless có nam châm cao cấp 2024
+                </a>
+              </li>                                                                  
             </ul>
           </div>
         </div>
@@ -80,6 +120,36 @@ export default function ShopTab() {
                 className="text-blue-400 hover:underline font-semibold"
               >
                 Thảm Rubik Mat Size Nhỏ Và Size Lớn Rubik Đồ Chơi Trí Tuệ
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://vt.tiktok.com/ZSSsnRpCv/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline font-semibold"
+              >
+                Đồng Hồ QiYi Timer Máy Đếm Thời Gian Giải Rubik Đồ Chơi Rubic Trí Tuệ Trẻ Em
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://vt.tiktok.com/ZSSsnga8j/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline font-semibold"
+              >
+                Cube Mat Training Competition mat
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://vt.tiktok.com/ZSSsnWChU/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline font-semibold"
+              >
+                Thảm Rubik MoYu Mat 505 x 370 x 2 (mm) Toy
               </a>
             </li>
           </ul>
@@ -98,6 +168,36 @@ export default function ShopTab() {
                 Silicon Dầu Bôi Trơn Rubik Lube V1/V2 5ml Rubic
               </a>
             </li>
+            <li>
+              <a
+                href="https://vt.tiktok.com/ZSSst7Bwu/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline font-semibold"
+              >
+                Dầu Bôi Trơn Rubik - Gan Lube V1, V2, V3 (Thế Hệ Mới Chai 10ml ) - ZyO Rubik
+              </a>
+            </li> 
+            <li>
+              <a
+                href="https://vt.tiktok.com/ZSSst3FEQ/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline font-semibold"
+              >
+                 Dầu Bôi Trơn Rubik M Lube Silicone QiYi Lube Rubic 3ml
+              </a>
+            </li> 
+            <li>
+              <a
+                href="https://vt.tiktok.com/ZSSsnRknE/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline font-semibold"
+              >
+                 Dầu Bôi Trơn Rubik QiYi XMD Lube X-Man Lube 10k Diff Fluid Silicone Rubic 5 ml
+              </a>
+            </li>           
           </ul>
         </div>
       </div>

@@ -19,7 +19,7 @@ export async function POST(req) {
     if (!user) return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
     const matchPwd = await bcrypt.compare(oldPassword, user.password);
     if (!matchPwd) return new Response(JSON.stringify({ error: 'Mật khẩu cũ không đúng' }), { status: 400 });
-    user.password = await bcrypt.hash(newPassword, 10);
+  user.password = newPassword;
     await user.save();
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch {

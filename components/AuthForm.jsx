@@ -14,6 +14,7 @@ export default function AuthForm({ onLogin }) {
     birthday: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [tab, setTab] = useState("login");
@@ -57,6 +58,10 @@ export default function AuthForm({ onLogin }) {
         setError("Password must be at least 8 characters");
         return;
       }
+      if (form.password !== confirmPassword) {
+        setError("Mật khẩu nhập lại không khớp");
+        return;
+      }
       // Lấy token reCAPTCHA v2 (checkbox)
       if (window.grecaptcha) {
         recaptchaToken = window.grecaptcha.getResponse();
@@ -83,8 +88,9 @@ export default function AuthForm({ onLogin }) {
       setError(data.error || "Có lỗi xảy ra");
     } else {
       if (tab === "register") {
-        setSuccess("Registration successful! You can now log in.");
-        setForm({ email: "", password: "", firstName: "", lastName: "", birthday: "" });
+  setSuccess("Registration successful! You can now log in.");
+  setForm({ email: "", password: "", firstName: "", lastName: "", birthday: "" });
+  setConfirmPassword("");
         // Reset reCAPTCHA v2 nếu có
         if (window.grecaptcha && recaptchaRef.current) {
           window.grecaptcha.reset();
@@ -108,7 +114,7 @@ export default function AuthForm({ onLogin }) {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-start pt-32">
+    <div className="relative min-h-screen flex flex-col items-center justify-start pt-5">
       <div className="w-full max-w-sm mx-auto bg-white/90 rounded-2xl shadow-2xl px-4 py-8 flex flex-col items-center border border-gray-200 relative z-20 mt-0">
         <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">Sign in to your account</h2>
         <form onSubmit={handleSubmit} className="w-full">
@@ -137,16 +143,30 @@ export default function AuthForm({ onLogin }) {
               >
                 {showPassword ? (
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7zm9 3a3 3 0 100-6 3 3 0 000 6z" />
-                  </svg>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0c0 4.418-4.03 8-9 8s-9-3.582-9-8c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
                 ) : (
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5.5 0-9-7-9-7a17.6 17.6 0 013.16-4.19m3.12-2.54A8.96 8.96 0 0112 5c5.5 0 9 7 9 7a17.6 17.6 0 01-3.16 4.19m-2.12 1.54A8.96 8.96 0 0112 19c-1.07 0-2.09-.13-3.06-.37m-2.12-1.54A10.05 10.05 0 013.16 12.81m0 0L21 3" />
-                  </svg>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M10.584 10.587A3 3 0 0014.415 14.42M9.88 9.88A3 3 0 0114.12 14.12M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
                 )}
               </button>
             </div>
           </div>
+          {tab === "register" && (
+            <div className="mb-3">
+              <label className="block mb-1 text-gray-700 font-semibold text-sm">Re-enter password</label>
+              <input
+                name="confirmPassword"
+                type={showPassword ? "text" : "password"}
+                placeholder="Re-enter password"
+                required
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+              />
+            </div>
+          )}
           {tab === "register" && (
             <>
               <div className="mb-4">

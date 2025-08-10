@@ -13,6 +13,10 @@ type AccountTabProps = {
 };
 
 export default function AccountTab({ user, loading, onUserUpdated }: AccountTabProps) {
+  // State hiển thị mật khẩu
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  // Trường xác nhận mật khẩu mới sẽ đồng bộ với trường mật khẩu mới
   const getInitials = (firstName?: string, lastName?: string) => {
     const first = (firstName || "").trim();
     const last = (lastName || "").trim();
@@ -111,9 +115,9 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ oldPassword, newPassword }),
       });
-      if (!res.ok) throw new Error("Đổi mật khẩu thất bại");
+      if (!res.ok) throw new Error("Mật khẩu hiện tại không đúng");
       setPasswordSuccess("Đổi mật khẩu thành công!");
-      setShowPasswordForm(false);
+      // Không tự động đóng form, chỉ đóng khi người dùng bấm nút Đóng
     } catch (err: any) {
       setPasswordError(err.message || "Có lỗi xảy ra");
     } finally {
@@ -293,34 +297,74 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <label className="text-sm text-gray-300" htmlFor="oldPwd">Mật khẩu hiện tại</label>
-                    <input
-                      id="oldPwd"
-                      type="password"
-                      className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                      placeholder="Nhập mật khẩu hiện tại"
-                      value={oldPassword}
-                      onChange={(e) => setOldPassword(e.target.value)}
-                      required
-                    />
+                    <div className="relative">
+                      <input
+                        id="oldPwd"
+                        type={showOldPassword ? "text" : "password"}
+                        className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 w-full pr-10"
+                        placeholder="Nhập mật khẩu hiện tại"
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        className="absolute right-2 top-2 text-gray-400 hover:text-yellow-500"
+                        onClick={() => setShowOldPassword((v) => !v)}
+                      >
+                        {showOldPassword ? (
+                          // Con mắt mở: hiện mật khẩu
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0c0 4.418-4.03 8-9 8s-9-3.582-9-8c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        ) : (
+                          // Con mắt có gạch chéo: ẩn mật khẩu
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M10.584 10.587A3 3 0 0014.415 14.42M9.88 9.88A3 3 0 0114.12 14.12M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-col gap-2">
                     <label className="text-sm text-gray-300" htmlFor="newPwd">Mật khẩu mới</label>
-                    <input
-                      id="newPwd"
-                      type="password"
-                      className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                      placeholder="Tối thiểu 6 ký tự"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                    />
+                    <div className="relative">
+                      <input
+                        id="newPwd"
+                        type={showNewPassword ? "text" : "password"}
+                        className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 w-full pr-10"
+                        placeholder="Tối thiểu 6 ký tự"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        className="absolute right-2 top-2 text-gray-400 hover:text-yellow-500"
+                        onClick={() => setShowNewPassword((v) => !v)}
+                      >
+                        {showNewPassword ? (
+                          // Con mắt mở: hiện mật khẩu
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0c0 4.418-4.03 8-9 8s-9-3.582-9-8c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        ) : (
+                          // Con mắt có gạch chéo: ẩn mật khẩu
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M10.584 10.587A3 3 0 0014.415 14.42M9.88 9.88A3 3 0 0114.12 14.12M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-col gap-2 md:col-span-2">
                     <label className="text-sm text-gray-300" htmlFor="confirmPwd">Xác nhận mật khẩu mới</label>
                     <input
                       id="confirmPwd"
-                      type="password"
-                      className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                      type={showNewPassword ? "text" : "password"}
+                      className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 w-full"
                       placeholder="Nhập lại mật khẩu mới"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -371,7 +415,7 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
             <div className="px-6 pt-6 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold">Họ và tên</h3>
-                <p className="text-sm text-gray-400 mt-1">Cập nhật họ và tên hiển thị của bạn.</p>
+                <p className="text-sm text-gray-400 mt-1">Cập nhật UserName của bạn.</p>
               </div>
               <button
                 className="px-3 py-2 text-sm rounded-lg border border-emerald-500/30 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20 transition"
