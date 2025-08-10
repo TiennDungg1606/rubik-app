@@ -32,6 +32,10 @@ type User = {
 };
 
 export default function Lobby() {
+  // Hiệu ứng chuyển tab
+  const [tab, setTab] = useState("new");
+  const [displayedTab, setDisplayedTab] = useState("new");
+  const [tabTransitioning, setTabTransitioning] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
@@ -40,6 +44,18 @@ export default function Lobby() {
   const [bgError, setBgError] = useState<string>("");
   const [loadingBg, setLoadingBg] = useState(false);
   // Lấy customBg từ user profile (MongoDB)
+
+
+  useEffect(() => {
+    if (tab !== displayedTab) {
+      setTabTransitioning(true);
+      const timer = setTimeout(() => {
+        setDisplayedTab(tab);
+        setTabTransitioning(false);
+      }, 300); // thời gian hiệu ứng
+      return () => clearTimeout(timer);
+    }
+  }, [tab, displayedTab]);
   useEffect(() => {
     console.log('[Lobby] useEffect user:', user);
     if (user && user.customBg) setCustomBg(user.customBg);
@@ -160,8 +176,7 @@ export default function Lobby() {
     }
   }, []);
   const [roomInput, setRoomInput] = useState("");
-  // Mặc định tab New được chọn đầu tiên khi đăng nhập
-  const [tab, setTab] = useState("new");
+  // Đã chuyển khai báo tab lên trên để dùng cho hiệu ứng chuyển tab
   // Đã chuyển lên trên để tránh lỗi khai báo trước khi dùng
   const router = useRouter();
 
@@ -327,30 +342,32 @@ export default function Lobby() {
           )}
         </div>
       </nav>
-      {/* Tab Content */}
-      {tab === "timer" && (
-        <TimerTab />
-      )}
-      {tab === "room" && (
-        <>
-          <RoomTab
-            roomInput={roomInput}
-            setRoomInput={setRoomInput}
-            handleCreateRoom={handleCreateRoom}
-            handleJoinRoom={handleJoinRoom}
-          />
-          {joinError && <div className="text-red-400 text-center mt-2">{joinError}</div>}
-        </>
-      )}
-      {tab === "new" && (
-        <NewTab />
-      )}
-      {tab === "shop" && (
-        <ShopTab />
-      )}
-      {tab === "about" && (
-        <AboutTab />
-      )}
+      {/* Tab Content với hiệu ứng chuyển tab */}
+      <div className={`w-full transition-all duration-300 ${tabTransitioning ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+        {displayedTab === "timer" && (
+          <TimerTab />
+        )}
+        {displayedTab === "room" && (
+          <>
+            <RoomTab
+              roomInput={roomInput}
+              setRoomInput={setRoomInput}
+              handleCreateRoom={handleCreateRoom}
+              handleJoinRoom={handleJoinRoom}
+            />
+            {joinError && <div className="text-red-400 text-center mt-2">{joinError}</div>}
+          </>
+        )}
+        {displayedTab === "new" && (
+          <NewTab />
+        )}
+        {displayedTab === "shop" && (
+          <ShopTab />
+        )}
+        {displayedTab === "about" && (
+          <AboutTab />
+        )}
+      </div>
       {/* Không render AccountTabWrapper nữa, đã chuyển vào avatar menu */}
     </main>
   );

@@ -13,6 +13,9 @@ type RoomTabProps = {
 };
 
 export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom }: RoomTabProps) {
+
+  // Skeleton loading state
+  const [loadingRooms, setLoadingRooms] = useState(true);
   const [error, setError] = useState("");
   const [activeRooms, setActiveRooms] = useState<string[]>([]);
   const [competingRooms, setCompetingRooms] = useState<string[]>([]);
@@ -21,6 +24,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // Animation state for modal
+  const [modalVisible, setModalVisible] = useState(false);
   const [modalEvent, setModalEvent] = useState<'2x2' | '3x3'>("3x3");
   const [modalRoomName, setModalRoomName] = useState("");
   const [modalPassword, setModalPassword] = useState("");
@@ -33,10 +38,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     ? "http://localhost:3001" 
     : "https://rubik-socket-server-production-3b21.up.railway.app";
   
-  // Lấy danh sách phòng và phân loại
+
+  // Lấy danh sách phòng và phân loại - đã gộp logic Skeleton loading vào đây
   useEffect(() => {
     let stopped = false;
     let socket;
+    
     async function fetchRooms() {
       try {
         const res = await fetch(`${API_BASE}/active-rooms`);
@@ -74,17 +81,29 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         setCompetingRooms([]);
       }
     }
+
+    // Lần đầu tiên fetch ngay lập tức
     fetchRooms();
+    
+    // Timer để tắt Skeleton loading sau 3s
+    const loadingTimer = setTimeout(() => {
+      setLoadingRooms(false);
+    }, 3000);
+
+    // Interval để cập nhật danh sách phòng mỗi 3s (không ảnh hưởng đến loading state)
     const interval = setInterval(() => {
       if (!stopped) fetchRooms();
     }, 3000);
+
     // Lắng nghe sự kiện update-active-rooms từ server để reload danh sách phòng ngay lập tức
     socket = io(API_BASE, { transports: ["websocket"] });
     socket.on("update-active-rooms", () => {
       fetchRooms();
     });
+
     return () => {
       stopped = true;
+      clearTimeout(loadingTimer);
       clearInterval(interval);
       if (socket) socket.disconnect();
     };
@@ -105,7 +124,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   // Modal logic
   function openCreateModal() {
-    setShowCreateModal(true);
+  setShowCreateModal(true);
+  setTimeout(() => setModalVisible(true), 10); // trigger animation
     setModalEvent("3x3");
     setModalRoomName("");
     setModalPassword("");
@@ -114,8 +134,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   }
 
   function closeCreateModal() {
-    setShowCreateModal(false);
-    setModalError("");
+  setModalVisible(false);
+  setTimeout(() => setShowCreateModal(false), 200); // wait for animation
+  setModalError("");
   }
 
   function handleModalConfirm() {
@@ -154,8 +175,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     <div className="w-full flex flex-col items-center justify-center">
       {/* Modal tạo phòng */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-gray-900 rounded-xl shadow-2xl p-6 w-full max-w-2xl flex flex-row">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity duration-200 ${modalVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`bg-gray-900 rounded-xl shadow-2xl p-6 w-full max-w-2xl flex flex-row transform transition-all duration-200 ${modalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
             {/* Cột 1: Chọn thể loại rubik */}
             <div className="flex flex-col items-center justify-start w-1/3 pr-4 border-r border-gray-700">
               <div className="text-lg font-semibold text-white mb-4">Thể loại</div>
@@ -247,35 +268,44 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           🔴 Phòng đang thi đấu ({competingRooms.length} phòng)
         </div>
         <div className="h-64 overflow-y-auto border border-gray-700 rounded-lg p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 justify-items-center">
-            {competingRooms.map((room: string) => (
-              <div
-                key={room}
-                // onClick={() => handleJoinRoom(room)}
-                className="flex flex-col items-center" // Hiển thị bình thường, không làm mờ
-              >
-                <div className="w-24 h-24 bg-red-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
-                  {/* Icon dạng lưới: 2x2 nếu là phòng 2x2, 3x3 nếu là phòng 3x3 */}
-                  {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' && roomMetas[room].event.includes('2x2') ? (
-                    <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                      {Array.from({ length: 9 }).map((_, i) => (
-                        <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Icon thi đấu */}
-                  <span className="absolute top-1 right-1 text-yellow-300"></span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
+            {loadingRooms ? (
+              Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="flex flex-col items-center animate-pulse">
+                  <div className="w-24 h-24 bg-red-900/40 rounded-xl mb-2 flex items-center justify-center">
+                    <div className="w-16 h-16 bg-red-300/30 rounded grid place-items-center" />
+                  </div>
+                  <div className="h-4 w-20 bg-red-300/30 rounded mb-1" />
                 </div>
-                <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
-                {/* Đã loại bỏ dòng (Tạm thời khóa chế độ xem) */}
-              </div>
-            ))}
+              ))
+            ) : (
+              competingRooms.map((room: string) => (
+                <div
+                  key={room}
+                  className="flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-xl"
+                >
+                  <div className="w-24 h-24 bg-red-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
+                    {/* Icon dạng lưới: 2x2 nếu là phòng 2x2, 3x3 nếu là phòng 3x3 */}
+                    {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' && roomMetas[room].event.includes('2x2') ? (
+                      <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                        {Array.from({ length: 9 }).map((_, i) => (
+                          <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Icon thi đấu */}
+                    <span className="absolute top-1 right-1 text-yellow-300"></span>
+                  </div>
+                  <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
+                </div>
+              ))
+            )}
             {competingRooms.length === 0 && (
               <div className="col-span-full text-center text-white py-8">
                 Chưa có phòng nào đang thi đấu
@@ -291,51 +321,59 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           🟢 Phòng đang hoạt động ({activeRooms.length} phòng)
         </div>
         <div className="h-64 overflow-y-auto border border-gray-700 rounded-lg p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 justify-items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
             {/* Nút tạo phòng */}
             <div onClick={openCreateModal} className="flex flex-col items-center cursor-pointer">
               <div className="w-24 h-24 bg-gray-700 rounded-xl flex items-center justify-center text-5xl text-gray-300 mb-2 hover:bg-gray-600 transition-all">+</div>
               <div className="text-base text-gray-200">Tạo phòng</div>
             </div>
             {/* Hiển thị các phòng đang hoạt động */}
-            {activeRooms.map((room: string) => (
-              <div
-                key={room}
-                onClick={async () => {
-                  const meta = roomMetas[room] || {};
-                  let password = "";
-                  if (meta.password) {
-                    password = window.prompt("Phòng này có mật khẩu. Vui lòng nhập mật khẩu để vào:") || "";
-                  }
-                  // handleJoinRoom cần truyền password nếu có
-                  // Nếu handleJoinRoom không nhận password, bạn cần sửa lại hàm này ở App để truyền password vào socket.emit
-                  // Ở đây tạm truyền qua window (hoặc sửa lại App để nhận password)
-                  window._roomPassword = password;
-                  handleJoinRoom(room);
-                }}
-                className="flex flex-col items-center cursor-pointer"
-              >
-                <div className="w-24 h-24 bg-blue-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
-                  {/* Icon dạng lưới: 2x2 nếu là phòng 2x2, 3x3 nếu là phòng 3x3 */}
-                  {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' && roomMetas[room].event.includes('2x2') ? (
-                    <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                      {Array.from({ length: 9 }).map((_, i) => (
-                        <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Icon chờ người */}
-                  <span className="absolute top-1 right-1 text-green-300"></span>
+            {loadingRooms ? (
+              Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="flex flex-col items-center animate-pulse">
+                  <div className="w-24 h-24 bg-blue-900/40 rounded-xl mb-2 flex items-center justify-center">
+                    <div className="w-16 h-16 bg-blue-300/30 rounded grid place-items-center" />
+                  </div>
+                  <div className="h-4 w-20 bg-blue-300/30 rounded mb-1" />
                 </div>
-                <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
-              </div>
-            ))}
+              ))
+            ) : (
+              activeRooms.map((room: string) => (
+                <div
+                  key={room}
+                  onClick={async () => {
+                    const meta = roomMetas[room] || {};
+                    let password = "";
+                    if (meta.password) {
+                      password = window.prompt("Phòng này có mật khẩu. Vui lòng nhập mật khẩu để vào:") || "";
+                    }
+                    window._roomPassword = password;
+                    handleJoinRoom(room);
+                  }}
+                  className="flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-xl"
+                >
+                  <div className="w-24 h-24 bg-blue-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
+                    {/* Icon dạng lưới: 2x2 nếu là phòng 2x2, 3x3 nếu là phòng 3x3 */}
+                    {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' && roomMetas[room].event.includes('2x2') ? (
+                      <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                        {Array.from({ length: 9 }).map((_, i) => (
+                          <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Icon chờ người */}
+                    <span className="absolute top-1 right-1 text-green-300"></span>
+                  </div>
+                  <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
+                </div>
+              ))
+            )}
             {activeRooms.length === 0 && (
               <div className="col-span-full text-center text-white py-8">
                 Chưa có phòng nào đang hoạt động
