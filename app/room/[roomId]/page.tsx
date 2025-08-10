@@ -133,6 +133,18 @@ export default function RoomPage() {
 // ... (các khai báo state khác)
 // Lưu usersArr cuối cùng để xử lý khi userId đến sau
 const [pendingUsers, setPendingUsers] = useState<{ userId: string, userName: string }[] | null>(null);
+  // Thêm state để kiểm soát việc hiện nút xác nhận sau 1s
+  const [showConfirmButtons, setShowConfirmButtons] = useState(false);
+
+  useEffect(() => {
+    if (pendingResult !== null && !running && !prep) {
+      setShowConfirmButtons(false);
+      const timer = setTimeout(() => setShowConfirmButtons(true), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowConfirmButtons(false);
+    }
+  }, [pendingResult, running, prep]);
 // Lắng nghe danh sách users trong phòng từ server
 useEffect(() => {
   const socket = getSocket();
@@ -1477,8 +1489,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
           })}
         >
-          {/* Nếu có pendingResult thì hiện 3 nút xác nhận */}
-          {pendingResult !== null && !running && !prep ? (
+          {/* Nếu có pendingResult thì hiện 3 nút xác nhận sau 1s */}
+          {pendingResult !== null && !running && !prep && showConfirmButtons ? (
             <div className="flex flex-row items-center justify-center gap-2 mb-2">
               <button
                 className={mobileShrink ? "px-2 py-1 text-[13px] rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white" : "px-5 py-2 text-xl rounded-2xl bg-green-600 hover:bg-green-700 font-bold text-white"}
@@ -1538,6 +1550,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               >DNF</button>
             </div>
           ) : null}
+
 
           {/* Nút Xuất kết quả và Tái đấu sau khi trận đấu kết thúc */}
           {myResults.length >= 5 && opponentResults.length >= 5 && (

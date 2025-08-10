@@ -59,8 +59,14 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch, 
             type="file"
             accept="image/*"
             onChange={e => {
-              console.log('ProfileTab input file onChange', e.target.files?.[0]);
-              if (onBgUpload) onBgUpload(e);
+              console.log('ProfileTab: File input onChange triggered', e);
+              console.log('ProfileTab: Files selected:', e.target.files);
+              if (onBgUpload) {
+                console.log('ProfileTab: Calling onBgUpload function');
+                onBgUpload(e);
+              } else {
+                console.log('ProfileTab: onBgUpload function is not provided');
+              }
             }}
             style={{ display: 'none' }}
           />
