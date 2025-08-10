@@ -58,17 +58,28 @@ export default function Lobby() {
   }, [tab, displayedTab]);
   useEffect(() => {
     console.log('[Lobby] useEffect user:', user);
-    if (user && user.customBg) setCustomBg(user.customBg);
-    else setCustomBg(null);
+    console.log('[Lobby] user.customBg:', user?.customBg);
+    if (user && user.customBg) {
+      console.log('[Lobby] Setting customBg:', user.customBg.slice(0, 100) + '...');
+      setCustomBg(user.customBg);
+    } else {
+      console.log('[Lobby] No customBg, setting to null');
+      setCustomBg(null);
+    }
   }, [user]);
 
   // Xử lý upload ảnh nền cá nhân hóa lên API MongoDB và refetch user
   const refetchUser = async () => {
     try {
+      console.log('[Lobby] Refetching user data...');
       const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
       const data = await res.json();
       console.log('[Lobby] refetchUser data:', data);
-      if (data && data.user) setUser(data.user);
+      console.log('[Lobby] refetchUser user.customBg:', data?.user?.customBg);
+      if (data && data.user) {
+        console.log('[Lobby] Setting user from refetch:', data.user);
+        setUser(data.user);
+      }
     } catch (err) {
       console.log('[Lobby] refetchUser error:', err);
     }
@@ -123,16 +134,23 @@ export default function Lobby() {
         console.log('[Lobby] handleBgUpload dataUrl length:', dataUrl.length);
         // Gửi lên API
         try {
+          console.log('[Lobby] Sending image to API, length:', dataUrl.length);
           const res = await fetch('/api/user/custom-bg', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: dataUrl })
           });
           console.log('[Lobby] handleBgUpload POST result:', res.status);
+          console.log('[Lobby] Response headers:', Object.fromEntries(res.headers.entries()));
+          
           if (res.ok) {
+            const responseData = await res.json();
+            console.log('[Lobby] API response:', responseData);
             await refetchUser();
           } else {
-            setBgError('Lưu ảnh thất bại!');
+            const errorData = await res.text();
+            console.log('[Lobby] API error response:', errorData);
+            setBgError(`Lưu ảnh thất bại! Status: ${res.status}`);
           }
         } catch (err) {
           setBgError('Lỗi mạng khi lưu ảnh!');
