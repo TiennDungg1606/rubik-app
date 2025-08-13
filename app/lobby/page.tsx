@@ -266,7 +266,7 @@ export default function Lobby() {
       )}
       {/* Tab Navigation Bar */}
   <nav className="w-full max-w-7xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-8 py-3 mt-2 mb-2 mx-auto">
-  <div className="flex items-center gap-4  ">
+  <div className="flex items-center gap-1  ">
           <svg width="32" height="32" viewBox="0 0 64 64" fill="none" className="mr-2 drop-shadow-lg" style={{marginLeft: -8}} xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
             <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>

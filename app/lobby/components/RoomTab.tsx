@@ -172,7 +172,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   }
 
   return (
-    <div className="w-full flex flex-col items-center justify-center">
+    <div className="w-full flex flex-col items-center bg-neutral-900/50 justify-center">
       {/* Modal tạo phòng */}
       {showCreateModal && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity duration-200 ${modalVisible ? 'opacity-100' : 'opacity-0'}`}>
