@@ -4,8 +4,7 @@ declare global {
 }
 "use client"
 
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import TimerTab from "./components/TimerTab";
 import RoomTab from "./components/RoomTab";
 import AccountTab from "./components/AccountTab";
@@ -33,7 +32,8 @@ type User = {
   // Thêm các trường khác nếu cần
 };
 
-export default function Lobby() {
+// Component that uses useSearchParams
+function LobbyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -405,5 +405,18 @@ export default function Lobby() {
       </div>
       {/* Không render AccountTabWrapper nữa, đã chuyển vào avatar menu */}
     </main>
+  );
+}
+
+// Main component with Suspense boundary
+export default function Lobby() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white">
+        <div className="text-2xl font-bold text-blue-400 mb-4">Đang tải...</div>
+      </div>
+    }>
+      <LobbyContent />
+    </Suspense>
   );
 }
