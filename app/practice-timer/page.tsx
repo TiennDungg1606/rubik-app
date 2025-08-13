@@ -5,10 +5,10 @@ import '../../globals.css';
 // Thêm style cho font Digital-7 Mono
 const digitalFontStyle = `
 @font-face {
-  font-family: 'Digital7Mono';
-  src: url('/digital-7-mono.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
+	font-family: 'Digital7Mono';
+	src: url('/digital-7-mono.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
 }
 `;
 import { useSearchParams, useRouter } from "next/navigation";
@@ -26,55 +26,87 @@ function PracticeTimerContent() {
 	const [times, setTimes] = useState<number[]>([]);
 	const spaceHoldTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-	// Xử lý phím Space giống csTimer
-	useEffect(() => {
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.code === 'Space') {
-				e.preventDefault();
-				if (!spaceHeld && !running && !ready) {
-					setSpaceHeld(true);
-					// Sau 100ms thì chuyển sang trạng thái ready
-					spaceHoldTimerRef.current = setTimeout(() => {
-						setReady(true);
-					}, 100);
-				}
-				// Nếu đang chạy, nhấn Space để dừng
-				if (running) {
-					setRunning(false);
-					setTimes(prev => [time, ...prev.slice(0, 19)]);
-				}
-			}
-		};
-
-		const handleKeyUp = (e: KeyboardEvent) => {
-			if (e.code === 'Space') {
-				e.preventDefault();
-				// Nếu đang ở trạng thái ready (đã giữ >=100ms), thả ra thì bắt đầu timer
-				if (ready && !running) {
-					setTime(0);
-					setRunning(true);
-					setReady(false);
-					setSpaceHeld(false);
-				} else {
-					// Nếu thả ra trước 100ms thì hủy ready
-					setSpaceHeld(false);
-					if (spaceHoldTimerRef.current) {
-						clearTimeout(spaceHoldTimerRef.current);
-						spaceHoldTimerRef.current = null;
+		// Xử lý phím Space giống csTimer và cảm ứng trên điện thoại
+		useEffect(() => {
+			const handleKeyDown = (e: KeyboardEvent) => {
+				if (e.code === 'Space') {
+					e.preventDefault();
+					if (!spaceHeld && !running && !ready) {
+						setSpaceHeld(true);
+						// Sau 100ms thì chuyển sang trạng thái ready
+						spaceHoldTimerRef.current = setTimeout(() => {
+							setReady(true);
+						}, 100);
 					}
-					setReady(false);
+					// Nếu đang chạy, nhấn Space để dừng
+					if (running) {
+						setRunning(false);
+						setTimes(prev => [time, ...prev.slice(0, 19)]);
+					}
 				}
+			};
+
+			const handleKeyUp = (e: KeyboardEvent) => {
+				if (e.code === 'Space') {
+					e.preventDefault();
+					// Nếu đang ở trạng thái ready (đã giữ >=100ms), thả ra thì bắt đầu timer
+					if (ready && !running) {
+						setTime(0);
+						setRunning(true);
+						setReady(false);
+						setSpaceHeld(false);
+					} else {
+						// Nếu thả ra trước 100ms thì hủy ready
+						setSpaceHeld(false);
+						if (spaceHoldTimerRef.current) {
+							clearTimeout(spaceHoldTimerRef.current);
+							spaceHoldTimerRef.current = null;
+						}
+						setReady(false);
+					}
+				}
+			};
+
+			window.addEventListener('keydown', handleKeyDown);
+			window.addEventListener('keyup', handleKeyUp);
+			return () => {
+				window.removeEventListener('keydown', handleKeyDown);
+				window.removeEventListener('keyup', handleKeyUp);
+			};
+			// eslint-disable-next-line
+		}, [spaceHeld, running, ready, time]);
+
+		// Xử lý cảm ứng trên vùng timer
+		const handleTouchStart = (e: React.TouchEvent) => {
+			e.preventDefault();
+			if (!spaceHeld && !running && !ready) {
+				setSpaceHeld(true);
+				spaceHoldTimerRef.current = setTimeout(() => {
+					setReady(true);
+				}, 100);
+			}
+			if (running) {
+				setRunning(false);
+				setTimes(prev => [time, ...prev.slice(0, 19)]);
 			}
 		};
 
-		window.addEventListener('keydown', handleKeyDown);
-		window.addEventListener('keyup', handleKeyUp);
-		return () => {
-			window.removeEventListener('keydown', handleKeyDown);
-			window.removeEventListener('keyup', handleKeyUp);
+		const handleTouchEnd = (e: React.TouchEvent) => {
+			e.preventDefault();
+			if (ready && !running) {
+				setTime(0);
+				setRunning(true);
+				setReady(false);
+				setSpaceHeld(false);
+			} else {
+				setSpaceHeld(false);
+				if (spaceHoldTimerRef.current) {
+					clearTimeout(spaceHoldTimerRef.current);
+					spaceHoldTimerRef.current = null;
+				}
+				setReady(false);
+			}
 		};
-		// eslint-disable-next-line
-	}, [spaceHeld, running, ready, time]);
 
 	// Tăng thời gian khi running
 	useEffect(() => {
@@ -152,30 +184,33 @@ function PracticeTimerContent() {
 					</div>
 
 					{/* Timer */}
-					<div className="text-center">
-						<div
-							className={`text-[120px] mb-8 select-none transition-colors ${
-								ready && !running ? 'text-green-400' :
-								running ? 'text-green-400' :
-								spaceHeld && !running ? 'text-yellow-400' :
-								'text-white'
-							}`}
-							style={{ fontFamily: 'Digital7Mono, monospace', letterSpacing: '0.05em' }}
-						>
-							{format(time)}
-						</div>
-						{/* Status Text */}
-						<div className="text-lg text-gray-400 mb-4">
-							{ready && !running ? 'Sẵn sàng! Thả Space để bắt đầu' :
-								running ? 'Đang giải... Nhấn Space để dừng' :
-								spaceHeld && !running ? 'Giữ Space để chuẩn bị...' :
-								'Giữ Space ≥100ms rồi thả ra để bắt đầu timer'}
-						</div>
+								<div className="text-center">
+									<div
+										className={`text-[120px] mb-8 select-none transition-colors ${
+											ready && !running ? 'text-green-400' :
+											running ? 'text-green-400' :
+											spaceHeld && !running ? 'text-yellow-400' :
+											'text-white'
+										}`}
+										style={{ fontFamily: 'Digital7Mono, monospace', letterSpacing: '0.05em' }}
+										onTouchStart={handleTouchStart}
+										onTouchEnd={handleTouchEnd}
+										onTouchCancel={handleTouchEnd}
+									>
+										{format(time)}
+									</div>
+									{/* Status Text */}
+									<div className="text-lg text-gray-400 mb-4">
+										{ready && !running ? 'Sẵn sàng! Thả Space/chạm để bắt đầu' :
+											running ? 'Đang giải... Nhấn Space/chạm để dừng' :
+											spaceHeld && !running ? 'Giữ Space/giữ chạm để chuẩn bị...' :
+											'Giữ ≥100ms rồi thả ra để bắt đầu timer'}
+									</div>
 
-						{/* Instructions */}
-						<div className="text-center text-gray-500 text-sm">
-						</div>
-					</div>
+									{/* Instructions */}
+									<div className="text-center text-gray-500 text-sm">
+									</div>
+								</div>
 				</div>
 
 				{/* Right Sidebar - Statistics */}

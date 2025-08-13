@@ -61,9 +61,9 @@ export default function NewTab() {
       <div className="mb-6">
         <h3 className="text-lg font-bold text-blue-400 drop-shadow mb-2">Dự kiến cập nhật tiếp theo (T9/2025)</h3>
         <ul className="list-disc list-inside text-white text-base ml-4">
-          <li>Tính nâng đấu đội 2v2 và 3vs3</li>
+          <li>Tính năng đấu đội 2vs2 và 3vs3</li>
           <li>Làm lại tab Timer.</li>      
-          <li>Hỗ trợ nhiều loại sự kiện Rubik chuẩn WCA(2x2, 4x4).</li>
+          <li>Hỗ trợ nhiều loại sự kiện Rubik chuẩn WCA.</li>
           <li>Cập nhật giao diện đẹp hơn.</li>
         </ul>
       </div>
