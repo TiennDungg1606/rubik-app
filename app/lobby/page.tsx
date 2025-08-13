@@ -4,6 +4,7 @@ declare global {
 }
 "use client"
 
+
 import { useState, useEffect } from "react";
 import TimerTab from "./components/TimerTab";
 import RoomTab from "./components/RoomTab";
@@ -13,6 +14,7 @@ import ProfileTab from "./components/ProfileTab";
 import NewTab from "./components/NewTab";
 import AboutTab from "./components/AboutTab";
 import ShopTab from "./components/ShopTab";
+import PracticeTab from "./components/PracticeTab";
 import { useRouter } from "next/navigation";
 
 
@@ -253,13 +255,7 @@ export default function Lobby() {
   console.log('[Lobby] Render Lobby, customBg:', customBg?.slice(0, 50));
   return (
     <main
-      className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans backdrop-blur-3xl"
-      style={{
-        backgroundImage: customBg ? `url(${customBg})` : 'url(/images.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        transition: 'background-image 0.3s',
-      }}
+      className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans"
     >
       {/* Hiển thị lỗi chọn ảnh nền nếu có */}
       {(bgError || loadingBg) && (
@@ -311,6 +307,14 @@ export default function Lobby() {
             `}
             onClick={() => setTab("room")}
           >Room</button>
+          <button
+            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+              ${tab === "practice"
+                ? "bg-blue-100 text-blue-700 shadow-md"
+                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
+            `}
+            onClick={() => setTab("practice")}
+          >Practice</button>
           <button
             className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
               ${tab === "shop"
@@ -375,6 +379,9 @@ export default function Lobby() {
             />
             {joinError && <div className="text-red-400 text-center mt-2">{joinError}</div>}
           </>
+        )}
+        {displayedTab === "practice" && (
+          <PracticeTab />
         )}
         {displayedTab === "new" && (
           <NewTab />

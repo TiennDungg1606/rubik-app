@@ -9,3 +9,10 @@
   font-weight: normal !important;
   letter-spacing: 0.05em;
 }
+
+body {
+  background-image: url('/images.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
