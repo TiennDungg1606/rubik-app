@@ -1,9 +1,10 @@
 // PracticeTab.tsx
 "use client";
 import React from "react";
-
+import { useRouter } from "next/navigation";
 
 export default function PracticeTab() {
+  const router = useRouter();
   // Danh mục và subcategory
   const categories = [
     { name: "3x3", sub: ["OLL", "PLL"] },
@@ -406,14 +407,22 @@ export default function PracticeTab() {
                 <div className="text-lg font-bold mb-1">{alg.name}</div>
                 <div className="text-base font-mono mb-2 whitespace-pre-wrap">{alg.alg}</div>
                 <div className="flex gap-2 mt-2">
-                  <button className="bg-blue-600 text-white px-3 py-1 rounded">Start Training</button>
-                </div>
-              </div>
-              <img src={alg.img} alt="alg" className="w-24 h-24 object-contain ml-4" />
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
+                                     <button
+                     className="bg-blue-600 text-white px-3 py-1 rounded"
+                     onClick={() => {
+                       // Chuyển hướng sang trang practice timer với thông tin OLL
+                       router.push(`/practice-timer?alg=${encodeURIComponent(alg.alg)}&name=${encodeURIComponent(alg.name)}`);
+                     }}
+                   >
+                     Start Training
+                   </button>
+                 </div>
+               </div>
+               <img src={alg.img} alt="alg" className="w-24 h-24 object-contain ml-4" />
+             </div>
+           ))
+         )}
+       </div>
+     </div>
+   );
+ }

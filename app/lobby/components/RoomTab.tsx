@@ -240,6 +240,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         </div>
       )}
       <h2 className="text-2xl font-bold mb-6">Phòng giải Rubik Online</h2>
+      {/*
       <div className="flex flex-col gap-4 w-full max-w-md bg-gray-800 rounded-xl p-8 shadow-lg mb-8">
         <div className="text-lg font-semibold text-center mb-2 text-white-300">
           Nếu có mã phòng từ bạn bè gửi, hãy nhập vào bên dưới để tham gia phòng!
@@ -262,6 +263,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         </div>
         {error && <div className="text-red-400 text-sm mt-1">{error}</div>}
       </div>
+      */}
       {/* Danh sách phòng đang thi đấu */}
       <div className="w-full max-w-3xl mb-8">
         <div className="text-lg font-semibold mb-4 text-center text-white">

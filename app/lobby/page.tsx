@@ -15,7 +15,7 @@ import NewTab from "./components/NewTab";
 import AboutTab from "./components/AboutTab";
 import ShopTab from "./components/ShopTab";
 import PracticeTab from "./components/PracticeTab";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 
 
@@ -34,6 +34,9 @@ type User = {
 };
 
 export default function Lobby() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   // Hiệu ứng chuyển tab
   const [tab, setTab] = useState("new");
   const [displayedTab, setDisplayedTab] = useState("new");
@@ -198,7 +201,6 @@ export default function Lobby() {
   const [roomInput, setRoomInput] = useState("");
   // Đã chuyển khai báo tab lên trên để dùng cho hiệu ứng chuyển tab
   // Đã chuyển lên trên để tránh lỗi khai báo trước khi dùng
-  const router = useRouter();
 
   // Luôn fetch user khi vào trang
   useEffect(() => {
@@ -213,6 +215,14 @@ export default function Lobby() {
         setUser(data.user);
       });
   }, [router]);
+
+  // Kiểm tra tham số tab từ URL và tự động chuyển tab
+  useEffect(() => {
+    const tabParam = searchParams?.get("tab");
+    if (tabParam && ["new", "timer", "room", "practice", "shop", "about"].includes(tabParam)) {
+      setTab(tabParam);
+    }
+  }, [searchParams]);
 
   const handleCreateRoom = (event: '2x2' | '3x3', displayName: string, password: string) => {
     const roomId = generateRoomId();
