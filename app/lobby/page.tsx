@@ -6,7 +6,7 @@ declare global {
 
 import { useState, useEffect, Suspense } from "react";
 import TimerTab from "./components/TimerTab";
-import RoomTab from "./components/RoomTab";
+// import RoomTab from "./components/RoomTab";
 import AccountTab from "./components/AccountTab";
 import AccountTabWrapper from "./components/AccountTabWrapper";
 import ProfileTab from "./components/ProfileTab";
@@ -198,7 +198,7 @@ function LobbyContent() {
       };
     }
   }, []);
-  const [roomInput, setRoomInput] = useState("");
+  // RoomTab state removed
   // Đã chuyển khai báo tab lên trên để dùng cho hiệu ứng chuyển tab
   // Đã chuyển lên trên để tránh lỗi khai báo trước khi dùng
 
@@ -224,35 +224,11 @@ function LobbyContent() {
     }
   }, [searchParams]);
 
-  const handleCreateRoom = (event: '2x2' | '3x3', displayName: string, password: string) => {
-    const roomId = generateRoomId();
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('justCreatedRoom', roomId);
-      // Lưu meta phòng để trang room/[roomId] lấy khi join-room
-      sessionStorage.setItem(`roomMeta_${roomId}`, JSON.stringify({ event, displayName, password }));
-      // Không lưu password vào roomPassword_{roomId} khi tạo phòng mới!
-    }
-    router.push(`/room/${roomId}`);
-  };
+  // RoomTab handler removed
 
-  const [joinError, setJoinError] = useState("");
+  // RoomTab state removed
 
-  // Hàm join phòng: chỉ cho phép vào với vai trò người chơi
-  const handleJoinRoom = (roomId: string) => {
-    const code = roomId.trim().toUpperCase();
-    if (!code) return;
-    setJoinError("");
-    // Lấy password từ window._roomPassword nếu có (do RoomTab truyền vào)
-    let password = "";
-    if (typeof window !== "undefined" && window._roomPassword) {
-      password = window._roomPassword;
-      // Lưu tạm vào sessionStorage để trang room/[roomId] lấy khi join-room
-      sessionStorage.setItem(`roomPassword_${code}`, password);
-      // Xóa biến tạm sau khi dùng
-      delete window._roomPassword;
-    }
-    router.push(`/room/${code}`);
-  };
+  // RoomTab handler removed
 
   if (isMobile && isPortrait) {
     return (
@@ -311,11 +287,9 @@ function LobbyContent() {
           >Timer</button>
           <button
             className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
-              ${tab === "room"
-                ? "bg-blue-100 text-blue-700 shadow-md"
-                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
+              bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400
             `}
-            onClick={() => setTab("room")}
+            onClick={() => router.push("/room")}
           >Room</button>
           <button
             className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
@@ -379,17 +353,7 @@ function LobbyContent() {
         {displayedTab === "timer" && (
           <TimerTab />
         )}
-        {displayedTab === "room" && (
-          <>
-            <RoomTab
-              roomInput={roomInput}
-              setRoomInput={setRoomInput}
-              handleCreateRoom={handleCreateRoom}
-              handleJoinRoom={handleJoinRoom}
-            />
-            {joinError && <div className="text-red-400 text-center mt-2">{joinError}</div>}
-          </>
-        )}
+  {/* RoomTab removed: now handled in /room route */}
         {displayedTab === "practice" && (
           <PracticeTab />
         )}
