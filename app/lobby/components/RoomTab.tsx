@@ -24,13 +24,19 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
-  // Animation state for modal
+  const [modalStep, setModalStep] = useState<1 | 2>(1); // 1: chọn loại phòng, 2: nhập chi tiết
+  const [isPrivateRoom, setIsPrivateRoom] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalEvent, setModalEvent] = useState<'2x2' | '3x3'>("3x3");
   const [modalRoomName, setModalRoomName] = useState("");
   const [modalPassword, setModalPassword] = useState("");
   const [modalPasswordConfirm, setModalPasswordConfirm] = useState("");
   const [modalError, setModalError] = useState("");
+  // Modal nhập mật khẩu khi join phòng kín
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [joiningRoom, setJoiningRoom] = useState<string | null>(null);
+  const [joinPassword, setJoinPassword] = useState("");
+  const [joinPasswordError, setJoinPasswordError] = useState("");
   // Đã loại bỏ logic spectator
   // Sử dụng localhost khi development, production server khi production
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -124,8 +130,10 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   // Modal logic
   function openCreateModal() {
-  setShowCreateModal(true);
-  setTimeout(() => setModalVisible(true), 10); // trigger animation
+    setShowCreateModal(true);
+    setModalStep(1);
+    setIsPrivateRoom(false);
+    setTimeout(() => setModalVisible(true), 10);
     setModalEvent("3x3");
     setModalRoomName("");
     setModalPassword("");
@@ -134,9 +142,19 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   }
 
   function closeCreateModal() {
-  setModalVisible(false);
-  setTimeout(() => setShowCreateModal(false), 200); // wait for animation
-  setModalError("");
+    setModalVisible(false);
+    setTimeout(() => setShowCreateModal(false), 200);
+    setModalError("");
+  }
+
+  function handleModalNext() {
+    setModalError("");
+    setModalStep(2);
+  }
+
+  function handleModalBack() {
+    setModalError("");
+    setModalStep(1);
   }
 
   function handleModalConfirm() {
@@ -145,15 +163,15 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setModalError("Tên phòng phải từ 1 đến 8 ký tự.");
       return;
     }
-    // Validate password match
-    if (modalPassword !== modalPasswordConfirm) {
-      setModalError("Mật khẩu nhập lại không khớp.");
+    // Nếu là phòng kín, kiểm tra mật khẩu
+    if (isPrivateRoom && (!modalPassword || modalPassword !== modalPasswordConfirm)) {
+      setModalError("Mật khẩu không khớp hoặc bị trống.");
       return;
     }
     setModalError("");
     setShowCreateModal(false);
-    // Truyền event, tên phòng, mật khẩu cho handleCreateRoom
-    handleCreateRoom(modalEvent, modalRoomName, modalPassword);
+    setModalVisible(false);
+    handleCreateRoom(modalEvent, modalRoomName, isPrivateRoom ? modalPassword : "");
   }
 
   function handleJoin() {
@@ -173,69 +191,87 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   return (
     <div className="w-full flex flex-col items-center bg-neutral-900/50 justify-center">
-      {/* Modal tạo phòng */}
+      {/* Modal tạo phòng 2 bước */}
       {showCreateModal && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity duration-200 ${modalVisible ? 'opacity-100' : 'opacity-0'}`}>
-          <div className={`bg-gray-900 rounded-xl shadow-2xl p-6 w-full max-w-2xl flex flex-row transform transition-all duration-200 ${modalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-            {/* Cột 1: Chọn thể loại rubik */}
-            <div className="flex flex-col items-center justify-start w-1/3 pr-4 border-r border-gray-700">
-              <div className="text-lg font-semibold text-white mb-4">Thể loại</div>
-              <button
-                className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '2x2' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                onClick={() => setModalEvent('2x2')}
-              >2x2</button>
-              <button
-                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '3x3' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                onClick={() => setModalEvent('3x3')}
-              >3x3</button>
-            </div>
-            {/* Cột 2: Nhập tên phòng, mật khẩu, xác nhận */}
-            <div className="flex-1 pl-6 flex flex-col justify-between">
-              <div>
-                <div className="text-lg font-semibold text-white mb-4">Tạo phòng mới</div>
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity duration-200 ${modalVisible ? 'opacity-100' : 'opacity-0'}`} onClick={e => { if (e.target === e.currentTarget) closeCreateModal(); }}>
+          <div className={`bg-gray-900 rounded-xl shadow-2xl p-6 w-full max-w-2xl flex flex-col md:flex-row transform transition-all duration-200 ${modalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+            {modalStep === 1 ? (
+              // Bước 1: chọn loại phòng
+              <div className="flex flex-col items-center w-full gap-4">
+                <div className="text-xl font-semibold text-white mb-6">Chọn loại phòng</div>
+                <div className="flex flex-col md:flex-row w-full justify-center gap-4">
+                  <button onClick={() => { setIsPrivateRoom(false); setModalStep(2); }} className="flex-1 p-6 rounded-xl border-2 border-green-500 bg-green-500/20 hover:bg-green-500/40 transition-colors duration-200">
+                    <div className="text-2xl font-bold text-green-300">Phòng mở</div>
+                    <div className="text-sm text-gray-400 mt-1">Ai cũng có thể vào</div>
+                  </button>
+                  <button onClick={() => { setIsPrivateRoom(true); setModalStep(2); }} className="flex-1 p-6 rounded-xl border-2 border-red-500 bg-red-500/20 hover:bg-red-500/40 transition-colors duration-200">
+                    <div className="text-2xl font-bold text-red-300">Phòng kín</div>
+                    <div className="text-sm text-gray-400 mt-1">Yêu cầu mã phòng để vào.</div>
+                  </button>
+                </div>
+                <button className="mt-6 modal-button modal-button-cancel px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-500" onClick={closeCreateModal}>Hủy</button>
+              </div>
+            ) : (
+              // Bước 2: nhập chi tiết phòng
+              <div className="flex-1 flex flex-col justify-between w-full">
+                <div className="text-lg font-semibold text-white mb-4 text-center">Tạo phòng mới</div>
+                <div className="flex flex-col items-center justify-start w-full mb-4">
+                  <div className="text-sm font-semibold text-gray-400 mb-2">Thể loại</div>
+                  <div className="flex gap-4">
+                    <button className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '2x2' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`} onClick={() => setModalEvent('2x2')}>2x2</button>
+                    <button className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '3x3' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`} onClick={() => setModalEvent('3x3')}>3x3</button>
+                  </div>
+                </div>
                 <div className="mb-3">
                   <label className="block text-gray-300 mb-1">Tên phòng (tối đa 8 ký tự)</label>
-                  <input
-                    className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    maxLength={8}
-                    value={modalRoomName}
-                    onChange={e => setModalRoomName(e.target.value)}
-                    placeholder="Nhập tên phòng"
-                  />
+                  <input className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400" maxLength={8} value={modalRoomName} onChange={e => setModalRoomName(e.target.value)} placeholder="Nhập tên phòng" />
                 </div>
-                <div className="mb-3">
-                  <label className="block text-gray-300 mb-1">Mật khẩu (có thể để trống)</label>
-                  <input
-                    className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    type="password"
-                    value={modalPassword}
-                    onChange={e => setModalPassword(e.target.value)}
-                    placeholder="Nhập mật khẩu"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="block text-gray-300 mb-1">Nhập lại mật khẩu</label>
-                  <input
-                    className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    type="password"
-                    value={modalPasswordConfirm}
-                    onChange={e => setModalPasswordConfirm(e.target.value)}
-                    placeholder="Nhập lại mật khẩu"
-                  />
-                </div>
+                {isPrivateRoom && (
+                  <>
+                    <div className="mb-3">
+                      <label className="block text-gray-300 mb-1">Mật khẩu</label>
+                      <input className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400" type="password" value={modalPassword} onChange={e => setModalPassword(e.target.value)} placeholder="Nhập mật khẩu" />
+                    </div>
+                    <div className="mb-3">
+                      <label className="block text-gray-300 mb-1">Nhập lại mật khẩu</label>
+                      <input className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400" type="password" value={modalPasswordConfirm} onChange={e => setModalPasswordConfirm(e.target.value)} placeholder="Nhập lại mật khẩu" />
+                    </div>
+                  </>
+                )}
                 {modalError && <div className="text-red-400 text-sm mb-2">{modalError}</div>}
+                <div className="flex flex-row justify-end gap-3 mt-4">
+                  <button className="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-500 transition-colors" onClick={handleModalBack}>Quay lại</button>
+                  <button className="px-4 py-2 rounded bg-green-600 text-white font-bold hover:bg-green-500 transition-colors" onClick={handleModalConfirm}>Xác nhận</button>
+                </div>
               </div>
-              <div className="flex flex-row justify-end gap-3 mt-4">
-                <button
-                  className="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-500 transition-colors"
-                  onClick={closeCreateModal}
-                >Hủy</button>
-                <button
-                  className="px-4 py-2 rounded bg-green-600 text-white font-bold hover:bg-green-500 transition-colors"
-                  onClick={handleModalConfirm}
-                >Xác nhận</button>
-              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal nhập mật khẩu khi vào phòng kín */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={e => { if (e.target === e.currentTarget) setShowPasswordModal(false); }}>
+          <div className="bg-gray-900 rounded-xl shadow-2xl p-6 w-full max-w-sm flex flex-col">
+            <div className="text-xl font-semibold text-white mb-4 text-center">Nhập mật khẩu</div>
+            <div className="text-gray-300 mb-2 text-center">Phòng này yêu cầu mật khẩu.</div>
+            <input type="password" className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 mb-4" value={joinPassword} onChange={e => setJoinPassword(e.target.value)} placeholder="Nhập mật khẩu" />
+            <div className="flex justify-end gap-3">
+              <button className="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-500" onClick={() => { setShowPasswordModal(false); setJoinPassword(""); setJoinPasswordError(""); }}>Hủy</button>
+              <button className="px-4 py-2 rounded bg-green-600 text-white font-bold hover:bg-green-500" onClick={() => {
+                if (joiningRoom && joinPassword === (roomMetas[joiningRoom]?.password || "")) {
+                  window._roomPassword = joinPassword;
+                  setShowPasswordModal(false);
+                  setJoinPassword("");
+                  setJoinPasswordError("");
+                  handleJoinRoom(joiningRoom);
+                } else {
+                  setJoinPasswordError("Mật khẩu không đúng!");
+                  setJoinPassword("");
+                }
+              }}>Xác nhận</button>
             </div>
+            {joinPasswordError && <div className="text-red-400 text-sm mt-2 text-center">{joinPasswordError}</div>}
           </div>
         </div>
       )}
@@ -301,8 +337,16 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                         ))}
                       </div>
                     )}
-                    {/* Icon thi đấu */}
-                    <span className="absolute top-1 right-1 text-yellow-300"></span>
+                    {/* Icon thi đấu hoặc ổ khóa nếu có mật khẩu */}
+                    {roomMetas[room]?.password ? (
+                      <span className="absolute top-1 right-1 text-orange-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14h4a1 1 0 010 2h-4v2a1 1 0 11-2 0v-2H6a1 1 0 110-2h4a1 1 0 01.743-.743A6 6 0 1118 8zM6 8a2 2 0 11-4 0 2 2 0 014 0z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    ) : (
+                      <span className="absolute top-1 right-1 text-yellow-300"></span>
+                    )}
                   </div>
                   <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
                 </div>
@@ -343,14 +387,16 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
               activeRooms.map((room: string) => (
                 <div
                   key={room}
-                  onClick={async () => {
+                  onClick={() => {
                     const meta = roomMetas[room] || {};
-                    let password = "";
                     if (meta.password) {
-                      password = window.prompt("Phòng này có mật khẩu. Vui lòng nhập mật khẩu để vào:") || "";
+                      setJoiningRoom(room);
+                      setShowPasswordModal(true);
+                      setJoinPassword("");
+                      setJoinPasswordError("");
+                    } else {
+                      handleJoinRoom(room);
                     }
-                    window._roomPassword = password;
-                    handleJoinRoom(room);
                   }}
                   className="flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-xl"
                 >
@@ -369,8 +415,16 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                         ))}
                       </div>
                     )}
-                    {/* Icon chờ người */}
-                    <span className="absolute top-1 right-1 text-green-300"></span>
+                    {/* Icon ổ khóa nếu có mật khẩu, icon xanh nếu không */}
+                    {roomMetas[room]?.password ? (
+                      <span className="absolute top-1 right-1 text-orange-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14h4a1 1 0 010 2h-4v2a1 1 0 11-2 0v-2H6a1 1 0 110-2h4a1 1 0 01.743-.743A6 6 0 1118 8zM6 8a2 2 0 11-4 0 2 2 0 014 0z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    ) : (
+                      <span className="absolute top-1 right-1 text-green-300"></span>
+                    )}
                   </div>
                   <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
                 </div>
