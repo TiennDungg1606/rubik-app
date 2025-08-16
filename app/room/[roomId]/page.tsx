@@ -106,7 +106,8 @@ export default function RoomPage() {
   const [userId, setUserId] = useState<string>("");
   const [opponentId, setOpponentId] = useState<string>("");
   const [waiting, setWaiting] = useState<boolean>(true);
-  const [turn, setTurn] = useState<'me'|'opponent'>('opponent');
+  // turnUserId: userId của người được quyền giải (đồng bộ từ server)
+  const [turnUserId, setTurnUserId] = useState<string>("");
   const [myResults, setMyResults] = useState<(number|null)[]>([]);
   const [opponentResults, setOpponentResults] = useState<(number|null)[]>([]);
   const [dnf, setDnf] = useState<boolean>(false);
@@ -156,19 +157,25 @@ export default function RoomPage() {
       setShowConfirmButtons(false);
     }
   }, [pendingResult, running, prep]);
-// Lắng nghe danh sách users trong phòng từ server
+// Lắng nghe danh sách users và hostId từ server
 useEffect(() => {
   const socket = getSocket();
-  const handleUsers = (usersArr: { userId: string, userName: string }[]) => {
-    setUsers(usersArr.map(u => u.userId));
-    setWaiting(usersArr.length < 2);
-    setPendingUsers(usersArr); // luôn lưu lại usersArr cuối cùng
+  const handleUsers = (data: { users: { userId: string, userName: string }[], hostId: string }) => {
+    setUsers(data.users.map(u => u.userId));
+    setWaiting(data.users.length < 2);
+    setPendingUsers(data.users);
+    // Đồng bộ chủ phòng từ server
+    if (userId && data.hostId) {
+      setIsCreator(userId === data.hostId);
+    } else {
+      setIsCreator(false);
+    }
   };
   socket.on('room-users', handleUsers);
   return () => {
     socket.off('room-users', handleUsers);
   };
-}, []);
+}, [userId]);
 
 // Khi userId hoặc pendingUsers thay đổi, luôn cập nhật opponentId/opponentName
 useEffect(() => {
@@ -288,7 +295,7 @@ useEffect(() => {
     setRematchPending(false);
     setRematchModal({ show: false, from: null });
     setRematchDeclined(false);
-    setTurn('me'); // Chủ phòng luôn được chơi trước
+  // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
   };
   socket.on('room-reset', handleRoomReset);
   return () => {
@@ -317,7 +324,7 @@ useEffect(() => {
     setScrambleIndex(0);
     setPendingResult(null);
     setPendingType('normal');
-    setTurn(isCreator ? 'me' : 'opponent');
+  // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
     setRematchPending(false);
     setRematchJustAccepted(true); // Đánh dấu vừa tái đấu xong
   };
@@ -338,29 +345,36 @@ useEffect(() => {
   };
 }, [userId, roomId, isCreator]);
 
-// Lắng nghe sự kiện opponent-solve từ server để cập nhật kết quả đối thủ và chuyển lượt
+// Lắng nghe sự kiện opponent-solve từ server để cập nhật kết quả đối thủ
 useEffect(() => {
   const socket = getSocket();
   const handleOpponentSolve = (data: { userId: string, userName: string, time: number }) => {
-    // Cập nhật kết quả đối thủ: luôn thêm vào vị trí tiếp theo, không ghi đè DNF/null
     setOpponentResults(prev => {
       const arr = [...prev];
-      // Đếm số kết quả đã có (kể cả null)
       const nextIdx = arr.length;
       if (nextIdx < 5) arr[nextIdx] = data.time;
-      // Nếu đã đủ 5 kết quả thì không thêm nữa
       return arr.slice(0, 5);
     });
-    // Nếu opponentName thay đổi thì cập nhật lại
     if (data.userName && data.userName !== opponentName) setOpponentName(data.userName);
-    // Chuyển lượt về cho mình
-    setTurn('me');
+    // Không tự chuyển lượt nữa, lượt sẽ do server broadcast
   };
   socket.on('opponent-solve', handleOpponentSolve);
   return () => {
     socket.off('opponent-solve', handleOpponentSolve);
   };
 }, [opponentName]);
+
+// Lắng nghe lượt chơi từ server (turnUserId)
+useEffect(() => {
+  const socket = getSocket();
+  const handleTurn = (data: { turnUserId: string }) => {
+    setTurnUserId(data.turnUserId || "");
+  };
+  socket.on('room-turn', handleTurn);
+  return () => {
+    socket.off('room-turn', handleTurn);
+  };
+}, []);
 
 // --- EFFECT LẮNG NGHE SCRAMBLE ---
 useEffect(() => {
@@ -419,7 +433,7 @@ useEffect(() => {
       setScrambleIndex(0);
       setPendingResult(null);
       setPendingType('normal');
-      setTurn(isCreator ? 'me' : 'opponent');
+    // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
       // Không gửi next-scramble, chỉ chờ server gửi scramble đầu tiên
     } else {
       socket.emit('rematch-declined', { roomId });
@@ -621,18 +635,7 @@ useEffect(() => {
   // userName luôn phải lấy từ DB, không được rỗng
   // Đã lấy userId/userName ở effect trên, không cần lặp lại
 
-  // Kiểm tra nếu là người tạo phòng (tức là vừa tạo phòng mới) (hydration-safe)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const flag = sessionStorage.getItem('justCreatedRoom');
-      if (flag === roomId) {
-        sessionStorage.removeItem('justCreatedRoom');
-        setIsCreator(true);
-      } else {
-        setIsCreator(false);
-      }
-    }
-  }, [roomId]);
+  // Đã loại bỏ logic tự xác định chủ phòng từ sessionStorage, isCreator sẽ được đồng bộ từ server
 
   // always keep timerRef in sync
   useEffect(() => { timerRef.current = timer; }, [timer]);
@@ -644,21 +647,7 @@ useEffect(() => {
   // ĐÃ LOẠI BỎ effect thừa join-room không truyền password, event, displayName
 
 
-  // Khi là người tạo phòng, luôn đảm bảo chỉ có 1 user và waiting=true ngay sau khi tạo phòng
-  useEffect(() => {
-    if (isCreator && typeof userId === 'string') {
-      setUsers([userId]);
-      setWaiting(true);
-      setTurn('me'); // Chủ phòng luôn được chơi trước
-    }
-  }, [isCreator, userId]);
-
-  // Khi đủ 2 người, nếu không phải chủ phòng thì phải chờ đối thủ chơi trước
-  useEffect(() => {
-    if (!isCreator && users.length === 2) {
-      setTurn('opponent');
-    }
-  }, [isCreator, users.length]);
+  // Đã loại bỏ logic tự set turn, turn sẽ được đồng bộ từ server qua turnUserId
 
   // Nhận scramble từ server qua socket, hiện thông báo tráo scramble đúng 5s
   useEffect(() => {
@@ -705,16 +694,17 @@ useEffect(() => {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    if (waiting || running || turn !== 'me' || myResults.length >= 5 || pendingResult !== null) return;
+    // Chỉ cho phép nếu đến lượt mình (userId === turnUserId)
+    if (waiting || running || userId !== turnUserId || myResults.length >= 5 || pendingResult !== null) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (pendingResult !== null) return; // Không cho vào prep khi đang chờ xác nhận kết quả
+      if (pendingResult !== null) return;
       if (prep) {
         if (!localSpaceHeld) {
           pressStartRef.current = Date.now();
           localSpaceHeld = true;
-          setSpaceHeld(true); // Đang giữ phím
+          setSpaceHeld(true);
         }
       } else if (!prep && !running) {
         setPrep(true);
@@ -722,7 +712,7 @@ useEffect(() => {
         setDnf(false);
         pressStartRef.current = Date.now();
         localSpaceHeld = true;
-        setSpaceHeld(true); // Đang giữ phím
+        setSpaceHeld(true);
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -732,13 +722,13 @@ useEffect(() => {
         const start = pressStartRef.current;
         pressStartRef.current = null;
         localSpaceHeld = false;
-        setSpaceHeld(false); // Thả phím
+        setSpaceHeld(false);
         if (start && now - start >= 50) {
           setPrep(false);
           setCanStart(true);
         }
       } else {
-        setSpaceHeld(false); // Thả phím
+        setSpaceHeld(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -747,7 +737,7 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, turn, myResults.length]);
+  }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length]);
 
   // Đếm ngược 15s chuẩn bị
   useEffect(() => {
@@ -762,17 +752,17 @@ useEffect(() => {
           setPrep(false);
           setCanStart(false);
           setRunning(false);
-          setDnf(true); // DNF nếu hết giờ chuẩn bị
+          setDnf(true);
           pressStartRef.current = null;
-          // Lưu kết quả DNF và gửi lên server, chuyển lượt cho đối thủ
+          // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
           setMyResults(r => {
             const newR = [...r, null];
             const socket = getSocket();
             socket.emit("solve", { roomId, userId, userName, time: null });
             return newR;
           });
-          setTurn('opponent');
-          setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000); // Giả lập đối thủ giải
+          // Không tự setTurn nữa
+          setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
           return 0;
         }
         return t - 1;
@@ -1309,7 +1299,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }
               // Đang trong trận
               let msg = "";
-              let name = turn === 'me' ? userName : opponentName;
+              let name = userId === turnUserId ? userName : opponentName;
               if (prep) {
                 msg = `${name} đang chuẩn bị`;
               } else if (running) {
@@ -1447,7 +1437,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               pressStartRef.current = null;
               setSpaceHeld(false); // Thả tay
               // 1. Tap and release to enter prep
-              if (!prep && !running && turn === 'me') {
+              if (!prep && !running && userId === turnUserId) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
@@ -1474,7 +1464,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           } : {
             onClick: () => {
               if (waiting || myResults.length >= 5 || pendingResult !== null) return;
-              if (!prep && !running && turn === 'me') {
+              if (!prep && !running && userId === turnUserId) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
@@ -1522,7 +1512,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   });
                   setPendingResult(null);
                   setPendingType('normal');
-                  setTurn('opponent');
+                  // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >Gửi</button>
@@ -1541,7 +1531,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   });
                   setPendingResult(null);
                   setPendingType('normal');
-                  setTurn('opponent');
+                  // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >+2</button>
@@ -1558,7 +1548,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   });
                   setPendingResult(null);
                   setPendingType('normal');
-                  setTurn('opponent');
+                  // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >DNF</button>
