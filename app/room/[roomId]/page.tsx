@@ -163,21 +163,12 @@ useEffect(() => {
     setUsers(usersArr.map(u => u.userId));
     setWaiting(usersArr.length < 2);
     setPendingUsers(usersArr); // luôn lưu lại usersArr cuối cùng
-    
-    // Cập nhật turn khi có người vào/ra phòng
-    if (usersArr.length === 2) {
-      if (isCreator) {
-        setTurn('me'); // Chủ phòng luôn được chơi trước
-      } else {
-        setTurn('opponent'); // Không phải chủ phòng thì chờ đối thủ
-      }
-    }
   };
   socket.on('room-users', handleUsers);
   return () => {
     socket.off('room-users', handleUsers);
   };
-}, [isCreator]);
+}, []);
 
 // Khi userId hoặc pendingUsers thay đổi, luôn cập nhật opponentId/opponentName
 useEffect(() => {
@@ -299,38 +290,11 @@ useEffect(() => {
     setRematchDeclined(false);
     setTurn('me'); // Chủ phòng luôn được chơi trước
   };
-  
-  // Lắng nghe sự kiện trao quyền chủ phòng khi có người rời phòng
-  const handleRoomCreatorChanged = ({ newCreatorId }: { newCreatorId: string }) => {
-    if (newCreatorId === userId) {
-      // Mình được trao quyền chủ phòng
-      setIsCreator(true);
-      setTurn('me'); // Được chơi trước
-      console.log('[RoomPage] Được trao quyền chủ phòng');
-    }
-  };
-  
-  // Lắng nghe thông tin về quyền chủ phòng khi có người mới vào phòng
-  const handleRoomCreatorInfo = ({ userId: creatorUserId, isCreator: isRoomCreator }: { userId: string, isCreator: boolean }) => {
-    if (creatorUserId === userId) {
-      setIsCreator(isRoomCreator);
-      // Cập nhật turn ngay lập tức
-      if (users.length === 2) {
-        setTurn(isRoomCreator ? 'me' : 'opponent');
-      }
-      console.log('[RoomPage] Cập nhật quyền chủ phòng:', isRoomCreator);
-    }
-  };
-  
   socket.on('room-reset', handleRoomReset);
-  socket.on('room-creator-changed', handleRoomCreatorChanged);
-  socket.on('room-creator-info', handleRoomCreatorInfo);
   return () => {
     socket.off('room-reset', handleRoomReset);
-    socket.off('room-creator-changed', handleRoomCreatorChanged);
-    socket.off('room-creator-info', handleRoomCreatorInfo);
   };
-}, [roomId, userId]);
+}, [roomId]);
 
 // Đặt effect lắng nghe rematch ở cuối cùng, sau tất cả các state liên quan
 
@@ -353,7 +317,6 @@ useEffect(() => {
     setScrambleIndex(0);
     setPendingResult(null);
     setPendingType('normal');
-    // Chủ phòng luôn được chơi trước, không phải chủ phòng thì chờ đối thủ
     setTurn(isCreator ? 'me' : 'opponent');
     setRematchPending(false);
     setRematchJustAccepted(true); // Đánh dấu vừa tái đấu xong
@@ -390,14 +353,14 @@ useEffect(() => {
     });
     // Nếu opponentName thay đổi thì cập nhật lại
     if (data.userName && data.userName !== opponentName) setOpponentName(data.userName);
-    // Chuyển lượt về cho mình nếu mình là chủ phòng, hoặc chờ đối thủ nếu không phải
-    setTurn(isCreator ? 'me' : 'opponent');
+    // Chuyển lượt về cho mình
+    setTurn('me');
   };
   socket.on('opponent-solve', handleOpponentSolve);
   return () => {
     socket.off('opponent-solve', handleOpponentSolve);
   };
-}, [opponentName, isCreator]);
+}, [opponentName]);
 
 // --- EFFECT LẮNG NGHE SCRAMBLE ---
 useEffect(() => {
@@ -692,23 +655,8 @@ useEffect(() => {
 
   // Khi đủ 2 người, nếu không phải chủ phòng thì phải chờ đối thủ chơi trước
   useEffect(() => {
-    if (users.length === 2) {
-      if (isCreator) {
-        setTurn('me'); // Chủ phòng luôn được chơi trước
-      } else {
-        setTurn('opponent'); // Không phải chủ phòng thì chờ đối thủ
-      }
-    }
-  }, [isCreator, users.length]);
-
-  // Cập nhật turn ngay khi isCreator thay đổi
-  useEffect(() => {
-    if (users.length === 2) {
-      if (isCreator) {
-        setTurn('me'); // Chủ phòng luôn được chơi trước
-      } else {
-        setTurn('opponent'); // Không phải chủ phòng thì chờ đối thủ
-      }
+    if (!isCreator && users.length === 2) {
+      setTurn('opponent');
     }
   }, [isCreator, users.length]);
 
@@ -1574,7 +1522,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   });
                   setPendingResult(null);
                   setPendingType('normal');
-                  // Chuyển lượt cho đối thủ
                   setTurn('opponent');
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
@@ -1594,7 +1541,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   });
                   setPendingResult(null);
                   setPendingType('normal');
-                  // Chuyển lượt cho đối thủ
                   setTurn('opponent');
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
@@ -1612,7 +1558,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   });
                   setPendingResult(null);
                   setPendingType('normal');
-                  // Chuyển lượt cho đối thủ
                   setTurn('opponent');
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
