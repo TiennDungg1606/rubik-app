@@ -171,22 +171,6 @@ useEffect(() => {
       } else {
         setTurn('opponent'); // Không phải chủ phòng thì chờ đối thủ
       }
-      
-      // Force cleanup cuộc gọi Stringee cũ khi có người mới vào phòng
-      if (typeof window !== 'undefined' && (window as any).StringeeClient) {
-        try {
-          // Tìm tất cả StringeeClient instances và disconnect
-          const clients = document.querySelectorAll('[data-stringee-client]');
-          clients.forEach(client => {
-            if ((client as any).disconnect) {
-              (client as any).disconnect();
-            }
-          });
-          console.log('[RoomPage] Đã cleanup cuộc gọi Stringee cũ khi có người mới vào phòng');
-        } catch (e) {
-          console.error('[RoomPage] Lỗi cleanup Stringee khi có người mới vào:', e);
-        }
-      }
     }
   };
   socket.on('room-users', handleUsers);
@@ -202,35 +186,8 @@ useEffect(() => {
   if (opp) {
     setOpponentId(opp.userId);
     setOpponentName(opp.userName || 'Đối thủ');
-    
-    // Force remount VideoCall component khi có người mới vào phòng
-    // để đảm bảo cuộc gọi mới hoạt động đúng
-    if (roomUrl) {
-      setRoomUrl(""); // Clear roomUrl trước
-      setTimeout(() => {
-        // Tạo roomUrl mới với opponentId mới
-        if (opp.userId) {
-          fetch('/api/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId })
-          })
-            .then(res => res.ok ? res.json() : null)
-            .then(data => {
-              if (data && data.access_token) {
-                const url = JSON.stringify({ access_token: data.access_token, userId, opponentId: opp.userId });
-                setRoomUrl(url);
-                console.log('[RoomPage] Đã tạo roomUrl mới cho cuộc gọi:', url);
-              }
-            })
-            .catch(err => {
-              console.error('[RoomPage] Lỗi fetch /api/token cho cuộc gọi mới:', err);
-            });
-        }
-      }, 100); // Delay nhỏ để đảm bảo cleanup hoàn tất
-    }
   }
-}, [userId, pendingUsers, roomUrl]);
+}, [userId, pendingUsers]);
 
 // --- CubeNetModal component and scramble logic ---
 type Face = 'U' | 'D' | 'L' | 'R' | 'F' | 'B';
@@ -341,26 +298,6 @@ useEffect(() => {
     setRematchModal({ show: false, from: null });
     setRematchDeclined(false);
     setTurn('me'); // Chủ phòng luôn được chơi trước
-    
-    // Force cleanup cuộc gọi Stringee cũ
-    if (typeof window !== 'undefined' && (window as any).StringeeClient) {
-      // Gọi cleanup function để đảm bảo cuộc gọi cũ được kết thúc
-      const cleanupStringee = () => {
-        try {
-          // Tìm tất cả StringeeClient instances và disconnect
-          const clients = document.querySelectorAll('[data-stringee-client]');
-          clients.forEach(client => {
-            if ((client as any).disconnect) {
-              (client as any).disconnect();
-            }
-          });
-          console.log('[RoomPage] Đã cleanup cuộc gọi Stringee cũ');
-        } catch (e) {
-          console.error('[RoomPage] Lỗi cleanup Stringee:', e);
-        }
-      };
-      cleanupStringee();
-    }
   };
   
   // Lắng nghe sự kiện trao quyền chủ phòng khi có người rời phòng
@@ -592,22 +529,6 @@ useEffect(() => {
 
   // Hàm rời phòng: chỉ chuyển hướng về lobby
   function handleLeaveRoom() {
-    // Force cleanup cuộc gọi Stringee trước khi rời phòng
-    if (typeof window !== 'undefined' && (window as any).StringeeClient) {
-      try {
-        // Tìm tất cả StringeeClient instances và disconnect
-        const clients = document.querySelectorAll('[data-stringee-client]');
-        clients.forEach(client => {
-          if ((client as any).disconnect) {
-            (client as any).disconnect();
-          }
-        });
-        console.log('[RoomPage] Đã cleanup cuộc gọi Stringee trước khi rời phòng');
-      } catch (e) {
-        console.error('[RoomPage] Lỗi cleanup Stringee khi rời phòng:', e);
-      }
-    }
-    
     window.location.href = '/lobby';
     setTimeout(() => {
       window.location.reload();
