@@ -32,11 +32,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [modalPasswordConfirm, setModalPasswordConfirm] = useState("");
   const [modalError, setModalError] = useState("");
   // Đã loại bỏ logic spectator
-  // Sử dụng localhost khi development, production server khi production
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const API_BASE = isDevelopment 
-    ? "http://localhost:3001" 
-    : "https://rubik-socket-server.fly.dev";
+  // Sử dụng biến môi trường SOCKET_SERVER_URL
+  const API_BASE = process.env.SOCKET_SERVER_URL || "http://localhost:3001";
   
 
   // Lấy danh sách phòng và phân loại - đã gộp logic Skeleton loading vào đây
