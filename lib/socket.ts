@@ -6,9 +6,13 @@ let socket: Socket;
 
 export function getSocket(): Socket {
   if (!socket) {
-  // Sử dụng biến môi trường SOCKET_SERVER_URL
-  const serverUrl = process.env.SOCKET_SERVER_URL || "http://localhost:3001";
-  socket = io(serverUrl, {
+    // Sử dụng localhost khi development, production server khi production
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const serverUrl = isDevelopment 
+      ? "http://localhost:3001" 
+      : "https://rubik-socket-server.onrender.com";
+    
+    socket = io(serverUrl, {
       transports: ["websocket"], // required if Railway blocks polling
     });
 
