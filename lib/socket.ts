@@ -10,7 +10,7 @@ export function getSocket(): Socket {
     const isDevelopment = process.env.NODE_ENV === 'development';
     const serverUrl = isDevelopment 
       ? "http://localhost:3001" 
-      : "https://rubik-socket-server.onrender.com";
+      : "https://rubik-socket-server.fly.dev";
     
     socket = io(serverUrl, {
       transports: ["websocket"], // required if Railway blocks polling
