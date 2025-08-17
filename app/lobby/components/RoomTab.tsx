@@ -36,7 +36,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const isDevelopment = process.env.NODE_ENV === 'development';
   const API_BASE = isDevelopment 
     ? "http://localhost:3001" 
-    : "https://rubik-socket-server-production-3b21.up.railway.app";
+    : "https://rubik-socket-server.onrender.com";
   
 
   // Lấy danh sách phòng và phân loại - đã gộp logic Skeleton loading vào đây
