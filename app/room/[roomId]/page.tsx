@@ -504,8 +504,12 @@ useEffect(() => {
 
   // --- Effects and logic below ---
 
-  // Hàm rời phòng: chỉ chuyển hướng về lobby
+  // Hàm rời phòng: emit leave-room trước khi chuyển hướng về lobby
   function handleLeaveRoom() {
+    const socket = getSocket();
+    if (roomId && userId) {
+      socket.emit('leave-room', { roomId, userId });
+    }
     window.location.href = '/lobby';
     setTimeout(() => {
       window.location.reload();
@@ -514,16 +518,29 @@ useEffect(() => {
 
   // Đã loại bỏ cleanup Stringee khi đóng tab hoặc reload
 
-  // Reload khi rời phòng bằng nút back (popstate)
+  // Reload khi rời phòng bằng nút back (popstate) và emit leave-room
   useEffect(() => {
     function handlePopState() {
+      const socket = getSocket();
+      if (roomId && userId) {
+        socket.emit('leave-room', { roomId, userId });
+      }
       window.location.reload();
     }
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [roomId, userId]);
+  // Emit leave-room when component unmounts (tab close, navigation away)
+  useEffect(() => {
+    return () => {
+      const socket = getSocket();
+      if (roomId && userId) {
+        socket.emit('leave-room', { roomId, userId });
+      }
+    };
+  }, [roomId, userId]);
 
   // Đảm bảo userName luôn đúng khi vào phòng (nếu window.userName chưa có)
   // Lấy userId và userName từ DB, lưu vào state

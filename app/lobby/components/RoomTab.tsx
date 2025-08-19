@@ -82,11 +82,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setLoadingRooms(false);
     }, 3000);
 
-    // Interval để cập nhật danh sách phòng mỗi 3s (không ảnh hưởng đến loading state)
-    const interval = setInterval(() => {
-      if (!stopped) fetchRooms();
-    }, 3000);
-
     // Lắng nghe sự kiện update-active-rooms từ server để reload danh sách phòng ngay lập tức
     socket = io(API_BASE, { transports: ["websocket"] });
     socket.on("update-active-rooms", () => {
@@ -96,7 +91,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     return () => {
       stopped = true;
       clearTimeout(loadingTimer);
-      clearInterval(interval);
       if (socket) socket.disconnect();
     };
   }, []);
