@@ -59,19 +59,11 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         for (const roomObj of roomObjs) {
           const roomId = typeof roomObj === 'string' ? roomObj : roomObj.roomId;
           const meta = typeof roomObj === 'object' && roomObj.meta ? roomObj.meta : {};
+          const usersCount = typeof roomObj === 'object' && typeof roomObj.usersCount === 'number' ? roomObj.usersCount : undefined;
           if (!roomId) continue;
           metaMap[roomId] = meta;
-          try {
-            const res = await fetch(`${API_BASE}/room-users/${roomId}`);
-            const users = await res.json();
-            if (Array.isArray(users) && users.length > 0) {
-              if (users.length === 1) {
-                active.push(roomId);
-              } else if (users.length === 2) {
-                competing.push(roomId);
-              }
-            }
-          } catch {}
+          if (usersCount === 1) active.push(roomId);
+          else if (usersCount === 2) competing.push(roomId);
         }
         setRoomMetas(metaMap);
         setActiveRooms(active);
@@ -90,11 +82,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setLoadingRooms(false);
     }, 3000);
 
-    // Interval để cập nhật danh sách phòng mỗi 3s (không ảnh hưởng đến loading state)
-    const interval = setInterval(() => {
-      if (!stopped) fetchRooms();
-    }, 3000);
-
     // Lắng nghe sự kiện update-active-rooms từ server để reload danh sách phòng ngay lập tức
     socket = io(API_BASE, { transports: ["websocket"] });
     socket.on("update-active-rooms", () => {
@@ -103,8 +90,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
     return () => {
       stopped = true;
-      clearTimeout(loadingTimer);
-      clearInterval(interval);
+  clearTimeout(loadingTimer);
       if (socket) socket.disconnect();
     };
   }, []);
