@@ -12,8 +12,10 @@ export default function AccountPage() {
     firstName?: string;
     lastName?: string;
     birthday?: string;
+    customBg?: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [customBg, setCustomBg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/user/me", { credentials: "include" })
@@ -33,6 +35,28 @@ export default function AccountPage() {
     return () => clearTimeout(timeout);
   }, [loading]);
 
+  // Theo dõi customBg từ user
+  useEffect(() => {
+    if (user && user.customBg) {
+      setCustomBg(user.customBg);
+    } else {
+      setCustomBg(null);
+    }
+  }, [user]);
+
+  // Set background cho body khi customBg từ server
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (customBg) {
+      document.body.style.backgroundImage = `url('${customBg}')`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundAttachment = 'fixed';
+    } else {
+      document.body.style.backgroundImage = '';
+    }
+  }, [customBg]);
+
   if (loading) return <div className="text-white p-8">Loading...</div>;
   if (!user) return <div className="text-red-400 p-8">Bạn chưa đăng nhập.</div>;
 
@@ -40,10 +64,8 @@ export default function AccountPage() {
     <main
       className="min-h-screen flex flex-col items-center justify-start text-white pt-10"
       style={{
-        backgroundImage: 'url(/images.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
         backgroundColor: '#181926',
+        // Không set backgroundImage ở đây nữa, đã set qua body
       }}
     >
       <div className="w-full max-w-7xl px-2 md:px-6 flex items-center gap-3 mb-4">
@@ -60,7 +82,6 @@ export default function AccountPage() {
       </div>
       <div className="w-full max-w-7xl px-2 md:px-6">
         <AccountTab user={user} onUserUpdated={(u) => setUser(u)} />
-
       </div>
     </main>
   );

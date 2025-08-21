@@ -3,6 +3,7 @@ declare global {
   interface Window { _roomPassword?: string }
 }
 import React, { useState, useEffect } from "react";
+import ReactDOM from "react-dom";
 import { io } from "socket.io-client";
 
 type RoomTabProps = {
@@ -11,6 +12,7 @@ type RoomTabProps = {
   handleCreateRoom: (event: '2x2' | '3x3', displayName: string, password: string) => void;
   handleJoinRoom: (roomId: string) => void;
 };
+
 
 export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom }: RoomTabProps) {
 
@@ -24,6 +26,14 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // Ngăn cuộn nền khi mở modal
+  useEffect(() => {
+    if (showCreateModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = originalOverflow; };
+    }
+  }, [showCreateModal]);
   // Animation state for modal
   const [modalVisible, setModalVisible] = useState(false);
   const [modalEvent, setModalEvent] = useState<'2x2' | '3x3'>("3x3");
@@ -157,12 +167,53 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     handleJoinRoom(roomInput);
   }
 
+  // Ẩn thanh tab khi modal mở
+  React.useEffect(() => {
+    const tabBar = document.querySelector('.tab-navbar');
+    if (showCreateModal && tabBar) {
+      tabBar.classList.add('hidden');
+    } else if (tabBar) {
+      tabBar.classList.remove('hidden');
+    }
+    return () => {
+      if (tabBar) tabBar.classList.remove('hidden');
+    };
+  }, [showCreateModal]);
+
   return (
     <div className="w-full flex flex-col items-center bg-neutral-900/50 justify-center">
       {/* Modal tạo phòng */}
-      {showCreateModal && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity duration-200 ${modalVisible ? 'opacity-100' : 'opacity-0'}`}>
-          <div className={`bg-gray-900 rounded-xl shadow-2xl p-6 w-full max-w-2xl flex flex-row transform transition-all duration-200 ${modalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+      {showCreateModal && typeof window !== 'undefined' && ReactDOM.createPortal(
+        <div
+          className={`fixed inset-0 z-50 bg-transparent transition-opacity duration-200 ${modalVisible ? 'opacity-100' : 'opacity-0'}`}
+          style={{ minHeight: '100dvh', minWidth: '100vw', padding: 0 }}
+        >
+          <div
+            className={`bg-gray-900 rounded-xl shadow-2xl flex flex-col sm:flex-row w-full max-w-[98vw] sm:max-w-[600px] md:max-w-[700px] lg:max-w-[800px] p-2 sm:p-6 box-border transform transition-all duration-200 ${modalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+            style={{
+              overflowY: 'auto',
+              borderRadius: 16,
+              position: 'absolute',
+              ...(window.innerWidth < 640
+                ? {
+                    top: 16,
+                    left: '50%',
+                    width: '90vw',
+                    minWidth: '0',
+                    maxWidth: '90vw',
+                    height: 'auto',
+                    maxHeight: '92dvh',
+                    padding: 4,
+                    transform: `translateX(-50%) ${modalVisible ? '' : 'scale(0.97)'}`,
+                  }
+                : {
+                    top: '50%',
+                    left: '50%',
+                    maxHeight: '95vh',
+                    transform: `translate(-50%, -50%) ${modalVisible ? '' : 'scale(0.95)'}`,
+                  }),
+            }}
+          >
             {/* Cột 1: Chọn thể loại rubik */}
             <div className="flex flex-col items-center justify-start w-1/3 pr-4 border-r border-gray-700">
               <div className="text-lg font-semibold text-white mb-4">Thể loại</div>
@@ -223,7 +274,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       <h2 className="text-2xl font-bold mb-6">Phòng giải Rubik Online</h2>
       {/*

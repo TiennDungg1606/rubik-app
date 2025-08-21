@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from "react";
+"use client";
+import React from "react";
+
+console.log('[ProfileTab] Rendered on client:', typeof window !== 'undefined');
 
 interface ProfileTabProps {
   user: {
@@ -24,6 +27,8 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch, 
   else if (hour < 18) greeting = "Chào buổi chiều👋";
   else greeting = "Chào buổi tối👋";
   const userName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "";
+
+
   return (
     <div className="mt-4 mr-4 w-[340px] max-w-full bg-[#181926] rounded-2xl shadow-2xl border border-blue-700 flex flex-col items-center p-0 relative">
       {/* Avatar lớn */}
@@ -47,39 +52,23 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch, 
           <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.418 0-8 2.239-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.761-3.582-5-8-5Z"/></svg>
           Account Setting
         </button>
-        {/* Đổi ảnh nền cá nhân hóa - cùng style với Account Setting, icon hình bức ảnh */}
-        <label className="flex items-center gap-2 text-blue-400 hover:text-blue-600 font-bold transition text-base justify-start cursor-pointer mt-1">
+        {/* Chỉ còn 1 nút Change background, gọi callback mở modal ở page.tsx */}
+        <button
+          className="flex items-center gap-2 text-blue-400 hover:text-blue-600 font-bold transition text-base justify-start mt-1"
+          onClick={() => {
+            if (typeof window !== 'undefined') console.log('Change background button clicked');
+            if (typeof window !== 'undefined' && typeof (window as any).openBgModal === 'function') {
+              (window as any).openBgModal();
+            }
+          }}
+        >
           <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
             <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
             <circle cx="8" cy="10" r="2" stroke="currentColor" strokeWidth="2"/>
             <path d="M21 19l-5.5-7-4.5 6-3-4-4 5" stroke="currentColor" strokeWidth="2" fill="none"/>
           </svg>
           Change background
-          <input
-            type="file"
-            accept="image/*"
-            onChange={e => {
-              console.log('ProfileTab: File input onChange triggered', e);
-              console.log('ProfileTab: Files selected:', e.target.files);
-              if (onBgUpload) {
-                console.log('ProfileTab: Calling onBgUpload function');
-                onBgUpload(e);
-              } else {
-                console.log('ProfileTab: onBgUpload function is not provided');
-              }
-            }}
-            style={{ display: 'none' }}
-          />
-        </label>
-        {hasCustomBg && (
-          <button
-            className="ml-2 text-xs text-red-300 underline hover:text-red-500"
-            onClick={onBgRemove}
-            title="Xóa ảnh nền cá nhân hóa"
-          >
-            Xóa nền
-          </button>
-        )}
+        </button>
         <button
           className="flex items-center gap-2 text-red-400 hover:text-red-600 font-bold transition text-base mt-2 px-0 py-0"
           style={{ alignSelf: 'flex-start' }}

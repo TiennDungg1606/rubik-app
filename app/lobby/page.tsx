@@ -1,8 +1,9 @@
+"use client";
 // Khai báo window._roomPassword để tránh lỗi TS
 declare global {
   interface Window { _roomPassword?: string }
 }
-"use client"
+
 
 import { useState, useEffect, Suspense } from "react";
 import TimerTab from "./components/TimerTab";
@@ -34,6 +35,78 @@ type User = {
 
 // Component that uses useSearchParams
 function LobbyContent() {
+  // Modal chọn background
+  const [showBgModal, setShowBgModal] = useState(false);
+  const [selectedBg, setSelectedBg] = useState<string>("");
+  const bgImages = [
+    "images.jpg",
+    "images1.jpg",
+    "images2.jpg",
+    "images3.jpg",
+    "images4.jpg",
+    "images5.jpg",
+    "images6.jpg",
+    "images7.jpg",
+  ];
+  // Gán hàm mở modal vào window để ProfileTab gọi được
+  useEffect(() => {
+    (window as any).openBgModal = () => {
+      setSelectedBg("");
+      setShowBgModal(true);
+    };
+    return () => { delete (window as any).openBgModal; };
+  }, []);
+  // Hàm xác nhận chọn background
+  const handleConfirmBg = async () => {
+    if (selectedBg) {
+      try {
+        let imageToSend = selectedBg;
+        
+        // Nếu là ảnh có sẵn (không phải data:image), chuyển thành base64
+        if (!selectedBg.startsWith('data:')) {
+          // Load ảnh và chuyển thành base64
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          
+          await new Promise((resolve, reject) => {
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                imageToSend = canvas.toDataURL('image/jpeg', 0.85);
+                resolve(imageToSend);
+              } else {
+                reject(new Error('Cannot create canvas context'));
+              }
+            };
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = `/${selectedBg}`;
+          });
+        }
+        
+        // Gửi ảnh base64 lên server
+        const res = await fetch('/api/user/custom-bg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: imageToSend })
+        });
+        
+        if (res.ok) {
+          // Refetch user để cập nhật customBg từ server
+          await refetchUser();
+        } else {
+          console.log('[Lobby] Failed to save background to server:', res.status);
+        }
+      } catch (err) {
+        console.log('[Lobby] Error saving background to server:', err);
+      }
+      
+      setShowBgModal(false);
+    }
+  };
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -61,17 +134,29 @@ function LobbyContent() {
       return () => clearTimeout(timer);
     }
   }, [tab, displayedTab]);
+  // Theo dõi customBg từ user (server)
   useEffect(() => {
-    console.log('[Lobby] useEffect user:', user);
-    console.log('[Lobby] user.customBg:', user?.customBg);
     if (user && user.customBg) {
-      console.log('[Lobby] Setting customBg:', user.customBg.slice(0, 100) + '...');
       setCustomBg(user.customBg);
     } else {
-      console.log('[Lobby] No customBg, setting to null');
       setCustomBg(null);
     }
   }, [user]);
+
+  // Set background cho body khi customBg từ server
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    if (customBg) {
+      // Luôn sử dụng customBg từ server (đã là base64)
+      document.body.style.backgroundImage = `url('${customBg}')`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundAttachment = 'fixed';
+    } else {
+      document.body.style.backgroundImage = '';
+    }
+  }, [customBg]);
 
   // Xử lý upload ảnh nền cá nhân hóa lên API MongoDB và refetch user
   const refetchUser = async () => {
@@ -266,6 +351,7 @@ function LobbyContent() {
   return (
     <main
       className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans"
+      style={{ paddingTop: 80 }} // Để tránh bị che bởi nav fixed
     >
       {/* Hiển thị lỗi chọn ảnh nền nếu có */}
       {(bgError || loadingBg) && (
@@ -274,8 +360,8 @@ function LobbyContent() {
           {loadingBg ? 'Đang xử lý ảnh nền...' : bgError}
         </div>
       )}
-      {/* Tab Navigation Bar */}
-  <nav className="w-full max-w-7xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-8 py-3 mt-2 mb-2 mx-auto">
+    {/* Tab Navigation Bar */}
+  <nav className="tab-navbar w-full max-w-7xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-8 py-3 mx-auto fixed top-0 left-1/2 -translate-x-1/2 z-[100]" style={{width: '100vw', maxWidth: '100vw'}}>
   <div className="flex items-center gap-1  ">
           <svg width="32" height="32" viewBox="0 0 64 64" fill="none" className="mr-2 drop-shadow-lg" style={{marginLeft: -8}} xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
@@ -404,6 +490,47 @@ function LobbyContent() {
         )}
       </div>
       {/* Không render AccountTabWrapper nữa, đã chuyển vào avatar menu */}
+      
+      {/* Modal chọn background toàn trang */}
+      {showBgModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
+          <div className="bg-[#181926] rounded-2xl p-4 sm:p-6 shadow-2xl border border-blue-700 w-[95vw] max-w-2xl sm:max-w-3xl flex flex-col items-center max-h-[90vh]">
+            <div className="text-lg sm:text-2xl font-bold text-blue-300 mb-3">Chọn ảnh nền</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4 w-full overflow-y-auto pr-2" style={{maxHeight: '45vh'}}>
+              {/* Ô chọn ảnh từ thiết bị */}
+              <div className={`rounded-lg cursor-pointer flex flex-col items-center justify-center transition-all h-[128px] w-40`}
+                onClick={() => document.getElementById('bg-upload-input')?.click()}>
+                <div className="flex flex-col items-center justify-center h-full w-full">
+                  <span className="text-3xl text-blue-400">+</span>
+                  <span className="text-xs text-blue-300 mt-1">Chọn ảnh từ thiết bị</span>
+                </div>
+                <input id="bg-upload-input" type="file" accept="image/*" style={{display:'none'}}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    // Gọi handleBgUpload để xử lý và lưu lên server
+                    handleBgUpload(e);
+                    // Đóng modal ngay sau khi chọn ảnh
+                    setShowBgModal(false);
+                  }}
+                />
+              </div>
+              {/* Không hiển thị preview ảnh upload từ thiết bị trong modal */}
+              {/* Các ảnh mặc định */}
+              {bgImages.map(img => (
+                <div key={img} className={`rounded-lg cursor-pointer transition-all ${selectedBg === img ? 'ring-2 ring-blue-400' : ''}`}
+                  onClick={() => setSelectedBg(img)}>
+                  <img src={`/${img}`} alt={img} className="w-40 h-32 object-cover rounded-lg" />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-4">
+              <button className="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600 transition" onClick={handleConfirmBg} disabled={!selectedBg || selectedBg.startsWith('data:')}>Xác nhận</button>
+              <button className="px-4 py-2 rounded bg-gray-600 text-white font-semibold hover:bg-gray-700 transition" onClick={()=>setShowBgModal(false)}>Hủy</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
