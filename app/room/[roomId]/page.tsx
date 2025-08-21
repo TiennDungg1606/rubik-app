@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+
 import React from "react";
 // import Peer from "simple-peer"; // REMOVED
 import { createStringeeClient, createStringeeCall } from "@/lib/stringeeClient";
@@ -132,6 +133,50 @@ export default function RoomPage() {
   const [rematchDeclined, setRematchDeclined] = useState(false); // Đối phương đã từ chối
   const [rematchJustAccepted, setRematchJustAccepted] = useState(false);
 
+
+
+  // --- Thêm logic lấy customBg và set background giống lobby ---
+type User = {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  birthday?: string;
+  customBg?: string;
+};
+
+const [user, setUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
+const [customBg, setCustomBg] = typeof window !== 'undefined' ? useState<string | null>(null) : [null, () => {}];
+
+useEffect(() => {
+  if (typeof window === 'undefined') return;
+  fetch("/api/user/me", { credentials: "include" })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      if (!data) setUser(null);
+      else if (data.user) setUser(data.user);
+      else setUser(data);
+    });
+}, []);
+
+useEffect(() => {
+  if (user && user.customBg) {
+    setCustomBg(user.customBg);
+  } else {
+    setCustomBg(null);
+  }
+}, [user]);
+
+useEffect(() => {
+  if (typeof window === 'undefined') return;
+  if (customBg) {
+    document.body.style.backgroundImage = `url('${customBg}')`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';
+  } else {
+    document.body.style.backgroundImage = '';
+  }
+}, [customBg]);
 // ... (các khai báo state khác)
 // Lưu usersArr cuối cùng để xử lý khi userId đến sau
   const [pendingUsers, setPendingUsers] = useState<{ userId: string, userName: string }[] | null>(null);
@@ -907,23 +952,27 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     );
   }
 
+
+
+  
   // Helper: compact style for mobile landscape only
   const mobileShrink = isMobileLandscape;
   return (
-    <div
-      className={
+    <div 
+      className={  
         mobileShrink
-          ? "min-h-screen w-screen flex flex-col items-center justify-start text-white py-1 overflow-x-auto relative"
+          ? "min-h-screen w-screen flex flex-col items-center justify-start text-white py-1 overflow-x-auto relative  "
           : "min-h-screen w-full flex flex-col items-center text-white py-4 overflow-hidden relative"
       }
-      style={{
-        backgroundImage: "url('/images.jpg')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundColor: '#000',
-        minHeight: '100vh',
-        height: '100%',
+      style={{ 
+      
+        // backgroundImage: "url('/images.jpg')",
+        // backgroundSize: 'cover',
+        // backgroundPosition: 'center',
+        // backgroundRepeat: 'no-repeat',
+        // backgroundColor: '#000',
+        // minHeight: '100vh',
+        // height: '100%',
       }}
     >
       {/* Hiển thị meta phòng */}

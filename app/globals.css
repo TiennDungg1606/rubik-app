@@ -38,3 +38,11 @@ body {
   background-position: center;
   background-attachment: fixed;
 }
+
+.overlay-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: rgba(0,0,0,0.4); /* Điều chỉnh opacity tại đây */
+  pointer-events: none;
+}

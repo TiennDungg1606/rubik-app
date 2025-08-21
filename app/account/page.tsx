@@ -64,7 +64,7 @@ export default function AccountPage() {
     <main
       className="min-h-screen flex flex-col items-center justify-start text-white pt-10"
       style={{
-        backgroundColor: '#181926',
+        // backgroundColor: '#181926',
         // Không set backgroundImage ở đây nữa, đã set qua body
       }}
     >

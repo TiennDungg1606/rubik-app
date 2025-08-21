@@ -50,11 +50,8 @@ export default function NewTab() {
       <div className="mb-6">
         <h3 className="text-lg font-bold text-blue-300 drop-shadow mb-2">Cập nhật website</h3>
         <ul className="list-disc list-inside text-white text-base ml-4">
-          <li>Thêm tab Practice để luyện tập các công thức Rubik.</li>
-          <li>Làm mới lại danh sách phòng của tab Room (Lưu ý: không thể xem phòng ngkhac giải!).</li>
-          <li>Thêm chức năng tái đấu với xác nhận từ đối thủ.</li>
-          <li>Thêm tin nhắn Chat và âm thanh khi có tin nhắn chat mới.</li>
-          <li>Thêm nút xuât kết quả sau trận đấu (trong phòng).</li>     
+          <li>Cập nhật lại tính năng đổi hình nền. Hãy vào hồ sơ để đổi hình nền của mình nào (hình nền ngang)</li>
+          <li>Thêm tab Practice để luyện tập các công thức Rubik.</li>    
           <li>Giao diện tối ưu cho cả desktop và mobile, trải nghiệm tốt hơn.</li>
         </ul>
       </div>
