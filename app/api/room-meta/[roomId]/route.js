@@ -5,7 +5,7 @@ export async function GET(req, { params }) {
   const { roomId } = params;
   const API_BASE = process.env.NODE_ENV === 'development'
     ? 'http://localhost:3001'
-    : 'https://rubik-socket-server.fly.dev';
+    : 'https://rubik-socket-server-production-3b21.up.railway.app';
   try {
     const res = await fetch(`${API_BASE}/room-meta/${roomId.toUpperCase()}`);
     if (!res.ok) {
