@@ -20,7 +20,7 @@ export default function ShopTab() {
                   href="https://vt.tiktok.com/ZSSqEYYb8/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline font-semibold"
+                  className="text-white-400 hover:underline font-semibold"
                 >
                   QiYi X-Man Tornado V3M Pioneer UV 3x3x3 Maglev Magnetic Magic Speed Cube Qiyi XMD Tornado V3 M Pioneer UV Puzzle Toys tornado v3
                 </a>
@@ -30,7 +30,7 @@ export default function ShopTab() {
                   href="https://vt.tiktok.com/ZSSpDtyWv/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline font-semibold"
+                  className="text-white-400 hover:underline font-semibold"
                 >
                   QZCUBE Tianma X3 3x3 Core Magnetic Cube Professional 3x3x3 Puzzle Toys Speed Cube
                 </a>
@@ -40,7 +40,7 @@ export default function ShopTab() {
                   href="https://vt.tiktok.com/ZSSpUytcr/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline font-semibold"
+                  className="text-white-400 hover:underline font-semibold"
                 >
                   [XT3] Rubik 3x3 QiYi XT3 V1 M XMD X-Man 2024 Flagship Rubic Nam Châm 
                 </a>
@@ -50,7 +50,7 @@ export default function ShopTab() {
                   href="https://vt.tiktok.com/ZSSpUYNmq/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline font-semibold"
+                  className="text-white-400 hover:underline font-semibold"
                 > 
                   Khối Từ Tính, GAN Swift Block, 3x3, 355mm, Khối Tốc Độ 3x3 Từ Tính, Đổ Chơi Rubik, Rubik 3x3, Rubik Cube
                 </a>
@@ -60,7 +60,7 @@ export default function ShopTab() {
                   href="https://vt.tiktok.com/ZSSpUqSJy/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline font-semibold"
+                  className="text-white-400 hover:underline font-semibold"
                 > 
                   Rubik 3x3 Gan 356 ME 3x3 Magnetic Rubic 3 Tầng Có Nam Châm Gan 356M E Stickerless Đồ Chơi Trí Tuệ 3x3x3
                 </a>
@@ -70,7 +70,7 @@ export default function ShopTab() {
                   href="https://vt.tiktok.com/ZSSsGAjAd/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline font-semibold"
+                  className="text-white-400 hover:underline font-semibold"
                 > 
                   Rubik 3x3 Moyu Meilong 3M V2 Nam Châm Từ Tính - Rubic Mod nam châm chính hãng Toy
                 </a>
@@ -80,7 +80,7 @@ export default function ShopTab() {
                   href="https://vt.tiktok.com/ZSSsGcQev/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline font-semibold"
+                  className="text-white-400 hover:underline font-semibold"
                 > 
                   Rubik 3x3 MoYu RS3M V5 RS3 M 3x3 Magnetic Ball Core UV Rubic 3 Tầng Cao Cấp Có Nam Châm Đồ Chơi Trí Tuệ Phát Triển Tư Duy Toy
                 </a>
@@ -90,7 +90,7 @@ export default function ShopTab() {
                   href="https://vt.tiktok.com/ZSSsGED2b/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline font-semibold"
+                  className="text-white-400 hover:underline font-semibold"
                 > 
                   Rubik 3x3 Gan Swift Block 2023 Stickerless Có Nam Châm - Rubik 3x3x3 - Đồ Chơi Giáo duc- ZyO Rubik
                 </a>
@@ -100,7 +100,7 @@ export default function ShopTab() {
                   href="https://vt.tiktok.com/ZSSsGG8kB/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline font-semibold"
+                  className="text-white-400 hover:underline font-semibold"
                 > 
                   Rubik 3x3 MoYu Weilong WRM V10 Magnetics 3x3 Stickerless có nam châm cao cấp 2024
                 </a>
@@ -117,7 +117,7 @@ export default function ShopTab() {
                 href="https://vt.tiktok.com/ZSSbJMWfC/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:underline font-semibold"
+                className="text-white-400 hover:underline font-semibold"
               >
                 Thảm Rubik Mat Size Nhỏ Và Size Lớn Rubik Đồ Chơi Trí Tuệ
               </a>
@@ -127,7 +127,7 @@ export default function ShopTab() {
                 href="https://vt.tiktok.com/ZSSsnRpCv/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:underline font-semibold"
+                className="text-white-400 hover:underline font-semibold"
               >
                 Đồng Hồ QiYi Timer Máy Đếm Thời Gian Giải Rubik Đồ Chơi Rubic Trí Tuệ Trẻ Em
               </a>
@@ -137,7 +137,7 @@ export default function ShopTab() {
                 href="https://vt.tiktok.com/ZSSsnga8j/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:underline font-semibold"
+                className="text-white-400 hover:underline font-semibold"
               >
                 Cube Mat Training Competition mat
               </a>
@@ -147,7 +147,7 @@ export default function ShopTab() {
                 href="https://vt.tiktok.com/ZSSsnWChU/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:underline font-semibold"
+                className="text-white-400 hover:underline font-semibold"
               >
                 Thảm Rubik MoYu Mat 505 x 370 x 2 (mm) Toy
               </a>
@@ -163,7 +163,7 @@ export default function ShopTab() {
                 href="https://vt.tiktok.com/ZSSbJgJua/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:underline font-semibold"
+                className="text-white-400 hover:underline font-semibold"
               >
                 Silicon Dầu Bôi Trơn Rubik Lube V1/V2 5ml Rubic
               </a>
@@ -173,7 +173,7 @@ export default function ShopTab() {
                 href="https://vt.tiktok.com/ZSSst7Bwu/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:underline font-semibold"
+                className="text-white-400 hover:underline font-semibold"
               >
                 Dầu Bôi Trơn Rubik - Gan Lube V1, V2, V3 (Thế Hệ Mới Chai 10ml ) - ZyO Rubik
               </a>
@@ -183,7 +183,7 @@ export default function ShopTab() {
                 href="https://vt.tiktok.com/ZSSst3FEQ/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:underline font-semibold"
+                className="text-white-400 hover:underline font-semibold"
               >
                  Dầu Bôi Trơn Rubik M Lube Silicone QiYi Lube Rubic 3ml
               </a>
@@ -193,7 +193,7 @@ export default function ShopTab() {
                 href="https://vt.tiktok.com/ZSSsnRknE/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:underline font-semibold"
+                className="text-white-400 hover:underline font-semibold"
               >
                  Dầu Bôi Trơn Rubik QiYi XMD Lube X-Man Lube 10k Diff Fluid Silicone Rubic 5 ml
               </a>

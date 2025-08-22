@@ -936,10 +936,46 @@ function formatStat(val: number|null, showDNF: boolean = false) {
   return (val/1000).toFixed(2);
 }
 
-  if (!userName || !roomId) {
+  const [showLoading, setShowLoading] = useState(true);
+  // Luôn hiển thị loading đủ 5s khi mount
+  useEffect(() => {
+    setShowLoading(true);
+    let timeout: NodeJS.Timeout;
+    if (userName && roomId) {
+      timeout = setTimeout(() => setShowLoading(false), 5000);
+    }
+    return () => timeout && clearTimeout(timeout);
+  }, [userName, roomId]);
+
+  if (showLoading || !userName || !roomId) {
+    // Thanh loading đơn giản phía dưới màn hình
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-black text-white">
-        <div className="text-xl font-semibold">Đang tải thông tin người dùng...</div>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black">
+        <video
+          src="/loadingroom.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover"
+          style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+        />
+        {/* Thanh loading nâng lên cao hơn mép dưới */}
+        <div className="fixed left-1/2 -translate-x-1/2" style={{ bottom: '60px', width: '90vw', maxWidth: 480, zIndex: 10000 }}>
+          <div className="h-2 bg-gradient-to-r from-blue-400 to-pink-400 rounded-full animate-loading-bar" style={{ width: '100%' }}></div>
+          <div className="text-white text-center mt-2 text-base font-semibold drop-shadow" style={{ textShadow: '0 2px 8px #000' }}>
+            Đang tải thông tin ...
+          </div>
+        </div>
+        <style jsx global>{`
+          @keyframes loading-bar {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+          .animate-loading-bar {
+            animation: loading-bar 1.2s linear infinite;
+          }
+        `}</style>
       </div>
     );
   }

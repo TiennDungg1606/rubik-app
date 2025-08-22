@@ -57,7 +57,18 @@ export default function AccountPage() {
     }
   }, [customBg]);
 
-  if (loading) return <div className="text-white p-8">Loading...</div>;
+  if (loading) return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      style={{
+        background: customBg
+          ? `url('${customBg}') center center / cover no-repeat fixed`
+          : 'linear-gradient(135deg, #181926 60%, #22223b 100%)'
+      }}
+    >
+      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-400"></div>
+    </div>
+  );
   if (!user) return <div className="text-red-400 p-8">Bạn chưa đăng nhập.</div>;
 
   return (

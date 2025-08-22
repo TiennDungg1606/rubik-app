@@ -360,9 +360,9 @@ function LobbyContent() {
           {loadingBg ? 'Đang xử lý ảnh nền...' : bgError}
         </div>
       )}
-    {/* Tab Navigation Bar */}
-  <nav className="tab-navbar w-full max-w-7xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-8 py-3 mx-auto fixed top-0 left-1/2 -translate-x-1/2 z-[100]" style={{width: '100vw', maxWidth: '100vw'}}>
-  <div className="flex items-center gap-1  ">
+      {/* Tab Navigation Bar */}
+      <nav className="tab-navbar w-full max-w-7xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-8 py-3 mx-auto fixed top-0 left-1/2 -translate-x-1/2 z-[100]" style={{width: '100vw', maxWidth: '100vw'}}>
+        <div className="flex items-center gap-1  ">
           <svg width="32" height="32" viewBox="0 0 64 64" fill="none" className="mr-2 drop-shadow-lg" style={{marginLeft: -8}} xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
             <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
@@ -440,26 +440,27 @@ function LobbyContent() {
               ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
               : <span>👤</span>}
           </button>
-          {showProfileMenu && (
-            <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/30" onClick={() => setShowProfileMenu(false)}>
-              <div>
-                <ProfileTab
-                  user={user}
-                  onLogout={() => {
-                    fetch('/api/user/logout', { method: 'POST' }).then(() => {
-                      router.push('/');
-                    });
-                  }}
-                  onThemeSwitch={() => {}}
-                  onBgUpload={handleBgUpload}
-                  onBgRemove={handleBgRemove}
-                  hasCustomBg={!!customBg}
-                />
-              </div>
-            </div>
-          )}
         </div>
       </nav>
+      {/* Overlay profile menu ngoài nav, phủ toàn trang */}
+      {showProfileMenu && (
+        <div className="fixed inset-0 z-[9999] flex items-start justify-end bg-black/30" onClick={() => setShowProfileMenu(false)}>
+          <div onClick={e => e.stopPropagation()}>
+            <ProfileTab
+              user={user}
+              onLogout={() => {
+                fetch('/api/user/logout', { method: 'POST' }).then(() => {
+                  router.push('/');
+                });
+              }}
+              onThemeSwitch={() => {}}
+              onBgUpload={handleBgUpload}
+              onBgRemove={handleBgRemove}
+              hasCustomBg={!!customBg}
+            />
+          </div>
+        </div>
+      )}
       {/* Tab Content với hiệu ứng chuyển tab */}
       <div className={`w-full transition-all duration-300 ${tabTransitioning ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
         {displayedTab === "timer" && (
