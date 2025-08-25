@@ -230,6 +230,7 @@ useEffect(() => {
     const socket = getSocket();
     function handleRematchCancel() {
       setRematchPending(false);
+      setRematchModal({ show: false, from: null });
     }
     socket.on('rematch-cancel', handleRematchCancel);
     return () => {
@@ -1402,13 +1403,25 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           }
           style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9, maxHeight: '180px' } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
-          {/* Thanh trạng thái */}
-          <div className="mb-2 w-full flex items-center justify-center">
-            {waiting ? (
-              <span className={mobileShrink ? "text-yellow-400 text-[10px] font-semibold text-center w-full block" : "text-yellow-400 text-2xl font-semibold text-center w-full block"}>Đang chờ đối thủ vào phòng...</span>
-            ) : (
-              <span className={mobileShrink ? "text-green-400 text-[10px] font-semibold text-center w-full block" : "text-green-400 text-2xl font-semibold text-center w-full block"}>Đã đủ 2 người, sẵn sàng thi đấu!</span>
-            )}
+          {/* Overlay dưới thanh trạng thái */}
+          <div style={{ position: 'relative', width: '100%' }}>
+            <div style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: '100%',
+              height: mobileShrink ? 28 : 48,
+              background: 'rgba(0,0,0,0.35)',
+              borderRadius: 12,
+              zIndex: 0
+            }} />
+            <div className="mb-2 w-full flex items-center justify-center" style={{ position: 'relative', zIndex: 1 }}>
+              {waiting ? (
+                <span className={mobileShrink ? "text-yellow-400 text-[10px] font-semibold text-center w-full block" : "text-yellow-400 text-2xl font-semibold text-center w-full block"}>Đang chờ đối thủ vào phòng...</span>
+              ) : (
+                <span className={mobileShrink ? "text-green-400 text-[10px] font-semibold text-center w-full block" : "text-green-400 text-2xl font-semibold text-center w-full block"}>Đã đủ 2 người, sẵn sàng thi đấu!</span>
+              )}
+            </div>
           </div>
           {/* Thông báo trạng thái lượt giải + Thông báo lỗi camera */}
           <div className="mb-3 relative w-full flex flex-col items-center justify-center text-center">
