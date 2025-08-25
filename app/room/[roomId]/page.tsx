@@ -119,6 +119,8 @@ export default function RoomPage() {
   const [pendingResult, setPendingResult] = useState<number|null>(null);
   const [pendingType, setPendingType] = useState<'normal'|'+2'|'dnf'>('normal');
   const [opponentTime, setOpponentTime] = useState<number|null>(null);
+  const [opponentRunning, setOpponentRunning] = useState<boolean>(false);
+  const [opponentPrep, setOpponentPrep] = useState<{active: boolean, remaining: number}>({ active: false, remaining: 15 });
   const [userName, setUserName] = useState<string>(""); // display name
   const [isCreator, setIsCreator] = useState<boolean>(false);
   const [showRules, setShowRules] = useState(false); // State for luật thi đấu modal
@@ -846,10 +848,14 @@ useEffect(() => {
             return newR;
           });
           // Không tự setTurn nữa
-          setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
+          // Dừng hiển thị đối thủ giả lập
           return 0;
         }
-        return t - 1;
+        const next = t - 1;
+        // Broadcast prep countdown to opponent
+        const socket = getSocket();
+        socket.emit('timer-prep', { roomId, userId, remaining: next });
+        return next;
       });
     }, 1000);
     return () => {
@@ -867,6 +873,9 @@ useEffect(() => {
     intervalRef.current = setInterval(() => {
       setTimer(t => {
         timerRef.current = t + 10;
+        // Broadcast running timer to opponent (throttled by interval 10ms)
+        const socket = getSocket();
+        socket.emit('timer-update', { roomId, userId, ms: timerRef.current, running: true, finished: false });
         return t + 10;
       });
     }, 10);
@@ -877,6 +886,9 @@ useEffect(() => {
       setPendingResult(timerRef.current);
       setPendingType('normal');
       setCanStart(false);
+      // Notify opponent that I finished
+      const socket = getSocket();
+      socket.emit('timer-update', { roomId, userId, ms: timerRef.current, running: false, finished: true });
       // Không setTurn('opponent') ở đây, chờ xác nhận
     };
     const handleAnyKey = (e: KeyboardEvent) => {
@@ -917,6 +929,28 @@ useEffect(() => {
   }, [canStart, waiting, roomId, userName, isMobile]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
+  // Lắng nghe trạng thái timer/phần chuẩn bị của đối thủ
+  useEffect(() => {
+    const socket = getSocket();
+    const handleOppPrep = ({ userId: fromId, remaining }: { userId: string, remaining: number }) => {
+      if (fromId === userId) return;
+      setOpponentPrep({ active: remaining > 0, remaining });
+    };
+    const handleOppTimer = ({ userId: fromId, ms, running, finished }: { userId: string, ms: number, running: boolean, finished: boolean }) => {
+      if (fromId === userId) return;
+      setOpponentRunning(running);
+      setOpponentTime(ms ?? null);
+      if (finished) {
+        // Freeze the last shown opponent time; real confirmed result arrives via opponent-solve
+      }
+    };
+    socket.on('opponent-timer-prep', handleOppPrep);
+    socket.on('opponent-timer-update', handleOppTimer);
+    return () => {
+      socket.off('opponent-timer-prep', handleOppPrep);
+      socket.off('opponent-timer-update', handleOppTimer);
+    };
+  }, [userId]);
 
   // Lưu kết quả vào localStorage mỗi khi thay đổi
   useEffect(() => {
@@ -1476,13 +1510,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   <>
                     <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
                     {showScrambleMsg && (
-                      <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>Hai cuber hãy tráo scramble</span>
+                      <div className="fixed inset-0 z-[120] flex items-center justify-center pointer-events-none">
+                        <div className="absolute inset-0 bg-black bg-opacity-40" style={{backdropFilter: 'blur(1.5px)'}}></div>
+                        <span className={mobileShrink ? "relative text-[10px] font-semibold text-yellow-300 block mt-1 z-10" : "relative text-2xl font-semibold text-yellow-300 block mt-2 z-10"}>
+                          Hai cuber hãy tráo scramble
+                        </span>
+                      </div>
                     )}
                   </>
                 );
               })()}
             </div>
-            {/* Đã xóa thông báo lỗi camera theo yêu cầu */}
           </div>
         </div>
         {/* Bảng kết quả bên phải */}
