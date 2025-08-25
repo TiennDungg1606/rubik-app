@@ -49,6 +49,7 @@ export default function RoomPage() {
   // Modal xác nhận rời phòng
   const [showLeaveModal, setShowLeaveModal] = useState(false);
 
+
   const [roomId, setRoomId] = useState<string>("");
   // State cho meta phòng
   const [roomMeta, setRoomMeta] = useState<{ displayName?: string; event?: string } | null>(null);
@@ -119,8 +120,6 @@ export default function RoomPage() {
   const [pendingResult, setPendingResult] = useState<number|null>(null);
   const [pendingType, setPendingType] = useState<'normal'|'+2'|'dnf'>('normal');
   const [opponentTime, setOpponentTime] = useState<number|null>(null);
-  const [opponentRunning, setOpponentRunning] = useState<boolean>(false);
-  const [opponentPrep, setOpponentPrep] = useState<{active: boolean, remaining: number}>({ active: false, remaining: 15 });
   const [userName, setUserName] = useState<string>(""); // display name
   const [isCreator, setIsCreator] = useState<boolean>(false);
   const [showRules, setShowRules] = useState(false); // State for luật thi đấu modal
@@ -251,13 +250,77 @@ useEffect(() => {
   }
 }, [userId, pendingUsers]);
 
+
+
+  // State cho timer và chuẩn bị của đối thủ
+  const [opponentPrep, setOpponentPrep] = useState(false);
+  const [opponentPrepTime, setOpponentPrepTime] = useState(15);
+  const [opponentRunning, setOpponentRunning] = useState(false);
+  const [opponentTimer, setOpponentTimer] = useState(0);
+  const opponentTimerRef = useRef(0);
+  const opponentPrepIntervalRef = useRef<NodeJS.Timeout|null>(null);
+  const opponentIntervalRef = useRef<NodeJS.Timeout|null>(null);
+
+  // Lắng nghe socket để đồng bộ timer-prep và timer-update từ đối thủ
+  useEffect(() => {
+    // Đảm bảo roomId, userId đã được khai báo trước khi dùng
+    if (!roomId || !userId) return;
+    const socket = getSocket();
+    // Nhận sự kiện đối thủ bắt đầu hoặc đang đếm ngược chuẩn bị
+    type PrepPayload = { roomId: string; userId: string; remaining: number };
+    const handleOpponentPrep = ({ roomId: rid, userId: uid, remaining }: PrepPayload) => {
+      if (rid !== roomId || uid === userId) return;
+      setOpponentPrep(true);
+      setOpponentPrepTime(remaining);
+      if (opponentPrepIntervalRef.current) clearInterval(opponentPrepIntervalRef.current);
+      opponentPrepIntervalRef.current = setInterval(() => {
+        setOpponentPrepTime(t => {
+          if (t <= 1) {
+            clearInterval(opponentPrepIntervalRef.current!);
+            setOpponentPrep(false);
+            setOpponentPrepTime(15);
+            return 15;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    };
+    // Nhận sự kiện đối thủ bắt đầu hoặc đang chạy timer
+    type TimerPayload = { roomId: string; userId: string; ms: number; running: boolean; finished: boolean };
+    const handleOpponentTimer = ({ roomId: rid, userId: uid, ms, running, finished }: TimerPayload) => {
+      if (rid !== roomId || uid === userId) return;
+      setOpponentRunning(running);
+      setOpponentTimer(ms);
+      opponentTimerRef.current = ms;
+      if (running) {
+        if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
+        opponentIntervalRef.current = setInterval(() => {
+          setOpponentTimer(t => t + 10);
+          opponentTimerRef.current += 10;
+        }, 10);
+      } else {
+        if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
+      }
+      if (finished) {
+        setOpponentRunning(false);
+        if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
+      }
+    };
+    socket.on('timer-prep', handleOpponentPrep);
+    socket.on('timer-update', handleOpponentTimer);
+    return () => {
+      socket.off('timer-prep', handleOpponentPrep);
+      socket.off('timer-update', handleOpponentTimer);
+      if (opponentPrepIntervalRef.current) clearInterval(opponentPrepIntervalRef.current);
+      if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
+    };
+  }, [roomId, userId]);
+
+
+
 // --- CubeNetModal component and scramble logic ---
 type Face = 'U' | 'D' | 'L' | 'R' | 'F' | 'B';
 type CubeState = Record<Face, string[]>;
-
-
-
-
 
 
 interface CubeNetModalProps {
@@ -266,11 +329,6 @@ interface CubeNetModalProps {
   onClose: () => void;
   size: number; // 2 hoặc 3
 }
-
-
-
-
-
 
 
 function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
@@ -848,14 +906,10 @@ useEffect(() => {
             return newR;
           });
           // Không tự setTurn nữa
-          // Dừng hiển thị đối thủ giả lập
+          setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
           return 0;
         }
-        const next = t - 1;
-        // Broadcast prep countdown to opponent
-        const socket = getSocket();
-        socket.emit('timer-prep', { roomId, userId, remaining: next });
-        return next;
+        return t - 1;
       });
     }, 1000);
     return () => {
@@ -873,9 +927,6 @@ useEffect(() => {
     intervalRef.current = setInterval(() => {
       setTimer(t => {
         timerRef.current = t + 10;
-        // Broadcast running timer to opponent (throttled by interval 10ms)
-        const socket = getSocket();
-        socket.emit('timer-update', { roomId, userId, ms: timerRef.current, running: true, finished: false });
         return t + 10;
       });
     }, 10);
@@ -886,9 +937,6 @@ useEffect(() => {
       setPendingResult(timerRef.current);
       setPendingType('normal');
       setCanStart(false);
-      // Notify opponent that I finished
-      const socket = getSocket();
-      socket.emit('timer-update', { roomId, userId, ms: timerRef.current, running: false, finished: true });
       // Không setTurn('opponent') ở đây, chờ xác nhận
     };
     const handleAnyKey = (e: KeyboardEvent) => {
@@ -929,28 +977,6 @@ useEffect(() => {
   }, [canStart, waiting, roomId, userName, isMobile]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
-  // Lắng nghe trạng thái timer/phần chuẩn bị của đối thủ
-  useEffect(() => {
-    const socket = getSocket();
-    const handleOppPrep = ({ userId: fromId, remaining }: { userId: string, remaining: number }) => {
-      if (fromId === userId) return;
-      setOpponentPrep({ active: remaining > 0, remaining });
-    };
-    const handleOppTimer = ({ userId: fromId, ms, running, finished }: { userId: string, ms: number, running: boolean, finished: boolean }) => {
-      if (fromId === userId) return;
-      setOpponentRunning(running);
-      setOpponentTime(ms ?? null);
-      if (finished) {
-        // Freeze the last shown opponent time; real confirmed result arrives via opponent-solve
-      }
-    };
-    socket.on('opponent-timer-prep', handleOppPrep);
-    socket.on('opponent-timer-update', handleOppTimer);
-    return () => {
-      socket.off('opponent-timer-prep', handleOppPrep);
-      socket.off('opponent-timer-update', handleOppTimer);
-    };
-  }, [userId]);
 
   // Lưu kết quả vào localStorage mỗi khi thay đổi
   useEffect(() => {
