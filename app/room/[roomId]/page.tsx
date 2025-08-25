@@ -225,6 +225,19 @@ useEffect(() => {
   };
 }, [userId]);
 
+  // Lắng nghe sự kiện hủy tái đấu từ đối phương
+  useEffect(() => {
+    const socket = getSocket();
+    function handleRematchCancel() {
+      setRematchPending(false);
+    }
+    socket.on('rematch-cancel', handleRematchCancel);
+    return () => {
+      socket.off('rematch-cancel', handleRematchCancel);
+    };
+  }, []);
+
+
 // Khi userId hoặc pendingUsers thay đổi, luôn cập nhật opponentId/opponentName
 useEffect(() => {
   if (!userId || !pendingUsers) return;
@@ -1131,11 +1144,20 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       {/* Modal đang chờ đối phương đồng ý tái đấu */}
       {rematchPending && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-40" style={{ backdropFilter: 'blur(1px)' }}>
-          <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[220px] h-[100px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[320px] max-w-[95vw] h-[120px] border-4 border-green-400 flex flex-col items-center justify-center"}>
-            <div className="text-base font-semibold text-green-200 text-center">Đang chờ đối phương xác nhận tái đấu...</div>
+          <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[220px] h-[120px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[320px] max-w-[95vw] h-[140px] border-4 border-green-400 flex flex-col items-center justify-center"}>
+            <div className="text-base font-semibold text-green-200 text-center mb-4">Đang chờ đối phương xác nhận tái đấu...</div>
+            <button
+              onClick={() => {
+                setRematchPending(false);
+                const socket = getSocket();
+                socket.emit('rematch-cancel', { roomId });
+              }}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold mt-2"
+            >Hủy</button>
           </div>
         </div>
       )}
+
       {/* Modal thông báo đối phương đã từ chối tái đấu */}
       {rematchDeclined && (
         <div className="fixed inset-0 z-[201] flex items-center justify-center bg-black bg-opacity-40" style={{ backdropFilter: 'blur(1px)' }}>
