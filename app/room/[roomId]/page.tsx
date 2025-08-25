@@ -1900,6 +1900,18 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>
           {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
           {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
+
+          {/* Hiển thị trạng thái timer/chuẩn bị của đối thủ */}
+          {opponentPrep && (
+            <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-400 block mt-1" : "text-xl font-semibold text-yellow-400 block mt-2"}>
+              Đối thủ đang chuẩn bị: {opponentPrepTime}s
+            </span>
+          )}
+          {opponentRunning && (
+            <span className={mobileShrink ? "text-[10px] font-semibold text-red-400 block mt-1" : "text-xl font-semibold text-red-400 block mt-2"}>
+              Timer đối thủ: {(opponentTimer/1000).toFixed(2)}s
+            </span>
+          )}
         </div>
         {/* Webcam đối thủ - cột 3 */}
         <div
