@@ -1424,51 +1424,64 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </div>
           </div>
           {/* Thông báo trạng thái lượt giải + Thông báo lỗi camera */}
-          <div className="mb-3 relative w-full flex flex-col items-center justify-center text-center">
-            {(() => {
-              // Chỉ hiển thị khi đủ 2 người
-              if (waiting || users.length < 2) return null;
-              // Nếu cả 2 đã đủ 5 lượt thì thông báo kết quả
-              const bothDone = myResults.length >= 5 && opponentResults.length >= 5;
-              if (bothDone) {
-                // So sánh ao5, nếu đều DNF thì hòa
-                const myAo5 = calcStats(myResults).ao5;
-                const oppAo5 = calcStats(opponentResults).ao5;
-                let winner = null;
-                if (myAo5 === null && oppAo5 === null) {
-                  return <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-400" : "text-2xl font-semibold text-yellow-400"}>Trận đấu kết thúc, hòa</span>;
-                } else if (myAo5 === null) {
-                  winner = opponentName;
-                } else if (oppAo5 === null) {
-                  winner = userName;
-                } else if (myAo5 < oppAo5) {
-                  winner = userName;
-                } else if (myAo5 > oppAo5) {
-                  winner = opponentName;
-                } else {
-                  return <span className="text-2xl font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
+          <div className="mb-3 relative w-full flex flex-col items-center justify-center text-center" style={{ position: 'relative' }}>
+            {/* Overlay dưới thông báo trạng thái lượt giải */}
+            <div style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: '100%',
+              height: mobileShrink ? 38 : 60,
+              background: 'rgba(0,0,0,0.32)',
+              borderRadius: 12,
+              zIndex: 0
+            }} />
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              {(() => {
+                // Chỉ hiển thị khi đủ 2 người
+                if (waiting || users.length < 2) return null;
+                // Nếu cả 2 đã đủ 5 lượt thì thông báo kết quả
+                const bothDone = myResults.length >= 5 && opponentResults.length >= 5;
+                if (bothDone) {
+                  // So sánh ao5, nếu đều DNF thì hòa
+                  const myAo5 = calcStats(myResults).ao5;
+                  const oppAo5 = calcStats(opponentResults).ao5;
+                  let winner = null;
+                  if (myAo5 === null && oppAo5 === null) {
+                    return <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-400" : "text-2xl font-semibold text-yellow-400"}>Trận đấu kết thúc, hòa</span>;
+                  } else if (myAo5 === null) {
+                    winner = opponentName;
+                  } else if (oppAo5 === null) {
+                    winner = userName;
+                  } else if (myAo5 < oppAo5) {
+                    winner = userName;
+                  } else if (myAo5 > oppAo5) {
+                    winner = opponentName;
+                  } else {
+                    return <span className="text-2xl font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
+                  }
+                    return <span className={mobileShrink ? "text-[10px] font-semibold text-green-400" : "text-2xl font-semibold text-green-400"}>Trận đấu kết thúc, {winner} thắng</span>;
                 }
-                  return <span className={mobileShrink ? "text-[10px] font-semibold text-green-400" : "text-2xl font-semibold text-green-400"}>Trận đấu kết thúc, {winner} thắng</span>;
-              }
-              // Đang trong trận
-              let msg = "";
-              let name = userId === turnUserId ? userName : opponentName;
-              if (prep) {
-                msg = `${name} đang chuẩn bị`;
-              } else if (running) {
-                msg = `${name} đang giải`;
-              } else {
-                msg = `Đến lượt ${name} thi đấu`;
-              }
-              return (
-                <>
-                  <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
-                  {showScrambleMsg && (
-                    <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>Hai cuber hãy tráo scramble</span>
-                  )}
-                </>
-              );
-            })()}
+                // Đang trong trận
+                let msg = "";
+                let name = userId === turnUserId ? userName : opponentName;
+                if (prep) {
+                  msg = `${name} đang chuẩn bị`;
+                } else if (running) {
+                  msg = `${name} đang giải`;
+                } else {
+                  msg = `Đến lượt ${name} thi đấu`;
+                }
+                return (
+                  <>
+                    <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
+                    {showScrambleMsg && (
+                      <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>Hai cuber hãy tráo scramble</span>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
             {/* Đã xóa thông báo lỗi camera theo yêu cầu */}
           </div>
         </div>
