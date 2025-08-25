@@ -44,7 +44,10 @@ function calcStats(times: (number|null)[]) {
 }
 
 
+
 export default function RoomPage() {
+  // Modal xác nhận rời phòng
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   const [roomId, setRoomId] = useState<string>("");
   // State cho meta phòng
@@ -551,6 +554,11 @@ useEffect(() => {
 
   // Hàm rời phòng: emit leave-room trước khi chuyển hướng về lobby
   function handleLeaveRoom() {
+    // Chỉ hiện modal xác nhận
+    setShowLeaveModal(true);
+  }
+
+  function confirmLeaveRoom() {
     const socket = getSocket();
     if (roomId && userId) {
       socket.emit('leave-room', { roomId, userId });
@@ -1022,7 +1030,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>
         )}
       </div>
-      {/* Nút rời phòng và nút 🧊 */}
+      {/* Nút rời phòng */}
       <div
         className={
           mobileShrink
@@ -1046,28 +1054,19 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           {/* Icon logout/exit SVG */}
           <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>↩</span>
         </button>
-        <button
-          className={
-            mobileShrink
-              ? "bg-gray-500 hover:bg-gray-700 text-[13px] rounded-full font-bold shadow-lg flex items-center justify-center"
-              : "bg-gray-500 hover:bg-gray-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center"
-          }
-          style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
-          type="button"
-          aria-label="Lưới scramble"
-          title="Lưới scramble"
-          onClick={() => {
-            console.log('roomMeta.event:', roomMeta?.event);
-            console.log('cubeSize:', cubeSize);
-            setShowCubeNet(true);
-          }}
-        >
-          <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
-        </button>
-      {/* Modal lưới Rubik */}
-        {/* Luôn render CubeNetModal khi showCubeNet, truyền cubeSize đúng loại cube */}
-        <CubeNetModal key={`${scramble}-${cubeSize}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
       </div>
+      {/* Modal xác nhận rời phòng */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black bg-opacity-60" style={{ backdropFilter: 'blur(2px)' }}>
+          <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[140px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[180px] border-4 border-red-400 flex flex-col items-center justify-center"}>
+            <div className="text-lg font-bold text-red-300 mb-4 text-center">Bạn có chắc chắn muốn rời phòng không?</div>
+            <div className="flex flex-row gap-4 mt-2">
+              <button onClick={confirmLeaveRoom} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold">Rời phòng</button>
+              <button onClick={() => setShowLeaveModal(false)} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold">Hủy</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Nút Chat, nút tái đấu và nút luật thi đấu ở góc trên bên phải */}
       <div
         className={
@@ -1077,9 +1076,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         }
         style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
       >
-        {/* Nút Chat */}
-        {/* Nút tái đấu */}
-        <div className="flex items-center">
+        {/* Nút tái đấu và nút lưới scramble */}
+        <div className="flex items-center gap-1">
           <button
             onClick={handleRematch}
             disabled={rematchPending || users.length < 2}
@@ -1099,6 +1097,24 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               <path d="M12 8v5a1 1 0 0 0 1 1h5" stroke="white" strokeWidth="3" fill="none"/>
             </svg>
           </button>
+          <button
+            className={
+              mobileShrink
+                ? "bg-gray-500 hover:bg-gray-700 text-[13px] rounded-full font-bold shadow-lg flex items-center justify-center"
+                : "bg-gray-500 hover:bg-gray-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+            }
+            style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+            type="button"
+            aria-label="Lưới scramble"
+            title="Lưới scramble"
+            onClick={() => {
+              setShowCubeNet(true);
+            }}
+          >
+            <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
+          </button>
+          {/* Modal lưới Rubik */}
+          <CubeNetModal key={`${scramble}-${cubeSize}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
         </div>
       {/* Modal xác nhận tái đấu khi nhận được yêu cầu từ đối phương */}
       {rematchModal.show && rematchModal.from === 'opponent' && (
