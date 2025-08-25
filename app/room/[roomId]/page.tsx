@@ -1536,12 +1536,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   <>
                     <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
                     {showScrambleMsg && (
-                      <div className="fixed inset-0 z-[120] flex items-center justify-center pointer-events-none">
-                        <div className="absolute inset-0 bg-black bg-opacity-40" style={{backdropFilter: 'blur(1.5px)'}}></div>
-                        <span className={mobileShrink ? "relative text-[10px] font-semibold text-yellow-300 block mt-1 z-10" : "relative text-2xl font-semibold text-yellow-300 block mt-2 z-10"}>
-                          Hai cuber hãy tráo scramble
-                        </span>
-                      </div>
+                      <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>
+                        Hai cuber hãy tráo scramble
+                      </span>
                     )}
                   </>
                 );
