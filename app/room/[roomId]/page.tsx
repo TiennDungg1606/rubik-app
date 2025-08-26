@@ -244,6 +244,8 @@ useEffect(() => {
 
 
 // Khi userId hoặc pendingUsers thay đổi, luôn cập nhật opponentId/opponentName
+
+// Reset SETS khi có sự thay đổi người dùng (ra/vào phòng)
 useEffect(() => {
   if (!userId || !pendingUsers) return;
   const opp = pendingUsers.find(u => u.userId !== userId);
@@ -251,6 +253,9 @@ useEffect(() => {
     setOpponentId(opp.userId);
     setOpponentName(opp.userName || 'Đối thủ');
   }
+  // Reset số set thắng khi danh sách user thay đổi
+  setMySets(0);
+  setOpponentSets(0);
 }, [userId, pendingUsers]);
 
 
@@ -290,22 +295,23 @@ useEffect(() => {
     };
     // Nhận sự kiện đối thủ bắt đầu hoặc đang chạy timer
     type TimerPayload = { roomId: string; userId: string; ms: number; running: boolean; finished: boolean };
+    let lastOpponentUpdate = Date.now();
     const handleOpponentTimer = ({ roomId: rid, userId: uid, ms, running, finished }: TimerPayload) => {
       if (rid !== roomId || uid === userId) return;
       setOpponentRunning(running);
       setOpponentTimer(ms);
       opponentTimerRef.current = ms;
+      lastOpponentUpdate = Date.now();
+      if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
       if (running) {
-        if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
+        // Bắt đầu interval để tăng timer dựa trên thời gian thực tế
         opponentIntervalRef.current = setInterval(() => {
-          setOpponentTimer(t => t + 10);
-          opponentTimerRef.current += 10;
-        }, 10);
-      } else {
-        if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
+          const now = Date.now();
+          const elapsed = now - lastOpponentUpdate;
+          setOpponentTimer(ms + elapsed);
+        }, 30);
       }
-      if (finished) {
-        setOpponentRunning(false);
+      if (!running || finished) {
         if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
       }
     };
