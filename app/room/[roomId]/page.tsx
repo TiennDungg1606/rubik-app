@@ -1308,9 +1308,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         }
         style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
       >
-        {/* Nút typing, nút tái đấu và nút lưới scramble */}
+        {/* Nút tái đấu và nút lưới scramble */}
         <div className="flex items-center gap-1">
-          {/* Nút Typing */}
+          {/* Nút Typing - TẠM THỜI ẨN ĐỂ DEBUG */}
+          {/* 
           <button
             onClick={handleTypingMode}
             disabled={users.length < 2}
@@ -1322,16 +1323,16 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
-            aria-label={isTypingMode ? "Chế độ timer" : "Chế độ typing"}
+            aria-label={isTypingMode ? "Chế độ timer" : "Chế độ timer" : "Chế độ typing"}
             title={isTypingMode ? "Chế độ timer" : "Chế độ typing"}
           >
-            {/* Icon keyboard hoặc clock */}
             {isTypingMode ? (
               <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⏰</span>
             ) : (
               <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⌨️</span>
             )}
           </button>
+          */}
           <button
             onClick={handleRematch}
             disabled={rematchPending || users.length < 2}
