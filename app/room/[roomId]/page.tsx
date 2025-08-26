@@ -126,6 +126,10 @@ export default function RoomPage() {
   const [userName, setUserName] = useState<string>(""); // display name
   const [isCreator, setIsCreator] = useState<boolean>(false);
   const [showRules, setShowRules] = useState(false); // State for luật thi đấu modal
+  
+  // State cho chế độ typing
+  const [isTypingMode, setIsTypingMode] = useState(false);
+  const [typingInput, setTypingInput] = useState("");
 
 
   const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
@@ -668,6 +672,63 @@ useEffect(() => {
     }, 1300);
   }
 
+  // Hàm xử lý chế độ typing
+  function handleTypingMode() {
+    if (users.length < 2) return; // Chỉ hoạt động khi đủ 2 người
+    setIsTypingMode(!isTypingMode);
+    setTypingInput("");
+  }
+
+  // Hàm xử lý nhập thời gian
+  function handleTypingSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (users.length < 2) return;
+    
+    const socket = getSocket();
+    let time: number | null = null;
+    
+    if (typingInput.trim() === "") {
+      // Nếu để trống, gửi DNF
+      time = null;
+    } else {
+      // Chuyển đổi input thành milliseconds
+      const input = typingInput.trim();
+      if (input.length === 1) {
+        time = parseInt(input) * 1000; // 1 -> 1.00s
+      } else if (input.length === 2) {
+        time = parseInt(input) * 100; // 12 -> 1.20s
+      } else if (input.length === 3) {
+        time = parseInt(input) * 10; // 123 -> 12.30s
+      } else if (input.length === 4) {
+        time = parseInt(input); // 1234 -> 123.40s
+      } else {
+        time = parseInt(input.slice(-4)); // 12345 -> 234.50s
+      }
+    }
+    
+    // Gửi kết quả lên server
+    if (time !== null) {
+      setMyResults(r => [...r, time]);
+      socket.emit("solve", { roomId, userId, userName, time });
+    } else {
+      setMyResults(r => [...r, null]);
+      socket.emit("solve", { roomId, userId, userName, time: null });
+    }
+    
+    // Reset và chuyển lượt
+    setTypingInput("");
+    setIsTypingMode(false);
+    setOpponentTime(12345 + Math.floor(Math.random() * 2000));
+  }
+
+  // Hàm xử lý input chỉ nhận số
+  function handleTypingInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value.replace(/[^0-9]/g, ''); // Chỉ giữ lại số
+    if (value.length <= 5) { // Giới hạn tối đa 5 chữ số
+      setTypingInput(value);
+    }
+  }
+
   // Đã loại bỏ cleanup Stringee khi đóng tab hoặc reload
 
   // Reload khi rời phòng bằng nút back (popstate) và emit leave-room
@@ -869,6 +930,20 @@ useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
       if (pendingResult !== null) return;
+      if (isTypingMode) return; // Chặn phím space khi đang ở chế độ typing
+      
+      // Kiểm tra xem có đang trong modal nào không
+      const activeElement = document.activeElement;
+      const isInModal = activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.closest('.modal-content') ||
+        activeElement.closest('[role="dialog"]') ||
+        activeElement.closest('[data-modal]')
+      );
+      
+      if (isInModal) return; // Không xử lý phím space nếu đang trong modal
+      
       if (prep) {
         if (!localSpaceHeld) {
           pressStartRef.current = Date.now();
@@ -987,6 +1062,20 @@ useEffect(() => {
     };
     const handleAnyKey = (e: KeyboardEvent) => {
       if (waiting) return;
+      if (isTypingMode) return; // Chặn phím bất kỳ khi đang ở chế độ typing
+      
+      // Kiểm tra xem có đang trong modal nào không
+      const activeElement = document.activeElement;
+      const isInModal = activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.closest('.modal-content') ||
+        activeElement.closest('[role="dialog"]') ||
+        activeElement.closest('[data-modal]')
+      );
+      
+      if (isInModal) return; // Không xử lý phím bất kỳ nếu đang trong modal
+      
       if (e.type === 'keydown') {
         stopTimer();
       }
@@ -1150,11 +1239,25 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       {/* Hiển thị meta phòng */}
       <div className="w-full flex flex-col items-center justify-center mt-2 mb-1">
         {roomMeta && (
-          <div className={mobileShrink ? "text-[13px] font-semibold text-center mb-1" : "text-xl font-semibold text-center mb-2"}>
-            <span className="text-blue-300">Tên phòng:</span> <span className="text-white">{roomMeta.displayName || roomId}</span>
-            {roomMeta.event && (
-              <span className="ml-3 text-pink-300">Thể loại: <span className="font-bold">{roomMeta.event}</span></span>
-            )}
+          <div className="relative w-full flex items-center justify-center">
+            {/* Overlay dưới thông tin phòng */}
+            <div style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: mobileShrink ? '90%' : '80%',
+              height: mobileShrink ? 32 : 48,
+              background: 'rgba(0,0,0,0.35)',
+              borderRadius: 12,
+              zIndex: 0
+            }} />
+            <div className={mobileShrink ? "text-[13px] font-semibold text-center mb-1 relative z-10" : "text-xl font-semibold text-center mb-2 relative z-10"}>
+              <span className="text-blue-300">Tên phòng:</span> <span className="text-white">{roomMeta.displayName || roomId}</span>
+              {roomMeta.event && (
+                <span className="ml-3 text-pink-300">Thể loại: <span className="font-bold">{roomMeta.event}</span></span>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -1205,8 +1308,30 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         }
         style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
       >
-        {/* Nút tái đấu và nút lưới scramble */}
+        {/* Nút typing, nút tái đấu và nút lưới scramble */}
         <div className="flex items-center gap-1">
+          {/* Nút Typing */}
+          <button
+            onClick={handleTypingMode}
+            disabled={users.length < 2}
+            className={
+              (mobileShrink
+                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 ? 'opacity-60 cursor-not-allowed' : ''}`)
+              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
+            }
+            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+            type="button"
+            aria-label={isTypingMode ? "Chế độ timer" : "Chế độ typing"}
+            title={isTypingMode ? "Chế độ timer" : "Chế độ typing"}
+          >
+            {/* Icon keyboard hoặc clock */}
+            {isTypingMode ? (
+              <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⏰</span>
+            ) : (
+              <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⌨️</span>
+            )}
+          </button>
           <button
             onClick={handleRematch}
             disabled={rematchPending || users.length < 2}
@@ -1459,9 +1584,23 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       )}
       {/* Khối trên cùng: Tên phòng và scramble */}
       <div className="w-full flex flex-col items-center justify-center mb-0.5">
-        <h2 className={mobileShrink ? "text-[14px] font-bold mb-1" : "text-3xl font-bold mb-2"}>
-          Phòng: <span className="text-blue-400">{roomId}</span>
-        </h2>
+        <div className="relative w-full flex items-center justify-center mb-1">
+          {/* Overlay dưới tên phòng */}
+          <div style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: mobileShrink ? '60%' : '50%',
+            height: mobileShrink ? 24 : 40,
+            background: 'rgba(0,0,0,0.35)',
+            borderRadius: 12,
+            zIndex: 0
+          }} />
+          <h2 className={mobileShrink ? "text-[14px] font-bold mb-1 relative z-10" : "text-3xl font-bold mb-2 relative z-10"}>
+            Phòng: <span className="text-blue-400">{roomId}</span>
+          </h2>
+        </div>
         <div className={mobileShrink ? "mb-1 px-2 py-1 bg-gray-800 rounded text-[16px] font-mono font-bold tracking-widest select-all w-[90vw] max-w-[340px] overflow-x-auto whitespace-normal" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all"}
           style={mobileShrink ? { fontSize: 16, minWidth: '60vw', maxWidth: 340, overflowX: 'auto', whiteSpace: 'normal' } : {}}>
           {scramble}
@@ -2083,27 +2222,60 @@ function formatStat(val: number|null, showDNF: boolean = false) {
 
             </div>
           )}
-          <div
-            className={
-              mobileShrink
-                ? `text-3xl font-bold drop-shadow select-none px-3 py-3 rounded-xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
-                : `text-9xl font-['Digital-7'] font-bold drop-shadow-2xl select-none px-12 py-8 rounded-3xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
-            }
-            style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 40, textAlign: 'center', fontSize: 40, padding: 6 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '220px', textAlign: 'center', fontSize: 110, padding: 18 }}
-          >
-            {prep ? (
-              <span className={mobileShrink ? "text-[20px]" : undefined}>Chuẩn bị: {prepTime}s</span>
-            ) : dnf ? (
-              <span className={mobileShrink ? "text-[20px] text-red-400" : "text-red-400"}>DNF</span>
-            ) : (
-              <>
-                <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 32 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 80 }}>{(timer/1000).toFixed(2)}</span>
-                <span className={mobileShrink ? "ml-1 align-bottom" : "ml-2 align-bottom"} style={mobileShrink ? { fontFamily: 'font-mono', fontWeight: 400, fontSize: 12, lineHeight: 1 } : { fontFamily: 'font-mono', fontWeight: 400, fontSize: 5, lineHeight: 1 }}>s</span>
-              </>
-            )}
-          </div>
-          {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
-          {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
+          {/* Chế độ typing: hiện trường nhập thời gian */}
+          {isTypingMode ? (
+            <div className="flex flex-col items-center justify-center">
+              <form onSubmit={handleTypingSubmit} className="flex flex-col items-center gap-2">
+                <input
+                  type="text"
+                  value={typingInput}
+                  onChange={handleTypingInputChange}
+                  placeholder="Nhập thời gian (VD: 1234 = 12.34s)"
+                  className={`${mobileShrink ? "px-3 py-2 text-lg" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 border-blue-500 rounded-lg focus:outline-none focus:border-blue-400 text-center font-mono`}
+                  style={{ 
+                    width: mobileShrink ? '200px' : '280px',
+                    fontSize: mobileShrink ? '16px' : '24px'
+                  }}
+                  maxLength={5}
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className={`${mobileShrink ? "px-4 py-2 text-sm" : "px-6 py-3 text-lg"} bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all duration-200 hover:scale-105 active:scale-95`}
+                >
+                  Gửi kết quả
+                </button>
+              </form>
+              <div className={`${mobileShrink ? "text-xs" : "text-sm"} text-gray-400 mt-2 text-center`}>
+                Để trống = DNF, Enter để gửi
+              </div>
+            </div>
+          ) : (
+            /* Chế độ timer: hiện timer bình thường */
+            <>
+              <div
+                className={
+                  mobileShrink
+                    ? `text-3xl font-bold drop-shadow select-none px-3 py-3 rounded-xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
+                    : `text-9xl font-['Digital-7'] font-bold drop-shadow-2xl select-none px-12 py-8 rounded-3xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
+                }
+                style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 40, textAlign: 'center', fontSize: 40, padding: 6 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '220px', textAlign: 'center', fontSize: 110, padding: 18 }}
+              >
+                {prep ? (
+                  <span className={mobileShrink ? "text-[20px]" : undefined}>Chuẩn bị: {prepTime}s</span>
+                ) : dnf ? (
+                  <span className={mobileShrink ? "text-[20px] text-red-400" : "text-red-400"}>DNF</span>
+                ) : (
+                  <>
+                    <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 32 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 80 }}>{(timer/1000).toFixed(2)}</span>
+                    <span className={mobileShrink ? "ml-1 align-bottom" : "ml-2 align-bottom"} style={mobileShrink ? { fontFamily: 'font-mono', fontWeight: 400, fontSize: 12, lineHeight: 1 } : { fontFamily: 'font-mono', fontWeight: 400, fontSize: 5, lineHeight: 1 }}>s</span>
+                  </>
+                )}
+              </div>
+              {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
+              {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
+            </>
+          )}
 
           {/* Hiển thị trạng thái timer/chuẩn bị của đối thủ */}
           {opponentPrep && (
