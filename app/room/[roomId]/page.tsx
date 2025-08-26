@@ -898,33 +898,45 @@ useEffect(() => {
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
+    
+    // Gửi timer-prep event để đối thủ biết mình đang chuẩn bị
+    const socket = getSocket();
+    socket.emit("timer-prep", { roomId, userId, remaining: 15 });
+    
     prepIntervalRef.current = setInterval(() => {
       setPrepTime(t => {
-        if (t <= 1) {
-          clearInterval(prepIntervalRef.current!);
-          setPrep(false);
-          setCanStart(false);
-          setRunning(false);
-          setDnf(true);
-          pressStartRef.current = null;
-          // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
-          setMyResults(r => {
-            const newR = [...r, null];
+                  if (t <= 1) {
+            clearInterval(prepIntervalRef.current!);
+            setPrep(false);
+            setCanStart(false);
+            setRunning(false);
+            setDnf(true);
+            pressStartRef.current = null;
+            
+            // Gửi timer-update event để đối thủ biết mình DNF
             const socket = getSocket();
-            socket.emit("solve", { roomId, userId, userName, time: null });
-            return newR;
-          });
-          // Không tự setTurn nữa
-          setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
-          return 0;
-        }
+            socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
+            
+            // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
+            setMyResults(r => {
+              const newR = [...r, null];
+              const socket = getSocket();
+              socket.emit("solve", { roomId, userId, userName, time: null });
+              return newR;
+            });
+            // Không tự setTurn nữa
+            setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
+            return 0;
+          }
+        // Gửi timer-prep update mỗi giây
+        socket.emit("timer-prep", { roomId, userId, remaining: t - 1 });
         return t - 1;
       });
     }, 1000);
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting]);
+  }, [prep, waiting, roomId, userId]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
@@ -933,6 +945,11 @@ useEffect(() => {
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
+    
+    // Gửi timer-update event để đối thủ biết mình bắt đầu timer
+    const socket = getSocket();
+    socket.emit("timer-update", { roomId, userId, ms: 0, running: true, finished: false });
+    
     intervalRef.current = setInterval(() => {
       setTimer(t => {
         timerRef.current = t + 10;
@@ -943,6 +960,10 @@ useEffect(() => {
     const stopTimer = () => {
       setRunning(false);
       if (intervalRef.current) clearInterval(intervalRef.current);
+      
+      // Gửi timer-update event để đối thủ biết mình dừng timer
+      socket.emit("timer-update", { roomId, userId, ms: timerRef.current, running: false, finished: false });
+      
       setPendingResult(timerRef.current);
       setPendingType('normal');
       setCanStart(false);
@@ -1783,6 +1804,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
+                // Gửi timer-prep event
+                const socket = getSocket();
+                socket.emit("timer-prep", { roomId, userId, remaining: 15 });
                 return;
               }
               // 2. In prep, giữ >=0.5s rồi thả ra để start timer
@@ -1790,6 +1814,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 if (start && now - start >= 50) {
                   setPrep(false);
                   setCanStart(true);
+                  // Timer sẽ được start trong useEffect của canStart
                 }
                 return;
               }
@@ -1797,6 +1822,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               if (running) {
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
+                // Gửi timer-update event
+                const socket = getSocket();
+                socket.emit("timer-update", { roomId, userId, ms: timerRef.current, running: false, finished: false });
                 setPendingResult(timerRef.current);
                 setPendingType('normal');
                 setCanStart(false);
@@ -1810,13 +1838,20 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
+                // Gửi timer-prep event
+                const socket = getSocket();
+                socket.emit("timer-prep", { roomId, userId, remaining: 15 });
               } else if (prep && !running) {
                 setPrep(false);
                 setCanStart(true);
+                // Timer sẽ được start trong useEffect của canStart
               } else if (canStart && !running) {
                 setRunning(true);
                 setTimer(0);
                 timerRef.current = 0;
+                // Gửi timer-update event
+                const socket = getSocket();
+                socket.emit("timer-update", { roomId, userId, ms: 0, running: true, finished: false });
                 intervalRef.current = setInterval(() => {
                   setTimer(t => {
                     timerRef.current = t + 10;
@@ -1828,6 +1863,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               } else if (running) {
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
+                // Gửi timer-update event
+                const socket = getSocket();
+                socket.emit("timer-update", { roomId, userId, ms: timerRef.current, running: false, finished: false });
                 setPendingResult(timerRef.current);
                 setPendingType('normal');
                 setCanStart(false);
@@ -1847,6 +1885,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   let result: number|null = pendingResult;
                   if (pendingType === '+2' && result !== null) result = result + 2000;
                   if (pendingType === 'dnf') result = null;
+                  
+                  // Gửi timer-update event cuối cùng
+                  const socket = getSocket();
+                  socket.emit("timer-update", { roomId, userId, ms: result === null ? 0 : result, running: false, finished: true });
+                  
                   setMyResults(r => {
                     const newR = [...r, result];
                     const socket = getSocket();
@@ -1866,6 +1909,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   // Gửi kết quả +2 ngay
                   let result: number|null = pendingResult;
                   if (result !== null) result = result + 2000;
+                  
+                  // Gửi timer-update event cuối cùng
+                  const socket = getSocket();
+                  socket.emit("timer-update", { roomId, userId, ms: result, running: false, finished: true });
+                  
                   setMyResults(r => {
                     const newR = [...r, result];
                     const socket = getSocket();
@@ -1883,6 +1931,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 onClick={e => {
                   e.stopPropagation();
                   // Gửi kết quả DNF ngay
+                  
+                  // Gửi timer-update event cuối cùng
+                  const socket = getSocket();
+                  socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
+                  
                   setMyResults(r => {
                     const newR = [...r, null];
                     const socket = getSocket();
