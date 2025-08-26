@@ -1951,6 +1951,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {...(isMobile ? {
             onTouchStart: (e) => {
               if (pendingResult !== null) return;
+              if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
               // Nếu chạm vào webcam thì bỏ qua
               const webcamEls = document.querySelectorAll('.webcam-area');
               for (let i = 0; i < webcamEls.length; i++) {
@@ -1963,6 +1964,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             },
             onTouchEnd: (e) => {
               if (pendingResult !== null) return;
+              if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
               // Nếu chạm vào webcam thì bỏ qua
               const webcamEls = document.querySelectorAll('.webcam-area');
               for (let i = 0; i < webcamEls.length; i++) {
