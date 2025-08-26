@@ -46,6 +46,9 @@ function calcStats(times: (number|null)[]) {
 
 
 export default function RoomPage() {
+  // State lưu số set thắng, không reset khi tái đấu
+  const [mySets, setMySets] = useState<number>(0);
+  const [opponentSets, setOpponentSets] = useState<number>(0);
   // Modal xác nhận rời phòng
   const [showLeaveModal, setShowLeaveModal] = useState(false);
 
@@ -988,21 +991,29 @@ useEffect(() => {
 
   // Reset cho lần giải tiếp theo
   useEffect(() => {
-    const totalSolves = myResults.length + opponentResults.length;
-    if (totalSolves === 0) return;
-    if (myResults.length > 0 && myResults.length > opponentResults.length) return; // chờ đối thủ
-    setPrep(false);
-    setCanStart(false);
-    setSpaceHeld(false);
-    setTimer(0);
-    setDnf(false);
-    // Chỉ đổi scramble khi tổng số lượt giải là số chẵn (sau mỗi vòng)
-    if (totalSolves % 2 === 0 && totalSolves < 10) {
-      // Gửi yêu cầu đổi scramble lên server (nếu là chủ phòng)
-      const socket = getSocket();
-      socket.emit("next-scramble", { roomId });
+  const totalSolves = myResults.length + opponentResults.length;
+  if (totalSolves === 0) return;
+  if (myResults.length > 0 && myResults.length > opponentResults.length) return; // chờ đối thủ
+  // Khi kết thúc trận đấu (đủ 5 lượt mỗi bên), xác định người thắng và tăng set
+  if (myResults.length === 5 && opponentResults.length === 5) {
+    const myAo5 = calcStats(myResults).ao5;
+    const oppAo5 = calcStats(opponentResults).ao5;
+    if (myAo5 !== null && (oppAo5 === null || myAo5 < oppAo5)) {
+      setMySets(s => s + 1);
+    } else if (oppAo5 !== null && (myAo5 === null || myAo5 > oppAo5)) {
+      setOpponentSets(s => s + 1);
     }
-  }, [myResults, opponentResults]);
+  }
+  setPrep(false);
+  setCanStart(false);
+  setSpaceHeld(false);
+  setTimer(0);
+  setDnf(false);
+  // Chỉ đổi scramble khi tổng số lượt giải là số chẵn (sau mỗi vòng)
+  if (totalSolves % 2 === 0 && totalSolves < 10) {
+    // ...
+  }
+}, [myResults, opponentResults, roomId]);
 
   // Tính toán thống kê
   const myStats = calcStats(myResults);
@@ -1588,51 +1599,149 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
           style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
-        <div
-          className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-blue-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-blue-400"}
-          style={mobileShrink
-            ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
-            : isMobile && !isPortrait
-              ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
-              : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
-        >
-          {/* Video element for local webcam */}
-          <video
-            id="my-video"
-            ref={localVideoRef}
-            autoPlay
-            muted
-            playsInline
-            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }}
-          />
-          {/* Overlay che webcam local khi camOn=false, pointerEvents none để không che nút */}
-          {!camOn && (
-            <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-              <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>Đã tắt camera</span>
+          <div
+            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-blue-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-blue-400"}
+            style={mobileShrink
+              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
+              : isMobile && !isPortrait
+                ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+          >
+            {/* Video element for local webcam */}
+            <video
+              id="my-video"
+              ref={localVideoRef}
+              autoPlay
+              muted
+              playsInline
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }}
+            />
+            {/* Overlay che webcam local khi camOn=false, pointerEvents none để không che nút */}
+            {!camOn && (
+              <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>Đã tắt camera</span>
+              </div>
+            )}
+            {/* Overlay thông báo khi chưa đủ 2 người */}
+            {waiting && (
+              <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.85, borderRadius: 'inherit', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <span style={{ color: '#fff', fontWeight: 600, fontSize: mobileShrink ? 11 : 20, textAlign: 'center' }}>Camera của bạn sẽ hiện khi đối thủ vào</span>
+              </div>
+            )}
+            <button
+              className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
+              style={mobileShrink ? { minWidth: 0, minHeight: 0, pointerEvents: 'auto', zIndex: 4 } : { pointerEvents: 'auto', zIndex: 4 }}
+              onClick={() => {
+                setCamOn(v => {
+                  const newVal = !v;
+                  // Gửi trạng thái camOn mới cho đối thủ qua socket, kèm userName
+                  const socket = getSocket();
+                  socket.emit('user-cam-toggle', { roomId, userId, camOn: newVal, userName });
+                  return newVal;
+                });
+              }}
+              type="button"
+            >{camOn ? 'Tắt cam' : 'Bật cam'}</button>
+          </div>
+          {/* Dãy thành phần dưới webcam của bạn */}
+          <div style={{
+            marginTop: 6,
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: mobileShrink ? 2 : 8,
+            justifyContent: 'center',
+            width: '100%'
+          }}>
+            {/* Median */}
+            <div style={{
+              background: '#23272b',
+              color: '#ccc',
+              borderRadius: 6,
+              fontWeight: 600,
+              fontSize: mobileShrink ? 13 : 18,
+              padding: mobileShrink ? '2px 6px' : '4px 12px',
+              minWidth: 48,
+              textAlign: 'center',
+              border: '2px solid #222',
+              marginRight: mobileShrink ? 2 : 6
+            }}>
+              <div style={{fontSize: mobileShrink ? 10 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div>{(() => {
+                if (myResults.length > 0) {
+                  const stats = calcStats(myResults);
+                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) return (stats.mean/1000).toFixed(2);
+                }
+                return '-';
+              })()}</div>
             </div>
-          )}
-          {/* Overlay thông báo khi chưa đủ 2 người */}
-          {waiting && (
-            <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.85, borderRadius: 'inherit', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-              <span style={{ color: '#fff', fontWeight: 600, fontSize: mobileShrink ? 11 : 20, textAlign: 'center' }}>Camera của bạn sẽ hiện khi đối thủ vào</span>
+            {/* Timer */}
+            <div style={{
+              background: '#181c22',
+              borderRadius: 8,
+              border: '2px solid #222',
+              minWidth: 60,
+              minHeight: 28,
+              maxWidth: 120,
+              textAlign: 'center',
+              fontSize: mobileShrink ? 18 : 24,
+              color: dnf ? '#e53935' : '#ff3b1d',
+              fontWeight: 700,
+              letterSpacing: 1,
+              boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
+              padding: '2px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4
+            }}>
+              {prep ? (
+                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16 }}>Chuẩn bị: {prepTime}s</span>
+              ) : dnf ? (
+                <span style={{ color: '#e53935', fontWeight: 700 }}>DNF</span>
+              ) : (
+                <>
+                  <span style={{ fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace" }}>{(timer/1000).toFixed(2)}</span>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+                </>
+              )}
             </div>
-          )}
-          <button
-            className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
-            style={mobileShrink ? { minWidth: 0, minHeight: 0, pointerEvents: 'auto', zIndex: 4 } : { pointerEvents: 'auto', zIndex: 4 }}
-            onClick={() => {
-              setCamOn(v => {
-                const newVal = !v;
-                // Gửi trạng thái camOn mới cho đối thủ qua socket, kèm userName
-                const socket = getSocket();
-                socket.emit('user-cam-toggle', { roomId, userId, camOn: newVal, userName });
-                return newVal;
-              });
-            }}
-            type="button"
-          >{camOn ? 'Tắt cam' : 'Bật cam'}</button>
-        </div>
-          <span className={mobileShrink ? "font-semibold text-[8px] text-blue-300" : "font-semibold text-lg text-blue-300"}>{userName}</span>
+            {/* Tên người chơi */}
+            <div style={{
+              background: '#fff',
+              color: '#222',
+              borderRadius: 4,
+              fontWeight: 700,
+              fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
+              padding: mobileShrink ? '2px 8px' : '4px 18px',
+              minWidth: 60,
+              maxWidth: mobileShrink ? 90 : 180,
+              textAlign: 'center',
+              border: '2px solid #bbb',
+              marginLeft: mobileShrink ? 2 : 6,
+              marginRight: mobileShrink ? 2 : 6,
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+              display: 'block'
+            }}>{userName}</div>
+            {/* Số set thắng */}
+            <div style={{
+              background: '#7c3aed',
+              color: '#fff',
+              borderRadius: 4,
+              fontWeight: 700,
+              fontSize: mobileShrink ? 13 : 18,
+              padding: mobileShrink ? '2px 6px' : '4px 12px',
+              minWidth: 32,
+              textAlign: 'center',
+              border: '2px solid #5b21b6',
+              marginLeft: mobileShrink ? 2 : 6
+            }}>
+              <div style={{fontSize: mobileShrink ? 10 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
+              <div>{mySets}</div>
+            </div>
+          </div>
         </div>
         {/* Timer ở giữa - cột 2 */}
         <div
@@ -1720,6 +1829,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
           })}
         >
+          
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận sau 1s */}
           {pendingResult !== null && !running && !prep && showConfirmButtons ? (
             <div className="flex flex-row items-center justify-center gap-2 mb-2">
@@ -1941,7 +2051,104 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               </div>
             )}
           </div>
-          <span className={mobileShrink ? "font-semibold text-[8px] text-pink-300" : "font-semibold text-lg text-pink-300"}>{opponentName}</span>
+          {/* Dãy thành phần dưới webcam đối thủ */}
+          <div style={{
+            marginTop: 6,
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: mobileShrink ? 2 : 8,
+            justifyContent: 'center',
+            width: '100%'
+          }}>
+            {/* Median */}
+            <div style={{
+              background: '#23272b',
+              color: '#ccc',
+              borderRadius: 6,
+              fontWeight: 600,
+              fontSize: mobileShrink ? 13 : 18,
+              padding: mobileShrink ? '2px 6px' : '4px 12px',
+              minWidth: 48,
+              textAlign: 'center',
+              border: '2px solid #222',
+              marginRight: mobileShrink ? 2 : 6
+            }}>
+              <div style={{fontSize: mobileShrink ? 10 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div>{(() => {
+                if (opponentResults.length > 0) {
+                  const stats = calcStats(opponentResults);
+                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) return (stats.mean/1000).toFixed(2);
+                }
+                return '-';
+              })()}</div>
+            </div>
+            {/* Timer */}
+            <div style={{
+              background: '#181c22',
+              borderRadius: 8,
+              border: '2px solid #222',
+              minWidth: 60,
+              minHeight: 28,
+              maxWidth: 120,
+              textAlign: 'center',
+              fontSize: mobileShrink ? 18 : 24,
+              color: '#ff3b1d',
+              fontWeight: 700,
+              letterSpacing: 1,
+              boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
+              padding: '2px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
+            }}>
+              {opponentPrep ? (
+                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>
+              ) : (
+                <>
+                  <span style={{ fontFamily: 'inherit' }}>{(opponentTimer/1000).toFixed(2)}</span>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+                </>
+              )}
+            </div>
+            {/* Tên đối thủ */}
+            <div style={{
+              background: '#fff',
+              color: '#222',
+              borderRadius: 4,
+              fontWeight: 700,
+              fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
+              padding: mobileShrink ? '2px 8px' : '4px 18px',
+              minWidth: 60,
+              maxWidth: mobileShrink ? 90 : 180,
+              textAlign: 'center',
+              border: '2px solid #bbb',
+              marginLeft: mobileShrink ? 2 : 6,
+              marginRight: mobileShrink ? 2 : 6,
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+              display: 'block'
+            }}>{opponentName}</div>
+            {/* Số set thắng */}
+            <div style={{
+              background: '#7c3aed',
+              color: '#fff',
+              borderRadius: 4,
+              fontWeight: 700,
+              fontSize: mobileShrink ? 13 : 18,
+              padding: mobileShrink ? '2px 6px' : '4px 12px',
+              minWidth: 32,
+              textAlign: 'center',
+              border: '2px solid #5b21b6',
+              marginLeft: mobileShrink ? 2 : 6
+            }}>
+              <div style={{fontSize: mobileShrink ? 10 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
+              <div>{opponentSets}</div>
+            </div>
+          </div>
         </div>
       </div>
 
