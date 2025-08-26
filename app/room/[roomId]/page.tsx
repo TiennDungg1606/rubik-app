@@ -390,9 +390,9 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
     }
   }
   return open ? (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black bg-opacity-60" style={{ backdropFilter: 'blur(2px)' }}>
-      <div className="bg-pink-100 rounded-xl p-4 shadow-lg relative" style={{ minWidth: 320, minHeight: 320 }}>
-        <button onClick={onClose} className="absolute top-2 right-2 px-2 py-1 bg-red-500 hover:bg-red-700 text-white rounded font-bold">Đóng</button>
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(2px)' }}>
+      <div className="bg-pink-100 rounded-xl p-4 shadow-lg relative modal-content" style={{ minWidth: 320, minHeight: 320 }}>
+        <button onClick={onClose} className="absolute top-2 right-2 px-2 py-1 bg-red-500 hover:bg-red-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Đóng</button>
         <div className="mb-2 text-center font-bold text-lg text-gray-700"></div>
         <div id="net-view" style={{ display: 'grid', gridTemplateColumns: `repeat(4, ${faceSize}px)`, gridTemplateRows: `repeat(3, ${faceSize}px)`, gap: 2, background: 'none' }}>
           {layoutGrid.flatMap((row, rowIdx) =>
@@ -1170,9 +1170,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <button
           onClick={handleLeaveRoom}
           className={
-            mobileShrink
+            (mobileShrink
               ? "bg-red-600 hover:bg-red-700 text-[9px] rounded-full font-bold shadow-lg flex items-center justify-center"
-              : "bg-red-600 hover:bg-red-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+              : "bg-red-600 hover:bg-red-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center")
+            + " transition-transform duration-200 hover:scale-110 active:scale-95"
           }
           style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
           type="button"
@@ -1185,12 +1186,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       </div>
       {/* Modal xác nhận rời phòng */}
       {showLeaveModal && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black bg-opacity-60" style={{ backdropFilter: 'blur(2px)' }}>
-          <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[140px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[180px] border-4 border-red-400 flex flex-col items-center justify-center"}>
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(2px)' }}>
+          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[140px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[180px] border-4 border-red-400 flex flex-col items-center justify-center"} modal-content`}>
             <div className="text-lg font-bold text-red-300 mb-4 text-center">Bạn có chắc chắn muốn rời phòng không?</div>
             <div className="flex flex-row gap-4 mt-2">
-              <button onClick={confirmLeaveRoom} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold">Rời phòng</button>
-              <button onClick={() => setShowLeaveModal(false)} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold">Hủy</button>
+              <button onClick={confirmLeaveRoom} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Rời phòng</button>
+              <button onClick={() => setShowLeaveModal(false)} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Hủy</button>
             </div>
           </div>
         </div>
@@ -1210,9 +1211,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             onClick={handleRematch}
             disabled={rematchPending || users.length < 2}
             className={
-              mobileShrink
+              (mobileShrink
                 ? `px-1 py-0.5 bg-gray-600 hover:bg-gray-700 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 bg-gray-600 hover:bg-gray-700 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 bg-gray-600 hover:bg-gray-700 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`)
+              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
@@ -1227,9 +1229,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </button>
           <button
             className={
-              mobileShrink
+              (mobileShrink
                 ? "bg-gray-500 hover:bg-gray-700 text-[13px] rounded-full font-bold shadow-lg flex items-center justify-center"
-                : "bg-gray-500 hover:bg-gray-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+                : "bg-gray-500 hover:bg-gray-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center")
+              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
@@ -1246,20 +1249,20 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
       {/* Modal xác nhận tái đấu khi nhận được yêu cầu từ đối phương */}
       {rematchModal.show && rematchModal.from === 'opponent' && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-60" style={{ backdropFilter: 'blur(2px)' }}>
-          <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[160px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[200px] border-4 border-green-400 flex flex-col items-center justify-center"}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(2px)' }}>
+          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[160px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[200px] border-4 border-green-400 flex flex-col items-center justify-center"} modal-content`}>
             <div className="text-lg font-bold text-green-300 mb-4 text-center">Đối thủ muốn tái đấu. Bạn có đồng ý không?</div>
             <div className="flex flex-row gap-4 mt-2">
-              <button onClick={() => respondRematch(true)} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold">Đồng ý</button>
-              <button onClick={() => respondRematch(false)} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold">Từ chối</button>
+              <button onClick={() => respondRematch(true)} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Đồng ý</button>
+              <button onClick={() => respondRematch(false)} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Từ chối</button>
             </div>
           </div>
         </div>
       )}
       {/* Modal đang chờ đối phương đồng ý tái đấu */}
       {rematchPending && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-40" style={{ backdropFilter: 'blur(1px)' }}>
-          <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[220px] h-[120px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[320px] max-w-[95vw] h-[140px] border-4 border-green-400 flex flex-col items-center justify-center"}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(1px)' }}>
+          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[220px] h-[120px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[320px] max-w-[95vw] h-[140px] border-4 border-green-400 flex flex-col items-center justify-center"} modal-content`}>
             <div className="text-base font-semibold text-green-200 text-center mb-4">Đang chờ đối phương xác nhận tái đấu...</div>
             <button
               onClick={() => {
@@ -1267,7 +1270,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 const socket = getSocket();
                 socket.emit('rematch-cancel', { roomId });
               }}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold mt-2"
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold mt-2 transition-all duration-200 hover:scale-105 active:scale-95"
             >Hủy</button>
           </div>
         </div>
@@ -1275,8 +1278,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
 
       {/* Modal thông báo đối phương đã từ chối tái đấu */}
       {rematchDeclined && (
-        <div className="fixed inset-0 z-[201] flex items-center justify-center bg-black bg-opacity-40" style={{ backdropFilter: 'blur(1px)' }}>
-          <div className={mobileShrink ? "bg-gray-900 rounded p-2 w-[80vw] max-w-[200px] h-[80px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[300px] max-w-[90vw] h-[100px] border-4 border-red-400 flex flex-col items-center justify-center"}>
+        <div className="fixed inset-0 z-[201] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(1px)' }}>
+          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[80vw] max-w-[200px] h-[80px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[300px] max-w-[90vw] h-[100px] border-4 border-red-400 flex flex-col items-center justify-center"} modal-content`}>
             <div className="text-base font-semibold text-red-300 text-center">Đối thủ đã từ chối tái đấu</div>
           </div>
         </div>
@@ -1285,9 +1288,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <button
             onClick={() => { setShowChat(true); setHasNewChat(false); }}
             className={
-              mobileShrink
+              (mobileShrink
                 ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
-                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center")
+              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
@@ -1306,16 +1310,16 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       {/* Modal chat nổi */}
       {showChat && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent modal-backdrop"
           style={{ backdropFilter: 'blur(2px)' }}
         >
           <div
-            className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[320px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[420px] border-4 border-blue-400 relative flex flex-col"}
+            className={`${mobileShrink ? "bg-gray-900 rounded pt-2 px-2 w-[90vw] max-w-[260px] h-[320px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl pt-6 px-6 w-[400px] max-w-[95vw] h-[520px] border-4 border-blue-400 relative flex flex-col"} modal-content`}
             style={mobileShrink ? { fontSize: 10, overflow: 'hidden' } : { overflow: 'hidden' }}
           >
             <button
               onClick={() => setShowChat(false)}
-              className={mobileShrink ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"}
+              className={`${mobileShrink ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"} transition-all duration-200 hover:scale-105 active:scale-95`}
               style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               type="button"
             >Đóng</button>
@@ -1324,8 +1328,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </div>
             <div
               ref={chatListRef}
-              className={mobileShrink ? "flex-1 overflow-y-auto pr-1 mb-1" : "flex-1 overflow-y-auto pr-2 mb-2"}
-              style={mobileShrink ? { maxHeight: 200 } : { maxHeight: 300 }}
+              className={mobileShrink ? "flex-1 overflow-y-auto" : "flex-1 overflow-y-auto"}
+              style={mobileShrink ? { maxHeight: 230 } : { maxHeight: 350 }}
             >
               {chatMessages.length === 0 && (
                 <div className="text-gray-400 text-center mt-4">Chưa có tin nhắn nào</div>
@@ -1333,18 +1337,18 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               {chatMessages.map((msg, idx) => (
                 <div
                   key={idx}
-                  className={
+                  className={`${
                     msg.from === 'me'
                       ? (mobileShrink ? "flex justify-end mb-1" : "flex justify-end mb-2")
                       : (mobileShrink ? "flex justify-start mb-1" : "flex justify-start mb-2")
-                  }
+                  } chat-message ${idx === chatMessages.length - 1 ? 'new-message' : ''}`}
                 >
                   <div
-                    className={
+                    className={`${
                       msg.from === 'me'
                         ? (mobileShrink ? "bg-blue-500 text-white px-2 py-1 rounded-lg max-w-[70%] text-[10px]" : "bg-blue-500 text-white px-3 py-2 rounded-lg max-w-[70%] text-base")
                         : (mobileShrink ? "bg-gray-700 text-white px-2 py-1 rounded-lg max-w-[70%] text-[10px]" : "bg-gray-700 text-white px-3 py-2 rounded-lg max-w-[70%] text-base")
-                    }
+                    } chat-bubble`}
                     style={{ wordBreak: 'break-word' }}
                   >
                     {msg.text}
@@ -1352,18 +1356,24 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 </div>
               ))}
             </div>
-            <form
-              className={mobileShrink ? "flex flex-row items-center gap-1 mt-1" : "flex flex-row items-center gap-2 mt-2"}
-              onSubmit={e => {
-                e.preventDefault();
-                if (chatInput.trim() === "") return;
-                setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput }]);
-                // Gửi chat qua socket cho đối thủ
-                const socket = getSocket();
-                socket.emit('chat', { roomId, userId, userName, message: chatInput });
-                setChatInput("");
-              }}
-            >
+                          <form
+                className={mobileShrink ? "flex flex-row items-center gap-1" : "flex flex-row items-center gap-2"}
+                style={{ 
+                  position: 'absolute', 
+                  left: mobileShrink ? '8px' : '24px', 
+                  right: mobileShrink ? '8px' : '24px', 
+                  bottom: mobileShrink ? '8px' : '24px' 
+                }}
+                onSubmit={e => {
+                  e.preventDefault();
+                  if (chatInput.trim() === "") return;
+                  setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput }]);
+                  // Gửi chat qua socket cho đối thủ
+                  const socket = getSocket();
+                  socket.emit('chat', { roomId, userId, userName, message: chatInput });
+                  setChatInput("");
+                }}
+              >
               <input
                 type="text"
                 value={chatInput}
@@ -1374,7 +1384,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               />
               <button
                 type="submit"
-                className={mobileShrink ? "px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold flex items-center justify-center" : "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold flex items-center justify-center"}
+                className={`${mobileShrink ? "px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold flex items-center justify-center" : "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold flex items-center justify-center"} transition-all duration-200 hover:scale-105 active:scale-95`}
                 style={{ minWidth: mobileShrink ? 28 : 40, minHeight: mobileShrink ? 28 : 40, padding: 0 }}
                 aria-label="Gửi"
                 title="Gửi"
@@ -1393,9 +1403,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <button
             onClick={() => setShowRules(true)}
             className={
-              mobileShrink
+              (mobileShrink
                 ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
-                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center")
+              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
@@ -1409,16 +1420,16 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       {/* Modal luật thi đấu */}
       {showRules && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent modal-backdrop"
           style={{ backdropFilter: 'blur(2px)' }}
         >
           <div
-            className={mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[220px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[340px] border-4 border-blue-400 relative flex flex-col"}
+            className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[220px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[480px] border-4 border-blue-400 relative flex flex-col"} modal-content`}
             style={mobileShrink ? { fontSize: 10, overflow: 'hidden' } : { overflow: 'hidden' }}
           >
             <button
               onClick={() => setShowRules(false)}
-              className={mobileShrink ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"}
+              className={`${mobileShrink ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"} transition-all duration-200 hover:scale-105 active:scale-95`}
               style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               type="button"
             >Đóng</button>
@@ -1427,7 +1438,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </div>
             <div
               className={mobileShrink ? "text-[9px] text-white flex-1 overflow-y-auto pr-1" : "text-base text-white flex-1 overflow-y-auto pr-2"}
-              style={mobileShrink ? { maxHeight: 160 } : { maxHeight: 240 }}
+              style={mobileShrink ? { maxHeight: 160 } : { maxHeight: 380 }}
             >
               {/* Thay nội dung này bằng luật thi đấu cụ thể sau */}
               <ul className="list-disc pl-4">
@@ -1470,11 +1481,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Bảng tổng hợp bên trái */}
         <div
           className={
-            mobileShrink
+            (mobileShrink
               ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[120px] max-w-[180px] w-[150px] flex-shrink-0 ml-0 mb-1"
               : isMobileLandscape
                 ? "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[180px] max-w-[260px] w-[220px] flex-shrink-0 ml-0 mb-2"
-                : "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[260px] max-w-[340px] w-[300px] flex-shrink-0 ml-4"
+                : "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[260px] max-w-[340px] w-[300px] flex-shrink-0 ml-4")
+            + " transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl"
           }
           style={mobileShrink ? { wordBreak: 'break-word', fontSize: 11 } : isMobileLandscape ? { wordBreak: 'break-word', fontSize: 13 } : { fontSize: 15 }}
         >
@@ -1510,12 +1522,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={
             mobileShrink
-              ? "flex flex-col items-center justify-center min-w-[70px] max-w-[110px] mx-auto mb-1 w-auto overflow-y-auto"
+              ? "flex flex-col items-center justify-center min-w-[140px] max-w-[200px] mx-auto mb-1 w-auto"
               : isMobileLandscape
-                ? "flex flex-col items-center justify-center min-w-[120px] max-w-[180px] mx-auto mb-2 w-auto"
+                ? "flex flex-col items-center justify-center min-w-[140px] max-w-[200px] mx-auto mb-2 w-auto"
                 : "flex flex-col items-center justify-center min-w-[260px] max-w-[520px] mx-auto w-auto"
           }
-          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9, maxHeight: '180px' } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
+          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
           {/* Overlay dưới thanh trạng thái */}
           <div style={{ position: 'relative', width: '100%' }}>
@@ -1603,11 +1615,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Bảng kết quả bên phải */}
         <div
           className={
-            mobileShrink
+            (mobileShrink
               ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[120px] max-w-[180px] w-[150px] flex-shrink-0 mr-0 mb-1"
               : isMobileLandscape
                 ? "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[180px] max-w-[260px] w-[220px] flex-shrink-0 mr-0 mb-2"
-                : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[260px] max-w-[340px] w-[300px] flex-shrink-0 mr-4"
+                : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[260px] max-w-[340px] w-[300px] flex-shrink-0 mr-4")
+            + " transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl"
           }
           style={mobileShrink ? { wordBreak: 'break-word', fontSize: 11 } : isMobileLandscape ? { wordBreak: 'break-word', fontSize: 13 } : { fontSize: 15 }}
         >
@@ -1703,14 +1716,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               borderRadius: 6,
               fontWeight: 600,
               fontSize: mobileShrink ? 13 : 18,
-              padding: mobileShrink ? '2px 6px' : '4px 12px',
-              minWidth: 48,
+              padding: mobileShrink ? '2px 4px' : '4px 12px',
+              minWidth: mobileShrink ? 40 : 48,
+              maxWidth: mobileShrink ? 55 : 70,
               textAlign: 'center',
               border: '2px solid #222',
-              marginRight: mobileShrink ? 2 : 6
+              marginRight: mobileShrink ? 2 : 6,
+              flexShrink: 0,
+              overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 10 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
-              <div>{(() => {
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{(() => {
                 if (myResults.length > 0) {
                   const stats = calcStats(myResults);
                   if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) return (stats.mean/1000).toFixed(2);
@@ -1775,14 +1791,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               borderRadius: 4,
               fontWeight: 700,
               fontSize: mobileShrink ? 13 : 18,
-              padding: mobileShrink ? '2px 6px' : '4px 12px',
-              minWidth: 32,
+              padding: mobileShrink ? '2px 4px' : '4px 12px',
+              minWidth: mobileShrink ? 28 : 32,
+              maxWidth: mobileShrink ? 50 : 60,
               textAlign: 'center',
               border: '2px solid #5b21b6',
-              marginLeft: mobileShrink ? 2 : 6
+              marginLeft: mobileShrink ? 2 : 6,
+              flexShrink: 0,
+              overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 10 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div>{mySets}</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{mySets}</div>
             </div>
           </div>
         </div>
@@ -1894,7 +1913,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           {pendingResult !== null && !running && !prep && showConfirmButtons ? (
             <div className="flex flex-row items-center justify-center gap-2 mb-2">
               <button
-                className={mobileShrink ? "px-2 py-1 text-[13px] rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white" : "px-5 py-2 text-xl rounded-2xl bg-green-600 hover:bg-green-700 font-bold text-white"}
+                className={`${mobileShrink ? "px-2 py-1 text-[13px] rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white" : "px-5 py-2 text-xl rounded-2xl bg-green-600 hover:bg-green-700 font-bold text-white"} transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg result-button`}
                 onClick={e => {
                   e.stopPropagation();
                   // Gửi kết quả bình thường
@@ -1919,7 +1938,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >Gửi</button>
               <button
-                className={mobileShrink ? `px-2 py-1 text-[13px] rounded-lg bg-yellow-500 font-bold text-white` : `px-5 py-2 text-xl rounded-2xl bg-yellow-500 font-bold text-white`}
+                className={`${mobileShrink ? `px-2 py-1 text-[13px] rounded-lg bg-yellow-500 font-bold text-white` : `px-5 py-2 text-xl rounded-2xl bg-yellow-500 font-bold text-white`} transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg result-button`}
                 onClick={e => {
                   e.stopPropagation();
                   // Gửi kết quả +2 ngay
@@ -1943,7 +1962,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >+2</button>
               <button
-                className={mobileShrink ? `px-2 py-1 text-[13px] rounded-lg bg-red-600 font-bold text-white` : `px-5 py-2 text-xl rounded-2xl bg-red-600 hover:bg-red-700 font-bold text-white`}
+                className={`${mobileShrink ? `px-2 py-1 text-[13px] rounded-lg bg-red-600 font-bold text-white` : `px-5 py-2 text-xl rounded-2xl bg-red-600 hover:bg-red-700 font-bold text-white`} transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg result-button`}
                 onClick={e => {
                   e.stopPropagation();
                   // Gửi kết quả DNF ngay
@@ -1972,7 +1991,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           {myResults.length >= 5 && opponentResults.length >= 5 && (
             <div className="flex flex-row items-center justify-center gap-2 mb-2">
               <button
-                className={mobileShrink ? "px-2 py-1 text-[10px] rounded bg-blue-600 hover:bg-blue-700 font-bold text-white" : "px-4 py-2 text-base rounded-lg bg-blue-600 hover:bg-blue-700 font-bold text-white"}
+                className={`${mobileShrink ? "px-2 py-1 text-[10px] rounded bg-blue-600 hover:bg-blue-700 font-bold text-white" : "px-4 py-2 text-base rounded-lg bg-blue-600 hover:bg-blue-700 font-bold text-white"} transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg result-button`}
                 onClick={() => {
                   // Lấy ngày và thời gian hiện tại
                   const now = new Date();
@@ -2143,14 +2162,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               borderRadius: 6,
               fontWeight: 600,
               fontSize: mobileShrink ? 13 : 18,
-              padding: mobileShrink ? '2px 6px' : '4px 12px',
-              minWidth: 48,
+              padding: mobileShrink ? '2px 4px' : '4px 12px',
+              minWidth: mobileShrink ? 40 : 48,
+              maxWidth: mobileShrink ? 55 : 70,
               textAlign: 'center',
               border: '2px solid #222',
-              marginRight: mobileShrink ? 2 : 6
+              marginRight: mobileShrink ? 2 : 6,
+              flexShrink: 0,
+              overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 10 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
-              <div>{(() => {
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{(() => {
                 if (opponentResults.length > 0) {
                   const stats = calcStats(opponentResults);
                   if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) return (stats.mean/1000).toFixed(2);
@@ -2214,14 +2236,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               borderRadius: 4,
               fontWeight: 700,
               fontSize: mobileShrink ? 13 : 18,
-              padding: mobileShrink ? '2px 6px' : '4px 12px',
-              minWidth: 32,
+              padding: mobileShrink ? '2px 4px' : '4px 12px',
+              minWidth: mobileShrink ? 28 : 32,
+              maxWidth: mobileShrink ? 50 : 60,
               textAlign: 'center',
               border: '2px solid #5b21b6',
-              marginLeft: mobileShrink ? 2 : 6
+              marginLeft: mobileShrink ? 2 : 6,
+              flexShrink: 0,
+              overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 10 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div>{opponentSets}</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{opponentSets}</div>
             </div>
           </div>
         </div>
@@ -2238,6 +2263,165 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           remoteVideoRef={remoteVideoRef}
         />
       ) : null}
+
+      {/* CSS cho hiệu ứng modal và các nút */}
+      <style jsx global>{`
+        .modal-backdrop {
+          animation: fadeIn 0.3s ease-out;
+        }
+        
+        .modal-content {
+          animation: slideIn 0.3s ease-out;
+          transform-origin: center;
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: scale(0.8) translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        /* Hiệu ứng hover cho các nút trong modal */
+        .modal-content button {
+          transition: all 0.2s ease;
+        }
+        
+        .modal-content button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Hiệu ứng cho backdrop khi click */
+        .modal-backdrop:active {
+          background-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Đảm bảo modal content có shadow đủ mạnh để nổi bật trên backdrop trong suốt */
+        .modal-content {
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Hiệu ứng cho tất cả các nút trong giao diện */
+        button {
+          transition: all 0.2s ease;
+        }
+        
+        button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:active {
+          transform: translateY(0) scale(0.98);
+        }
+        
+        /* Hiệu ứng đặc biệt cho các nút chức năng chính */
+        .function-button {
+          transition: all 0.3s ease;
+        }
+        
+        .function-button:hover {
+          transform: scale(1.1) rotate(2deg);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Hiệu ứng cho các nút xác nhận kết quả */
+        .result-button {
+          transition: all 0.25s ease;
+        }
+        
+        .result-button:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Hiệu ứng cho các nút trong modal */
+        .modal-content button:not([class*="transition"]) {
+          transition: all 0.2s ease;
+        }
+        
+        .modal-content button:not([class*="transition"]):hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Hiệu ứng cho tin nhắn mới nhất */
+        .chat-message.new-message {
+          animation: newMessagePop 0.6s ease-out;
+        }
+        
+        @keyframes newMessagePop {
+          0% {
+            opacity: 0;
+            transform: scale(0.8) translateY(10px);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.05) translateY(-2px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        /* Hiệu ứng đặc biệt cho tin nhắn của mình */
+        .chat-message:has(.bg-blue-500) .chat-bubble {
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Hiệu ứng đặc biệt cho tin nhắn của đối phương */
+        .chat-message:has(.bg-gray-700) .chat-bubble {
+          box-shadow: 0 2px 8px rgba(55, 65, 81, 0.3);
+        }
+        
+        /* Tùy chỉnh thanh cuộn cho chat */
+        .chat-message:first-child {
+          margin-top: 0;
+        }
+        
+        .chat-message:last-child {
+          margin-bottom: 0;
+        }
+        
+        /* Tùy chỉnh thanh cuộn */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: rgba(59, 130, 246, 0.5);
+          border-radius: 3px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: rgba(59, 130, 246, 0.7);
+        }
+        
+        /* Đảm bảo form nhập liệu sát mép dưới */
+        .modal-content form {
+          margin-top: 0;
+          padding-top: 0;
+        }
+      `}</style>
     </div>
   );
 }
