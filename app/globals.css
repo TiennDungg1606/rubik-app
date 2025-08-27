@@ -46,3 +46,48 @@ body {
   background: rgba(0,0,0,0.4); /* Điều chỉnh opacity tại đây */
   pointer-events: none;
 }
+
+/* CSS để xử lý quảng cáo bị chặn */
+.google-ad {
+  position: relative;
+  min-height: 250px;
+  overflow: hidden;
+}
+
+.google-ad ins {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Đảm bảo các element khác không bị ảnh hưởng khi quảng cáo bị chặn */
+.ad-fallback {
+  pointer-events: none;
+  user-select: none;
+}
+
+.ad-loading {
+  pointer-events: none;
+}
+
+/* Đảm bảo các button và link vẫn hoạt động bình thường */
+button, a, [role="button"] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Ẩn quảng cáo trên mobile nếu cần */
+@media (max-width: 768px) {
+  .google-ad {
+    min-height: 200px;
+  }
+}
+
+/* Đảm bảo z-index của các modal và overlay không bị ảnh hưởng */
+.modal-backdrop {
+  z-index: 1000 !important;
+}
+
+.modal-content {
+  z-index: 1001 !important;
+}

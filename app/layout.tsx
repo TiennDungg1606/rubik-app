@@ -3,6 +3,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import GoogleAdScript from "@/components/GoogleAdScript";
 import "./globals.css";
 
 
@@ -44,6 +45,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* Google AdSense Script */}
+        <GoogleAdScript />
         {/* Bỏ SessionProviderWrapper, render children trực tiếp */}
         {children}
       </body>
