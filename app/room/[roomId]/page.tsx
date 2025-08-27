@@ -968,7 +968,7 @@ useEffect(() => {
         pressStartRef.current = null;
         localSpaceHeld = false;
         setSpaceHeld(false);
-        if (start && now - start >= 150) {
+        if (start && now - start >= 250) {
           setPrep(false);
           setCanStart(true);
         }
@@ -1994,7 +1994,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }
               // 2. In prep, giữ >=0.5s rồi thả ra để start timer
               if (prep && !running) {
-                if (start && now - start >= 150) {
+                if (start && now - start >= 250) {
                   setPrep(false);
                   setCanStart(true);
                   // Timer sẽ được start trong useEffect của canStart
@@ -2235,7 +2235,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           {/* Chế độ typing: hiện trường nhập thời gian */}
           {isTypingMode ? (
             <div className="flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
-              <form onSubmit={handleTypingSubmit} className="flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <form onSubmit={handleTypingSubmit} className="flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
                 <input
                   type="text"
                   value={typingInput}
@@ -2243,10 +2243,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   onClick={(e) => e.stopPropagation()}
                   onFocus={(e) => e.stopPropagation()}
                   placeholder="Nhập thời gian (VD: 1234 = 12.34s)"
-                  className={`${mobileShrink ? "px-3 py-2 text-lg" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 border-blue-500 rounded-lg focus:outline-none focus:border-blue-400 text-center font-mono`}
+                  className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 border-blue-500 rounded-lg focus:outline-none focus:border-blue-400 text-center font-mono`}
                   style={{ 
-                    width: mobileShrink ? '200px' : '280px',
-                    fontSize: mobileShrink ? '16px' : '24px'
+                    width: mobileShrink ? '160px' : '280px',
+                    fontSize: mobileShrink ? '14px' : '24px'
                   }}
                   maxLength={5}
                   autoFocus
@@ -2254,12 +2254,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <button
                   type="submit"
                   onClick={(e) => e.stopPropagation()}
-                  className={`${mobileShrink ? "px-4 py-2 text-sm" : "px-6 py-3 text-lg"} bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all duration-200 hover:scale-105 active:scale-95`}
+                  className={`${mobileShrink ? "px-3 py-1 text-xs" : "px-6 py-3 text-lg"} bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all duration-200 hover:scale-105 active:scale-95`}
                 >
                   Gửi kết quả
                 </button>
               </form>
-              <div className={`${mobileShrink ? "text-xs" : "text-sm"} text-gray-400 mt-2 text-center`}>
+              <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-gray-400 mt-1 text-center`}>
                 Để trống = DNF, Enter để gửi
               </div>
             </div>
