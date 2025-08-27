@@ -716,9 +716,9 @@ useEffect(() => {
       socket.emit("solve", { roomId, userId, userName, time: null });
     }
     
-    // Reset và chuyển lượt
+    // Reset input và chuyển lượt, giữ nguyên chế độ typing/timer
     setTypingInput("");
-    setIsTypingMode(false);
+    // setIsTypingMode(false); // Không reset chế độ typing/timer
     setOpponentTime(12345 + Math.floor(Math.random() * 2000));
   }
 
@@ -968,7 +968,7 @@ useEffect(() => {
         pressStartRef.current = null;
         localSpaceHeld = false;
         setSpaceHeld(false);
-        if (start && now - start >= 50) {
+        if (start && now - start >= 150) {
           setPrep(false);
           setCanStart(true);
         }
@@ -1317,11 +1317,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           {/* Nút Typing */}
           <button
             onClick={handleTypingMode}
-            disabled={users.length < 2}
+            disabled={users.length < 2 || userId !== turnUserId}
             className={
               (mobileShrink
-                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 ? 'opacity-60 cursor-not-allowed' : ''}`)
+                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || userId !== turnUserId ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || userId !== turnUserId ? 'opacity-60 cursor-not-allowed' : ''}`)
               + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
@@ -1994,7 +1994,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }
               // 2. In prep, giữ >=0.5s rồi thả ra để start timer
               if (prep && !running) {
-                if (start && now - start >= 50) {
+                if (start && now - start >= 150) {
                   setPrep(false);
                   setCanStart(true);
                   // Timer sẽ được start trong useEffect của canStart
