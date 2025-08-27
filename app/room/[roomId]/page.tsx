@@ -691,18 +691,19 @@ useEffect(() => {
       // Nếu để trống, gửi DNF
       time = null;
     } else {
-      // Chuyển đổi input thành milliseconds
+      // Chuyển đổi input thành milliseconds theo logic đúng
       const input = typingInput.trim();
       if (input.length === 1) {
-        time = parseInt(input) * 1000; // 1 -> 1.00s
+        time = parseInt(input) * 10; // 1 -> 0.01s
       } else if (input.length === 2) {
-        time = parseInt(input) * 100; // 12 -> 1.20s
+        time = parseInt(input); // 12 -> 0.12s
       } else if (input.length === 3) {
-        time = parseInt(input) * 10; // 123 -> 12.30s
+        time = parseInt(input) * 10; // 123 -> 1.23s
       } else if (input.length === 4) {
-        time = parseInt(input); // 1234 -> 123.40s
+        time = parseInt(input) * 10; // 1234 -> 12.34s
       } else {
-        time = parseInt(input.slice(-4)); // 12345 -> 234.50s
+        // 5 chữ số: lấy 4 chữ số cuối và nhân 10
+        time = parseInt(input.slice(-4)) * 10; // 12345 -> 234.50s
       }
     }
     
@@ -1246,11 +1247,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               left: '50%',
               top: '50%',
               transform: 'translate(-50%, -50%)',
-              width: mobileShrink ? '90%' : '80%',
+              width: mobileShrink ? 'auto' : 'auto',
+              minWidth: mobileShrink ? '140px' : '250px',
+              maxWidth: mobileShrink ? '220px' : '400px',
               height: mobileShrink ? 32 : 48,
               background: 'rgba(0,0,0,0.35)',
               borderRadius: 12,
-              zIndex: 0
+              zIndex: 0,
+              padding: mobileShrink ? '0 8px' : '0 16px'
             }} />
             <div className={mobileShrink ? "text-[13px] font-semibold text-center mb-1 relative z-10" : "text-xl font-semibold text-center mb-2 relative z-10"}>
               <span className="text-blue-300">Tên phòng:</span> <span className="text-white">{roomMeta.displayName || roomId}</span>
@@ -1308,10 +1312,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         }
         style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
       >
-        {/* Nút tái đấu và nút lưới scramble */}
+                {/* Nút typing, nút tái đấu và nút lưới scramble */}
         <div className="flex items-center gap-1">
-          {/* Nút Typing - TẠM THỜI ẨN ĐỂ DEBUG */}
-          {/* 
+          {/* Nút Typing */}
           <button
             onClick={handleTypingMode}
             disabled={users.length < 2}
@@ -1323,16 +1326,16 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
-            aria-label={isTypingMode ? "Chế độ timer" : "Chế độ timer" : "Chế độ typing"}
+            aria-label={isTypingMode ? "Chế độ timer" : "Chế độ typing"}
             title={isTypingMode ? "Chế độ timer" : "Chế độ typing"}
           >
+            {/* Icon keyboard hoặc clock */}
             {isTypingMode ? (
               <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⏰</span>
             ) : (
               <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⌨️</span>
             )}
           </button>
-          */}
           <button
             onClick={handleRematch}
             disabled={rematchPending || users.length < 2}
@@ -1592,11 +1595,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
-            width: mobileShrink ? '60%' : '50%',
+            width: mobileShrink ? 'auto' : 'auto',
+            minWidth: mobileShrink ? '120px' : '200px',
+            maxWidth: mobileShrink ? '200px' : '300px',
             height: mobileShrink ? 24 : 40,
             background: 'rgba(0,0,0,0.35)',
             borderRadius: 12,
-            zIndex: 0
+            zIndex: 0,
+            padding: mobileShrink ? '0 8px' : '0 16px'
           }} />
           <h2 className={mobileShrink ? "text-[14px] font-bold mb-1 relative z-10" : "text-3xl font-bold mb-2 relative z-10"}>
             Phòng: <span className="text-blue-400">{roomId}</span>
@@ -2011,6 +2017,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           } : {
             onClick: () => {
               if (waiting || myResults.length >= 5 || pendingResult !== null) return;
+              if (isTypingMode) return; // Chặn click khi đang ở chế độ typing
               if (!prep && !running && userId === turnUserId) {
                 setPrep(true);
                 setPrepTime(15);
@@ -2227,12 +2234,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           )}
           {/* Chế độ typing: hiện trường nhập thời gian */}
           {isTypingMode ? (
-            <div className="flex flex-col items-center justify-center">
-              <form onSubmit={handleTypingSubmit} className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              <form onSubmit={handleTypingSubmit} className="flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 <input
                   type="text"
                   value={typingInput}
                   onChange={handleTypingInputChange}
+                  onClick={(e) => e.stopPropagation()}
+                  onFocus={(e) => e.stopPropagation()}
                   placeholder="Nhập thời gian (VD: 1234 = 12.34s)"
                   className={`${mobileShrink ? "px-3 py-2 text-lg" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 border-blue-500 rounded-lg focus:outline-none focus:border-blue-400 text-center font-mono`}
                   style={{ 
@@ -2244,6 +2253,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 />
                 <button
                   type="submit"
+                  onClick={(e) => e.stopPropagation()}
                   className={`${mobileShrink ? "px-4 py-2 text-sm" : "px-6 py-3 text-lg"} bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all duration-200 hover:scale-105 active:scale-95`}
                 >
                   Gửi kết quả
