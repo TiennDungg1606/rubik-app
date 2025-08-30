@@ -88,6 +88,8 @@ export default function RoomPage() {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   // Trạng thái thông báo tráo scramble
   const [showScrambleMsg, setShowScrambleMsg] = useState<boolean>(false);
+  // Trạng thái thông báo kết thúc sớm
+  const [showEarlyEndMsg, setShowEarlyEndMsg] = useState<{ show: boolean; message: string; type: 'win' | 'lose' | 'draw' }>({ show: false, message: '', type: 'draw' });
   const router = useRouter();
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(false);
@@ -143,6 +145,7 @@ export default function RoomPage() {
   const [rematchPending, setRematchPending] = useState(false); // Đang chờ đối phương đồng ý
   const [rematchDeclined, setRematchDeclined] = useState(false); // Đối phương đã từ chối
   const [rematchJustAccepted, setRematchJustAccepted] = useState(false);
+  const [isRematchMode, setIsRematchMode] = useState(false); // State để theo dõi xem có đang ở chế độ tái đấu không
 
 
 
@@ -213,25 +216,30 @@ useEffect(() => {
       setShowConfirmButtons(false);
     }
   }, [pendingResult, running, prep]);
-// Lắng nghe danh sách users và hostId từ server
-useEffect(() => {
-  const socket = getSocket();
-  const handleUsers = (data: { users: { userId: string, userName: string }[], hostId: string }) => {
-    setUsers(data.users.map(u => u.userId));
-    setWaiting(data.users.length < 2);
-    setPendingUsers(data.users);
-    // Đồng bộ chủ phòng từ server
-    if (userId && data.hostId) {
-      setIsCreator(userId === data.hostId);
-    } else {
-      setIsCreator(false);
-    }
-  };
-  socket.on('room-users', handleUsers);
-  return () => {
-    socket.off('room-users', handleUsers);
-  };
-}, [userId]);
+  // Lắng nghe danh sách users và hostId từ server
+  useEffect(() => {
+    const socket = getSocket();
+    const handleUsers = (data: { users: { userId: string, userName: string }[], hostId: string }) => {
+      setUsers(data.users.map(u => u.userId));
+      setWaiting(data.users.length < 2);
+      setPendingUsers(data.users);
+      // Đồng bộ chủ phòng từ server
+      if (userId && data.hostId) {
+        setIsCreator(userId === data.hostId);
+      } else {
+        setIsCreator(false);
+      }
+      
+      // Reset chế độ tái đấu khi có người mới vào phòng
+      if (data.users.length === 1) {
+        setIsRematchMode(false);
+      }
+    };
+    socket.on('room-users', handleUsers);
+    return () => {
+      socket.off('room-users', handleUsers);
+    };
+  }, [userId]);
 
   // Lắng nghe sự kiện hủy tái đấu từ đối phương
   useEffect(() => {
@@ -249,18 +257,23 @@ useEffect(() => {
 
 // Khi userId hoặc pendingUsers thay đổi, luôn cập nhật opponentId/opponentName
 
-// Reset SETS khi có sự thay đổi người dùng (ra/vào phòng)
-useEffect(() => {
-  if (!userId || !pendingUsers) return;
-  const opp = pendingUsers.find(u => u.userId !== userId);
-  if (opp) {
-    setOpponentId(opp.userId);
-    setOpponentName(opp.userName || 'Đối thủ');
-  }
-  // Reset số set thắng khi danh sách user thay đổi
-  setMySets(0);
-  setOpponentSets(0);
-}, [userId, pendingUsers]);
+  // Reset SETS khi có sự thay đổi người dùng (ra/vào phòng) - không reset khi tái đấu
+  useEffect(() => {
+    if (!userId || !pendingUsers) return;
+    const opp = pendingUsers.find(u => u.userId !== userId);
+    if (opp) {
+      setOpponentId(opp.userId);
+      setOpponentName(opp.userName || 'Đối thủ');
+    }
+    
+    // Chỉ reset SETS khi thực sự có người mới vào phòng (không phải khi tái đấu)
+    // Kiểm tra xem có phải đang tái đấu không
+    if (!isRematchMode) {
+      // Reset số set thắng khi danh sách user thay đổi
+      setMySets(0);
+      setOpponentSets(0);
+    }
+  }, [userId, pendingUsers, isRematchMode]);
 
 
 
@@ -478,6 +491,7 @@ useEffect(() => {
   // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
     setRematchPending(false);
     setRematchJustAccepted(true); // Đánh dấu vừa tái đấu xong
+    setIsRematchMode(true); // Bật chế độ tái đấu
   };
   // Khi đối phương từ chối tái đấu
   const handleRematchDeclined = () => {
@@ -554,6 +568,8 @@ useEffect(() => {
     }, 10000);
     // Nếu vừa tái đấu xong thì reset cờ
     setRematchJustAccepted(false);
+    // Reset thông báo kết thúc sớm khi có scramble mới
+    setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
   };
   socket.on("scramble", handleScramble);
   return () => {
@@ -683,6 +699,12 @@ useEffect(() => {
   function handleTypingSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (users.length < 2) return;
+    
+    // Kiểm tra xem có phải lượt của mình không
+    if (userId !== turnUserId) {
+      console.log('Không phải lượt của bạn, không thể gửi kết quả');
+      return;
+    }
     
     const socket = getSocket();
     let time: number | null = null;
@@ -968,7 +990,7 @@ useEffect(() => {
         pressStartRef.current = null;
         localSpaceHeld = false;
         setSpaceHeld(false);
-        if (start && now - start >= 250) {
+        if (start && now - start >= 300) {
           setPrep(false);
           setCanStart(true);
         }
@@ -1127,6 +1149,49 @@ useEffect(() => {
   const totalSolves = myResults.length + opponentResults.length;
   if (totalSolves === 0) return;
   if (myResults.length > 0 && myResults.length > opponentResults.length) return; // chờ đối thủ
+  
+  // Kiểm tra điều kiện kết thúc sớm khi có 2 lần DNF
+  const myDnfCount = myResults.filter(r => r === null).length;
+  const oppDnfCount = opponentResults.filter(r => r === null).length;
+  
+  // Kết thúc sớm khi một người có 2 lần DNF
+  if (myDnfCount >= 2 || oppDnfCount >= 2) {
+    if (myDnfCount >= 2 && oppDnfCount >= 2) {
+      // Cả hai đều có 2 lần DNF -> Hòa
+      console.log('Trận đấu hòa - cả hai đều có 2 lần DNF');
+      setShowEarlyEndMsg({ show: true, message: 'Trận đấu hòa - cả hai đều có 2 lần DNF', type: 'draw' });
+      // Không tăng set cho ai cả
+    } else if (myDnfCount >= 2) {
+      // Mình có 2 lần DNF -> Đối thủ thắng
+      console.log('Đối thủ thắng - mình có 2 lần DNF');
+      setOpponentSets(s => s + 1);
+      setShowEarlyEndMsg({ show: true, message: 'Bạn thua - có 2 lần DNF', type: 'lose' });
+    } else {
+      // Đối thủ có 2 lần DNF -> Mình thắng
+      console.log('Mình thắng - đối thủ có 2 lần DNF');
+      setMySets(s => s + 1);
+      setShowEarlyEndMsg({ show: true, message: 'Bạn thắng - đối thủ có 2 lần DNF', type: 'win' });
+    }
+    
+    // Reset trạng thái cho vòng mới
+    setPrep(false);
+    setCanStart(false);
+    setSpaceHeld(false);
+    setTimer(0);
+    setDnf(false);
+    
+    // Yêu cầu scramble mới từ server khi trận đấu kết thúc sớm
+    const socket = getSocket();
+    socket.emit('next-scramble', { roomId });
+    
+    // Ẩn thông báo sau 3 giây
+    setTimeout(() => {
+      setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
+    }, 3000);
+    
+    return; // Kết thúc sớm, không cần xử lý logic khác
+  }
+  
   // Khi kết thúc trận đấu (đủ 5 lượt mỗi bên), xác định người thắng và tăng set
   if (myResults.length === 5 && opponentResults.length === 5) {
     const myAo5 = calcStats(myResults).ao5;
@@ -1137,6 +1202,7 @@ useEffect(() => {
       setOpponentSets(s => s + 1);
     }
   }
+  
   setPrep(false);
   setCanStart(false);
   setSpaceHeld(false);
@@ -1177,7 +1243,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     // Thanh loading đơn giản phía dưới màn hình
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black">
-        <video
+        {/* Video loading đã được comment lại - 1 tuần sau sẽ gỡ comment */}
+        {/* <video
           src="/loadingroom.mp4"
           autoPlay
           loop
@@ -1185,7 +1252,16 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           playsInline
           className="w-full h-full object-cover"
           style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+        /> */}
+        
+        {/* Thay thế bằng ảnh 2-9.jpg */}
+        <img
+          src="/2-9.jpg"
+          alt="Loading Room"
+          className="w-full h-full object-cover"
+          style={{ position: 'absolute', inset: 0, zIndex: 1 }}
         />
+        
         {/* Thanh loading nâng lên cao hơn mép dưới */}
         <div className="fixed left-1/2 -translate-x-1/2" style={{ bottom: '60px', width: '90vw', maxWidth: 480, zIndex: 10000 }}>
           <div className="h-2 bg-gradient-to-r from-blue-400 to-pink-400 rounded-full animate-loading-bar" style={{ width: '100%' }}></div>
@@ -1752,6 +1828,15 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                         Hai cuber hãy tráo scramble
                       </span>
                     )}
+                    {showEarlyEndMsg.show && (
+                      <span className={`${mobileShrink ? "text-[10px] font-semibold block mt-1" : "text-2xl font-semibold block mt-2"} ${
+                        showEarlyEndMsg.type === 'win' ? 'text-green-400' :
+                        showEarlyEndMsg.type === 'lose' ? 'text-red-400' :
+                        'text-yellow-400'
+                      }`}>
+                        {showEarlyEndMsg.message}
+                      </span>
+                    )}
                   </>
                 );
               })()}
@@ -1994,7 +2079,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }
               // 2. In prep, giữ >=0.5s rồi thả ra để start timer
               if (prep && !running) {
-                if (start && now - start >= 250) {
+                if (start && now - start >= 300) {
                   setPrep(false);
                   setCanStart(true);
                   // Timer sẽ được start trong useEffect của canStart
@@ -2242,25 +2327,43 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   onChange={handleTypingInputChange}
                   onClick={(e) => e.stopPropagation()}
                   onFocus={(e) => e.stopPropagation()}
-                  placeholder=" "
-                  className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 border-blue-500 rounded-lg focus:outline-none focus:border-blue-400 text-center font-mono`}
+                  onKeyDown={(e) => {
+                    // Chặn phím Enter khi không phải lượt của mình
+                    if (e.key === 'Enter' && userId !== turnUserId) {
+                      e.preventDefault();
+                      console.log('No send');
+                      return;
+                    }
+                  }}
+                  placeholder={userId === turnUserId ? " " : "No send"}
+                  disabled={userId !== turnUserId}
+                  className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 rounded-lg focus:outline-none text-center font-mono ${
+                    userId === turnUserId 
+                      ? 'border-blue-500 focus:border-blue-400' 
+                      : 'border-gray-500 text-gray-400 cursor-not-allowed'
+                  }`}
                   style={{ 
                     width: mobileShrink ? '160px' : '280px',
                     fontSize: mobileShrink ? '14px' : '24px'
                   }}
                   maxLength={5}
-                  autoFocus
+                  autoFocus={userId === turnUserId}
                 />
                 <button
                   type="submit"
                   onClick={(e) => e.stopPropagation()}
-                  className={`${mobileShrink ? "px-3 py-1 text-xs" : "px-6 py-3 text-lg"} bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all duration-200 hover:scale-105 active:scale-95`}
+                  disabled={userId !== turnUserId}
+                  className={`${mobileShrink ? "px-3 py-1 text-xs" : "px-6 py-3 text-lg"} rounded-lg font-bold transition-all duration-200 ${
+                    userId === turnUserId
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105 active:scale-95'
+                      : 'bg-gray-500 text-gray-400 cursor-not-allowed'
+                  }`}
                 >
-                  Gửi kết quả
+                  {userId === turnUserId ? 'Gửi kết quả' : 'Không phải lượt của bạn'}
                 </button>
               </form>
               <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-gray-400 mt-1 text-center`}>
-                Để trống = DNF, Enter để gửi
+                {userId === turnUserId ? 'Để trống = DNF, Enter để gửi' : 'Chờ đến lượt của bạn'}
               </div>
             </div>
           ) : (
@@ -2280,7 +2383,24 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   <span className={mobileShrink ? "text-[20px] text-red-400" : "text-red-400"}>DNF</span>
                 ) : (
                   <>
-                    <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 32 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 80 }}>{(timer/1000).toFixed(2)}</span>
+                    <span style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 32 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", fontSize: 80 }}>
+                      {(() => {
+                        const cs = Math.floor((timer % 1000) / 10);
+                        const s = Math.floor((timer / 1000) % 60);
+                        const m = Math.floor(timer / 60000);
+                        
+                        if (m > 0) {
+                          // Có phút: hiển thị m:ss.cs
+                          return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                        } else if (s > 0) {
+                          // Có giây: hiển thị s.cs (không có số 0 thừa)
+                          return `${s}.${cs.toString().padStart(2, "0")}`;
+                        } else {
+                          // Chỉ có centiseconds: hiển thị 0.cs
+                          return `0.${cs.toString().padStart(2, "0")}`;
+                        }
+                      })()}
+                    </span>
                     <span className={mobileShrink ? "ml-1 align-bottom" : "ml-2 align-bottom"} style={mobileShrink ? { fontFamily: 'font-mono', fontWeight: 400, fontSize: 12, lineHeight: 1 } : { fontFamily: 'font-mono', fontWeight: 400, fontSize: 5, lineHeight: 1 }}>s</span>
                   </>
                 )}
@@ -2298,7 +2418,22 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           )}
           {opponentRunning && (
             <span className={mobileShrink ? "text-[10px] font-semibold text-red-400 block mt-1" : "text-xl font-semibold text-red-400 block mt-2"}>
-              Timer đối thủ: {(opponentTimer/1000).toFixed(2)}s
+              Timer đối thủ: {(() => {
+                const cs = Math.floor((opponentTimer % 1000) / 10);
+                const s = Math.floor((opponentTimer / 1000) % 60);
+                const m = Math.floor(opponentTimer / 60000);
+                
+                if (m > 0) {
+                  // Có phút: hiển thị m:ss.cs
+                  return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                } else if (s > 0) {
+                  // Có giây: hiển thị s.cs (không có số 0 thừa)
+                  return `${s}.${cs.toString().padStart(2, "0")}`;
+                } else {
+                  // Chỉ có centiseconds: hiển thị 0.cs
+                  return `0.${cs.toString().padStart(2, "0")}`;
+                }
+              })()}s
             </span>
           )}
         </div>
@@ -2390,7 +2525,24 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>
               ) : (
                 <>
-                  <span style={{ fontFamily: 'inherit' }}>{(opponentTimer/1000).toFixed(2)}</span>
+                  <span style={{ fontFamily: 'inherit' }}>
+                    {(() => {
+                      const cs = Math.floor((opponentTimer % 1000) / 10);
+                      const s = Math.floor((opponentTimer / 1000) % 60);
+                      const m = Math.floor(opponentTimer / 60000);
+                      
+                      if (m > 0) {
+                        // Có phút: hiển thị m:ss.cs
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        // Có giây: hiển thị s.cs (không có số 0 thừa)
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        // Chỉ có centiseconds: hiển thị 0.cs
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })()}
+                  </span>
                   <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
                 </>
               )}

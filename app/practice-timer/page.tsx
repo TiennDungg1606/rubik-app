@@ -10,6 +10,44 @@ const digitalFontStyle = `
 	font-weight: normal;
 	font-style: normal;
 }
+
+/* Responsive styles */
+@media (max-width: 768px) {
+	.stats-grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0.5rem;
+	}
+	
+	.stats-box {
+		padding: 0.5rem;
+	}
+	
+	.stats-label {
+		font-size: 0.75rem;
+	}
+	
+	.stats-value {
+		font-size: 0.875rem;
+	}
+	
+	.sidebar {
+		width: 100%;
+		max-width: none;
+	}
+	
+	.main-content {
+		flex-direction: column;
+	}
+	
+	.timer-container {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+	}
+}
 `;
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -25,6 +63,19 @@ function PracticeTimerContent() {
 	const intervalRef = useRef<NodeJS.Timeout | null>(null);
 	const [times, setTimes] = useState<number[]>([]);
 	const spaceHoldTimerRef = useRef<NodeJS.Timeout | null>(null);
+	
+	// Mobile detection
+	const [isMobile, setIsMobile] = useState(false);
+	
+	useEffect(() => {
+		const checkMobile = () => {
+			setIsMobile(window.innerWidth <= 1000);
+		};
+		
+		checkMobile();
+		window.addEventListener('resize', checkMobile);
+		return () => window.removeEventListener('resize', checkMobile);
+	}, []);
 
 		// Xử lý phím Space giống csTimer và cảm ứng trên điện thoại
 		useEffect(() => {
@@ -164,7 +215,7 @@ function PracticeTimerContent() {
 			<style>{digitalFontStyle}</style>
 			<div className="min-h-screen bg-[#131522] text-white">
 			{/* Header với nút Back */}
-			<div className="absolute top-6 left-6">
+			<div className="absolute top-6 left-6 z-10">
 				<button 
 					onClick={() => router.push('/lobby?tab=practice')} 
 					className="text-gray-400 hover:text-white text-2xl font-bold hover:scale-105 transition-transform"
@@ -174,51 +225,49 @@ function PracticeTimerContent() {
 			</div>
 
 			{/* Main Content */}
-			<div className="flex h-screen">
+			<div className={`flex h-screen ${isMobile ? 'main-content' : ''}`}>
 				{/* Left Content - Scramble và Timer */}
-				<div className="flex-1 flex flex-col items-center justify-center">
+				<div className={`flex-1 flex flex-col items-center justify-center ${isMobile ? 'timer-container' : ''}`}>
 					{/* Scramble Sequence */}
-					<div className="mb-8 text-center">
-						<div className="text-lg font-mono mb-2 text-gray-300">{alg}</div>
-						<div className="text-2xl font-bold mb-4 text-white">OLL {name}</div>
+					<div className={`${isMobile ? 'mb-4' : 'mb-8'} text-center`}>
+						<div className={`${isMobile ? 'text-sm' : 'text-lg'} font-mono mb-2 text-gray-300`}>{alg}</div>
+						<div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold mb-4 text-white`}>OLL {name}</div>
 					</div>
 
-					{/* Timer */}
-								<div className="text-center">
-									<div
-										className={`text-[120px] mb-8 select-none transition-colors ${
-											ready && !running ? 'text-green-400' :
-											running ? 'text-green-400' :
-											spaceHeld && !running ? 'text-yellow-400' :
-											'text-white'
-										}`}
-										style={{ fontFamily: 'Digital7Mono, monospace', letterSpacing: '0.05em' }}
-										onTouchStart={handleTouchStart}
-										onTouchEnd={handleTouchEnd}
-										onTouchCancel={handleTouchEnd}
-									>
-										{format(time)}
-									</div>
-									{/* Status Text */}
-									<div className="text-lg text-gray-400 mb-4">
-										{ready && !running ? 'Sẵn sàng! Thả Space/chạm để bắt đầu' :
-											running ? 'Đang giải... Nhấn Space/chạm để dừng' :
-											spaceHeld && !running ? 'Giữ Space/giữ chạm để chuẩn bị...' :
-											'Giữ ≥100ms rồi thả ra để bắt đầu timer'}
-									</div>
-
-									{/* Instructions */}
-									<div className="text-center text-gray-500 text-sm">
-									</div>
-								</div>
+					{/* Timer - Mở rộng vùng cảm ứng */}
+					<div 
+						className={`text-center ${isMobile ? 'w-full h-full flex flex-col justify-center items-center' : ''}`}
+						onTouchStart={handleTouchStart}
+						onTouchEnd={handleTouchEnd}
+						onTouchCancel={handleTouchEnd}
+					>
+						<div
+							className={`${isMobile ? 'text-[80px]' : 'text-[120px]'} mb-8 select-none transition-colors ${
+								ready && !running ? 'text-green-400' :
+								running ? 'text-green-400' :
+								spaceHeld && !running ? 'text-yellow-400' :
+								'text-white'
+							}`}
+							style={{ fontFamily: 'Digital7Mono, monospace', letterSpacing: '0.05em' }}
+						>
+							{format(time)}
+						</div>
+						{/* Status Text */}
+						<div className={`${isMobile ? 'text-sm' : 'text-lg'} text-gray-400 mb-4`}>
+							{ready && !running ? 'Sẵn sàng! Thả Space/chạm để bắt đầu' :
+								running ? 'Đang giải... Nhấn Space/chạm để dừng' :
+								spaceHeld && !running ? 'Giữ Space/giữ chạm để chuẩn bị...' :
+								'Giữ ≥100ms rồi thả ra để bắt đầu timer'}
+						</div>
+					</div>
 				</div>
 
 				{/* Right Sidebar - Statistics */}
-				<div className="w-80 bg-gray-900 p-6 overflow-y-auto">
-					<h3 className="text-xl font-bold mb-4 text-white">Thống kê</h3>
+				<div className={`${isMobile ? 'sidebar' : 'w-80'} bg-gray-900 p-6 overflow-y-auto`}>
+					<h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold mb-4 text-white`}>Thống kê</h3>
 					{/* Recent Times */}
-					<div className="mb-6">
-						<h4 className="text-lg font-semibold mb-3 text-gray-300">Thời gian gần đây</h4>
+					<div className={`${isMobile ? 'mb-4' : 'mb-6'}`}>
+						<h4 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold mb-3 text-gray-300`}>Thời gian gần đây</h4>
 						<div className="space-y-2">
 							{times.map((t, index) => (
 								<div key={index} className="flex justify-between items-center text-sm">
@@ -239,28 +288,28 @@ function PracticeTimerContent() {
 					</div>
 
 					{/* Statistics Grid */}
-					<div className="grid grid-cols-2 gap-4">
-						<div className="bg-gray-800 p-3 rounded">
-							<div className="text-xs text-gray-400">pb</div>
-							<div className="text-lg font-bold text-green-400">
+					<div className={`grid grid-cols-2 gap-4 stats-grid`}>
+						<div className="bg-gray-800 p-3 rounded stats-box">
+							<div className={`text-gray-400 stats-label`}>pb</div>
+							<div className={`font-bold text-green-400 stats-value`}>
 								{times.length > 0 ? format(Math.min(...times)) : '-'}
 							</div>
 						</div>
-						<div className="bg-gray-800 p-3 rounded">
-							<div className="text-xs text-gray-400">worst</div>
-							<div className="text-lg font-bold text-red-400">
+						<div className="bg-gray-800 p-3 rounded stats-box">
+							<div className={`text-gray-400 stats-label`}>worst</div>
+							<div className={`font-bold text-red-400 stats-value`}>
 								{times.length > 0 ? format(Math.max(...times)) : '-'}
 							</div>
 						</div>
-						<div className="bg-gray-800 p-3 rounded">
-							<div className="text-xs text-gray-400">avg</div>
-							<div className="text-lg font-bold text-blue-400">
+						<div className="bg-gray-800 p-3 rounded stats-box">
+							<div className={`text-gray-400 stats-label`}>avg</div>
+							<div className={`font-bold text-blue-400 stats-value`}>
 								{times.length > 0 ? format(Math.round(times.reduce((a, b) => a + b, 0) / times.length)) : '-'}
 							</div>
 						</div>
-						<div className="bg-gray-800 p-3 rounded">
-							<div className="text-xs text-gray-400">ao5</div>
-							<div className="text-lg font-bold text-yellow-400">
+						<div className="bg-gray-800 p-3 rounded stats-box">
+							<div className={`text-gray-400 stats-label`}>ao5</div>
+							<div className={`font-bold text-yellow-400 stats-value`}>
 								{times.length >= 5 ? format(Math.round(times.slice(0, 5).reduce((a, b) => a + b, 0) / 5)) : '-'}
 							</div>
 						</div>
@@ -269,7 +318,7 @@ function PracticeTimerContent() {
 					{/* Reset Button */}
 					<button 
 						onClick={handleReset}
-						className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded transition-colors"
+						className={`w-full ${isMobile ? 'mt-4' : 'mt-6'} bg-gray-700 hover:bg-gray-600 text-white py-2 rounded transition-colors`}
 					>
 						Reset All
 					</button>

@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { getScramble } from "@/lib/wcaScramble";
 import DropdownPortal from "./DropdownPortal";
 
+
+
 // Thêm style cho font Digital-7 Mono
 const digitalFontStyle = `
 @font-face {
@@ -53,6 +55,47 @@ const digitalFontStyle = `
 .animate-fade-in {
 	animation: fadeIn 0.3s ease-out;
 }
+
+/* Animation cho solve mới */
+@keyframes newSolveHighlight {
+	0% {
+		background: rgba(34, 197, 94, 0.3);
+		transform: scale(1.02);
+	}
+	50% {
+		background: rgba(34, 197, 94, 0.5);
+		transform: scale(1.05);
+	}
+	100% {
+		background: rgba(55, 65, 81, 0.3);
+		transform: scale(1);
+	}
+}
+
+.new-solve-highlight {
+	animation: newSolveHighlight 2s ease-out;
+}
+
+/* Animation cho PB mới */
+@keyframes pbCelebration {
+	0% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.1);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+.pb-celebration {
+	animation: pbCelebration 0.5s ease-out;
+}
+
+
+
+
 `;
 
 interface Solve {
@@ -84,6 +127,7 @@ export default function TimerTab() {
   const [statsColumns, setStatsColumns] = useState(4); // Số cột tối ưu cho bảng Statistics
   const [isScrambleLocked, setIsScrambleLocked] = useState(false); // Khóa scramble
   const [showCopiedMessage, setShowCopiedMessage] = useState(false); // Hiển thị thông báo "Copied"
+  const [newSolveId, setNewSolveId] = useState<string | null>(null); // ID của solve mới để highlight
   
   // Refs for dropdown positioning
   const sessionBtnRef = useRef<HTMLButtonElement>(null);
@@ -124,6 +168,55 @@ export default function TimerTab() {
     
     saveSolves();
   }, [solves, session]);
+
+  // Hàm kiểm tra PB mới (chỉ để log, không hiển thị gì)
+  const checkAndShowPB = (newSolve: Solve) => {
+    if (newSolve.penalty === 'DNF') return; // Không hiển thị cho DNF
+    
+    // Sử dụng solves hiện tại (không bao gồm solve mới)
+    const validSolves = solves.filter(s => s.penalty !== 'DNF');
+    const times = validSolves.map(s => s.penalty === '+2' ? s.time + 2000 : s.time);
+    
+    console.log('🔍 Kiểm tra PB:', {
+      newSolve: { time: newSolve.time, penalty: newSolve.penalty },
+      validSolvesCount: validSolves.length,
+      currentTimes: times,
+      newTime: newSolve.penalty === '+2' ? newSolve.time + 2000 : newSolve.time
+    });
+    
+    if (times.length === 0) {
+      // Lần đầu tiên - đây là PB đầu tiên!
+      console.log('🎉 PB đầu tiên!');
+      setNewSolveId(newSolve.id);
+      setTimeout(() => setNewSolveId(null), 1200);
+      return;
+    }
+    
+    const currentBest = Math.min(...times);
+    const newTime = newSolve.penalty === '+2' ? newSolve.time + 2000 : newSolve.time;
+    
+    if (newTime < currentBest) {
+      // PB mới!
+      console.log('🎆 PB mới!', { currentBest, newTime });
+      setNewSolveId(newSolve.id);
+      setTimeout(() => setNewSolveId(null), 1200);
+    } else {
+      console.log('❌ Không phải PB mới', { currentBest, newTime });
+    }
+  };
+
+  // Hàm thêm solve mới với hiệu ứng
+  const addNewSolve = (solve: Solve) => {
+    // Kiểm tra PB mới TRƯỚC KHI thêm solve mới
+    checkAndShowPB(solve);
+    
+    // Thêm solve mới vào danh sách
+    setSolves(prev => [solve, ...prev]);
+    setNewSolveId(solve.id);
+    
+    // Ẩn highlight sau 1.2 giây (nhanh hơn)
+    setTimeout(() => setNewSolveId(null), 500);
+  };
   
   // Đóng dropdown settings khi click ra ngoài
   // Improved: Close settings dropdown when clicking outside, but not when clicking the button or dropdown itself
@@ -294,7 +387,7 @@ export default function TimerTab() {
             date: new Date(),
             penalty: 'DNF'
           };
-          setSolves(prev => [newSolve, ...prev]);
+          addNewSolve(newSolve);
           setTime(0);
           setReady(false);
           setSpaceHeld(false);
@@ -328,9 +421,9 @@ export default function TimerTab() {
           // Bắt đầu giữ phím Space trong inspection
           setSpaceHeld(true);
           spaceHoldTimerRef.current = setTimeout(() => {
-            // Sau 250ms, chỉ chuẩn bị (không chạy timer)
+            // Sau 300ms, chỉ chuẩn bị (không chạy timer)
             setReady(true);
-          }, 250);
+          }, 300);
           return;
         }
         
@@ -339,7 +432,7 @@ export default function TimerTab() {
           setSpaceHeld(true);
           spaceHoldTimerRef.current = setTimeout(() => {
             setReady(true);
-          }, 250);
+          }, 300);
         }
         
         if (running) {
@@ -357,7 +450,7 @@ export default function TimerTab() {
             date: new Date(),
             penalty
           };
-          setSolves(prev => [newSolve, ...prev]);
+          addNewSolve(newSolve);
           // Không reset timer về 0
           setReady(false);
           setSpaceHeld(false);
@@ -425,7 +518,7 @@ export default function TimerTab() {
       setSpaceHeld(true);
       spaceHoldTimerRef.current = setTimeout(() => {
         setReady(true);
-      }, 250);
+      }, 300);
     }
     if (running) {
       setRunning(false);
@@ -878,11 +971,15 @@ export default function TimerTab() {
               {solves.map((solve, index) => (
                 <div
                   key={solve.id}
-                  className="flex items-center justify-between bg-neutral-800/30 rounded-lg p-1 border border-neutral-600/50"
+                  className={`flex items-center justify-between bg-neutral-800/30 rounded-lg p-1 border border-neutral-600/50 transition-all duration-300 ${
+                    newSolveId === solve.id ? 'new-solve-highlight' : ''
+                  }`}
                 >
                   <div className="flex items-center gap-1">
                     <span className="text-gray-400 text-xs w-3 sm:w-6">{solves.length - index}.</span>
-                    <span className={`font-mono text-xs ${solve.penalty === 'DNF' ? 'text-red-400' : 'text-green-400'}`}>
+                    <span className={`font-mono text-xs ${solve.penalty === 'DNF' ? 'text-red-400' : 'text-green-400'} ${
+                      newSolveId === solve.id ? 'pb-celebration' : ''
+                    }`}>
                       {format(solve.time)}
                     </span>
                   </div>
@@ -969,7 +1066,7 @@ export default function TimerTab() {
               {inspection && inspectionActive ? (
                         <div className="text-center mb-1">
           <div
-            className={`${mobileShrink ? "text-[100px]" : "text-[120px]"} select-none ${
+            className={`${mobileShrink ? "text-[100px]" : "text-[160px]"} select-none ${
               ready ? 'text-green-400' : 'text-white'
             }`}
             style={{ fontFamily: 'Digital7Mono, monospace', letterSpacing: '0.05em' }}
@@ -1006,7 +1103,7 @@ export default function TimerTab() {
                 /* Chế độ timer: hiện timer bình thường */
                 <div className="text-center mb-1">
                   <div
-                    className={`${mobileShrink ? "text-[100px]" : "text-[120px]"} select-none transition-colors ${
+                    className={`${mobileShrink ? "text-[100px]" : "text-[160px]"} select-none transition-colors ${
                       ready && !running ? 'text-green-400' :
                       running ? 'text-green-400' :
                       spaceHeld && !running ? 'text-yellow-400' :
@@ -1021,7 +1118,7 @@ export default function TimerTab() {
                     {ready && !running ? 'Sẵn sàng! Thả Space/chạm để bắt đầu' :
                       running ? 'Đang giải... Nhấn Space/chạm để dừng' :
                       spaceHeld && !running ? 'Giữ Space/giữ chạm để chuẩn bị...' :
-                      'Giữ ≥250ms rồi thả ra để bắt đầu timer'}
+                      'Giữ ≥300ms rồi thả ra để bắt đầu timer'}
                   </div>
 
                   {/* Controls */}
