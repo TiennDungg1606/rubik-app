@@ -90,6 +90,8 @@ export default function RoomPage() {
   const [showScrambleMsg, setShowScrambleMsg] = useState<boolean>(false);
   // Trạng thái thông báo kết thúc sớm
   const [showEarlyEndMsg, setShowEarlyEndMsg] = useState<{ show: boolean; message: string; type: 'win' | 'lose' | 'draw' }>({ show: false, message: '', type: 'draw' });
+  // State để khóa thao tác khi có 2 lần DNF
+  const [isLockedDue2DNF, setIsLockedDue2DNF] = useState<boolean>(false);
   const router = useRouter();
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(false);
@@ -690,7 +692,7 @@ useEffect(() => {
 
   // Hàm xử lý chế độ typing
   function handleTypingMode() {
-    if (users.length < 2) return; // Chỉ hoạt động khi đủ 2 người
+    if (users.length < 2 || isLockedDue2DNF) return; // Chỉ hoạt động khi đủ 2 người và không bị khóa do 2 lần DNF
     setIsTypingMode(!isTypingMode);
     setTypingInput("");
   }
@@ -698,7 +700,7 @@ useEffect(() => {
   // Hàm xử lý nhập thời gian
   function handleTypingSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (users.length < 2) return;
+    if (users.length < 2 || isLockedDue2DNF) return;
     
     // Kiểm tra xem có phải lượt của mình không
     if (userId !== turnUserId) {
@@ -947,8 +949,8 @@ useEffect(() => {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    // Chỉ cho phép nếu đến lượt mình (userId === turnUserId)
-    if (waiting || running || userId !== turnUserId || myResults.length >= 5 || pendingResult !== null) return;
+    // Chỉ cho phép nếu đến lượt mình (userId === turnUserId) và không bị khóa do 2 lần DNF
+    if (waiting || running || userId !== turnUserId || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -1004,11 +1006,11 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length]);
+  }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length, isLockedDue2DNF]);
 
   // Đếm ngược 15s chuẩn bị
   useEffect(() => {
-    if (!prep || waiting) return;
+    if (!prep || waiting || isLockedDue2DNF) return;
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
@@ -1050,12 +1052,12 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
-    if (!canStart || waiting) return;
+    if (!canStart || waiting || isLockedDue2DNF) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -1132,7 +1134,7 @@ useEffect(() => {
       }
     };
     // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile]);
+  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
@@ -1148,14 +1150,16 @@ useEffect(() => {
   useEffect(() => {
   const totalSolves = myResults.length + opponentResults.length;
   if (totalSolves === 0) return;
-  if (myResults.length > 0 && myResults.length > opponentResults.length) return; // chờ đối thủ
   
   // Kiểm tra điều kiện kết thúc sớm khi có 2 lần DNF
   const myDnfCount = myResults.filter(r => r === null).length;
   const oppDnfCount = opponentResults.filter(r => r === null).length;
   
-  // Kết thúc sớm khi một người có 2 lần DNF
-  if (myDnfCount >= 2 || oppDnfCount >= 2) {
+  // Chỉ kiểm tra khi cả 2 đều xong lượt giải đó (totalSolves chẵn)
+  if (totalSolves % 2 === 0 && (myDnfCount >= 2 || oppDnfCount >= 2)) {
+    // Khóa thao tác ở cả 2 bên
+    setIsLockedDue2DNF(true);
+    
     if (myDnfCount >= 2 && oppDnfCount >= 2) {
       // Cả hai đều có 2 lần DNF -> Hòa
       console.log('Trận đấu hòa - cả hai đều có 2 lần DNF');
@@ -1184,13 +1188,17 @@ useEffect(() => {
     const socket = getSocket();
     socket.emit('next-scramble', { roomId });
     
-    // Ẩn thông báo sau 3 giây
+    // Ẩn thông báo sau 20 giây và mở khóa thao tác
     setTimeout(() => {
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
-    }, 3000);
+      setIsLockedDue2DNF(false);
+    }, 20000);
     
     return; // Kết thúc sớm, không cần xử lý logic khác
   }
+  
+  // Chỉ xử lý reset khi cả 2 đều xong lượt giải
+  if (myResults.length > 0 && myResults.length > opponentResults.length) return; // chờ đối thủ
   
   // Khi kết thúc trận đấu (đủ 5 lượt mỗi bên), xác định người thắng và tăng set
   if (myResults.length === 5 && opponentResults.length === 5) {
@@ -1393,11 +1401,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           {/* Nút Typing */}
           <button
             onClick={handleTypingMode}
-            disabled={users.length < 2 || userId !== turnUserId}
+            disabled={users.length < 2 || userId !== turnUserId || isLockedDue2DNF}
             className={
               (mobileShrink
-                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || userId !== turnUserId ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || userId !== turnUserId ? 'opacity-60 cursor-not-allowed' : ''}`)
+                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || userId !== turnUserId || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || userId !== turnUserId || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`)
               + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
@@ -1725,17 +1733,121 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             <tbody>
               <tr>
                 <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>{userName}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{myStats.best !== null ? formatTime(myStats.best) : formatTime(myStats.best, myResults.length >= 5)}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{myStats.worst !== null ? formatTime(myStats.worst) : formatTime(myStats.worst, myResults.length >= 5)}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{myStats.mean !== null ? formatStat(myStats.mean) : formatStat(myStats.mean, myResults.length >= 5)}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{myStats.ao5 !== null ? formatStat(myStats.ao5) : formatStat(myStats.ao5, myResults.length >= 5)}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{myStats.best !== null ? (() => {
+                  const ms = myStats.best;
+                  const cs = Math.floor((ms % 1000) / 10);
+                  const s = Math.floor((ms / 1000) % 60);
+                  const m = Math.floor(ms / 60000);
+                  
+                  if (m > 0) {
+                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                  } else if (s > 0) {
+                    return `${s}.${cs.toString().padStart(2, "0")}`;
+                  } else {
+                    return `0.${cs.toString().padStart(2, "0")}`;
+                  }
+                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{myStats.worst !== null ? (() => {
+                  const ms = myStats.worst;
+                  const cs = Math.floor((ms % 1000) / 10);
+                  const s = Math.floor((ms / 1000) % 60);
+                  const m = Math.floor(ms / 60000);
+                  
+                  if (m > 0) {
+                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                  } else if (s > 0) {
+                    return `${s}.${cs.toString().padStart(2, "0")}`;
+                  } else {
+                    return `0.${cs.toString().padStart(2, "0")}`;
+                  }
+                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{myStats.mean !== null ? (() => {
+                  const ms = myStats.mean;
+                  const cs = Math.floor((ms % 1000) / 10);
+                  const s = Math.floor((ms / 1000) % 60);
+                  const m = Math.floor(ms / 60000);
+                  
+                  if (m > 0) {
+                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                  } else if (s > 0) {
+                    return `${s}.${cs.toString().padStart(2, "0")}`;
+                  } else {
+                    return `0.${cs.toString().padStart(2, "0")}`;
+                  }
+                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{myStats.ao5 !== null ? (() => {
+                  const ms = myStats.ao5;
+                  const cs = Math.floor((ms % 1000) / 10);
+                  const s = Math.floor((ms / 1000) % 60);
+                  const m = Math.floor(ms / 60000);
+                  
+                  if (m > 0) {
+                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                  } else if (s > 0) {
+                    return `${s}.${cs.toString().padStart(2, "0")}`;
+                  } else {
+                    return `0.${cs.toString().padStart(2, "0")}`;
+                  }
+                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
               </tr>
               <tr>
                 <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>{opponentName}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{oppStats.best !== null ? formatTime(oppStats.best) : formatTime(oppStats.best, opponentResults.length >= 5)}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{oppStats.worst !== null ? formatTime(oppStats.worst) : formatTime(oppStats.worst, opponentResults.length >= 5)}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{oppStats.mean !== null ? formatStat(oppStats.mean) : formatStat(oppStats.mean, opponentResults.length >= 5)}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{oppStats.ao5 !== null ? formatStat(oppStats.ao5) : formatStat(oppStats.ao5, opponentResults.length >= 5)}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{oppStats.best !== null ? (() => {
+                  const ms = oppStats.best;
+                  const cs = Math.floor((ms % 1000) / 10);
+                  const s = Math.floor((ms / 1000) % 60);
+                  const m = Math.floor(ms / 60000);
+                  
+                  if (m > 0) {
+                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                  } else if (s > 0) {
+                    return `${s}.${cs.toString().padStart(2, "0")}`;
+                  } else {
+                    return `0.${cs.toString().padStart(2, "0")}`;
+                  }
+                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
+                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{oppStats.worst !== null ? (() => {
+                  const ms = oppStats.worst;
+                  const cs = Math.floor((ms % 1000) / 10);
+                  const s = Math.floor((ms / 1000) % 60);
+                  const m = Math.floor(ms / 60000);
+                  
+                  if (m > 0) {
+                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                  } else if (s > 0) {
+                    return `${s}.${cs.toString().padStart(2, "0")}`;
+                  } else {
+                    return `0.${cs.toString().padStart(2, "0")}`;
+                  }
+                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{oppStats.mean !== null ? (() => {
+                  const ms = oppStats.mean;
+                  const cs = Math.floor((ms % 1000) / 10);
+                  const s = Math.floor((ms / 1000) % 60);
+                  const m = Math.floor(ms / 60000);
+                  
+                  if (m > 0) {
+                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                  } else if (s > 0) {
+                    return `${s}.${cs.toString().padStart(2, "0")}`;
+                  } else {
+                    return `0.${cs.toString().padStart(2, "0")}`;
+                  }
+                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{oppStats.ao5 !== null ? (() => {
+                  const ms = oppStats.ao5;
+                  const cs = Math.floor((ms % 1000) / 10);
+                  const s = Math.floor((ms / 1000) % 60);
+                  const m = Math.floor(ms / 60000);
+                  
+                  if (m > 0) {
+                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                  } else if (s > 0) {
+                    return `${s}.${cs.toString().padStart(2, "0")}`;
+                  } else {
+                    return `0.${cs.toString().padStart(2, "0")}`;
+                  }
+                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
               </tr>
             </tbody>
           </table>
@@ -1788,6 +1900,20 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               {(() => {
                 // Chỉ hiển thị khi đủ 2 người
                 if (waiting || users.length < 2) return null;
+                
+                // Ưu tiên hiển thị thông báo 2 lần DNF
+                if (showEarlyEndMsg.show) {
+                  return (
+                    <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} ${
+                      showEarlyEndMsg.type === 'win' ? 'text-green-400' :
+                      showEarlyEndMsg.type === 'lose' ? 'text-red-400' :
+                      'text-yellow-400'
+                    }`}>
+                      {showEarlyEndMsg.message}
+                    </span>
+                  );
+                }
+                
                 // Nếu cả 2 đã đủ 5 lượt thì thông báo kết quả
                 const bothDone = myResults.length >= 5 && opponentResults.length >= 5;
                 if (bothDone) {
@@ -1810,35 +1936,31 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   }
                     return <span className={mobileShrink ? "text-[10px] font-semibold text-green-400" : "text-2xl font-semibold text-green-400"}>Trận đấu kết thúc, {winner} thắng</span>;
                 }
-                // Đang trong trận
-                let msg = "";
-                let name = userId === turnUserId ? userName : opponentName;
-                if (prep) {
-                  msg = `${name} đang chuẩn bị`;
-                } else if (running) {
-                  msg = `${name} đang giải`;
-                } else {
-                  msg = `Đến lượt ${name} thi đấu`;
+                
+                // Đang trong trận - chỉ hiển thị khi không bị khóa do 2 lần DNF
+                if (!isLockedDue2DNF) {
+                  let msg = "";
+                  let name = userId === turnUserId ? userName : opponentName;
+                  if (prep) {
+                    msg = `${name} đang chuẩn bị`;
+                  } else if (running) {
+                    msg = `${name} đang giải`;
+                  } else {
+                    msg = `Đến lượt ${name} thi đấu`;
+                  }
+                  return (
+                    <>
+                      <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
+                      {showScrambleMsg && (
+                        <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>
+                          Hai cuber hãy tráo scramble
+                        </span>
+                      )}
+                    </>
+                  );
                 }
-                return (
-                  <>
-                    <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
-                    {showScrambleMsg && (
-                      <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>
-                        Hai cuber hãy tráo scramble
-                      </span>
-                    )}
-                    {showEarlyEndMsg.show && (
-                      <span className={`${mobileShrink ? "text-[10px] font-semibold block mt-1" : "text-2xl font-semibold block mt-2"} ${
-                        showEarlyEndMsg.type === 'win' ? 'text-green-400' :
-                        showEarlyEndMsg.type === 'lose' ? 'text-red-400' :
-                        'text-yellow-400'
-                      }`}>
-                        {showEarlyEndMsg.message}
-                      </span>
-                    )}
-                  </>
-                );
+                
+                return null;
               })()}
             </div>
           </div>
@@ -1867,8 +1989,34 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               {[0,1,2,3,4].map(i => (
                 <tr key={i} className="border-b border-gray-700">
                   <td className="py-1 border border-gray-700">{i+1}</td>
-                  <td className="py-1 border border-gray-700">{myResults[i] === null ? 'DNF' : (typeof myResults[i] === 'number' ? formatTime(myResults[i]) : "")}</td>
-                  <td className="py-1 border border-gray-700">{opponentResults[i] === null ? 'DNF' : (typeof opponentResults[i] === 'number' ? formatTime(opponentResults[i]) : "")}</td>
+                  <td className="py-1 border border-gray-700">{myResults[i] === null ? 'DNF' : (typeof myResults[i] === 'number' ? (() => {
+                    const ms = myResults[i] as number;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : "")}</td>
+                  <td className="py-1 border border-gray-700">{opponentResults[i] === null ? 'DNF' : (typeof opponentResults[i] === 'number' ? (() => {
+                    const ms = opponentResults[i] as number;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : "")}</td>
                 </tr>
               ))}
             </tbody>
@@ -1957,10 +2105,48 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{(() => {
+              <div style={{fontSize: (() => {
                 if (myResults.length > 0) {
                   const stats = calcStats(myResults);
-                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) return (stats.mean/1000).toFixed(2);
+                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
+                    const ms = stats.mean;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    let timeStr = '';
+                    
+                    if (m > 0) {
+                      timeStr = `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      timeStr = `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      timeStr = `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                    
+                    // Điều chỉnh cỡ chữ dựa trên độ dài
+                    if (timeStr.length <= 4) return mobileShrink ? 11 : 18; // 0.05, 1.23
+                    if (timeStr.length <= 6) return mobileShrink ? 10 : 16; // 12.34, 1:05.43
+                    return mobileShrink ? 9 : 14; // 1:23.45, 12:34.56
+                  }
+                }
+                return mobileShrink ? 11 : 18;
+              })()}}>{(() => {
+                if (myResults.length > 0) {
+                  const stats = calcStats(myResults);
+                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
+                    const ms = stats.mean;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  }
                 }
                 return '-';
               })()}</div>
@@ -1991,7 +2177,43 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <span style={{ color: '#e53935', fontWeight: 700 }}>DNF</span>
               ) : (
                 <>
-                  <span style={{ fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace" }}>{(timer/1000).toFixed(2)}</span>
+                  <span style={{ 
+                    fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace",
+                    fontSize: (() => {
+                      // Tự động điều chỉnh cỡ chữ dựa trên độ dài thời gian
+                      const cs = Math.floor((timer % 1000) / 10);
+                      const s = Math.floor((timer / 1000) % 60);
+                      const m = Math.floor(timer / 60000);
+                      let timeStr = '';
+                      
+                      if (m > 0) {
+                        timeStr = `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        timeStr = `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        timeStr = `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                      
+                      // Điều chỉnh cỡ chữ dựa trên độ dài
+                      if (timeStr.length <= 4) return mobileShrink ? 18 : 24; // 0.05, 1.23
+                      if (timeStr.length <= 6) return mobileShrink ? 16 : 20; // 12.34, 1:05.43
+                      return mobileShrink ? 14 : 18; // 1:23.45, 12:34.56
+                    })()
+                  }}>
+                    {(() => {
+                      const cs = Math.floor((timer % 1000) / 10);
+                      const s = Math.floor((timer / 1000) % 60);
+                      const m = Math.floor(timer / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })()}
+                  </span>
                   <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
                 </>
               )}
@@ -2042,7 +2264,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
         {...(isMobile ? {
             onTouchStart: (e) => {
-              if (pendingResult !== null) return;
+              if (pendingResult !== null || isLockedDue2DNF) return;
               if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
               // Nếu chạm vào webcam thì bỏ qua
               const webcamEls = document.querySelectorAll('.webcam-area');
@@ -2055,7 +2277,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               setSpaceHeld(true); // Đang giữ tay
             },
             onTouchEnd: (e) => {
-              if (pendingResult !== null) return;
+              if (pendingResult !== null || isLockedDue2DNF) return;
               if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
               // Nếu chạm vào webcam thì bỏ qua
               const webcamEls = document.querySelectorAll('.webcam-area');
@@ -2101,7 +2323,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
           } : {
             onClick: () => {
-              if (waiting || myResults.length >= 5 || pendingResult !== null) return;
+              if (waiting || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
               if (isTypingMode) return; // Chặn click khi đang ở chế độ typing
               if (!prep && !running && userId === turnUserId) {
                 setPrep(true);
@@ -2272,13 +2494,79 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   txt += `Kết quả từng lượt:\n`;
                   for (let i = 0; i < 5; i++) {
                     const val = (myResults && myResults[i] !== undefined) ? myResults[i] : null;
-                    txt += `  Lượt ${i+1}: ${val === null ? 'DNF' : (typeof val === 'number' ? (val/1000).toFixed(2) : '')}\n`;
+                    if (val === null) {
+                      txt += `  Lượt ${i+1}: DNF\n`;
+                    } else if (typeof val === 'number') {
+                      const cs = Math.floor((val % 1000) / 10);
+                      const s = Math.floor((val / 1000) % 60);
+                      const m = Math.floor(val / 60000);
+                      
+                      if (m > 0) {
+                        txt += `  Lượt ${i+1}: ${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}\n`;
+                      } else if (s > 0) {
+                        txt += `  Lượt ${i+1}: ${s}.${cs.toString().padStart(2, "0")}\n`;
+                      } else {
+                        txt += `  Lượt ${i+1}: 0.${cs.toString().padStart(2, "0")}\n`;
+                      }
+                    }
                   }
                   txt += `Thống kê:\n`;
-                  txt += `  Best: ${myStats.best !== null ? (myStats.best/1000).toFixed(2) : 'DNF'}\n`;
-                  txt += `  Worst: ${myStats.worst !== null ? (myStats.worst/1000).toFixed(2) : 'DNF'}\n`;
-                  txt += `  Mean: ${myStats.mean !== null ? (myStats.mean/1000).toFixed(2) : 'DNF'}\n`;
-                  txt += `  Ao5: ${myStats.ao5 !== null ? (myStats.ao5/1000).toFixed(2) : 'DNF'}\n`;
+                  txt += `  Best: ${myStats.best !== null ? (() => {
+                    const ms = myStats.best;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : 'DNF'}\n`;
+                  txt += `  Worst: ${myStats.worst !== null ? (() => {
+                    const ms = myStats.worst;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : 'DNF'}\n`;
+                  txt += `  Mean: ${myStats.mean !== null ? (() => {
+                    const ms = myStats.mean;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : 'DNF'}\n`;
+                  txt += `  Ao5: ${myStats.ao5 !== null ? (() => {
+                    const ms = myStats.ao5;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : 'DNF'}\n`;
                   txt += `\n`;
 
                   // Người chơi 2
@@ -2286,13 +2574,79 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   txt += `Kết quả từng lượt:\n`;
                   for (let i = 0; i < 5; i++) {
                     const val = (opponentResults && opponentResults[i] !== undefined) ? opponentResults[i] : null;
-                    txt += `  Lượt ${i+1}: ${val === null ? 'DNF' : (typeof val === 'number' ? (val/1000).toFixed(2) : '')}\n`;
+                    if (val === null) {
+                      txt += `  Lượt ${i+1}: DNF\n`;
+                    } else if (typeof val === 'number') {
+                      const cs = Math.floor((val % 1000) / 10);
+                      const s = Math.floor((val / 1000) % 60);
+                      const m = Math.floor(val / 60000);
+                      
+                      if (m > 0) {
+                        txt += `  Lượt ${i+1}: ${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}\n`;
+                      } else if (s > 0) {
+                        txt += `  Lượt ${i+1}: ${s}.${cs.toString().padStart(2, "0")}\n`;
+                      } else {
+                        txt += `  Lượt ${i+1}: 0.${cs.toString().padStart(2, "0")}\n`;
+                      }
+                    }
                   }
                   txt += `Thống kê:\n`;
-                  txt += `  Best: ${oppStats.best !== null ? (oppStats.best/1000).toFixed(2) : 'DNF'}\n`;
-                  txt += `  Worst: ${oppStats.worst !== null ? (oppStats.worst/1000).toFixed(2) : 'DNF'}\n`;
-                  txt += `  Mean: ${oppStats.mean !== null ? (oppStats.mean/1000).toFixed(2) : 'DNF'}\n`;
-                  txt += `  Ao5: ${oppStats.ao5 !== null ? (oppStats.ao5/1000).toFixed(2) : 'DNF'}\n`;
+                  txt += `  Best: ${oppStats.best !== null ? (() => {
+                    const ms = oppStats.best;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : 'DNF'}\n`;
+                  txt += `  Worst: ${oppStats.worst !== null ? (() => {
+                    const ms = oppStats.worst;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : 'DNF'}\n`;
+                  txt += `  Mean: ${oppStats.mean !== null ? (() => {
+                    const ms = oppStats.mean;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : 'DNF'}\n`;
+                  txt += `  Ao5: ${oppStats.ao5 !== null ? (() => {
+                    const ms = oppStats.ao5;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : 'DNF'}\n`;
                   txt += `\n`;
 
                   // Kết quả cuối cùng
@@ -2335,10 +2689,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                       return;
                     }
                   }}
-                  placeholder={userId === turnUserId ? " " : "No send"}
-                  disabled={userId !== turnUserId}
+                  placeholder={userId === turnUserId && !isLockedDue2DNF ? " " : "No send"}
+                  disabled={userId !== turnUserId || isLockedDue2DNF}
                   className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 rounded-lg focus:outline-none text-center font-mono ${
-                    userId === turnUserId 
+                    userId === turnUserId && !isLockedDue2DNF
                       ? 'border-blue-500 focus:border-blue-400' 
                       : 'border-gray-500 text-gray-400 cursor-not-allowed'
                   }`}
@@ -2352,18 +2706,18 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <button
                   type="submit"
                   onClick={(e) => e.stopPropagation()}
-                  disabled={userId !== turnUserId}
+                  disabled={userId !== turnUserId || isLockedDue2DNF}
                   className={`${mobileShrink ? "px-3 py-1 text-xs" : "px-6 py-3 text-lg"} rounded-lg font-bold transition-all duration-200 ${
-                    userId === turnUserId
+                    userId === turnUserId && !isLockedDue2DNF
                       ? 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105 active:scale-95'
                       : 'bg-gray-500 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  {userId === turnUserId ? 'Gửi kết quả' : 'Không phải lượt của bạn'}
+                  {userId === turnUserId && !isLockedDue2DNF ? 'Gửi kết quả' : 'Không phải lượt của bạn'}
                 </button>
               </form>
               <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-gray-400 mt-1 text-center`}>
-                {userId === turnUserId ? 'Để trống = DNF, Enter để gửi' : 'Chờ đến lượt của bạn'}
+                {userId === turnUserId && !isLockedDue2DNF ? 'Để trống = DNF, Enter để gửi' : (isLockedDue2DNF ? 'Thao tác bị khóa do 2 lần DNF' : 'Chờ đến lượt của bạn')}
               </div>
             </div>
           ) : (
@@ -2418,22 +2772,42 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           )}
           {opponentRunning && (
             <span className={mobileShrink ? "text-[10px] font-semibold text-red-400 block mt-1" : "text-xl font-semibold text-red-400 block mt-2"}>
-              Timer đối thủ: {(() => {
+              Timer đối thủ: <span style={{ fontSize: (() => {
                 const cs = Math.floor((opponentTimer % 1000) / 10);
                 const s = Math.floor((opponentTimer / 1000) % 60);
                 const m = Math.floor(opponentTimer / 60000);
+                let timeStr = '';
                 
                 if (m > 0) {
-                  // Có phút: hiển thị m:ss.cs
-                  return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                  timeStr = `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
                 } else if (s > 0) {
-                  // Có giây: hiển thị s.cs (không có số 0 thừa)
-                  return `${s}.${cs.toString().padStart(2, "0")}`;
+                  timeStr = `${s}.${cs.toString().padStart(2, "0")}`;
                 } else {
-                  // Chỉ có centiseconds: hiển thị 0.cs
-                  return `0.${cs.toString().padStart(2, "0")}`;
+                  timeStr = `0.${cs.toString().padStart(2, "0")}`;
                 }
-              })()}s
+                
+                // Điều chỉnh cỡ chữ dựa trên độ dài
+                if (timeStr.length <= 4) return mobileShrink ? 10 : 20; // 0.05, 1.23
+                if (timeStr.length <= 6) return mobileShrink ? 9 : 18; // 12.34, 1:05.43
+                return mobileShrink ? 8 : 16; // 1:23.45, 12:34.56
+              })() }}>
+                {(() => {
+                  const cs = Math.floor((opponentTimer % 1000) / 10);
+                  const s = Math.floor((opponentTimer / 1000) % 60);
+                  const m = Math.floor(opponentTimer / 60000);
+                  
+                  if (m > 0) {
+                    // Có phút: hiển thị m:ss.cs
+                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                  } else if (s > 0) {
+                    // Có giây: hiển thị s.cs (không có số 0 thừa)
+                    return `${s}.${cs.toString().padStart(2, "0")}`;
+                  } else {
+                    // Chỉ có centiseconds: hiển thị 0.cs
+                    return `0.${cs.toString().padStart(2, "0")}`;
+                  }
+                })()}
+              </span>s
             </span>
           )}
         </div>
@@ -2492,10 +2866,48 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{(() => {
+              <div style={{fontSize: (() => {
                 if (opponentResults.length > 0) {
                   const stats = calcStats(opponentResults);
-                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) return (stats.mean/1000).toFixed(2);
+                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
+                    const ms = stats.mean;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    let timeStr = '';
+                    
+                    if (m > 0) {
+                      timeStr = `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      timeStr = `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      timeStr = `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                    
+                    // Điều chỉnh cỡ chữ dựa trên độ dài
+                    if (timeStr.length <= 4) return mobileShrink ? 11 : 18; // 0.05, 1.23
+                    if (timeStr.length <= 6) return mobileShrink ? 10 : 16; // 12.34, 1:05.43
+                    return mobileShrink ? 9 : 14; // 1:23.45, 12:34.56
+                  }
+                }
+                return mobileShrink ? 11 : 18;
+              })()}}>{(() => {
+                if (opponentResults.length > 0) {
+                  const stats = calcStats(opponentResults);
+                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
+                    const ms = stats.mean;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  }
                 }
                 return '-';
               })()}</div>
@@ -2525,7 +2937,29 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>
               ) : (
                 <>
-                  <span style={{ fontFamily: 'inherit' }}>
+                  <span style={{ 
+                    fontFamily: 'inherit',
+                    fontSize: (() => {
+                      // Tự động điều chỉnh cỡ chữ dựa trên độ dài thời gian
+                      const cs = Math.floor((opponentTimer % 1000) / 10);
+                      const s = Math.floor((opponentTimer / 1000) % 60);
+                      const m = Math.floor(opponentTimer / 60000);
+                      let timeStr = '';
+                      
+                      if (m > 0) {
+                        timeStr = `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        timeStr = `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        timeStr = `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                      
+                      // Điều chỉnh cỡ chữ dựa trên độ dài
+                      if (timeStr.length <= 4) return mobileShrink ? 18 : 24; // 0.05, 1.23
+                      if (timeStr.length <= 6) return mobileShrink ? 16 : 20; // 12.34, 1:05.43
+                      return mobileShrink ? 14 : 18; // 1:23.45, 12:34.56
+                    })()
+                  }}>
                     {(() => {
                       const cs = Math.floor((opponentTimer % 1000) / 10);
                       const s = Math.floor((opponentTimer / 1000) % 60);
