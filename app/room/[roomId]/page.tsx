@@ -787,8 +787,8 @@ useEffect(() => {
       setIsMobile(mobile);
       const portrait = window.innerHeight > window.innerWidth;
       setIsPortrait(portrait);
-      // Chỉ coi là mobile landscape nếu là mobile, landscape và chiều rộng nhỏ hơn 900px
-      setIsMobileLandscape(mobile && !portrait && window.innerWidth < 900);
+      // Điều chỉnh logic mobile landscape để phù hợp với điện thoại hiện đại
+      setIsMobileLandscape(mobile && !portrait && window.innerWidth < 1200);
     }
     if (typeof window !== 'undefined') {
       checkDevice();
@@ -2242,7 +2242,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   onChange={handleTypingInputChange}
                   onClick={(e) => e.stopPropagation()}
                   onFocus={(e) => e.stopPropagation()}
-                  placeholder="Nhập thời gian (VD: 1234 = 12.34s)"
+                  placeholder=" "
                   className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 border-blue-500 rounded-lg focus:outline-none focus:border-blue-400 text-center font-mono`}
                   style={{ 
                     width: mobileShrink ? '160px' : '280px',

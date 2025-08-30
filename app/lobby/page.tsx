@@ -388,12 +388,7 @@ function LobbyContent() {
                 ? "bg-blue-100 text-blue-700 shadow-md"
                 : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
             `}
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                window.open("https://cstimer.net", "_blank");
-              }
-              // Không setTab("timer") để không chuyển tab trong app
-            }}
+            onClick={() => setTab("timer")}
           >Timer</button>
           <button
             className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
