@@ -494,6 +494,9 @@ useEffect(() => {
     setRematchPending(false);
     setRematchJustAccepted(true); // Đánh dấu vừa tái đấu xong
     setIsRematchMode(true); // Bật chế độ tái đấu
+    // Mở khóa thao tác khi tái đấu
+    setIsLockedDue2DNF(false);
+    setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
   };
   // Khi đối phương từ chối tái đấu
   const handleRematchDeclined = () => {
@@ -1068,8 +1071,9 @@ useEffect(() => {
     
     intervalRef.current = setInterval(() => {
       setTimer(t => {
-        timerRef.current = t + 10;
-        return t + 10;
+        const newTime = t + 10;
+        timerRef.current = newTime; // Đảm bảo timerRef.current luôn được cập nhật
+        return newTime;
       });
     }, 10);
     // Khi dừng timer, chỉ lưu vào pendingResult, không gửi lên server ngay
@@ -1077,10 +1081,13 @@ useEffect(() => {
       setRunning(false);
       if (intervalRef.current) clearInterval(intervalRef.current);
       
-      // Gửi timer-update event để đối thủ biết mình dừng timer
-      socket.emit("timer-update", { roomId, userId, ms: timerRef.current, running: false, finished: false });
+      // Lấy thời gian chính xác từ timer hiện tại
+      const currentTime = timerRef.current;
       
-      setPendingResult(timerRef.current);
+      // Gửi timer-update event để đối thủ biết mình dừng timer
+      socket.emit("timer-update", { roomId, userId, ms: currentTime, running: false, finished: false });
+      
+      setPendingResult(currentTime);
       setPendingType('normal');
       setCanStart(false);
       // Không setTurn('opponent') ở đây, chờ xác nhận
@@ -1157,24 +1164,24 @@ useEffect(() => {
   
   // Chỉ kiểm tra khi cả 2 đều xong lượt giải đó (totalSolves chẵn)
   if (totalSolves % 2 === 0 && (myDnfCount >= 2 || oppDnfCount >= 2)) {
-    // Khóa thao tác ở cả 2 bên
+    // Khóa thao tác ở cả 2 bên - KHÓA MÃI MÃI cho đến khi tái đấu
     setIsLockedDue2DNF(true);
     
     if (myDnfCount >= 2 && oppDnfCount >= 2) {
       // Cả hai đều có 2 lần DNF -> Hòa
       console.log('Trận đấu hòa - cả hai đều có 2 lần DNF');
-      setShowEarlyEndMsg({ show: true, message: 'Trận đấu hòa - cả hai đều có 2 lần DNF', type: 'draw' });
+      setShowEarlyEndMsg({ show: true, message: `${userName} và ${opponentName} hòa - cả hai đều có 2 lần DNF.`, type: 'draw' });
       // Không tăng set cho ai cả
     } else if (myDnfCount >= 2) {
       // Mình có 2 lần DNF -> Đối thủ thắng
-      console.log('Đối thủ thắng - mình có 2 lần DNF');
+      console.log(`${opponentName} thắng - ${userName} có 2 lần DNF`);
       setOpponentSets(s => s + 1);
-      setShowEarlyEndMsg({ show: true, message: 'Bạn thua - có 2 lần DNF', type: 'lose' });
+      setShowEarlyEndMsg({ show: true, message: `${userName} thua - có 2 lần DNF.`, type: 'lose' });
     } else {
       // Đối thủ có 2 lần DNF -> Mình thắng
-      console.log('Mình thắng - đối thủ có 2 lần DNF');
+      console.log(`${userName} thắng - ${opponentName} có 2 lần DNF`);
       setMySets(s => s + 1);
-      setShowEarlyEndMsg({ show: true, message: 'Bạn thắng - đối thủ có 2 lần DNF', type: 'win' });
+      setShowEarlyEndMsg({ show: true, message: `${userName} thắng - ${opponentName} có 2 lần DNF.`, type: 'win' });
     }
     
     // Reset trạng thái cho vòng mới
@@ -1188,11 +1195,8 @@ useEffect(() => {
     const socket = getSocket();
     socket.emit('next-scramble', { roomId });
     
-    // Ẩn thông báo sau 20 giây và mở khóa thao tác
-    setTimeout(() => {
-      setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
-      setIsLockedDue2DNF(false);
-    }, 20000);
+    // KHÓA THAO TÁC MÃI MÃI - chỉ mở khóa khi tái đấu
+    // Không cần setTimeout để mở khóa
     
     return; // Kết thúc sớm, không cần xử lý logic khác
   }
@@ -1425,20 +1429,42 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             disabled={rematchPending || users.length < 2}
             className={
               (mobileShrink
-                ? `px-1 py-0.5 bg-gray-600 hover:bg-gray-700 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 bg-gray-600 hover:bg-gray-700 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`)
+                ? `px-1 py-0.5 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`)
               + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
-            aria-label="Tái đấu"
-            title="Tái đấu"
+            aria-label={isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu"}
+            title={isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu"}
           >
             {/* Icon vòng lặp/refresh */}
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
               <path d="M24 8a16 16 0 1 1-11.31 4.69" stroke="white" strokeWidth="3" fill="none"/>
               <path d="M12 8v5a1 1 0 0 0 1 1h5" stroke="white" strokeWidth="3" fill="none"/>
             </svg>
+            {/* Hiển thị icon khóa khi bị khóa do 2 lần DNF */}
+            {isLockedDue2DNF && (
+              <span style={{ 
+                position: 'absolute', 
+                top: -2, 
+                right: -2, 
+                width: mobileShrink ? 12 : 16, 
+                height: mobileShrink ? 12 : 16, 
+                background: '#f00', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                fontSize: mobileShrink ? 8 : 10,
+                color: 'white',
+                fontWeight: 'bold',
+                border: '1px solid white',
+                zIndex: 10 
+              }}>
+                🔒
+              </span>
+            )}
           </button>
           <button
             className={
@@ -1460,7 +1486,32 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           {/* Modal lưới Rubik */}
           <CubeNetModal key={`${scramble}-${cubeSize}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
         </div>
-      {/* Modal xác nhận tái đấu khi nhận được yêu cầu từ đối phương */}
+                {/* Thông báo khi bị khóa do 2 lần DNF */}
+          {isLockedDue2DNF && (
+            <div className="fixed inset-0 z-[199] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(1px)' }}>
+              <div className={`${mobileShrink ? "bg-gray-900 rounded p-3 w-[90vw] max-w-[300px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[500px] max-w-[95vw] border-4 border-red-400 flex flex-col items-center justify-center"} modal-content`}>
+                <div className={`${mobileShrink ? "text-base" : "text-xl"} font-bold text-red-400 mb-3 text-center`}>
+                  🚫 BẠN BỊ KHÓA THAO TÁC DO 2 LẦN DNF!
+                </div>
+                <div className={`${mobileShrink ? "text-sm" : "text-lg"} text-gray-300 mb-4 text-center`}>
+                  Bạn không thể thực hiện bất kỳ thao tác nào cho đến khi tái đấu.
+                  <br />
+                  Hãy nhấn nút <span className="text-yellow-400">🔄</span> để yêu cầu tái đấu từ đối thủ.
+                </div>
+                <div className={`${mobileShrink ? "text-xs" : "text-sm"} text-gray-400 text-center`}>
+                  Chỉ có thể mở khóa bằng cách tái đấu!
+                </div>
+                <button
+                  onClick={() => setIsLockedDue2DNF(false)}
+                  className={`${mobileShrink ? "px-3 py-1 text-xs" : "px-4 py-2 text-sm"} bg-gray-600 hover:bg-gray-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95`}
+                >
+                  Đóng thông báo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Modal xác nhận tái đấu khi nhận được yêu cầu từ đối phương */}
       {rematchModal.show && rematchModal.from === 'opponent' && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(2px)' }}>
           <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[160px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[200px] border-4 border-green-400 flex flex-col items-center justify-center"} modal-content`}>
@@ -1960,7 +2011,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   );
                 }
                 
-                return null;
+                // Hiển thị thông báo khi bị khóa do 2 lần DNF
+                return (
+                  <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-xl font-semibold"} text-red-400`}>
+                    ⚠️ BẠN BỊ KHÓA THAO TÁC DO 2 LẦN DNF! 
+                    <br />
+                    Chỉ có thể tái đấu để mở khóa.
+                  </span>
+                );
               })()}
             </div>
           </div>
@@ -2345,8 +2403,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 socket.emit("timer-update", { roomId, userId, ms: 0, running: true, finished: false });
                 intervalRef.current = setInterval(() => {
                   setTimer(t => {
-                    timerRef.current = t + 10;
-                    return t + 10;
+                    const newTime = t + 10;
+                    timerRef.current = newTime; // Đảm bảo timerRef.current luôn được cập nhật
+                    return newTime;
                   });
                 }, 10);
                 setCanStart(false);
@@ -2366,7 +2425,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         >
           
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận sau 1s */}
-          {pendingResult !== null && !running && !prep && showConfirmButtons ? (
+          {pendingResult !== null && !running && !prep && showConfirmButtons && !isLockedDue2DNF ? (
             <div className="flex flex-row items-center justify-center gap-2 mb-2">
               <button
                 className={`${mobileShrink ? "px-2 py-1 text-[13px] rounded-lg bg-green-600 hover:bg-green-700 font-bold text-white" : "px-5 py-2 text-xl rounded-2xl bg-green-600 hover:bg-green-700 font-bold text-white"} transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg result-button`}
@@ -2439,6 +2498,18 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >DNF</button>
+            </div>
+          ) : null}
+          
+          {/* Hiển thị thông báo khi bị khóa do 2 lần DNF và có pendingResult */}
+          {pendingResult !== null && !running && !prep && isLockedDue2DNF ? (
+            <div className="flex flex-col items-center justify-center gap-2 mb-2">
+              <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-red-400 font-bold text-center`}>
+                🚫 BẠN BỊ KHÓA THAO TÁC DO 2 LẦN DNF!
+              </div>
+              <div className={`${mobileShrink ? "text-[8px]" : "text-xs"} text-gray-400 text-center`}>
+                Không thể gửi kết quả. Chỉ có thể tái đấu để mở khóa.
+              </div>
             </div>
           ) : null}
 
@@ -2689,7 +2760,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                       return;
                     }
                   }}
-                  placeholder={userId === turnUserId && !isLockedDue2DNF ? " " : "No send"}
+                  placeholder={userId === turnUserId && !isLockedDue2DNF ? " " : (isLockedDue2DNF ? "🚫 BỊ KHÓA" : "No send")}
                   disabled={userId !== turnUserId || isLockedDue2DNF}
                   className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 rounded-lg focus:outline-none text-center font-mono ${
                     userId === turnUserId && !isLockedDue2DNF
@@ -2713,11 +2784,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                       : 'bg-gray-500 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  {userId === turnUserId && !isLockedDue2DNF ? 'Gửi kết quả' : 'Không phải lượt của bạn'}
+                  {userId === turnUserId && !isLockedDue2DNF ? 'Gửi kết quả' : (isLockedDue2DNF ? '🚫 BỊ KHÓA' : 'Không phải lượt của bạn')}
                 </button>
               </form>
               <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-gray-400 mt-1 text-center`}>
-                {userId === turnUserId && !isLockedDue2DNF ? 'Để trống = DNF, Enter để gửi' : (isLockedDue2DNF ? 'Thao tác bị khóa do 2 lần DNF' : 'Chờ đến lượt của bạn')}
+                {userId === turnUserId && !isLockedDue2DNF ? 'Để trống = DNF, Enter để gửi' : (isLockedDue2DNF ? '🚫 KHÓA DO 2 LẦN DNF - CHỈ CÓ THỂ TÁI ĐẤU' : 'Chờ đến lượt của bạn')}
               </div>
             </div>
           ) : (
