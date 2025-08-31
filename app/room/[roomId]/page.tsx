@@ -1276,13 +1276,13 @@ useEffect(() => {
       console.log(`${opponentName} thắng - ${userName} có 2 lần DNF`);
       setOpponentSets(s => s + 1);
       // Hiển thị thông báo thua cho mình
-      // setShowEarlyEndMsg({ show: true, message: `${userName} thua - có 2 lần DNF.`, type: 'lose' }); // ĐÃ HỦY
+      setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
     } else {
       // Đối thủ có 2 lần DNF -> Mình thắng
       console.log(`${userName} thắng - ${opponentName} có 2 lần DNF`);
       setMySets(s => s + 1);
       // Hiển thị thông báo thắng cho mình
-      // setShowEarlyEndMsg({ show: true, message: `${userName} thắng - ${opponentName} có 2 lần DNF.`, type: 'win' }); // ĐÃ HỦY
+      setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
     }
     
     // Reset trạng thái cho vòng mới
@@ -2084,47 +2084,15 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 if (waiting || users.length < 2) return null;
                 
                 // Ưu tiên hiển thị thông báo 2 lần DNF - ĐÃ HỦY
-                // if (showEarlyEndMsg.show) {
-                //   return (
-                //     <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} ${
-                //       showEarlyEndMsg.type === 'win' ? 'text-green-400' :
-                //       showEarlyEndMsg.type === 'lose' ? 'text-orange-400' :
-                //       'text-yellow-400'
-                //     }`}>
-                //       {showEarlyEndMsg.message}
-                //     </span>
-                //   );
-                // }
+                if (showEarlyEndMsg.show) {
+                  return null; // KHÔNG HIỆN MODAL
+                }
                 
                 // Hiển thị thông báo kết quả khi bị khóa do 2 lần DNF (nếu không có showEarlyEndMsg) - ĐÃ HỦY
                 // Đảm bảo cả hai bên đều thấy thông báo về người thắng/thua/hòa
-                // if (isLockedDue2DNF && !showEarlyEndMsg.show) {
-                //   const myDnfCount = myResults.filter(r => r === null).length;
-                //   const oppDnfCount = opponentResults.filter(r => r === null).length;
-                //   
-                //   if (myDnfCount >= 2 && oppDnfCount >= 2) {
-                //     // Cả hai đều có 2 lần DNF -> Hòa
-                //     return (
-                //       <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-yellow-400`}>
-                //         {userName} và {opponentName} hòa - cả hai đều có 2 lần DNF.
-                //       </span>
-                //     );
-                //   } else if (myDnfCount >= 2) {
-                //     // Mình có 2 lần DNF -> Đối thủ thắng
-                //     return (
-                //       <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-orange-400`}>
-                //         {userName} thua - có 2 lần DNF. {opponentName} thắng.
-                //       </span>
-                //     );
-                //   } else if (oppDnfCount >= 2) {
-                //     // Đối thủ có 2 lần DNF -> Mình thắng
-                //     return (
-                //       <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-green-400`}>
-                //         {userName} thắng - {opponentName} có 2 lần DNF.
-                //       </span>
-                //     );
-                //   }
-                // }
+                if (isLockedDue2DNF && !showEarlyEndMsg.show) {
+                  return null; // KHÔNG HIỆN MODAL
+                }
                 
                 // Nếu cả 2 đã đủ 5 lượt thì thông báo kết quả
                 const bothDone = myResults.length >= 5 && opponentResults.length >= 5;
