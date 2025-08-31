@@ -500,6 +500,11 @@ useEffect(() => {
     setIsLockedDue2DNF(false);
     setShowLockedDNFModal(false);
     setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
+    
+    // GỬI SỰ KIỆN MỞ KHÓA LÊN SERVER để server broadcast cho cả hai bên
+    const socket = getSocket();
+    socket.emit('unlock-due-rematch', { roomId });
+    console.log('[Tái đấu] Đã gửi sự kiện unlock-due-rematch lên server');
     console.log('[Tái đấu] Đã reset isLockedDue2DNF = false và showLockedDNFModal = false');
   };
   // Khi đối phương từ chối tái đấu
@@ -645,6 +650,54 @@ useEffect(() => {
       socket.off('chat', handleChat);
     };
   }, [userId]);
+  // Lắng nghe sự kiện khóa do 2 lần DNF từ server
+  useEffect(() => {
+    const socket = getSocket();
+    const handleLockDue2DNF = (data: { 
+      roomId: string, 
+      myDnfCount: number, 
+      oppDnfCount: number,
+      myResults: (number|null)[],
+      opponentResults: (number|null)[],
+      lockedByUserId: string // userId của người gửi sự kiện
+    }) => {
+      console.log('[Nhận sự kiện lock-due-2dnf từ server]', data);
+      
+      // Khóa thao tác cho cả hai bên
+      setIsLockedDue2DNF(true);
+      // Hiển thị modal thông báo khóa DNF
+      setShowLockedDNFModal(true);
+      
+      // Cập nhật kết quả nếu cần
+      if (data.myResults && data.myResults.length > 0) {
+        setMyResults(data.myResults);
+      }
+      if (data.opponentResults && data.opponentResults.length > 0) {
+        setOpponentResults(data.opponentResults);
+      }
+      
+      console.log('[Đã nhận và xử lý sự kiện lock-due-2dnf] isLockedDue2DNF = true, showLockedDNFModal = true');
+    };
+    
+    const handleUnlockDueRematch = (data: { roomId: string }) => {
+      console.log('[Nhận sự kiện unlock-due-rematch từ server]', data);
+      
+      // Mở khóa thao tác cho cả hai bên
+      setIsLockedDue2DNF(false);
+      setShowLockedDNFModal(false);
+      setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
+      
+      console.log('[Đã nhận và xử lý sự kiện unlock-due-rematch] isLockedDue2DNF = false, showLockedDNFModal = false');
+    };
+    
+    socket.on('lock-due-2dnf', handleLockDue2DNF);
+    socket.on('unlock-due-rematch', handleUnlockDueRematch);
+    return () => {
+      socket.off('lock-due-2dnf', handleLockDue2DNF);
+      socket.off('unlock-due-rematch', handleUnlockDueRematch);
+    };
+  }, [roomId]);
+
   // Lắng nghe sự kiện đối thủ tắt/bật cam để hiện overlay đúng
   useEffect(() => {
     const socket = getSocket();
@@ -1182,9 +1235,17 @@ useEffect(() => {
     // KHÓA THAO TÁC CHO CẢ HAI BÊN khi có người bị 2 lần DNF
     // Lý do: Khi trận đấu kết thúc sớm, cả hai bên đều không thể tiếp tục
     setIsLockedDue2DNF(true);
-    // Hiển thị modal thông báo khóa DNF cho cả hai bên
-    setShowLockedDNFModal(true);
-    console.log('[2 lần DNF] Đã set isLockedDue2DNF = true và showLockedDNFModal = true');
+    
+    // GỬI SỰ KIỆN LÊN SERVER để server broadcast modal cho cả hai bên
+    const socket = getSocket();
+    socket.emit('lock-due-2dnf', { 
+      roomId, 
+      myDnfCount, 
+      oppDnfCount,
+      myResults: myResults,
+      opponentResults: opponentResults
+    });
+    console.log('[2 lần DNF] Đã gửi sự kiện lock-due-2dnf lên server');
     
     if (myDnfCount >= 2 && oppDnfCount >= 2) {
       // Cả hai đều có 2 lần DNF -> Hòa
