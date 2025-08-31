@@ -283,6 +283,31 @@ function LobbyContent() {
       };
     }
   }, []);
+
+  // Tự động yêu cầu chế độ toàn màn hình khi sử dụng điện thoại
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isMobile) {
+      // Hàm yêu cầu chế độ toàn màn hình
+      const requestFullscreen = () => {
+        try {
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+          } else if ((document.documentElement as any).webkitRequestFullscreen) {
+            (document.documentElement as any).webkitRequestFullscreen();
+          } else if ((document.documentElement as any).mozRequestFullScreen) {
+            (document.documentElement as any).mozRequestFullScreen();
+          } else if ((document.documentElement as any).msRequestFullscreen) {
+            (document.documentElement as any).msRequestFullscreen();
+          }
+        } catch (error) {
+          console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
+        }
+      };
+
+      // Tự động yêu cầu chế độ toàn màn hình sau 500ms
+      setTimeout(requestFullscreen, 500);
+    }
+  }, [isMobile]);
   const [roomInput, setRoomInput] = useState("");
   // Đã chuyển khai báo tab lên trên để dùng cho hiệu ứng chuyển tab
   // Đã chuyển lên trên để tránh lỗi khai báo trước khi dùng

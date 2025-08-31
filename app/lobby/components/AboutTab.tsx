@@ -2,7 +2,7 @@ import React from "react";
 
 export default function AboutTab() {
   return (
-  <section className="w-full max-w-7xl p-15 mt-2 mb-4 rounded-xl bg-neutral-900/50 shadow-xl border border-neutral-700 mx-auto">
+  <section className="w-full max-w-7xl p-15 mt-2 mb-4 rounded-xl bg-neutral-900/30 shadow-xl border border-neutral-700 mx-auto">
       <h2 className="text-3xl font-extrabold text-white-400 mb-6 flex items-center gap-2">
        📚 Giới thiệu
       </h2>

@@ -374,12 +374,13 @@ export default function TimerTab() {
   useEffect(() => {
     if (!inspectionActive) return;
     setInspectionTime(15);
+    
     inspectionRef.current = setInterval(() => {
       setInspectionTime(t => {
         if (t <= 1) {
           clearInterval(inspectionRef.current!);
           setInspectionActive(false);
-          // Khi hết 15s inspection, tự động DNF và kết thúc lượt giải
+          // Khi hết 15s inspection (hiển thị), tự động DNF và kết thúc lượt giải
           const newSolve: Solve = {
             id: Date.now().toString(),
             time: 0,
@@ -440,8 +441,8 @@ export default function TimerTab() {
           setRunning(false);
           let penalty: 'OK' | '+2' | 'DNF' = 'OK';
           if (inspection) {
-            if (inspectionTime === 0) penalty = 'DNF';
-            else if (inspectionTime < 13) penalty = '+2';
+            // Logic đơn giản: hết 15s là DNF
+            if (inspectionTime <= 0) penalty = 'DNF';
           }
           const newSolve: Solve = {
             id: Date.now().toString(),
@@ -514,25 +515,51 @@ export default function TimerTab() {
   // Xử lý cảm ứng trên vùng timer
   const handleTouchStart = (e: React.TouchEvent) => {
     e.preventDefault();
-    if (!spaceHeld && !running && !ready) {
+    
+    if (inspection && !inspectionActive && !running && !ready) {
+      // Bắt đầu inspection khi chạm vào timer
+      setInspectionActive(true);
+      return;
+    }
+    
+    if (inspection && inspectionActive && !running) {
+      // Bắt đầu giữ chạm trong inspection
+      setSpaceHeld(true);
+      spaceHoldTimerRef.current = setTimeout(() => {
+        // Sau 300ms, chỉ chuẩn bị (không chạy timer)
+        setReady(true);
+      }, 300);
+      return;
+    }
+    
+    if (!inspection && !spaceHeld && !running && !ready) {
+      // Logic bình thường cho non-inspection mode
       setSpaceHeld(true);
       spaceHoldTimerRef.current = setTimeout(() => {
         setReady(true);
       }, 300);
     }
+    
     if (running) {
+      // Dừng timer và lưu solve
       setRunning(false);
+      let penalty: 'OK' | '+2' | 'DNF' = 'OK';
+      if (inspection) {
+        // Logic đơn giản: hết 15s là DNF
+        if (inspectionTime <= 0) penalty = 'DNF';
+      }
       const newSolve: Solve = {
         id: Date.now().toString(),
         time: time,
         scramble,
         date: new Date(),
-        penalty: inspectionTime < 15 ? '+2' : 'OK'
+        penalty
       };
-      setSolves(prev => [newSolve, ...prev]);
-      setTime(0);
+      addNewSolve(newSolve);
+      // Không reset timer về 0
       setReady(false);
       setSpaceHeld(false);
+      setInspectionActive(false);
       if (!isScrambleLocked) {
         generateNewScramble();
       }
@@ -541,12 +568,34 @@ export default function TimerTab() {
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     e.preventDefault();
-    if (ready && !running) {
+    
+    if (inspection && inspectionActive && !running) {
+      // Khi thả chạm trong inspection
+      setSpaceHeld(false);
+      if (spaceHoldTimerRef.current) {
+        clearTimeout(spaceHoldTimerRef.current);
+        spaceHoldTimerRef.current = null;
+      }
+      
+                // Nếu đã chuẩn bị (ready = true), bắt đầu timer
+          if (ready) {
+            if (inspectionRef.current) clearInterval(inspectionRef.current);
+            setInspectionActive(false);
+            setInspectionTime(15);
+            setTime(0);
+            setRunning(true);
+            setReady(false);
+          }
+      return;
+    }
+    
+    if (!inspection && ready && !running) {
+      // Logic bình thường cho non-inspection mode
       setTime(0);
       setRunning(true);
       setReady(false);
       setSpaceHeld(false);
-    } else {
+    } else if (!inspection) {
       setSpaceHeld(false);
       if (spaceHoldTimerRef.current) {
         clearTimeout(spaceHoldTimerRef.current);
@@ -956,7 +1005,7 @@ export default function TimerTab() {
         {/* Main Content - 3 Columns */}
         <div className="grid grid-cols-12 gap-1 sm:gap-6 h-[calc(100vh-120px)]">
           {/* Left Column - Solves List */}
-          <div className="col-span-3 bg-neutral-900/20 backdrop-blur-sm rounded-lg p-1 sm:p-4 border border-neutral-700 shadow-xl">
+          <div className="col-span-3 bg-neutral-900/30 rounded-lg p-1 sm:p-4 border border-neutral-700 shadow-xl">
             <div className="flex items-center justify-between mb-1 sm:mb-4">
               <h3 className="text-xs sm:text-lg font-semibold text-white">Solves</h3>
               <button
@@ -1009,7 +1058,7 @@ export default function TimerTab() {
 
           {/* Middle Column - Timer & Scramble */}
           <div
-            className="col-span-6 bg-neutral-900/20 backdrop-blur-sm rounded-lg p-1 border border-neutral-700 shadow-xl"
+            className="col-span-6 bg-neutral-900/30 rounded-lg p-1 border border-neutral-700 shadow-xl"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
@@ -1131,7 +1180,7 @@ export default function TimerTab() {
           </div>
 
           {/* Right Column - Statistics Grid */}
-          <div className="col-span-3 bg-neutral-900/20 backdrop-blur-sm rounded-lg p-1 sm:p-4 border border-neutral-700 shadow-xl stats-container" style={{ overflow: 'hidden' }}>
+          <div className="col-span-3 bg-neutral-900/30 rounded-lg p-1 sm:p-4 border border-neutral-700 shadow-xl stats-container" style={{ overflow: 'hidden' }}>
             <h3 className="text-xs sm:text-lg font-semibold text-white mb-1 sm:mb-4">Statistics</h3>
             <div className={`${mobileShrink ? "grid gap-1" : "flex flex-col gap-1 sm:gap-3"} h-[200px] sm:h-[calc(100vh-200px)]`}
                  style={mobileShrink ? {

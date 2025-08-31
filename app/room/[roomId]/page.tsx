@@ -244,6 +244,14 @@ useEffect(() => {
       if (data.users.length === 1) {
         setIsRematchMode(false);
       }
+      
+      // Reset sự kiện 2 lần DNF khi có sự thay đổi người chơi
+      if (data.users.length !== users.length) {
+        setIsLockedDue2DNF(false);
+        // setShowLockedDNFModal(false); // ĐÃ HỦY
+        setLockDNFInfo(null);
+        console.log('[Thay đổi người chơi] Đã reset sự kiện 2 lần DNF');
+      }
     };
     socket.on('room-users', handleUsers);
     return () => {
@@ -282,6 +290,12 @@ useEffect(() => {
       // Reset số set thắng khi danh sách user thay đổi
       setMySets(0);
       setOpponentSets(0);
+      
+      // Reset sự kiện 2 lần DNF khi có người mới vào phòng
+      setIsLockedDue2DNF(false);
+      // setShowLockedDNFModal(false); // ĐÃ HỦY
+      setLockDNFInfo(null);
+      console.log('[Thay đổi người dùng] Đã reset sự kiện 2 lần DNF');
     }
   }, [userId, pendingUsers, isRematchMode]);
 
@@ -469,6 +483,12 @@ useEffect(() => {
     setRematchPending(false);
     setRematchModal({ show: false, from: null });
     setRematchDeclined(false);
+    
+    // Reset sự kiện 2 lần DNF khi reset phòng
+    setIsLockedDue2DNF(false);
+    // setShowLockedDNFModal(false); // ĐÃ HỦY
+    setLockDNFInfo(null);
+    console.log('[Room Reset] Đã reset sự kiện 2 lần DNF');
   // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
   };
   socket.on('room-reset', handleRoomReset);
@@ -1093,7 +1113,7 @@ useEffect(() => {
     };
   }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length, isLockedDue2DNF]);
 
-  // Đếm ngược 15s chuẩn bị
+      // Đếm ngược 15s chuẩn bị
   useEffect(() => {
     if (!prep || waiting || isLockedDue2DNF) return;
     setCanStart(false);
@@ -1106,29 +1126,30 @@ useEffect(() => {
     
     prepIntervalRef.current = setInterval(() => {
       setPrepTime(t => {
-                  if (t <= 1) {
-            clearInterval(prepIntervalRef.current!);
-            setPrep(false);
-            setCanStart(false);
-            setRunning(false);
-            setDnf(true);
-            pressStartRef.current = null;
-            
-            // Gửi timer-update event để đối thủ biết mình DNF
+        if (t <= 1) {
+          clearInterval(prepIntervalRef.current!);
+          setPrep(false);
+          setCanStart(false);
+          setRunning(false);
+          setDnf(true);
+          pressStartRef.current = null;
+          
+          // Gửi timer-update event để đối thủ biết mình DNF
+          const socket = getSocket();
+          socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
+          
+          // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
+          setMyResults(r => {
+            const newR = [...r, null];
             const socket = getSocket();
-            socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
-            
-            // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
-            setMyResults(r => {
-              const newR = [...r, null];
-              const socket = getSocket();
-              socket.emit("solve", { roomId, userId, userName, time: null });
-              return newR;
-            });
-            // Không tự setTurn nữa
-            setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
-            return 0;
-          }
+            socket.emit("solve", { roomId, userId, userName, time: null });
+            return newR;
+          });
+          // Không tự setTurn nữa
+          setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
+          return 0;
+        }
+        
         // Gửi timer-prep update mỗi giây
         socket.emit("timer-prep", { roomId, userId, remaining: t - 1 });
         return t - 1;
@@ -2389,7 +2410,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               gap: 4
             }}>
               {prep ? (
-                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16 }}>Chuẩn bị: {prepTime}s</span>
+                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16 }}>
+                  Chuẩn bị: {prepTime}s
+                </span>
               ) : dnf ? (
                 <span style={{ color: '#e53935', fontWeight: 700 }}>DNF</span>
               ) : (
@@ -2962,7 +2985,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 40, textAlign: 'center', fontSize: 40, padding: 6 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '220px', textAlign: 'center', fontSize: 110, padding: 18 }}
               >
                 {prep ? (
-                  <span className={mobileShrink ? "text-[20px]" : undefined}>Chuẩn bị: {prepTime}s</span>
+                  <span className={mobileShrink ? "text-[20px]" : undefined}>
+                    Chuẩn bị: {prepTime}s
+                  </span>
                 ) : dnf ? (
                   <span className={mobileShrink ? "text-[20px] text-red-400" : "text-red-400"}>DNF</span>
                 ) : (
