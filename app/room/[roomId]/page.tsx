@@ -92,6 +92,8 @@ export default function RoomPage() {
   const [showEarlyEndMsg, setShowEarlyEndMsg] = useState<{ show: boolean; message: string; type: 'win' | 'lose' | 'draw' }>({ show: false, message: '', type: 'draw' });
   // State để khóa thao tác khi có 2 lần DNF
   const [isLockedDue2DNF, setIsLockedDue2DNF] = useState<boolean>(false);
+  // State để hiển thị modal thông báo khóa DNF
+  const [showLockedDNFModal, setShowLockedDNFModal] = useState<boolean>(false);
   const router = useRouter();
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(false);
@@ -496,6 +498,7 @@ useEffect(() => {
     setIsRematchMode(true); // Bật chế độ tái đấu
     // Mở khóa thao tác khi tái đấu
     setIsLockedDue2DNF(false);
+    setShowLockedDNFModal(false);
     setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
   };
   // Khi đối phương từ chối tái đấu
@@ -575,6 +578,10 @@ useEffect(() => {
     setRematchJustAccepted(false);
     // Reset thông báo kết thúc sớm khi có scramble mới
     setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
+    // Reset modal khóa DNF khi có scramble mới (chỉ khi không bị khóa)
+    if (!isLockedDue2DNF) {
+      setShowLockedDNFModal(false);
+    }
   };
   socket.on("scramble", handleScramble);
   return () => {
@@ -1166,6 +1173,8 @@ useEffect(() => {
   if (totalSolves % 2 === 0 && (myDnfCount >= 2 || oppDnfCount >= 2)) {
     // Khóa thao tác ở cả 2 bên - KHÓA MÃI MÃI cho đến khi tái đấu
     setIsLockedDue2DNF(true);
+    // Hiển thị modal thông báo khóa DNF
+    setShowLockedDNFModal(true);
     
     if (myDnfCount >= 2 && oppDnfCount >= 2) {
       // Cả hai đều có 2 lần DNF -> Hòa
@@ -1487,11 +1496,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <CubeNetModal key={`${scramble}-${cubeSize}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
         </div>
                 {/* Thông báo khi bị khóa do 2 lần DNF */}
-          {isLockedDue2DNF && (
+          {showLockedDNFModal && (
             <div className="fixed inset-0 z-[199] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(1px)' }}>
               <div className={`${mobileShrink ? "bg-gray-900 rounded p-3 w-[90vw] max-w-[300px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[500px] max-w-[95vw] border-4 border-red-400 flex flex-col items-center justify-center"} modal-content`}>
                 <div className={`${mobileShrink ? "text-base" : "text-xl"} font-bold text-red-400 mb-3 text-center`}>
-                  🚫 BẠN BỊ KHÓA THAO TÁC DO 2 LẦN DNF!
+                  🚫 KHÓA THAO TÁC DO 2 LẦN DNF!
                 </div>
                 <div className={`${mobileShrink ? "text-sm" : "text-lg"} text-gray-300 mb-4 text-center`}>
                   Bạn không thể thực hiện bất kỳ thao tác nào cho đến khi tái đấu.
@@ -1502,7 +1511,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   Chỉ có thể mở khóa bằng cách tái đấu!
                 </div>
                 <button
-                  onClick={() => setIsLockedDue2DNF(false)}
+                  onClick={() => {
+                    // Chỉ ẩn modal, KHÔNG mở khóa
+                    setShowLockedDNFModal(false);
+                    // isLockedDue2DNF vẫn giữ nguyên = true
+                  }}
                   className={`${mobileShrink ? "px-3 py-1 text-xs" : "px-4 py-2 text-sm"} bg-gray-600 hover:bg-gray-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95`}
                 >
                   Đóng thông báo
@@ -2014,7 +2027,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 // Hiển thị thông báo khi bị khóa do 2 lần DNF
                 return (
                   <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-xl font-semibold"} text-red-400`}>
-                    ⚠️ BẠN BỊ KHÓA THAO TÁC DO 2 LẦN DNF! 
+                    ⚠️ KHÓA THAO TÁC DO 2 LẦN DNF! 
                     <br />
                     Chỉ có thể tái đấu để mở khóa.
                   </span>
@@ -2505,7 +2518,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           {pendingResult !== null && !running && !prep && isLockedDue2DNF ? (
             <div className="flex flex-col items-center justify-center gap-2 mb-2">
               <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-red-400 font-bold text-center`}>
-                🚫 BẠN BỊ KHÓA THAO TÁC DO 2 LẦN DNF!
+                🚫 KHÓA THAO TÁC DO 2 LẦN DNF!
               </div>
               <div className={`${mobileShrink ? "text-[8px]" : "text-xs"} text-gray-400 text-center`}>
                 Không thể gửi kết quả. Chỉ có thể tái đấu để mở khóa.
