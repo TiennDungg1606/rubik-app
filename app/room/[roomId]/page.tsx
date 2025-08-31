@@ -685,13 +685,8 @@ useEffect(() => {
         lockedByUserId: data.lockedByUserId
       });
       
-      // Cập nhật kết quả nếu cần
-      if (data.myResults && data.myResults.length > 0) {
-        setMyResults(data.myResults);
-      }
-      if (data.opponentResults && data.opponentResults.length > 0) {
-        setOpponentResults(data.opponentResults);
-      }
+      // KHÔNG CẬP NHẬT KẾT QUẢ TỪ SERVER - TRÁNH XÁO TRỘN
+      // Mỗi client sẽ tự tính toán dựa trên kết quả local
       
       console.log('[Đã nhận và xử lý sự kiện lock-due-2dnf] isLockedDue2DNF = true, showLockedDNFModal = true');
     };
@@ -1260,9 +1255,8 @@ useEffect(() => {
     socket.emit('lock-due-2dnf', { 
       roomId, 
       myDnfCount, 
-      oppDnfCount,
-      myResults: myResults,
-      opponentResults: opponentResults
+      oppDnfCount
+      // KHÔNG GỬI myResults và opponentResults để tránh xáo trộn
     });
     console.log('[2 lần DNF] Đã gửi sự kiện lock-due-2dnf lên server');
     
@@ -2091,6 +2085,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 // Hiển thị thông báo kết quả khi bị khóa do 2 lần DNF (nếu không có showEarlyEndMsg)
                 // Đảm bảo cả hai bên đều thấy thông báo về người thắng/thua/hòa
                 if (isLockedDue2DNF && !showEarlyEndMsg.show) {
+                  // Sử dụng kết quả local để tính toán chính xác
                   const myDnfCount = myResults.filter(r => r === null).length;
                   const oppDnfCount = opponentResults.filter(r => r === null).length;
                   
