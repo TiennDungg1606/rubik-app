@@ -94,6 +94,12 @@ export default function RoomPage() {
   const [isLockedDue2DNF, setIsLockedDue2DNF] = useState<boolean>(false);
   // State để hiển thị modal thông báo khóa DNF
   const [showLockedDNFModal, setShowLockedDNFModal] = useState<boolean>(false);
+  // State để lưu trữ thông tin khóa DNF từ server
+  const [lockDNFInfo, setLockDNFInfo] = useState<{
+    myDnfCount: number;
+    oppDnfCount: number;
+    lockedByUserId: string;
+  } | null>(null);
   const router = useRouter();
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(false);
@@ -500,12 +506,14 @@ useEffect(() => {
     setIsLockedDue2DNF(false);
     setShowLockedDNFModal(false);
     setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
+    // Reset thông tin khóa DNF
+    setLockDNFInfo(null);
     
     // GỬI SỰ KIỆN MỞ KHÓA LÊN SERVER để server broadcast cho cả hai bên
     const socket = getSocket();
     socket.emit('unlock-due-rematch', { roomId });
     console.log('[Tái đấu] Đã gửi sự kiện unlock-due-rematch lên server');
-    console.log('[Tái đấu] Đã reset isLockedDue2DNF = false và showLockedDNFModal = false');
+    console.log('[Tái đấu] Đã reset isLockedDue2DNF = false, showLockedDNFModal = false, lockDNFInfo = null');
   };
   // Khi đối phương từ chối tái đấu
   const handleRematchDeclined = () => {
@@ -593,6 +601,8 @@ useEffect(() => {
       setShowLockedDNFModal(false);
       console.log('[handleScramble] Reset showLockedDNFModal = false (không bị khóa)');
     } else {
+      // KHÔNG BAO GIỜ reset showLockedDNFModal khi đang bị khóa
+      // Modal chỉ được đóng khi tái đấu hoặc khi người dùng đóng thủ công
       console.log('[handleScramble] Giữ nguyên showLockedDNFModal = true (đang bị khóa do 2 lần DNF)');
     }
   };
@@ -668,6 +678,13 @@ useEffect(() => {
       // Hiển thị modal thông báo khóa DNF
       setShowLockedDNFModal(true);
       
+      // Lưu thông tin khóa DNF từ server để hiển thị chính xác
+      setLockDNFInfo({
+        myDnfCount: data.myDnfCount,
+        oppDnfCount: data.oppDnfCount,
+        lockedByUserId: data.lockedByUserId
+      });
+      
       // Cập nhật kết quả nếu cần
       if (data.myResults && data.myResults.length > 0) {
         setMyResults(data.myResults);
@@ -686,8 +703,10 @@ useEffect(() => {
       setIsLockedDue2DNF(false);
       setShowLockedDNFModal(false);
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
+      // Reset thông tin khóa DNF
+      setLockDNFInfo(null);
       
-      console.log('[Đã nhận và xử lý sự kiện unlock-due-rematch] isLockedDue2DNF = false, showLockedDNFModal = false');
+      console.log('[Đã nhận và xử lý sự kiện unlock-due-rematch] isLockedDue2DNF = false, showLockedDNFModal = false, lockDNFInfo = null');
     };
     
     socket.on('lock-due-2dnf', handleLockDue2DNF);
@@ -1573,15 +1592,33 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 </div>
                 <div className={`${mobileShrink ? "text-sm" : "text-lg"} text-gray-300 mb-4 text-center`}>
                   {(() => {
-                    const myDnfCount = myResults.filter(r => r === null).length;
-                    const oppDnfCount = opponentResults.filter(r => r === null).length;
-                    
-                    if (myDnfCount >= 2 && oppDnfCount >= 2) {
-                      return `Cả ${userName} và ${opponentName} đều có 2 lần DNF. Trận đấu kết thúc sớm.`;
-                    } else if (myDnfCount >= 2) {
-                      return `${userName} có 2 lần DNF. ${opponentName} thắng. Trận đấu kết thúc sớm.`;
+                    // Sử dụng thông tin từ server để hiển thị chính xác
+                    if (lockDNFInfo) {
+                      const { myDnfCount, oppDnfCount, lockedByUserId } = lockDNFInfo;
+                      
+                      if (myDnfCount >= 2 && oppDnfCount >= 2) {
+                        return `Cả ${userName} và ${opponentName} đều có 2 lần DNF. Trận đấu kết thúc sớm.`;
+                      } else if (myDnfCount >= 2) {
+                        return `${userName} có 2 lần DNF. ${opponentName} thắng. Trận đấu kết thúc sớm.`;
+                      } else if (oppDnfCount >= 2) {
+                        return `${opponentName} có 2 lần DNF. ${userName} thắng. Trận đấu kết thúc sớm.`;
+                      } else {
+                        return `Có người bị 2 lần DNF. Trận đấu kết thúc sớm.`;
+                      }
                     } else {
-                      return `${opponentName} có 2 lần DNF. ${userName} thắng. Trận đấu kết thúc sớm.`;
+                      // Fallback nếu không có thông tin từ server
+                      const myDnfCount = myResults.filter(r => r === null).length;
+                      const oppDnfCount = opponentResults.filter(r => r === null).length;
+                      
+                      if (myDnfCount >= 2 && oppDnfCount >= 2) {
+                        return `Cả ${userName} và ${opponentName} đều có 2 lần DNF. Trận đấu kết thúc sớm.`;
+                      } else if (myDnfCount >= 2) {
+                        return `${userName} có 2 lần DNF. ${opponentName} thắng. Trận đấu kết thúc sớm.`;
+                      } else if (oppDnfCount >= 2) {
+                        return `${opponentName} có 2 lần DNF. ${userName} thắng. Trận đấu kết thúc sớm.`;
+                      } else {
+                        return `Có người bị 2 lần DNF. Trận đấu kết thúc sớm.`;
+                      }
                     }
                   })()}
                   <br /><br />
