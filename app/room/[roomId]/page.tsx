@@ -1171,9 +1171,10 @@ useEffect(() => {
   
   // Chỉ kiểm tra khi cả 2 đều xong lượt giải đó (totalSolves chẵn)
   if (totalSolves % 2 === 0 && (myDnfCount >= 2 || oppDnfCount >= 2)) {
-    // Khóa thao tác ở cả 2 bên - KHÓA MÃI MÃI cho đến khi tái đấu
+    // KHÓA THAO TÁC CHO CẢ HAI BÊN khi có người bị 2 lần DNF
+    // Lý do: Khi trận đấu kết thúc sớm, cả hai bên đều không thể tiếp tục
     setIsLockedDue2DNF(true);
-    // Hiển thị modal thông báo khóa DNF
+    // Hiển thị modal thông báo khóa DNF cho cả hai bên
     setShowLockedDNFModal(true);
     
     if (myDnfCount >= 2 && oppDnfCount >= 2) {
@@ -1185,11 +1186,13 @@ useEffect(() => {
       // Mình có 2 lần DNF -> Đối thủ thắng
       console.log(`${opponentName} thắng - ${userName} có 2 lần DNF`);
       setOpponentSets(s => s + 1);
+      // Hiển thị thông báo thua cho mình
       setShowEarlyEndMsg({ show: true, message: `${userName} thua - có 2 lần DNF.`, type: 'lose' });
     } else {
       // Đối thủ có 2 lần DNF -> Mình thắng
       console.log(`${userName} thắng - ${opponentName} có 2 lần DNF`);
       setMySets(s => s + 1);
+      // Hiển thị thông báo thắng cho mình
       setShowEarlyEndMsg({ show: true, message: `${userName} thắng - ${opponentName} có 2 lần DNF.`, type: 'win' });
     }
     
@@ -1503,6 +1506,19 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   🚫 KHÓA THAO TÁC DO 2 LẦN DNF!
                 </div>
                 <div className={`${mobileShrink ? "text-sm" : "text-lg"} text-gray-300 mb-4 text-center`}>
+                  {(() => {
+                    const myDnfCount = myResults.filter(r => r === null).length;
+                    const oppDnfCount = opponentResults.filter(r => r === null).length;
+                    
+                    if (myDnfCount >= 2 && oppDnfCount >= 2) {
+                      return `Cả ${userName} và ${opponentName} đều có 2 lần DNF. Trận đấu kết thúc sớm.`;
+                    } else if (myDnfCount >= 2) {
+                      return `${userName} có 2 lần DNF. ${opponentName} thắng. Trận đấu kết thúc sớm.`;
+                    } else {
+                      return `${opponentName} có 2 lần DNF. ${userName} thắng. Trận đấu kết thúc sớm.`;
+                    }
+                  })()}
+                  <br /><br />
                   Bạn không thể thực hiện bất kỳ thao tác nào cho đến khi tái đấu.
                   <br />
                   Hãy nhấn nút <span className="text-yellow-400">🔄</span> để yêu cầu tái đấu từ đối thủ.
@@ -1970,12 +1986,42 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   return (
                     <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} ${
                       showEarlyEndMsg.type === 'win' ? 'text-green-400' :
-                      showEarlyEndMsg.type === 'lose' ? 'text-red-400' :
+                      showEarlyEndMsg.type === 'lose' ? 'text-orange-400' :
                       'text-yellow-400'
                     }`}>
                       {showEarlyEndMsg.message}
                     </span>
                   );
+                }
+                
+                // Hiển thị thông báo kết quả khi bị khóa do 2 lần DNF (nếu không có showEarlyEndMsg)
+                // Đảm bảo cả hai bên đều thấy thông báo về người thắng/thua/hòa
+                if (isLockedDue2DNF && !showEarlyEndMsg.show) {
+                  const myDnfCount = myResults.filter(r => r === null).length;
+                  const oppDnfCount = opponentResults.filter(r => r === null).length;
+                  
+                  if (myDnfCount >= 2 && oppDnfCount >= 2) {
+                    // Cả hai đều có 2 lần DNF -> Hòa
+                    return (
+                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-yellow-400`}>
+                        {userName} và {opponentName} hòa - cả hai đều có 2 lần DNF.
+                      </span>
+                    );
+                  } else if (myDnfCount >= 2) {
+                    // Mình có 2 lần DNF -> Đối thủ thắng
+                    return (
+                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-orange-400`}>
+                        {userName} thua - có 2 lần DNF. {opponentName} thắng.
+                      </span>
+                    );
+                  } else if (oppDnfCount >= 2) {
+                    // Đối thủ có 2 lần DNF -> Mình thắng
+                    return (
+                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-green-400`}>
+                        {userName} thắng - {opponentName} có 2 lần DNF.
+                      </span>
+                    );
+                  }
                 }
                 
                 // Nếu cả 2 đã đủ 5 lượt thì thông báo kết quả
@@ -2029,7 +2075,18 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-xl font-semibold"} text-red-400`}>
                     ⚠️ KHÓA THAO TÁC DO 2 LẦN DNF! 
                     <br />
-                    Chỉ có thể tái đấu để mở khóa.
+                    {(() => {
+                      const myDnfCount = myResults.filter(r => r === null).length;
+                      const oppDnfCount = opponentResults.filter(r => r === null).length;
+                      
+                      if (myDnfCount >= 2 && oppDnfCount >= 2) {
+                        return `Cả hai đều có 2 lần DNF. Chỉ có thể tái đấu để mở khóa.`;
+                      } else if (myDnfCount >= 2) {
+                        return `Bạn có 2 lần DNF. Chỉ có thể tái đấu để mở khóa.`;
+                      } else {
+                        return `Đối thủ có 2 lần DNF. Chỉ có thể tái đấu để mở khóa.`;
+                      }
+                    })()}
                   </span>
                 );
               })()}
