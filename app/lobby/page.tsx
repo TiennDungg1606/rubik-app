@@ -618,3 +618,9 @@ function LobbyContent() {
   );
 }
 
+// Main component with Suspense boundary
+export default function Lobby() {
+  return (
+      <LobbyContent />
+  );
+}
