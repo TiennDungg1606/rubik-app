@@ -618,15 +618,3 @@ function LobbyContent() {
   );
 }
 
-// Main component with Suspense boundary
-export default function Lobby() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white">
-        <div className="text-2xl font-bold text-blue-400 mb-4">Đang tải...</div>
-      </div>
-    }>
-      <LobbyContent />
-    </Suspense>
-  );
-}
