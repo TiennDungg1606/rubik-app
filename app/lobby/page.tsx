@@ -5,7 +5,7 @@ declare global {
 }
 
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import TimerTab from "./components/TimerTab";
 import RoomTab from "./components/RoomTab";
 import AccountTab from "./components/AccountTab";
@@ -618,7 +618,11 @@ function LobbyContent() {
   );
 }
 
-// Main component without loading screen
+// Main component with minimal Suspense boundary
 export default function Lobby() {
-  return <LobbyContent />;
+  return (
+    <Suspense fallback={null}>
+      <LobbyContent />
+    </Suspense>
+  );
 }
