@@ -269,9 +269,40 @@ function LobbyContent() {
     }
   }, []);
 
+  // State theo dõi trạng thái toàn màn hình
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   // Tự động yêu cầu chế độ toàn màn hình khi sử dụng điện thoại
   useEffect(() => {
     if (typeof window !== 'undefined' && isMobile) {
+      // Hàm kiểm tra trạng thái toàn màn hình
+      const checkFullscreenStatus = () => {
+        const fullscreenElement = 
+          document.fullscreenElement ||
+          (document as any).webkitFullscreenElement ||
+          (document as any).mozFullScreenElement ||
+          (document as any).msFullscreenElement;
+        
+        const wasFullscreen = isFullscreen;
+        setIsFullscreen(!!fullscreenElement);
+        
+        if (fullscreenElement && !wasFullscreen) {
+          // Vừa vào chế độ toàn màn hình - dừng interval
+          if (interval) {
+            clearInterval(interval);
+            interval = undefined;
+          }
+        } else if (!fullscreenElement && wasFullscreen && isMobile) {
+          // Vừa thoát khỏi chế độ toàn màn hình - khởi động lại interval
+          startInterval();
+          // Và ngay lập tức yêu cầu lại
+          requestFullscreen();
+        } else if (!fullscreenElement && isMobile) {
+          // Không ở chế độ toàn màn hình và đang dùng điện thoại
+          requestFullscreen();
+        }
+      };
+
       // Hàm yêu cầu chế độ toàn màn hình
       const requestFullscreen = () => {
         try {
@@ -286,13 +317,61 @@ function LobbyContent() {
           }
         } catch (error) {
           // Không thể chuyển sang chế độ toàn màn hình
+          console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
         }
       };
 
-      // Tự động yêu cầu chế độ toàn màn hình sau 500ms
-      setTimeout(requestFullscreen, 500);
+      // Kiểm tra trạng thái ban đầu
+      checkFullscreenStatus();
+
+      // Thêm event listeners để theo dõi thay đổi trạng thái toàn màn hình
+      const fullscreenChangeEvents = [
+        'fullscreenchange',
+        'webkitfullscreenchange',
+        'mozfullscreenchange',
+        'MSFullscreenChange'
+      ];
+
+      fullscreenChangeEvents.forEach(event => {
+        document.addEventListener(event, checkFullscreenStatus);
+      });
+
+      // Tự động yêu cầu chế độ toàn màn hình sau 1 giây
+      const initialTimeout = setTimeout(requestFullscreen, 1000);
+
+      // Chỉ kiểm tra định kỳ khi KHÔNG ở chế độ toàn màn hình
+      let interval: NodeJS.Timeout | undefined;
+      
+      const startInterval = () => {
+        if (!isFullscreen && !interval) {
+          interval = setInterval(() => {
+            if (isMobile && !isFullscreen) {
+              requestFullscreen();
+            } else {
+              // Nếu đã ở chế độ toàn màn hình, dừng interval
+              if (interval) {
+                clearInterval(interval);
+                interval = undefined;
+              }
+            }
+          }, 3000);
+        }
+      };
+
+      // Bắt đầu interval ban đầu
+      startInterval();
+
+      return () => {
+        clearTimeout(initialTimeout);
+        if (interval) {
+          clearInterval(interval);
+        }
+        fullscreenChangeEvents.forEach(event => {
+          document.removeEventListener(event, checkFullscreenStatus);
+        });
+      };
     }
-  }, [isMobile]);
+  }, [isMobile, isFullscreen]);
   const [roomInput, setRoomInput] = useState("");
   // Đã chuyển khai báo tab lên trên để dùng cho hiệu ứng chuyển tab
   // Đã chuyển lên trên để tránh lỗi khai báo trước khi dùng

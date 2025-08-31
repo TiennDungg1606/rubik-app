@@ -1,21 +1,35 @@
 {
   "name": "Rubik App",
-  "short_name": "Rubik",
-  "start_url": ".",
+  "short_name": "Rubik App",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
-  "description": "Solving Rubik's Cube online with friends",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "Chơi Rubik online miễn phí, thi đấu 1vs1 với bạn bè, timer chuyên nghiệp, tạo phòng riêng. Ứng dụng giải Rubik tốt nhất cho người chơi Việt Nam.",
+  "categories": ["games", "entertainment", "puzzle"],
+  "lang": "vi",
+  "orientation": "landscape",
+  "scope": "/",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide"
     }
   ]
 }
