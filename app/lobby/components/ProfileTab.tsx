@@ -1,8 +1,6 @@
 "use client";
 import React from "react";
 
-console.log('[ProfileTab] Rendered on client:', typeof window !== 'undefined');
-
 interface ProfileTabProps {
   user: {
     email?: string;
@@ -56,7 +54,6 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user, onLogout, onThemeSwitch, 
         <button
           className="flex items-center gap-2 text-blue-400 hover:text-blue-600 font-bold transition text-base justify-start mt-1"
           onClick={() => {
-            if (typeof window !== 'undefined') console.log('Change background button clicked');
             if (typeof window !== 'undefined' && typeof (window as any).openBgModal === 'function') {
               (window as any).openBgModal();
             }

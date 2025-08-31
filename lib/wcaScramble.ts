@@ -78,13 +78,25 @@ function generate3x3Scramble(): string {
 
 // Hàm tạo scramble cho 4x4
 function generate4x4Scramble(): string {
-  const moves = ['R', 'U', 'F', 'L', 'D', 'B'];
-  const wideMoves = ['Rw', 'Uw', 'Fw', 'Lw', 'Dw', 'Bw'];
-  const modifiers = ['', '\'', '2'];
-  const length = 25; // 4x4 cần nhiều bước hơn
+  // 20 bước xáo giống 3x3 (outer layer moves)
+  const outerMoves = ['R', 'U', 'F', 'L', 'D', 'B'];
+  const outerModifiers = ['', '\'', '2'];
+  const outerLength = 20;
   
-  const allMoves = [...moves, ...wideMoves];
-  return generateRandomMoveSequence(allMoves, modifiers, length);
+  // 23 bước xáo bên trong (inner layer moves - có thể lộn wide moves và normal moves)
+  const innerMoves = ['Uw', 'Rw', 'Fw', 'R', 'L', 'U', 'B', 'D', 'F'];
+  const innerModifiers = ['', '\'', '2'];
+  const innerLength = 23;
+  
+  // Tạo outer scramble (20 bước) - giống như 3x3
+  const outerScramble = generateRandomMoveSequence(outerMoves, outerModifiers, outerLength);
+  
+  // Tạo inner scramble (23 bước) - xáo các lớp bên trong (có thể lộn wide và normal)
+  const innerScramble = generateRandomMoveSequence(innerMoves, innerModifiers, innerLength);
+  
+  // Kết hợp cả hai với khoảng cách rõ ràng
+  // Ví dụ: "R U F2 L' D B  Uw R Rw' Fw2 L U B D F"
+  return outerScramble + '  ' + innerScramble;
 }
 
 // Hàm tạo scramble cho 5x5
@@ -128,11 +140,22 @@ function generate7x7Scramble(): string {
 
 // Hàm tạo scramble cho Pyraminx
 function generatePyraminxScramble(): string {
-  const moves = ['R', 'U', 'L', 'B'];
-  const modifiers = ['', '\''];
-  const length = 15; // Pyraminx cần ít bước hơn
+  const mainMoves = ['R', 'L', 'U', 'B']; // Chỉ bao gồm R L U B, không có D và F
+  const tipMoves = ['l', 'r', 'b']; // Kí tự nhỏ cho tip moves - chỉ l, r, b (không có d)
+  const modifiers = ['', '\'']; // Không có 2 (double move) cho Pyraminx
   
-  return generateRandomMoveSequence(moves, modifiers, length);
+  // 8-9 kí tự lớn (main moves) - tránh lặp liên tiếp
+  const largeMovesLength = Math.random() < 0.5 ? 8 : 9;
+  const largeScramble = generateRandomMoveSequence(mainMoves, modifiers, largeMovesLength);
+  
+  // 1-4 kí tự nhỏ ở cuối (tip moves - l, r, b) - tránh lặp liên tiếp
+  const smallMovesLength = Math.floor(Math.random() * 4) + 1; // 1-4
+  const smallScramble = generateRandomMoveSequence(tipMoves, modifiers, smallMovesLength);
+  
+  // Kết hợp cả hai với khoảng cách rõ ràng
+  // Ví dụ: "R L' U B R' L U'  l r b" (đúng) hoặc "R L U B R' L' U' B  l" (đúng)
+  // Không được: "r b u b'" (sai vì bị lặp b)
+  return largeScramble + '  ' + smallScramble;
 }
 
 // Hàm tạo scramble cho Skewb

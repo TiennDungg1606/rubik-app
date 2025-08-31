@@ -60,10 +60,8 @@ export default function RoomPage() {
   // Fetch meta phòng từ API
   useEffect(() => {
     if (!roomId || !joinedRoom) return;
-    console.log('[Fetch meta phòng] roomId:', roomId);
     fetch(`/api/room-meta/${roomId.toUpperCase()}`)
       .then(res => {
-        console.log('[Fetch meta phòng] status:', res.status);
         if (!res.ok) {
           console.error('[Fetch meta phòng] Không lấy được meta phòng, status:', res.status);
           return null;
@@ -71,7 +69,6 @@ export default function RoomPage() {
         return res.json();
       })
       .then(data => {
-        console.log('[Fetch meta phòng] data:', data);
         if (data && (data.displayName || data.event)) setRoomMeta(data);
       });
   }, [roomId, joinedRoom]);
@@ -250,7 +247,6 @@ useEffect(() => {
         setIsLockedDue2DNF(false);
         // setShowLockedDNFModal(false); // ĐÃ HỦY
         setLockDNFInfo(null);
-        console.log('[Thay đổi người chơi] Đã reset sự kiện 2 lần DNF');
       }
     };
     socket.on('room-users', handleUsers);
@@ -295,7 +291,6 @@ useEffect(() => {
       setIsLockedDue2DNF(false);
       // setShowLockedDNFModal(false); // ĐÃ HỦY
       setLockDNFInfo(null);
-      console.log('[Thay đổi người dùng] Đã reset sự kiện 2 lần DNF');
     }
   }, [userId, pendingUsers, isRematchMode]);
 
@@ -343,11 +338,8 @@ useEffect(() => {
     const handleOpponentTimer = ({ roomId: rid, userId: uid, ms, running, finished }: TimerPayload) => {
       if (rid !== roomId || uid === userId) return;
       
-      console.log('[Opponent Timer] Received:', { running, ms, finished });
-      
       if (running) {
         // Khi đối thủ bắt đầu timer, tắt chuẩn bị và bắt đầu timer
-        console.log('[Opponent Timer] Starting timer, stopping prep');
         setOpponentPrep(false);
         setOpponentPrepTime(15);
         if (opponentPrepIntervalRef.current) clearInterval(opponentPrepIntervalRef.current);
@@ -488,7 +480,6 @@ useEffect(() => {
     setIsLockedDue2DNF(false);
     // setShowLockedDNFModal(false); // ĐÃ HỦY
     setLockDNFInfo(null);
-    console.log('[Room Reset] Đã reset sự kiện 2 lần DNF');
   // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
   };
   socket.on('room-reset', handleRoomReset);
@@ -532,8 +523,6 @@ useEffect(() => {
     // GỬI SỰ KIỆN MỞ KHÓA LÊN SERVER để server broadcast cho cả hai bên
     const socket = getSocket();
     socket.emit('unlock-due-rematch', { roomId });
-    console.log('[Tái đấu] Đã gửi sự kiện unlock-due-rematch lên server');
-    console.log('[Tái đấu] Đã reset isLockedDue2DNF = false, showLockedDNFModal = false, lockDNFInfo = null');
   };
   // Khi đối phương từ chối tái đấu
   const handleRematchDeclined = () => {
@@ -619,11 +608,9 @@ useEffect(() => {
     // Lý do: Khi bị khóa do 2 lần DNF, modal phải hiển thị mãi mãi cho đến khi tái đấu
     if (!isLockedDue2DNF) {
       // setShowLockedDNFModal(false); // ĐÃ HỦY
-      console.log('[handleScramble] Reset showLockedDNFModal = false (không bị khóa)');
     } else {
       // KHÔNG BAO GIỜ reset showLockedDNFModal khi đang bị khóa
       // Modal chỉ được đóng khi tái đấu hoặc khi người dùng đóng thủ công
-      console.log('[handleScramble] Giữ nguyên showLockedDNFModal = true (đang bị khóa do 2 lần DNF)');
     }
   };
   socket.on("scramble", handleScramble);
@@ -691,8 +678,6 @@ useEffect(() => {
       opponentResults: (number|null)[],
       lockedByUserId: string // userId của người gửi sự kiện
     }) => {
-      console.log('[Nhận sự kiện lock-due-2dnf từ server]', data);
-      
       // Khóa thao tác cho cả hai bên
       setIsLockedDue2DNF(true);
       // Hiển thị modal thông báo khóa DNF - ĐÃ HỦY
@@ -707,21 +692,15 @@ useEffect(() => {
       
       // KHÔNG CẬP NHẬT KẾT QUẢ TỪ SERVER - TRÁNH XÁO TRỘN
       // Mỗi client sẽ tự tính toán dựa trên kết quả local
-      
-      console.log('[Đã nhận và xử lý sự kiện lock-due-2dnf] isLockedDue2DNF = true, showLockedDNFModal = true');
     };
     
     const handleUnlockDueRematch = (data: { roomId: string }) => {
-      console.log('[Nhận sự kiện unlock-due-rematch từ server]', data);
-      
       // Mở khóa thao tác cho cả hai bên
       setIsLockedDue2DNF(false);
       // setShowLockedDNFModal(false); // ĐÃ HỦY
       // setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY
       // Reset thông tin khóa DNF
       setLockDNFInfo(null);
-      
-      console.log('[Đã nhận và xử lý sự kiện unlock-due-rematch] isLockedDue2DNF = false, showLockedDNFModal = false, lockDNFInfo = null');
     };
     
     socket.on('lock-due-2dnf', handleLockDue2DNF);
@@ -760,10 +739,9 @@ useEffect(() => {
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data && data.access_token) {
-          // Tạo roomUrl đúng định dạng JSON cho VideoCall
-          const url = JSON.stringify({ access_token: data.access_token, userId, opponentId });
-          setRoomUrl(url);
-          console.log('[RoomPage] Đã nhận roomUrl:', url);
+                  // Tạo roomUrl đúng định dạng JSON cho VideoCall
+        const url = JSON.stringify({ access_token: data.access_token, userId, opponentId });
+        setRoomUrl(url);
         } else {
           console.error('[RoomPage] Không nhận được access_token từ API:', data);
         }
@@ -809,7 +787,6 @@ useEffect(() => {
     
     // Kiểm tra xem có phải lượt của mình không
     if (userId !== turnUserId) {
-      console.log('Không phải lượt của bạn, không thể gửi kết quả');
       return;
     }
     
@@ -1279,22 +1256,18 @@ useEffect(() => {
       oppDnfCount
       // KHÔNG GỬI myResults và opponentResults để tránh xáo trộn
     });
-    console.log('[2 lần DNF] Đã gửi sự kiện lock-due-2dnf lên server');
     
     if (myDnfCount >= 2 && oppDnfCount >= 2) {
       // Cả hai đều có 2 lần DNF -> Hòa
-      console.log('Trận đấu hòa - cả hai đều có 2 lần DNF');
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
       // Không tăng set cho ai cả
     } else if (myDnfCount >= 2) {
       // Mình có 2 lần DNF -> Đối thủ thắng
-      console.log(`${opponentName} thắng - ${userName} có 2 lần DNF`);
       setOpponentSets(s => s + 1);
       // Hiển thị thông báo thua cho mình
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
     } else {
       // Đối thủ có 2 lần DNF -> Mình thắng
-      console.log(`${userName} thắng - ${opponentName} có 2 lần DNF`);
       setMySets(s => s + 1);
       // Hiển thị thông báo thắng cho mình
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
@@ -2938,7 +2911,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                     // Chặn phím Enter khi không phải lượt của mình
                     if (e.key === 'Enter' && userId !== turnUserId) {
                       e.preventDefault();
-                      console.log('No send');
                       return;
                     }
                   }}

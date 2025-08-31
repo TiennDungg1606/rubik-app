@@ -169,7 +169,7 @@ export default function TimerTab() {
     saveSolves();
   }, [solves, session]);
 
-  // Hàm kiểm tra PB mới (chỉ để log, không hiển thị gì)
+  // Hàm kiểm tra PB mới
   const checkAndShowPB = (newSolve: Solve) => {
     if (newSolve.penalty === 'DNF') return; // Không hiển thị cho DNF
     
@@ -177,16 +177,8 @@ export default function TimerTab() {
     const validSolves = solves.filter(s => s.penalty !== 'DNF');
     const times = validSolves.map(s => s.penalty === '+2' ? s.time + 2000 : s.time);
     
-    console.log('🔍 Kiểm tra PB:', {
-      newSolve: { time: newSolve.time, penalty: newSolve.penalty },
-      validSolvesCount: validSolves.length,
-      currentTimes: times,
-      newTime: newSolve.penalty === '+2' ? newSolve.time + 2000 : newSolve.time
-    });
-    
     if (times.length === 0) {
       // Lần đầu tiên - đây là PB đầu tiên!
-      console.log('🎉 PB đầu tiên!');
       setNewSolveId(newSolve.id);
       setTimeout(() => setNewSolveId(null), 1200);
       return;
@@ -197,11 +189,8 @@ export default function TimerTab() {
     
     if (newTime < currentBest) {
       // PB mới!
-      console.log('🎆 PB mới!', { currentBest, newTime });
       setNewSolveId(newSolve.id);
       setTimeout(() => setNewSolveId(null), 1200);
-    } else {
-      console.log('❌ Không phải PB mới', { currentBest, newTime });
     }
   };
 
@@ -275,7 +264,6 @@ export default function TimerTab() {
       // Giới hạn từ 2 đến 4 cột
       optimalColumns = Math.max(2, Math.min(4, optimalColumns));
       
-      console.log('Container width:', containerWidth, 'Available width:', availableWidth, 'Optimal columns:', optimalColumns);
       setStatsColumns(optimalColumns);
     };
 
@@ -775,7 +763,6 @@ export default function TimerTab() {
 
   // Xử lý portrait mode - giống như trong room/[roomId]/page.tsx
   if (isPortrait) {
-    console.log('[TimerTab] Portrait mode detected, showing rotate message');
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
         <div className="text-2xl font-bold text-red-400 mb-4 text-center">VUI LÒNG XOAY NGANG MÀN HÌNH ĐỂ SỬ DỤNG ỨNG DỤNG!</div>
@@ -783,16 +770,6 @@ export default function TimerTab() {
       </div>
     );
   }
-
-  // Debug: Log giá trị cuối cùng trước khi render
-  console.log('[TimerTab] Final render values:', { 
-    isMobile, 
-    isPortrait, 
-    isMobileLandscape, 
-    mobileShrink,
-    windowWidth: typeof window !== 'undefined' ? window.innerWidth : 'N/A',
-    windowHeight: typeof window !== 'undefined' ? window.innerHeight : 'N/A'
-  });
 
   return (
     <>
@@ -1057,12 +1034,7 @@ export default function TimerTab() {
           </div>
 
           {/* Middle Column - Timer & Scramble */}
-          <div
-            className="col-span-6 bg-neutral-900/30 rounded-lg p-1 border border-neutral-700 shadow-xl"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchEnd}
-          >
+          <div className="col-span-6 bg-neutral-900/30 rounded-lg p-1 border border-neutral-700 shadow-xl">
             <div className="flex flex-col items-center justify-start pt-0">
               {/* Scramble */}
               <div className="text-center mb-1 w-full">
@@ -1072,10 +1044,10 @@ export default function TimerTab() {
                 <div className="flex justify-center gap-1 relative">
                   <button 
                     onClick={() => setIsScrambleLocked(!isScrambleLocked)}
-                    className={`p-1 transition-colors ${isScrambleLocked ? 'text-red-400' : 'text-gray-400 hover:text-white'}`}
+                    className={`p-1 transition-colors ${isScrambleLocked ? 'text-red-400' : 'text-gray-400 hover:text-white'} ${mobileShrink ? 'p-2' : 'p-1'}`}
                     title={isScrambleLocked ? "Scramble bị khóa" : "Khóa scramble"}
                   >
-                    <svg className={`${mobileShrink ? "w-4 h-4" : "w-5 h-5"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`${mobileShrink ? "w-5 h-5" : "w-5 h-5"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       {isScrambleLocked ? (
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       ) : (
@@ -1085,19 +1057,19 @@ export default function TimerTab() {
                   </button>
                   <button 
                     onClick={copyScrambleToClipboard}
-                    className="p-1 text-gray-400 hover:text-white transition-colors"
+                    className={`p-1 text-gray-400 hover:text-white transition-colors ${mobileShrink ? 'p-2' : 'p-1'}`}
                     title="Copy scramble"
                   >
-                    <svg className={`${mobileShrink ? "w-4 h-4" : "w-5 h-5"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`${mobileShrink ? "w-5 h-5" : "w-5 h-5"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                   </button>
                   <button 
                     onClick={forceGenerateNewScramble}
-                    className="p-1 text-gray-400 hover:text-white transition-colors"
+                    className={`p-1 text-gray-400 hover:text-white transition-colors ${mobileShrink ? 'p-2' : 'p-1'}`}
                     title="Tạo scramble mới"
                   >
-                    <svg className={`${mobileShrink ? "w-4 h-4" : "w-5 h-5"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`${mobileShrink ? "w-5 h-5" : "w-5 h-5"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </button>
@@ -1111,71 +1083,78 @@ export default function TimerTab() {
                 </div>
               </div>
 
-              {/* Timer hoặc Typing Input */}
-              {inspection && inspectionActive ? (
-                        <div className="text-center mb-1">
-          <div
-            className={`${mobileShrink ? "text-[100px]" : "text-[160px]"} select-none ${
-              ready ? 'text-green-400' : 'text-white'
-            }`}
-            style={{ fontFamily: 'Digital7Mono, monospace', letterSpacing: '0.05em' }}
-          >
-            {inspectionTime}
+              {/* Timer hoặc Typing Input - Chỉ vùng này mới có touch events */}
+              <div
+                className="w-full"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
+              >
+                {inspection && inspectionActive ? (
+                          <div className="text-center mb-1">
+            <div
+              className={`${mobileShrink ? "text-[100px]" : "text-[160px]"} select-none ${
+                ready ? 'text-green-400' : 'text-white'
+              }`}
+              style={{ fontFamily: 'Digital7Mono, monospace', letterSpacing: '0.05em' }}
+            >
+              {inspectionTime}
+            </div>
+                       <div className={`${mobileShrink ? "text-[12px]" : "text-[14px]"} text-gray-400 mb-1 bg-neutral-800/40 backdrop-blur-sm px-2 py-1 rounded-lg border border-neutral-600/50 inline-block`}>
+               {ready ? 'Thả để bắt đầu' : 'Giữ để chuẩn bị'}
+             </div>
           </div>
-                     <div className={`${mobileShrink ? "text-[12px]" : "text-[14px]"} text-gray-400 mb-1 bg-neutral-800/40 backdrop-blur-sm px-3 py-2 rounded-lg border border-neutral-600/50`}>
-             {ready ? 'Thả phím để bắt đầu' : 'Giữ phím Space để chuẩn bị'}
-           </div>
-        </div>
-              ) : isTypingMode ? (
-                /* Chế độ typing: hiện trường nhập thời gian */
-                <div className="text-center mb-1">
-                  <form onSubmit={handleTypingSubmit} className="flex flex-col items-center gap-1">
-                    <input
-                      type="text"
-                      value={typingInput}
-                      onChange={handleTypingInputChange}
-                      placeholder=" "
-                      className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-neutral-800/50 text-white border-2 border-blue-500 rounded-lg focus:outline-none focus:border-blue-400 text-center font-mono`}
-                      style={{ 
-                        width: mobileShrink ? '160px' : '280px',
-                        fontSize: mobileShrink ? '14px' : '24px'
-                      }}
-                      maxLength={5}
-                      autoFocus
-                    />
-                  </form>
-                  <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-gray-400 mt-1 text-center`}>
-                    Để trống = DNF, Enter để gửi.
+                ) : isTypingMode ? (
+                  /* Chế độ typing: hiện trường nhập thời gian */
+                  <div className="text-center mb-1">
+                    <form onSubmit={handleTypingSubmit} className="flex flex-col items-center gap-1">
+                      <input
+                        type="text"
+                        value={typingInput}
+                        onChange={handleTypingInputChange}
+                        placeholder=" "
+                        className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-neutral-800/50 text-white border-2 border-blue-500 rounded-lg focus:outline-none focus:border-blue-400 text-center font-mono`}
+                        style={{ 
+                          width: mobileShrink ? '160px' : '280px',
+                          fontSize: mobileShrink ? '14px' : '24px'
+                        }}
+                        maxLength={5}
+                        autoFocus
+                      />
+                    </form>
+                    <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-gray-400 mt-1 text-center`}>
+                      Để trống = DNF, Enter để gửi.
+                    </div>
                   </div>
-                </div>
-              ) : (
-                /* Chế độ timer: hiện timer bình thường */
-                <div className="text-center mb-1">
-                  <div
-                    className={`${mobileShrink ? "text-[100px]" : "text-[160px]"} select-none transition-colors ${
-                      ready && !running ? 'text-green-400' :
-                      running ? 'text-green-400' :
-                      spaceHeld && !running ? 'text-yellow-400' :
-                      'text-white'
-                    }`}
-                    style={{ fontFamily: 'Digital7Mono, monospace', letterSpacing: '0.05em' }}
-                  >
-                    {format(time)}
-                  </div>
-                  {/* Status Text */}
-                  <div className={`${mobileShrink ? "text-[12px]" : "text-[14px]"} text-gray-400 mb-1 bg-neutral-800/40 backdrop-blur-sm px-3 py-2 rounded-lg border border-neutral-600/50`}>
-                    {ready && !running ? 'Sẵn sàng! Thả Space/chạm để bắt đầu' :
-                      running ? 'Đang giải... Nhấn Space/chạm để dừng' :
-                      spaceHeld && !running ? 'Giữ Space/giữ chạm để chuẩn bị...' :
-                      'Giữ ≥300ms rồi thả ra để bắt đầu timer'}
-                  </div>
+                ) : (
+                  /* Chế độ timer: hiện timer bình thường */
+                  <div className="text-center mb-1">
+                    <div
+                      className={`${mobileShrink ? "text-[100px]" : "text-[160px]"} select-none transition-colors ${
+                        ready && !running ? 'text-green-400' :
+                        running ? 'text-green-400' :
+                        spaceHeld && !running ? 'text-yellow-400' :
+                        'text-white'
+                      }`}
+                      style={{ fontFamily: 'Digital7Mono, monospace', letterSpacing: '0.05em' }}
+                    >
+                      {format(time)}
+                    </div>
+                    {/* Status Text */}
+                    <div className={`${mobileShrink ? "text-[12px]" : "text-[14px]"} text-gray-400 mb-1 bg-neutral-800/40 backdrop-blur-sm px-2 py-1 rounded-lg border border-neutral-600/50 inline-block`}>
+                      {ready && !running ? 'Sẵn sàng! Thả để bắt đầu' :
+                        running ? 'Đang giải... Nhấn để dừng' :
+                        spaceHeld && !running ? 'Giữ để chuẩn bị...' :
+                        'Giữ ≥300ms rồi thả để bắt đầu'}
+                    </div>
 
-                  {/* Controls */}
-                  <div className="flex gap-2 justify-center">
-                    {/* Đã xóa nút Inspection và Reset All */}
+                    {/* Controls */}
+                    <div className="flex gap-2 justify-center">
+                      {/* Đã xóa nút Inspection và Reset All */}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 

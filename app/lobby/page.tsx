@@ -98,10 +98,10 @@ function LobbyContent() {
           // Refetch user để cập nhật customBg từ server
           await refetchUser();
         } else {
-          console.log('[Lobby] Failed to save background to server:', res.status);
+          // Failed to save background to server
         }
       } catch (err) {
-        console.log('[Lobby] Error saving background to server:', err);
+        // Error saving background to server
       }
       
       setShowBgModal(false);
@@ -161,17 +161,13 @@ function LobbyContent() {
   // Xử lý upload ảnh nền cá nhân hóa lên API MongoDB và refetch user
   const refetchUser = async () => {
     try {
-      console.log('[Lobby] Refetching user data...');
       const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
       const data = await res.json();
-      console.log('[Lobby] refetchUser data:', data);
-      console.log('[Lobby] refetchUser user.customBg:', data?.user?.customBg);
       if (data && data.user) {
-        console.log('[Lobby] Setting user from refetch:', data.user);
         setUser(data.user);
       }
     } catch (err) {
-      console.log('[Lobby] refetchUser error:', err);
+      // Error refetching user data
     }
   };
 
@@ -180,12 +176,10 @@ function LobbyContent() {
     if (!file) return;
     setBgError("");
     setLoadingBg(true);
-    console.log('[Lobby] handleBgUpload file:', file);
     const reader = new FileReader();
     reader.onload = async function(ev) {
       const img = new window.Image();
       img.onload = async function() {
-        console.log('[Lobby] handleBgUpload img loaded:', img.width, img.height);
         if (img.width < img.height) {
           setBgError("Vui lòng chọn ảnh ngang (chiều rộng lớn hơn chiều cao)!");
           setLoadingBg(false);
@@ -221,30 +215,21 @@ function LobbyContent() {
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.fillRect(0, 0, targetW, targetH);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        console.log('[Lobby] handleBgUpload dataUrl length:', dataUrl.length);
         // Gửi lên API
         try {
-          console.log('[Lobby] Sending image to API, length:', dataUrl.length);
           const res = await fetch('/api/user/custom-bg', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: dataUrl })
           });
-          console.log('[Lobby] handleBgUpload POST result:', res.status);
-          console.log('[Lobby] Response headers:', Object.fromEntries(res.headers.entries()));
           
           if (res.ok) {
-            const responseData = await res.json();
-            console.log('[Lobby] API response:', responseData);
             await refetchUser();
           } else {
-            const errorData = await res.text();
-            console.log('[Lobby] API error response:', errorData);
             setBgError(`Lưu ảnh thất bại! Status: ${res.status}`);
           }
         } catch (err) {
           setBgError('Lỗi mạng khi lưu ảnh!');
-          console.log('[Lobby] handleBgUpload POST error:', err);
         }
         setLoadingBg(false);
       };
@@ -300,7 +285,7 @@ function LobbyContent() {
             (document.documentElement as any).msRequestFullscreen();
           }
         } catch (error) {
-          console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
+          // Không thể chuyển sang chế độ toàn màn hình
         }
       };
 
@@ -317,7 +302,6 @@ function LobbyContent() {
     fetch("/api/user/me", { credentials: "include", cache: "no-store" })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        console.log('[Lobby] initial fetch user:', data);
         if (!data || !data.user) {
           router.replace("/");
           return;
@@ -372,7 +356,6 @@ function LobbyContent() {
       </div>
     );
   }
-  console.log('[Lobby] Render Lobby, customBg:', customBg?.slice(0, 50));
   return (
     <main
       className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans"
