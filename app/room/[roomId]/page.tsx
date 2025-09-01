@@ -2170,12 +2170,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   }
                   
                   // Thêm thông báo rõ ràng về lượt chơi
-                  const turnInfo = `Lượt hiện tại: ${turnUserId === userId ? 'BẠN' : 'ĐỐI THỦ'}`;
+                
                   
                   return (
                     <>
                       <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
-                      <span className={mobileShrink ? "text-[9px] font-semibold text-blue-300 block mt-1" : "text-lg font-semibold text-blue-300 block mt-2"}>{turnInfo}</span>
                       {showScrambleMsg && (
                         <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>
                           Hai cuber hãy tráo scramble
