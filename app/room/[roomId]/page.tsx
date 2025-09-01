@@ -1152,23 +1152,21 @@ useEffect(() => {
     socket.emit("timer-update", { roomId, userId, ms: 0, running: true, finished: false });
     
     // Sử dụng requestAnimationFrame thay vì setInterval để có độ chính xác cao hơn
+    let animationId: number;
     const updateTimer = () => {
-      if (!running) return;
-      
       const elapsed = performance.now() - startTimeRef.current;
       const newTime = Math.round(elapsed); // Làm tròn để có số nguyên
       setTimer(newTime);
       timerRef.current = newTime;
       
-      if (running) {
-        requestAnimationFrame(updateTimer);
-      }
+      animationId = requestAnimationFrame(updateTimer);
     };
     
-    updateTimer();
+    animationId = requestAnimationFrame(updateTimer);
     // Khi dừng timer, chỉ lưu vào pendingResult, không gửi lên server ngay
     const stopTimer = () => {
       setRunning(false);
+      cancelAnimationFrame(animationId); // Dừng animation loop
       
       // Lấy thời gian chính xác từ performance.now()
       const currentTime = Math.round(performance.now() - startTimeRef.current);
@@ -1221,7 +1219,10 @@ useEffect(() => {
       window.addEventListener("mousedown", handleMouse, true);
     }
     return () => {
-      // Không cần clearInterval nữa vì dùng requestAnimationFrame
+      // Dừng animation loop khi component unmount
+      if (typeof animationId !== 'undefined') {
+        cancelAnimationFrame(animationId);
+      }
       if (isMobile) {
         window.removeEventListener('touchstart', handleTouch);
       } else {

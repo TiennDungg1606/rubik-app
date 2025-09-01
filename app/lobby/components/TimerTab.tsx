@@ -604,26 +604,28 @@ export default function TimerTab() {
 
   // Tăng thời gian khi running
   useEffect(() => {
+    let animationId: number;
+    
     if (running) {
       startTimeRef.current = performance.now(); // Lưu thời gian bắt đầu chính xác
       
       // Sử dụng requestAnimationFrame thay vì setInterval để có độ chính xác cao hơn
       const updateTimer = () => {
-        if (!running) return;
-        
         const elapsed = performance.now() - startTimeRef.current;
         const newTime = Math.round(elapsed); // Làm tròn để có số nguyên
         setTime(newTime);
         
-        if (running) {
-          requestAnimationFrame(updateTimer);
-        }
+        animationId = requestAnimationFrame(updateTimer);
       };
       
-      updateTimer();
+      animationId = requestAnimationFrame(updateTimer);
     }
+    
     return () => {
-      // Không cần clearInterval nữa vì dùng requestAnimationFrame
+      // Dừng animation loop khi component unmount hoặc running thay đổi
+      if (typeof animationId !== 'undefined') {
+        cancelAnimationFrame(animationId);
+      }
     };
   }, [running]);
 
