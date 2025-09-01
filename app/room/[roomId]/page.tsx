@@ -561,17 +561,17 @@ useEffect(() => {
   };
 }, [opponentName]);
 
-// Lắng nghe lượt chơi từ server (turnUserId)
-useEffect(() => {
-  const socket = getSocket();
-  const handleTurn = (data: { turnUserId: string }) => {
-    setTurnUserId(data.turnUserId || "");
-  };
-  socket.on('room-turn', handleTurn);
-  return () => {
-    socket.off('room-turn', handleTurn);
-  };
-}, []);
+  // Lắng nghe lượt chơi từ server (turnUserId)
+  useEffect(() => {
+    const socket = getSocket();
+    const handleTurn = (data: { turnUserId: string }) => {
+      setTurnUserId(data.turnUserId || "");
+    };
+    socket.on('room-turn', handleTurn);
+    return () => {
+      socket.off('room-turn', handleTurn);
+    };
+  }, [roomId]);
 
 // --- EFFECT LẮNG NGHE SCRAMBLE ---
 useEffect(() => {
@@ -776,7 +776,7 @@ useEffect(() => {
 
   // Hàm xử lý chế độ typing
   function handleTypingMode() {
-    if (users.length < 2 || isLockedDue2DNF) return; // Chỉ hoạt động khi đủ 2 người và không bị khóa do 2 lần DNF
+    if (users.length < 2 || isLockedDue2DNF || userId !== turnUserId) return; // Chỉ hoạt động khi đủ 2 người, không bị khóa và đến lượt mình
     setIsTypingMode(!isTypingMode);
     setTypingInput("");
   }
@@ -784,12 +784,7 @@ useEffect(() => {
   // Hàm xử lý nhập thời gian
   function handleTypingSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (users.length < 2 || isLockedDue2DNF) return;
-    
-    // Kiểm tra xem có phải lượt của mình không
-    if (userId !== turnUserId) {
-      return;
-    }
+    if (users.length < 2 || isLockedDue2DNF || userId !== turnUserId) return;
     
     const socket = getSocket();
     let time: number | null = null;
@@ -1059,6 +1054,7 @@ useEffect(() => {
           setSpaceHeld(true);
         }
       } else if (!prep && !running) {
+        console.log('✅ Bắt đầu chuẩn bị - đến lượt của bạn');
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
@@ -1093,7 +1089,7 @@ useEffect(() => {
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
-    if (!prep || waiting || isLockedDue2DNF) return;
+    if (!prep || waiting || isLockedDue2DNF || userId !== turnUserId) return;
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
@@ -1141,7 +1137,7 @@ useEffect(() => {
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
-    if (!canStart || waiting || isLockedDue2DNF) return;
+    if (!canStart || waiting || isLockedDue2DNF || userId !== turnUserId) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -2172,9 +2168,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   } else {
                     msg = `Đến lượt ${name} thi đấu`;
                   }
+                  
+                  // Thêm thông báo rõ ràng về lượt chơi
+                  const turnInfo = `Lượt hiện tại: ${turnUserId === userId ? 'BẠN' : 'ĐỐI THỦ'}`;
+                  
                   return (
                     <>
                       <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
+                      <span className={mobileShrink ? "text-[9px] font-semibold text-blue-300 block mt-1" : "text-lg font-semibold text-blue-300 block mt-2"}>{turnInfo}</span>
                       {showScrambleMsg && (
                         <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>
                           Hai cuber hãy tráo scramble
@@ -2508,7 +2509,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
         {...(isMobile ? {
             onTouchStart: (e) => {
-              if (pendingResult !== null || isLockedDue2DNF) return;
+              if (pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
               if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
               // Nếu chạm vào webcam thì bỏ qua
               const webcamEls = document.querySelectorAll('.webcam-area');
@@ -2520,15 +2521,15 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               pressStartRef.current = Date.now();
               setSpaceHeld(true); // Đang giữ tay
             },
-            onTouchEnd: (e) => {
-              if (pendingResult !== null || isLockedDue2DNF) return;
-              if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
-              // Nếu chạm vào webcam thì bỏ qua
-              const webcamEls = document.querySelectorAll('.webcam-area');
-              for (let i = 0; i < webcamEls.length; i++) {
-                if (webcamEls[i].contains(e.target as Node)) return;
-              }
-              if (waiting || myResults.length >= 5) return;
+                          onTouchEnd: (e) => {
+                if (pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
+                if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
+                // Nếu chạm vào webcam thì bỏ qua
+                const webcamEls = document.querySelectorAll('.webcam-area');
+                for (let i = 0; i < webcamEls.length; i++) {
+                  if (webcamEls[i].contains(e.target as Node)) return;
+                }
+                if (waiting || myResults.length >= 5) return;
               const now = Date.now();
               const start = pressStartRef.current;
               pressStartRef.current = null;
@@ -2573,9 +2574,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
           } : {
             onClick: () => {
-              if (waiting || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
+              if (waiting || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
               if (isTypingMode) return; // Chặn click khi đang ở chế độ typing
-              if (!prep && !running && userId === turnUserId) {
+              if (!prep && !running) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
@@ -2627,6 +2628,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   let result: number|null = pendingResult;
                   if (pendingType === '+2' && result !== null) result = result + 2000;
                   if (pendingType === 'dnf') result = null;
+                  
+                  console.log('📤 Gửi kết quả:', result, 'cho phòng:', roomId);
                   
                   // Gửi timer-update event cuối cùng
                   const socket = getSocket();
