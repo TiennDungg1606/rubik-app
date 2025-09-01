@@ -432,6 +432,9 @@ export default function TimerTab() {
           // Lấy thời gian chính xác từ performance.now()
           const finalTime = Math.round(performance.now() - startTimeRef.current);
           
+          // Cập nhật timer hiển thị để đảm bảo đồng bộ
+          setTime(finalTime);
+          
           let penalty: 'OK' | '+2' | 'DNF' = 'OK';
           if (inspection) {
             // Logic đơn giản: hết 15s là DNF
@@ -533,25 +536,28 @@ export default function TimerTab() {
       }, 300);
     }
     
-    if (running) {
-      // Dừng timer và lưu solve
-      setRunning(false);
-      
-      // Lấy thời gian chính xác từ performance.now()
-      const finalTime = Math.round(performance.now() - startTimeRef.current);
-      
-      let penalty: 'OK' | '+2' | 'DNF' = 'OK';
-      if (inspection) {
-        // Logic đơn giản: hết 15s là DNF
-        if (inspectionTime <= 0) penalty = 'DNF';
-      }
-      const newSolve: Solve = {
-        id: Date.now().toString(),
-        time: finalTime,
-        scramble,
-        date: new Date(),
-        penalty
-      };
+            if (running) {
+          // Dừng timer và lưu solve
+          setRunning(false);
+          
+          // Lấy thời gian chính xác từ performance.now()
+          const finalTime = Math.round(performance.now() - startTimeRef.current);
+          
+          // Cập nhật timer hiển thị để đảm bảo đồng bộ
+          setTime(finalTime);
+          
+          let penalty: 'OK' | '+2' | 'DNF' = 'OK';
+          if (inspection) {
+            // Logic đơn giản: hết 15s là DNF
+            if (inspectionTime <= 0) penalty = 'DNF';
+          }
+          const newSolve: Solve = {
+            id: Date.now().toString(),
+            time: finalTime,
+            scramble,
+            date: new Date(),
+            penalty
+          };
       addNewSolve(newSolve);
       // Không reset timer về 0
       setReady(false);
@@ -605,11 +611,12 @@ export default function TimerTab() {
   // Tăng thời gian khi running
   useEffect(() => {
     let animationId: number;
+    let timeoutId: NodeJS.Timeout;
     
     if (running) {
       startTimeRef.current = performance.now(); // Lưu thời gian bắt đầu chính xác
       
-      // Sử dụng requestAnimationFrame thay vì setInterval để có độ chính xác cao hơn
+      // Sử dụng hybrid approach: requestAnimationFrame cho UI + setTimeout cho độ chính xác
       const updateTimer = () => {
         const elapsed = performance.now() - startTimeRef.current;
         const newTime = Math.round(elapsed); // Làm tròn để có số nguyên
@@ -618,13 +625,26 @@ export default function TimerTab() {
         animationId = requestAnimationFrame(updateTimer);
       };
       
+      const preciseUpdate = () => {
+        const elapsed = performance.now() - startTimeRef.current;
+        const newTime = Math.round(elapsed);
+        setTime(newTime);
+        
+        timeoutId = setTimeout(preciseUpdate, 10); // Cập nhật mỗi 10ms
+      };
+      
+      // Bắt đầu cả hai
       animationId = requestAnimationFrame(updateTimer);
+      timeoutId = setTimeout(preciseUpdate, 10);
     }
     
     return () => {
       // Dừng animation loop khi component unmount hoặc running thay đổi
       if (typeof animationId !== 'undefined') {
         cancelAnimationFrame(animationId);
+      }
+      if (typeof timeoutId !== 'undefined') {
+        clearTimeout(timeoutId);
       }
     };
   }, [running]);

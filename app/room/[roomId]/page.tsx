@@ -1151,8 +1151,10 @@ useEffect(() => {
     const socket = getSocket();
     socket.emit("timer-update", { roomId, userId, ms: 0, running: true, finished: false });
     
-    // Sử dụng requestAnimationFrame thay vì setInterval để có độ chính xác cao hơn
+    // Sử dụng hybrid approach: requestAnimationFrame cho UI + setTimeout cho độ chính xác
     let animationId: number;
+    let timeoutId: NodeJS.Timeout;
+    
     const updateTimer = () => {
       const elapsed = performance.now() - startTimeRef.current;
       const newTime = Math.round(elapsed); // Làm tròn để có số nguyên
@@ -1162,14 +1164,30 @@ useEffect(() => {
       animationId = requestAnimationFrame(updateTimer);
     };
     
+    const preciseUpdate = () => {
+      const elapsed = performance.now() - startTimeRef.current;
+      const newTime = Math.round(elapsed);
+      setTimer(newTime);
+      timerRef.current = newTime;
+      
+      timeoutId = setTimeout(preciseUpdate, 10); // Cập nhật mỗi 10ms
+    };
+    
+    // Bắt đầu cả hai
     animationId = requestAnimationFrame(updateTimer);
+    timeoutId = setTimeout(preciseUpdate, 10);
     // Khi dừng timer, chỉ lưu vào pendingResult, không gửi lên server ngay
     const stopTimer = () => {
       setRunning(false);
       cancelAnimationFrame(animationId); // Dừng animation loop
+      clearTimeout(timeoutId); // Dừng timeout loop
       
       // Lấy thời gian chính xác từ performance.now()
       const currentTime = Math.round(performance.now() - startTimeRef.current);
+      
+      // Cập nhật timer hiển thị để đảm bảo đồng bộ
+      setTimer(currentTime);
+      timerRef.current = currentTime;
       
       // Gửi timer-update event để đối thủ biết mình dừng timer
       socket.emit("timer-update", { roomId, userId, ms: currentTime, running: false, finished: false });
@@ -1222,6 +1240,9 @@ useEffect(() => {
       // Dừng animation loop khi component unmount
       if (typeof animationId !== 'undefined') {
         cancelAnimationFrame(animationId);
+      }
+      if (typeof timeoutId !== 'undefined') {
+        clearTimeout(timeoutId);
       }
       if (isMobile) {
         window.removeEventListener('touchstart', handleTouch);
@@ -2535,10 +2556,16 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               if (running) {
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
+                
+                // Lấy thời gian chính xác từ performance.now()
+                const currentTime = Math.round(performance.now() - startTimeRef.current);
+                setTimer(currentTime);
+                timerRef.current = currentTime;
+                
                 // Gửi timer-update event
                 const socket = getSocket();
-                socket.emit("timer-update", { roomId, userId, ms: timerRef.current, running: false, finished: false });
-                setPendingResult(timerRef.current);
+                socket.emit("timer-update", { roomId, userId, ms: currentTime, running: false, finished: false });
+                setPendingResult(currentTime);
                 setPendingType('normal');
                 setCanStart(false);
                 return;
@@ -2563,25 +2590,25 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 setRunning(true);
                 setTimer(0);
                 timerRef.current = 0;
+                startTimeRef.current = performance.now();
                 // Gửi timer-update event
                 const socket = getSocket();
                 socket.emit("timer-update", { roomId, userId, ms: 0, running: true, finished: false });
-                intervalRef.current = setInterval(() => {
-                  setTimer(t => {
-                    const newTime = t + 10;
-                    timerRef.current = newTime; // Đảm bảo timerRef.current luôn được cập nhật
-                    return newTime;
-                  });
-                }, 10);
                 setCanStart(false);
                 setPrep(false);
               } else if (running) {
                 setRunning(false);
                 if (intervalRef.current) clearInterval(intervalRef.current);
+                
+                // Lấy thời gian chính xác từ performance.now()
+                const currentTime = Math.round(performance.now() - startTimeRef.current);
+                setTimer(currentTime);
+                timerRef.current = currentTime;
+                
                 // Gửi timer-update event
                 const socket = getSocket();
-                socket.emit("timer-update", { roomId, userId, ms: timerRef.current, running: false, finished: false });
-                setPendingResult(timerRef.current);
+                socket.emit("timer-update", { roomId, userId, ms: currentTime, running: false, finished: false });
+                setPendingResult(currentTime);
                 setPendingType('normal');
                 setCanStart(false);
               }
