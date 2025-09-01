@@ -112,6 +112,7 @@ export default function RoomPage() {
   const [scrambles, setScrambles] = useState<string[]>([]); // Lưu 5 scramble đã dùng
   const [timer, setTimer] = useState<number>(0);
   const timerRef = useRef<number>(0);
+  const startTimeRef = useRef<number>(0);
   const [running, setRunning] = useState<boolean>(false);
   const [prep, setPrep] = useState<boolean>(false);
   const [prepTime, setPrepTime] = useState<number>(15);
@@ -347,14 +348,14 @@ useEffect(() => {
         setOpponentRunning(true);
         setOpponentTimer(ms);
         opponentTimerRef.current = ms;
-        lastOpponentUpdate = Date.now();
+        lastOpponentUpdate = performance.now();
         
         // Bắt đầu interval để tăng timer dựa trên thời gian thực tế
         if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
         opponentIntervalRef.current = setInterval(() => {
-          const now = Date.now();
+          const now = performance.now();
           const elapsed = now - lastOpponentUpdate;
-          setOpponentTimer(ms + elapsed);
+          setOpponentTimer(ms + Math.round(elapsed));
         }, 30);
       } else {
         // Khi đối thủ dừng timer
@@ -1144,25 +1145,33 @@ useEffect(() => {
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
+    startTimeRef.current = performance.now(); // Lưu thời gian bắt đầu chính xác
     
     // Gửi timer-update event để đối thủ biết mình bắt đầu timer
     const socket = getSocket();
     socket.emit("timer-update", { roomId, userId, ms: 0, running: true, finished: false });
     
-    intervalRef.current = setInterval(() => {
-      setTimer(t => {
-        const newTime = t + 10;
-        timerRef.current = newTime; // Đảm bảo timerRef.current luôn được cập nhật
-        return newTime;
-      });
-    }, 10);
+    // Sử dụng requestAnimationFrame thay vì setInterval để có độ chính xác cao hơn
+    const updateTimer = () => {
+      if (!running) return;
+      
+      const elapsed = performance.now() - startTimeRef.current;
+      const newTime = Math.round(elapsed); // Làm tròn để có số nguyên
+      setTimer(newTime);
+      timerRef.current = newTime;
+      
+      if (running) {
+        requestAnimationFrame(updateTimer);
+      }
+    };
+    
+    updateTimer();
     // Khi dừng timer, chỉ lưu vào pendingResult, không gửi lên server ngay
     const stopTimer = () => {
       setRunning(false);
-      if (intervalRef.current) clearInterval(intervalRef.current);
       
-      // Lấy thời gian chính xác từ timer hiện tại
-      const currentTime = timerRef.current;
+      // Lấy thời gian chính xác từ performance.now()
+      const currentTime = Math.round(performance.now() - startTimeRef.current);
       
       // Gửi timer-update event để đối thủ biết mình dừng timer
       socket.emit("timer-update", { roomId, userId, ms: currentTime, running: false, finished: false });
@@ -1212,7 +1221,7 @@ useEffect(() => {
       window.addEventListener("mousedown", handleMouse, true);
     }
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      // Không cần clearInterval nữa vì dùng requestAnimationFrame
       if (isMobile) {
         window.removeEventListener('touchstart', handleTouch);
       } else {

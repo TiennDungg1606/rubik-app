@@ -287,6 +287,7 @@ export default function TimerTab() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const spaceHoldTimerRef = useRef<NodeJS.Timeout | null>(null);
   const inspectionRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
   
 
   // Mobile detection & orientation (fix: always update on resize/orientationchange)
@@ -427,6 +428,10 @@ export default function TimerTab() {
         if (running) {
           // Dừng timer và lưu solve
           setRunning(false);
+          
+          // Lấy thời gian chính xác từ performance.now()
+          const finalTime = Math.round(performance.now() - startTimeRef.current);
+          
           let penalty: 'OK' | '+2' | 'DNF' = 'OK';
           if (inspection) {
             // Logic đơn giản: hết 15s là DNF
@@ -434,7 +439,7 @@ export default function TimerTab() {
           }
           const newSolve: Solve = {
             id: Date.now().toString(),
-            time: time,
+            time: finalTime,
             scramble,
             date: new Date(),
             penalty
@@ -531,6 +536,10 @@ export default function TimerTab() {
     if (running) {
       // Dừng timer và lưu solve
       setRunning(false);
+      
+      // Lấy thời gian chính xác từ performance.now()
+      const finalTime = Math.round(performance.now() - startTimeRef.current);
+      
       let penalty: 'OK' | '+2' | 'DNF' = 'OK';
       if (inspection) {
         // Logic đơn giản: hết 15s là DNF
@@ -538,7 +547,7 @@ export default function TimerTab() {
       }
       const newSolve: Solve = {
         id: Date.now().toString(),
-        time: time,
+        time: finalTime,
         scramble,
         date: new Date(),
         penalty
@@ -596,14 +605,25 @@ export default function TimerTab() {
   // Tăng thời gian khi running
   useEffect(() => {
     if (running) {
-      intervalRef.current = setInterval(() => {
-        setTime((t) => t + 10);
-      }, 10);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+      startTimeRef.current = performance.now(); // Lưu thời gian bắt đầu chính xác
+      
+      // Sử dụng requestAnimationFrame thay vì setInterval để có độ chính xác cao hơn
+      const updateTimer = () => {
+        if (!running) return;
+        
+        const elapsed = performance.now() - startTimeRef.current;
+        const newTime = Math.round(elapsed); // Làm tròn để có số nguyên
+        setTime(newTime);
+        
+        if (running) {
+          requestAnimationFrame(updateTimer);
+        }
+      };
+      
+      updateTimer();
     }
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      // Không cần clearInterval nữa vì dùng requestAnimationFrame
     };
   }, [running]);
 
