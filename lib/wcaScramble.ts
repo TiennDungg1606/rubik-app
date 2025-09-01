@@ -83,20 +83,24 @@ function generate4x4Scramble(): string {
   const outerModifiers = ['', '\'', '2'];
   const outerLength = 20;
   
-  // 23 bước xáo bên trong (inner layer moves - có thể lộn wide moves và normal moves)
-  const innerMoves = ['Uw', 'Rw', 'Fw', 'R', 'L', 'U', 'B', 'D', 'F'];
-  const innerModifiers = ['', '\'', '2'];
-  const innerLength = 23;
+  // Đảm bảo có đủ 9-12 ký tự chứa 'w' (wide moves)
+  const wideMoves = ['Uw', 'Dw', 'Rw', 'Lw', 'Fw', 'Bw'];
+  const wideModifiers = ['', '\'', '2'];
+  const wideLength = Math.floor(Math.random() * 4) + 9; // 9-12 bước wide
   
   // Tạo outer scramble (20 bước) - giống như 3x3
   const outerScramble = generateRandomMoveSequence(outerMoves, outerModifiers, outerLength);
   
-  // Tạo inner scramble (23 bước) - xáo các lớp bên trong (có thể lộn wide và normal)
-  const innerScramble = generateRandomMoveSequence(innerMoves, innerModifiers, innerLength);
+  // Tạo wide scramble (9-12 bước) - đảm bảo có đủ ký tự 'w'
+  const wideScramble = generateRandomMoveSequence(wideMoves, wideModifiers, wideLength);
   
   // Kết hợp cả hai với khoảng cách rõ ràng
-  // Ví dụ: "R U F2 L' D B  Uw R Rw' Fw2 L U B D F"
-  return outerScramble + '  ' + innerScramble;
+  // Ví dụ: "R U F2 L' D B  Uw Rw' Fw2 Dw Lw Bw"
+  // Đảm bảo tổng số ký tự 'w' từ 9-12
+  const totalWideMoves = wideScramble.split(' ').length;
+  console.log(`4x4 Scramble: ${outerLength} outer + ${totalWideMoves} wide moves`);
+  
+  return outerScramble + '  ' + wideScramble;
 }
 
 // Hàm tạo scramble cho 5x5
@@ -141,20 +145,26 @@ function generate7x7Scramble(): string {
 // Hàm tạo scramble cho Pyraminx
 function generatePyraminxScramble(): string {
   const mainMoves = ['R', 'L', 'U', 'B']; // Chỉ bao gồm R L U B, không có D và F
-  const tipMoves = ['l', 'r', 'b']; // Kí tự nhỏ cho tip moves - chỉ l, r, b (không có d)
+  const tipMoves = ['l', 'r','u', 'b']; // Kí tự nhỏ cho tip moves - chỉ l, r, b (không có d)
   const modifiers = ['', '\'']; // Không có 2 (double move) cho Pyraminx
   
   // 8-9 kí tự lớn (main moves) - tránh lặp liên tiếp
   const largeMovesLength = Math.random() < 0.5 ? 8 : 9;
-  const largeScramble = generateRandomMoveSequence(mainMoves, modifiers, largeMovesLength);
+  const largeScramble = generatePyraminxMainMoves(mainMoves, modifiers, largeMovesLength);
   
   // 1-4 kí tự nhỏ ở cuối (tip moves - l, r, b) - tránh lặp liên tiếp
   const smallMovesLength = Math.floor(Math.random() * 4) + 1; // 1-4
-  const smallScramble = generateRandomMoveSequence(tipMoves, modifiers, smallMovesLength);
+  const smallScramble = generatePyraminxTipMoves(tipMoves, modifiers, smallMovesLength);
   
   // Kết hợp cả hai với khoảng cách rõ ràng
   // Ví dụ: "R L' U B R' L U'  l r b" (đúng) hoặc "R L U B R' L' U' B  l" (đúng)
   // Không được: "r b u b'" (sai vì bị lặp b)
+  
+  // Debug log để kiểm tra
+  const mainMovesCount = largeScramble.split(' ').length;
+  const tipMovesCount = smallScramble.split(' ').length;
+  console.log(`Pyraminx Scramble: ${mainMovesCount} main + ${tipMovesCount} tip moves`);
+  
   return largeScramble + '  ' + smallScramble;
 }
 
@@ -185,7 +195,7 @@ function generateRandomMoveSequence(moves: string[], modifiers: string[], length
   for (let i = 0; i < length; i++) {
     let move: string;
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 20; // Tăng số lần thử để tránh lặp
     
     // Tránh lặp lại cùng một move hoặc cùng axis liên tiếp
     do {
@@ -212,6 +222,54 @@ function getAxis(move: string): string {
   if (move.includes('U') || move.includes('D')) return 'U';
   if (move.includes('F') || move.includes('B')) return 'F';
   return 'R'; // fallback
+}
+
+// Hàm tạo main moves cho Pyraminx - tránh lặp ký tự liên tiếp
+function generatePyraminxMainMoves(moves: string[], modifiers: string[], length: number): string {
+  const sequence: string[] = [];
+  let lastMove = '';
+  
+  for (let i = 0; i < length; i++) {
+    let move: string;
+    let attempts = 0;
+    const maxAttempts = 30; // Tăng số lần thử để tránh lặp
+    
+    // Tránh lặp lại cùng một move liên tiếp
+    do {
+      move = moves[Math.floor(Math.random() * moves.length)];
+      attempts++;
+    } while (attempts < maxAttempts && move === lastMove);
+    
+    const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+    sequence.push(move + modifier);
+    lastMove = move;
+  }
+  
+  return sequence.join(' ');
+}
+
+// Hàm tạo tip moves cho Pyraminx - tránh lặp ký tự liên tiếp
+function generatePyraminxTipMoves(moves: string[], modifiers: string[], length: number): string {
+  const sequence: string[] = [];
+  let lastMove = '';
+  
+  for (let i = 0; i < length; i++) {
+    let move: string;
+    let attempts = 0;
+    const maxAttempts = 30; // Tăng số lần thử để tránh lặp
+    
+    // Tránh lặp lại cùng một move liên tiếp
+    do {
+      move = moves[Math.floor(Math.random() * moves.length)];
+      attempts++;
+    } while (attempts < maxAttempts && move === lastMove);
+    
+    const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+    sequence.push(move + modifier);
+    lastMove = move;
+  }
+  
+  return sequence.join(' ');
 }
 
 // Alias cho backward compatibility
