@@ -349,7 +349,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                         </div>
                       ) : roomMetas[room].event.includes('pyraminx') ? (
                         <div className="w-16 h-16 flex items-center justify-center">
-                          <div className="w-12 h-12 bg-red-300 opacity-80 transform rotate-45"></div>
+                          <div className="w-12 h-12 bg-red-300 opacity-80" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}></div>
                         </div>
                       ) : (
                         <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
@@ -435,7 +435,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                         </div>
                       ) : roomMetas[room].event.includes('pyraminx') ? (
                         <div className="w-16 h-16 flex items-center justify-center">
-                          <div className="w-12 h-12 bg-gray-300 opacity-80 transform rotate-45"></div>
+                          <div className="w-12 h-12 bg-gray-300 opacity-80" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}></div>
                         </div>
                       ) : (
                         <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
