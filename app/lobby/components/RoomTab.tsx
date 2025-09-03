@@ -349,7 +349,56 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                         </div>
                       ) : roomMetas[room].event.includes('pyraminx') ? (
                         <div className="w-16 h-16 flex items-center justify-center">
-                          <div className="w-12 h-12 bg-red-300 opacity-80" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}></div>
+                          <div className="w-14 h-14 relative" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#ef4444' }}>
+                            {/* Vẽ các đường chia tam giác thành 9 phần */}
+                            <div style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '100%',
+                              background: 'transparent'
+                            }}>
+                              {/* Đường ngang */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '33.33%',
+                                left: '0%',
+                                width: '100%',
+                                height: '1px',
+                                background: '#333',
+                                transform: 'translateY(-0.5px)'
+                              }}></div>
+                              <div style={{
+                                position: 'absolute',
+                                top: '66.66%',
+                                left: '0%',
+                                width: '100%',
+                                height: '1px',
+                                background: '#333',
+                                transform: 'translateY(-0.5px)'
+                              }}></div>
+                              {/* Đường dọc */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '0%',
+                                left: '33.33%',
+                                width: '1px',
+                                height: '100%',
+                                background: '#333',
+                                transform: 'translateX(-0.5px)'
+                              }}></div>
+                              <div style={{
+                                position: 'absolute',
+                                top: '0%',
+                                left: '66.66%',
+                                width: '1px',
+                                height: '100%',
+                                background: '#333',
+                                transform: 'translateX(-0.5px)'
+                              }}></div>
+                            </div>
+                          </div>
                         </div>
                       ) : (
                         <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
@@ -435,7 +484,56 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                         </div>
                       ) : roomMetas[room].event.includes('pyraminx') ? (
                         <div className="w-16 h-16 flex items-center justify-center">
-                          <div className="w-12 h-12 bg-gray-300 opacity-80" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}></div>
+                          <div className="w-14 h-14 relative" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#d1d5db' }}>
+                            {/* Vẽ các đường chia tam giác thành 9 phần */}
+                            <div style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '100%',
+                              background: 'transparent'
+                            }}>
+                              {/* Đường ngang */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '33.33%',
+                                left: '0%',
+                                width: '100%',
+                                height: '1px',
+                                background: '#333',
+                                transform: 'translateY(-0.5px)'
+                              }}></div>
+                              <div style={{
+                                position: 'absolute',
+                                top: '66.66%',
+                                left: '0%',
+                                width: '100%',
+                                height: '1px',
+                                background: '#333',
+                                transform: 'translateY(-0.5px)'
+                              }}></div>
+                              {/* Đường dọc */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '0%',
+                                left: '33.33%',
+                                width: '1px',
+                                height: '100%',
+                                background: '#333',
+                                transform: 'translateX(-0.5px)'
+                              }}></div>
+                              <div style={{
+                                position: 'absolute',
+                                top: '0%',
+                                left: '66.66%',
+                                width: '1px',
+                                height: '100%',
+                                background: '#333',
+                                transform: 'translateX(-0.5px)'
+                              }}></div>
+                            </div>
+                          </div>
                         </div>
                       ) : (
                         <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
