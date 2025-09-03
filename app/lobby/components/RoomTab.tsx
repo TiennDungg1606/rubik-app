@@ -9,7 +9,7 @@ import { io } from "socket.io-client";
 type RoomTabProps = {
   roomInput: string;
   setRoomInput: (v: string) => void;
-  handleCreateRoom: (event: '2x2' | '3x3', displayName: string, password: string) => void;
+  handleCreateRoom: (event: '2x2' | '3x3' | '4x4' | 'pyraminx', displayName: string, password: string) => void;
   handleJoinRoom: (roomId: string) => void;
 };
 
@@ -36,7 +36,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   }, [showCreateModal]);
   // Animation state for modal
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalEvent, setModalEvent] = useState<'2x2' | '3x3'>("3x3");
+  const [modalEvent, setModalEvent] = useState<'2x2' | '3x3' | '4x4' | 'pyraminx'>("3x3");
   const [modalRoomName, setModalRoomName] = useState("");
   const [modalPassword, setModalPassword] = useState("");
   const [modalPasswordConfirm, setModalPasswordConfirm] = useState("");
@@ -222,9 +222,17 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 onClick={() => setModalEvent('2x2')}
               >2x2</button>
               <button
-                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '3x3' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '3x3' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
                 onClick={() => setModalEvent('3x3')}
               >3x3</button>
+              <button
+                className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '4x4' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                onClick={() => setModalEvent('4x4')}
+              >4x4</button>
+              <button
+                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === 'pyraminx' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                onClick={() => setModalEvent('pyraminx')}
+              >Pyraminx</button>
             </div>
             {/* Cột 2: Nhập tên phòng, mật khẩu, xác nhận */}
             <div className="flex-1 pl-6 flex flex-col justify-between">
@@ -325,13 +333,31 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   className="flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-xl"
                 >
                   <div className="w-24 h-24 bg-red-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
-                    {/* Icon dạng lưới: 2x2 nếu là phòng 2x2, 3x3 nếu là phòng 3x3 */}
-                    {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' && roomMetas[room].event.includes('2x2') ? (
-                      <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                        ))}
-                      </div>
+                    {/* Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx */}
+                    {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
+                      roomMetas[room].event.includes('2x2') ? (
+                        <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                          {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                          ))}
+                        </div>
+                      ) : roomMetas[room].event.includes('4x4') ? (
+                        <div className="grid grid-cols-4 grid-rows-4 gap-0.5 w-16 h-16">
+                          {Array.from({ length: 16 }).map((_, i) => (
+                            <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                          ))}
+                        </div>
+                      ) : roomMetas[room].event.includes('pyraminx') ? (
+                        <div className="w-16 h-16 flex items-center justify-center">
+                          <div className="w-12 h-12 bg-red-300 opacity-80 transform rotate-45"></div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                          {Array.from({ length: 9 }).map((_, i) => (
+                            <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                          ))}
+                        </div>
+                      )
                     ) : (
                       <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
                         {Array.from({ length: 9 }).map((_, i) => (
@@ -393,13 +419,31 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   className="flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-xl"
                 >
                   <div className="w-24 h-24 bg-blue-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
-                    {/* Icon dạng lưới: 2x2 nếu là phòng 2x2, 3x3 nếu là phòng 3x3 */}
-                    {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' && roomMetas[room].event.includes('2x2') ? (
-                      <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
-                        ))}
-                      </div>
+                    {/* Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx */}
+                    {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
+                      roomMetas[room].event.includes('2x2') ? (
+                        <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                          {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                          ))}
+                        </div>
+                      ) : roomMetas[room].event.includes('4x4') ? (
+                        <div className="grid grid-cols-4 grid-rows-4 gap-0.5 w-16 h-16">
+                          {Array.from({ length: 16 }).map((_, i) => (
+                            <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                          ))}
+                        </div>
+                      ) : roomMetas[room].event.includes('pyraminx') ? (
+                        <div className="w-16 h-16 flex items-center justify-center">
+                          <div className="w-12 h-12 bg-gray-300 opacity-80 transform rotate-45"></div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                          {Array.from({ length: 9 }).map((_, i) => (
+                            <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                          ))}
+                        </div>
+                      )
                     ) : (
                       <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
                         {Array.from({ length: 9 }).map((_, i) => (

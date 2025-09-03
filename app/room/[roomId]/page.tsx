@@ -386,7 +386,7 @@ interface CubeNetModalProps {
   scramble: string;
   open: boolean;
   onClose: () => void;
-  size: number; // 2 hoặc 3
+  size: number | string; // 2, 3, 4, hoặc 'pyraminx'
 }
 
 
@@ -403,8 +403,8 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
     ['', 'D', '', ''],
   ];
   function renderStickers(faceKey: Face) {
-    // Nếu size=2, chỉ render đúng 4 sticker (2x2), không render 9 sticker
     if (size === 2) {
+      // 2x2: 4 sticker
       return (
         <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
           {cubeState[faceKey].slice(0, 4).map((color: string, i: number) => (
@@ -412,8 +412,30 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
           ))}
         </div>
       );
+    } else if (size === 4) {
+      // 4x4: 16 sticker
+      return (
+        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(4, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+          {cubeState[faceKey].slice(0, 16).map((color: string, i: number) => (
+            <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+          ))}
+        </div>
+      );
+    } else if (size === 'pyraminx') {
+      // Pyraminx: hiển thị dạng tam giác đơn giản
+      return (
+        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+          <div style={{ 
+            width: '80%', 
+            height: '80%', 
+            background: cubeState[faceKey][0] || '#fff', 
+            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+            border: '1px solid #888'
+          }}></div>
+        </div>
+      );
     } else {
-      // 3x3: 9 sticker
+      // 3x3: 9 sticker (default)
       return (
         <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
           {cubeState[faceKey].slice(0, 9).map((color: string, i: number) => (
@@ -447,10 +469,14 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
   ) : null;
 }
 // --- End CubeNetModal ---
-  // Xác định loại cube (2x2 hoặc 3x3) dựa vào roomMeta.event, dùng useMemo để luôn cập nhật đúng
+  // Xác định loại cube dựa vào roomMeta.event, dùng useMemo để luôn cập nhật đúng
   const cubeSize = React.useMemo(() => {
-    if (roomMeta && typeof roomMeta.event === 'string' && roomMeta.event.includes('2x2')) return 2;
-    return 3;
+    if (roomMeta && typeof roomMeta.event === 'string') {
+      if (roomMeta.event.includes('2x2')) return 2;
+      if (roomMeta.event.includes('4x4')) return 4;
+      if (roomMeta.event.includes('pyraminx')) return 'pyraminx';
+    }
+    return 3; // default 3x3
   }, [roomMeta]);
 
 

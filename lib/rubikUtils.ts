@@ -108,7 +108,7 @@ export function rotateFace2x2(face: Face, cubeState: CubeState) {
   }
 }
 
-export function getSolvedCubeState(size: number): CubeState {
+export function getSolvedCubeState(size: number | string): CubeState {
   if (size === 2) {
     return {
       B: Array(4).fill('blue'),
@@ -118,7 +118,26 @@ export function getSolvedCubeState(size: number): CubeState {
       R: Array(4).fill('red'),
       F: Array(4).fill('green'),
     };
+  } else if (size === 4) {
+    return {
+      B: Array(16).fill('blue'),
+      U: Array(16).fill('white'),
+      D: Array(16).fill('yellow'),
+      L: Array(16).fill('orange'),
+      R: Array(16).fill('red'),
+      F: Array(16).fill('green'),
+    };
+  } else if (size === 'pyraminx') {
+    return {
+      B: Array(1).fill('blue'),
+      U: Array(1).fill('white'),
+      D: Array(1).fill('yellow'),
+      L: Array(1).fill('orange'),
+      R: Array(1).fill('red'),
+      F: Array(1).fill('green'),
+    };
   } else {
+    // 3x3 default
     return {
       B: Array(9).fill('blue'),
       U: Array(9).fill('white'),
@@ -130,7 +149,7 @@ export function getSolvedCubeState(size: number): CubeState {
   }
 }
 
-export function applyScrambleToCubeState(scramble: string, size: number): CubeState {
+export function applyScrambleToCubeState(scramble: string, size: number | string): CubeState {
   let cubeState = getSolvedCubeState(size);
   const moves = scramble.split(/\s+/);
   moves.forEach((move: string) => {
@@ -139,8 +158,21 @@ export function applyScrambleToCubeState(scramble: string, size: number): CubeSt
     let amount = move.includes("'") ? 3 : 1;
     if (move.includes("2")) amount = 2;
     for (let i = 0; i < amount; i++) {
-      if (size === 2) rotateFace2x2(face, cubeState);
-      else rotateFace(face, cubeState);
+      if (size === 2) {
+        rotateFace2x2(face, cubeState);
+      } else if (size === 4) {
+        // 4x4 sử dụng logic 3x3 nhưng với 16 sticker
+        rotateFace(face, cubeState);
+      } else if (size === 'pyraminx') {
+        // Pyraminx chỉ cần thay đổi màu đơn giản
+        cubeState[face] = cubeState[face].map(() => 
+          Math.random() > 0.5 ? cubeState[face][0] : 
+          ['red', 'green', 'blue', 'yellow', 'orange', 'white'][Math.floor(Math.random() * 6)]
+        );
+      } else {
+        // 3x3 default
+        rotateFace(face, cubeState);
+      }
     }
   });
   return cubeState;

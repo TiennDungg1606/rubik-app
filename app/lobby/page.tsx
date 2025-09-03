@@ -397,7 +397,7 @@ function LobbyContent() {
     }
   }, [searchParams]);
 
-  const handleCreateRoom = (event: '2x2' | '3x3', displayName: string, password: string) => {
+  const handleCreateRoom = (event: '2x2' | '3x3' | '4x4' | 'pyraminx', displayName: string, password: string) => {
     const roomId = generateRoomId();
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('justCreatedRoom', roomId);
