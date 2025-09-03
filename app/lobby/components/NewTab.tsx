@@ -50,17 +50,16 @@ export default function NewTab() {
       <div className="mb-6">
         <h3 className="text-lg font-bold text-blue-300 drop-shadow mb-2">Cập nhật website</h3>
         <ul className="list-disc list-inside text-white text-base ml-4">
-          <li>Cập nhật lại tính năng đổi hình nền. Hãy vào hồ sơ để đổi hình nền của mình nào (hình nền ngang)</li>
-          <li>Thêm tab Practice để luyện tập các công thức Rubik.</li>    
+          <li>Đã cập nhật tab Timer chính thức của Rubik App, không còn chuyển hướng đến csTimer!</li>    
+          <li>Cập nhật lại tính năng đổi hình nền. Hãy vào hồ sơ để đổi hình nền của mình nào (lưu ý: hình nền ngang)</li>   
           <li>Giao diện tối ưu cho cả desktop và mobile, trải nghiệm tốt hơn.</li>
         </ul>
       </div>
       <div className="mb-6">
         <h3 className="text-lg font-bold text-blue-400 drop-shadow mb-2">Dự kiến cập nhật tiếp theo (T9/2025)</h3>
         <ul className="list-disc list-inside text-white text-base ml-4">
-          <li>Tính năng đấu đội 2vs2 và 3vs3</li>
-          <li>Làm lại tab Timer.</li>      
-          <li>Hỗ trợ nhiều loại sự kiện Rubik chuẩn WCA.</li>
+          <li>Tính năng đấu đội 2vs2 và 3vs3</li>    
+          <li>Hỗ trợ nhiều loại sự kiện Rubik chuẩn WCA.(tiếp theo là 4x4 và pyraminx)</li>
           <li>Cập nhật giao diện đẹp hơn.</li>
         </ul>
       </div>

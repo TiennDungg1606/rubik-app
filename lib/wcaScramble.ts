@@ -215,8 +215,8 @@ function generatePyraminxScramble(): string {
   const largeMovesLength = Math.random() < 0.5 ? 8 : 9;
   const largeScramble = generatePyraminxMainMoves(mainMoves, modifiers, largeMovesLength);
   
-  // 2-4 kí tự nhỏ ở cuối (tip moves - l, r, b) - tránh lặp liên tiếp
-  const smallMovesLength = Math.floor(Math.random() * 3) + 2; // 2-4
+  // 1-4 kí tự nhỏ ở cuối (tip moves - l, r, b) - theo thứ tự l r b u
+  const smallMovesLength = Math.floor(Math.random() * 4) + 1; // 1-4
   const smallScramble = generatePyraminxTipMoves(tipMoves, modifiers, smallMovesLength);
   
   // Kết hợp cả hai với khoảng cách rõ ràng
@@ -311,23 +311,34 @@ function generatePyraminxMainMoves(moves: string[], modifiers: string[], length:
   return sequence.join(' ');
 }
 
-// Hàm tạo tip moves cho Pyraminx - đảm bảo không lặp ký tự
+// Hàm tạo tip moves cho Pyraminx - theo thứ tự l r b u, chọn tập con 1-4 phần tử
 function generatePyraminxTipMoves(moves: string[], modifiers: string[], length: number): string {
   const sequence: string[] = [];
-  const usedMoves = new Set<string>(); // Track which moves have been used
   
-  // Shuffle the available moves to ensure randomness
-  const shuffledMoves = [...moves].sort(() => Math.random() - 0.5);
+  // Thứ tự cố định: l r b u
+  const orderedMoves = ['l', 'r', 'b', 'u'];
   
-  for (let i = 0; i < length && i < shuffledMoves.length; i++) {
-    const move = shuffledMoves[i];
-    
-    // Only add if this move hasn't been used yet
-    if (!usedMoves.has(move)) {
-      const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
-      sequence.push(move + modifier);
-      usedMoves.add(move);
-    }
+  // Chọn ngẫu nhiên length phần tử từ thứ tự cố định (không bắt buộc liên tiếp)
+  const selectedMoves: string[] = [];
+  const availableIndices = [0, 1, 2, 3]; // Chỉ số của l, r, b, u
+  
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * availableIndices.length);
+    const selectedIndex = availableIndices[randomIndex];
+    selectedMoves.push(orderedMoves[selectedIndex]);
+    availableIndices.splice(randomIndex, 1); // Loại bỏ để tránh lặp
+  }
+  
+  // Sắp xếp lại theo thứ tự l r b u
+  selectedMoves.sort((a, b) => {
+    const order = ['l', 'r', 'b', 'u'];
+    return order.indexOf(a) - order.indexOf(b);
+  });
+  
+  // Thêm dấu ' tùy ý cho từng move
+  for (const move of selectedMoves) {
+    const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+    sequence.push(move + modifier);
   }
   
   return sequence.join(' ');
