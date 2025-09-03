@@ -378,7 +378,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                                 background: '#333',
                                 transform: 'translateY(-0.5px)'
                               }}></div>
-                              {/* Đường dọc */}
+                              {/* Đường chéo từ trái */}
                               <div style={{
                                 position: 'absolute',
                                 top: '0%',
@@ -386,7 +386,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                                 width: '1px',
                                 height: '100%',
                                 background: '#333',
-                                transform: 'translateX(-0.5px)'
+                                transform: 'translateX(-0.5px) rotate(30deg)',
+                                transformOrigin: 'bottom center'
                               }}></div>
                               <div style={{
                                 position: 'absolute',
@@ -395,7 +396,29 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                                 width: '1px',
                                 height: '100%',
                                 background: '#333',
-                                transform: 'translateX(-0.5px)'
+                                transform: 'translateX(-0.5px) rotate(30deg)',
+                                transformOrigin: 'bottom center'
+                              }}></div>
+                              {/* Đường chéo từ phải */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '0%',
+                                right: '33.33%',
+                                width: '1px',
+                                height: '100%',
+                                background: '#333',
+                                transform: 'translateX(0.5px) rotate(-30deg)',
+                                transformOrigin: 'bottom center'
+                              }}></div>
+                              <div style={{
+                                position: 'absolute',
+                                top: '0%',
+                                right: '66.66%',
+                                width: '1px',
+                                height: '100%',
+                                background: '#333',
+                                transform: 'translateX(0.5px) rotate(-30deg)',
+                                transformOrigin: 'bottom center'
                               }}></div>
                             </div>
                           </div>
@@ -513,7 +536,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                                 background: '#333',
                                 transform: 'translateY(-0.5px)'
                               }}></div>
-                              {/* Đường dọc */}
+                              {/* Đường chéo từ trái */}
                               <div style={{
                                 position: 'absolute',
                                 top: '0%',
@@ -521,7 +544,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                                 width: '1px',
                                 height: '100%',
                                 background: '#333',
-                                transform: 'translateX(-0.5px)'
+                                transform: 'translateX(-0.5px) rotate(30deg)',
+                                transformOrigin: 'bottom center'
                               }}></div>
                               <div style={{
                                 position: 'absolute',
@@ -530,7 +554,29 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                                 width: '1px',
                                 height: '100%',
                                 background: '#333',
-                                transform: 'translateX(-0.5px)'
+                                transform: 'translateX(-0.5px) rotate(30deg)',
+                                transformOrigin: 'bottom center'
+                              }}></div>
+                              {/* Đường chéo từ phải */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '0%',
+                                right: '33.33%',
+                                width: '1px',
+                                height: '100%',
+                                background: '#333',
+                                transform: 'translateX(0.5px) rotate(-30deg)',
+                                transformOrigin: 'bottom center'
+                              }}></div>
+                              <div style={{
+                                position: 'absolute',
+                                top: '0%',
+                                right: '66.66%',
+                                width: '1px',
+                                height: '100%',
+                                background: '#333',
+                                transform: 'translateX(0.5px) rotate(-30deg)',
+                                transformOrigin: 'bottom center'
                               }}></div>
                             </div>
                           </div>
