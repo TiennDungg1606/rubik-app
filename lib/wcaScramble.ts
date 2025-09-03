@@ -108,17 +108,34 @@ function generate4x4Part2(wideMoves: string[], regularMoves: string[], modifiers
   const totalMoves = Math.floor(Math.random() * 4) + 23; // 23-26 bước tổng cộng
   
   let wideMovesCount = 0;
+  let consecutiveWide = 0; // Đếm wide moves liên tiếp
+  let consecutiveRegular = 0; // Đếm regular moves liên tiếp
   
   for (let i = 0; i < totalMoves; i++) {
     let move: string;
     let attempts = 0;
-    const maxAttempts = 20;
+    const maxAttempts = 30;
     let lastMove = '';
     let lastAxis = '';
     
-    // Nếu chưa đủ wide moves, ưu tiên chọn wide moves
-    const shouldUseWide = wideMovesCount < targetWideMoves && Math.random() < 0.6;
-    const availableMoves = shouldUseWide ? wideMoves : [...wideMoves, ...regularMoves];
+    // Kiểm tra quy tắc liên tiếp
+    const canUseWide = consecutiveWide < 3; // Tối đa 3 wide moves liên tiếp
+    const canUseRegular = consecutiveRegular < 4; // Tối đa 4 regular moves liên tiếp
+    
+    // Nếu chưa đủ wide moves và có thể sử dụng wide moves
+    const shouldUseWide = wideMovesCount < targetWideMoves && canUseWide && Math.random() < 0.6;
+    
+    // Chọn moves có sẵn dựa trên quy tắc
+    let availableMoves: string[];
+    if (shouldUseWide && canUseWide) {
+      availableMoves = wideMoves;
+    } else if (!canUseRegular) {
+      availableMoves = wideMoves; // Bắt buộc phải dùng wide moves
+    } else if (!canUseWide) {
+      availableMoves = regularMoves; // Bắt buộc phải dùng regular moves
+    } else {
+      availableMoves = [...wideMoves, ...regularMoves];
+    }
     
     // Tránh lặp lại cùng một move hoặc cùng axis liên tiếp
     do {
@@ -132,9 +149,14 @@ function generate4x4Part2(wideMoves: string[], regularMoves: string[], modifiers
     const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
     sequence.push(move + modifier);
     
-    // Đếm wide moves
+    // Cập nhật đếm liên tiếp
     if (move.includes('w')) {
       wideMovesCount++;
+      consecutiveWide++;
+      consecutiveRegular = 0; // Reset đếm regular moves
+    } else {
+      consecutiveRegular++;
+      consecutiveWide = 0; // Reset đếm wide moves
     }
     
     lastMove = move;
