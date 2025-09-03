@@ -78,29 +78,70 @@ function generate3x3Scramble(): string {
 
 // Hàm tạo scramble cho 4x4
 function generate4x4Scramble(): string {
-  // 20 bước xáo giống 3x3 (outer layer moves)
+  // Phần 1: 20 bước xáo giống 3x3 (outer layer moves)
   const outerMoves = ['R', 'U', 'F', 'L', 'D', 'B'];
   const outerModifiers = ['', '\'', '2'];
   const outerLength = 20;
   
-  // Đảm bảo có đủ 9-12 ký tự chứa 'w' (wide moves)
-  const wideMoves = ['Uw', 'Dw', 'Rw', 'Lw', 'Fw', 'Bw'];
-  const wideModifiers = ['', '\'', '2'];
-  const wideLength = Math.floor(Math.random() * 4) + 9; // 9-12 bước wide
+  // Phần 2: Mix của wide moves và regular moves, đảm bảo có 9-12 wide moves
+  const wideMoves = ['Uw', 'Rw', 'Fw']; // Chỉ sử dụng Uw, Rw, Fw
+  const regularMoves = ['R', 'U', 'F', 'L', 'D', 'B']; // Có thể xen lẫn
+  const allModifiers = ['', '\'', '2'];
   
-  // Tạo outer scramble (20 bước) - giống như 3x3
-  const outerScramble = generateRandomMoveSequence(outerMoves, outerModifiers, outerLength);
+  // Tạo phần 1 (3x3-style)
+  const part1 = generateRandomMoveSequence(outerMoves, outerModifiers, outerLength);
   
-  // Tạo wide scramble (9-12 bước) - đảm bảo có đủ ký tự 'w'
-  const wideScramble = generateRandomMoveSequence(wideMoves, wideModifiers, wideLength);
+  // Tạo phần 2 với đảm bảo có 9-12 wide moves
+  const part2 = generate4x4Part2(wideMoves, regularMoves, allModifiers);
   
   // Kết hợp cả hai với khoảng cách rõ ràng
-  // Ví dụ: "R U F2 L' D B  Uw Rw' Fw2 Dw Lw Bw"
-  // Đảm bảo tổng số ký tự 'w' từ 9-12
-  const totalWideMoves = wideScramble.split(' ').length;
-  console.log(`4x4 Scramble: ${outerLength} outer + ${totalWideMoves} wide moves`);
+  const totalWideMoves = (part2.match(/w/g) || []).length;
+  console.log(`4x4 Scramble: ${outerLength} outer + ${totalWideMoves} wide moves in part 2`);
   
-  return outerScramble + '  ' + wideScramble;
+  return part1 + '  ' + part2;
+}
+
+// Hàm tạo phần 2 cho 4x4 - đảm bảo có 23-26 bước tổng cộng, trong đó 9-12 wide moves
+function generate4x4Part2(wideMoves: string[], regularMoves: string[], modifiers: string[]): string {
+  const sequence: string[] = [];
+  const targetWideMoves = Math.floor(Math.random() * 4) + 9; // 9-12 wide moves
+  const totalMoves = Math.floor(Math.random() * 4) + 23; // 23-26 bước tổng cộng
+  
+  let wideMovesCount = 0;
+  
+  for (let i = 0; i < totalMoves; i++) {
+    let move: string;
+    let attempts = 0;
+    const maxAttempts = 20;
+    let lastMove = '';
+    let lastAxis = '';
+    
+    // Nếu chưa đủ wide moves, ưu tiên chọn wide moves
+    const shouldUseWide = wideMovesCount < targetWideMoves && Math.random() < 0.6;
+    const availableMoves = shouldUseWide ? wideMoves : [...wideMoves, ...regularMoves];
+    
+    // Tránh lặp lại cùng một move hoặc cùng axis liên tiếp
+    do {
+      move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+      attempts++;
+    } while (
+      attempts < maxAttempts && 
+      (move === lastMove || getAxis(move) === lastAxis)
+    );
+    
+    const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+    sequence.push(move + modifier);
+    
+    // Đếm wide moves
+    if (move.includes('w')) {
+      wideMovesCount++;
+    }
+    
+    lastMove = move;
+    lastAxis = getAxis(move);
+  }
+  
+  return sequence.join(' ');
 }
 
 // Hàm tạo scramble cho 5x5
@@ -152,8 +193,8 @@ function generatePyraminxScramble(): string {
   const largeMovesLength = Math.random() < 0.5 ? 8 : 9;
   const largeScramble = generatePyraminxMainMoves(mainMoves, modifiers, largeMovesLength);
   
-  // 1-4 kí tự nhỏ ở cuối (tip moves - l, r, b) - tránh lặp liên tiếp
-  const smallMovesLength = Math.floor(Math.random() * 4) + 1; // 1-4
+  // 2-4 kí tự nhỏ ở cuối (tip moves - l, r, b) - tránh lặp liên tiếp
+  const smallMovesLength = Math.floor(Math.random() * 3) + 2; // 2-4
   const smallScramble = generatePyraminxTipMoves(tipMoves, modifiers, smallMovesLength);
   
   // Kết hợp cả hai với khoảng cách rõ ràng
@@ -248,25 +289,23 @@ function generatePyraminxMainMoves(moves: string[], modifiers: string[], length:
   return sequence.join(' ');
 }
 
-// Hàm tạo tip moves cho Pyraminx - tránh lặp ký tự liên tiếp
+// Hàm tạo tip moves cho Pyraminx - đảm bảo không lặp ký tự
 function generatePyraminxTipMoves(moves: string[], modifiers: string[], length: number): string {
   const sequence: string[] = [];
-  let lastMove = '';
+  const usedMoves = new Set<string>(); // Track which moves have been used
   
-  for (let i = 0; i < length; i++) {
-    let move: string;
-    let attempts = 0;
-    const maxAttempts = 30; // Tăng số lần thử để tránh lặp
+  // Shuffle the available moves to ensure randomness
+  const shuffledMoves = [...moves].sort(() => Math.random() - 0.5);
+  
+  for (let i = 0; i < length && i < shuffledMoves.length; i++) {
+    const move = shuffledMoves[i];
     
-    // Tránh lặp lại cùng một move liên tiếp
-    do {
-      move = moves[Math.floor(Math.random() * moves.length)];
-      attempts++;
-    } while (attempts < maxAttempts && move === lastMove);
-    
-    const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
-    sequence.push(move + modifier);
-    lastMove = move;
+    // Only add if this move hasn't been used yet
+    if (!usedMoves.has(move)) {
+      const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+      sequence.push(move + modifier);
+      usedMoves.add(move);
+    }
   }
   
   return sequence.join(' ');
