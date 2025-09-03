@@ -422,16 +422,45 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
         </div>
       );
     } else if (size === 'pyraminx') {
-      // Pyraminx: hiển thị dạng tam giác đơn giản
+      // Pyraminx: hiển thị dạng tam giác đều được chia thành 9 tam giác nhỏ
       return (
         <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
           <div style={{ 
             width: '80%', 
             height: '80%', 
-            background: cubeState[faceKey][0] || '#fff', 
+            position: 'relative',
             clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
             border: '1px solid #888'
-          }}></div>
+          }}>
+            {/* 9 tam giác nhỏ bên trong */}
+            {Array.from({ length: 9 }).map((_, i) => {
+              const row = Math.floor(i / 3);
+              const col = i % 3;
+              const color = cubeState[faceKey][i] || '#fff';
+              
+              // Tính toán vị trí và kích thước của từng tam giác
+              const triangleSize = 1/3; // Mỗi tam giác chiếm 1/3 kích thước
+              const x = col * triangleSize;
+              const y = row * triangleSize;
+              
+              return (
+                <div
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    width: `${triangleSize * 100}%`,
+                    height: `${triangleSize * 100}%`,
+                    left: `${x * 100}%`,
+                    top: `${y * 100}%`,
+                    background: color,
+                    clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+                    border: '0.5px solid #333',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
       );
     } else {
@@ -1622,7 +1651,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
           </button>
           {/* Modal lưới Rubik */}
-          <CubeNetModal key={`${scramble}-${cubeSize}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
+          <CubeNetModal key={`${scramble}-${String(cubeSize)}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
         </div>
                 {/* Thông báo khi bị khóa do 2 lần DNF - ĐÃ HỦY */}
                 {/* {showLockedDNFModal && (

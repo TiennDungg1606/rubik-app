@@ -129,12 +129,12 @@ export function getSolvedCubeState(size: number | string): CubeState {
     };
   } else if (size === 'pyraminx') {
     return {
-      B: Array(1).fill('blue'),
-      U: Array(1).fill('white'),
-      D: Array(1).fill('yellow'),
-      L: Array(1).fill('orange'),
-      R: Array(1).fill('red'),
-      F: Array(1).fill('green'),
+      B: Array(9).fill('blue'),
+      U: Array(9).fill('white'),
+      D: Array(9).fill('yellow'),
+      L: Array(9).fill('orange'),
+      R: Array(9).fill('red'),
+      F: Array(9).fill('green'),
     };
   } else {
     // 3x3 default
@@ -150,30 +150,57 @@ export function getSolvedCubeState(size: number | string): CubeState {
 }
 
 export function applyScrambleToCubeState(scramble: string, size: number | string): CubeState {
-  let cubeState = getSolvedCubeState(size);
-  const moves = scramble.split(/\s+/);
-  moves.forEach((move: string) => {
-    if (!move) return;
-    let face = move[0] as Face;
-    let amount = move.includes("'") ? 3 : 1;
-    if (move.includes("2")) amount = 2;
-    for (let i = 0; i < amount; i++) {
-      if (size === 2) {
-        rotateFace2x2(face, cubeState);
-      } else if (size === 4) {
-        // 4x4 sử dụng logic 3x3 nhưng với 16 sticker
-        rotateFace(face, cubeState);
-      } else if (size === 'pyraminx') {
-        // Pyraminx chỉ cần thay đổi màu đơn giản
-        cubeState[face] = cubeState[face].map(() => 
-          Math.random() > 0.5 ? cubeState[face][0] : 
-          ['red', 'green', 'blue', 'yellow', 'orange', 'white'][Math.floor(Math.random() * 6)]
-        );
+  try {
+    let cubeState = getSolvedCubeState(size);
+    const moves = scramble.split(/\s+/);
+    moves.forEach((move: string) => {
+      if (!move) return;
+      
+      if (size === 'pyraminx') {
+        // Pyraminx: xử lý cả ký tự lớn và nhỏ
+        let face: Face;
+        if (move[0] === 'l') face = 'L';
+        else if (move[0] === 'r') face = 'R';
+        else if (move[0] === 'u') face = 'U';
+        else if (move[0] === 'b') face = 'B';
+        else if (move[0] === 'R' || move[0] === 'L' || move[0] === 'U' || move[0] === 'B') {
+          face = move[0] as Face;
+        } else {
+          // Skip invalid moves
+          return;
+        }
+        
+        let amount = move.includes("'") ? 3 : 1;
+        if (move.includes("2")) amount = 2;
+        
+        for (let i = 0; i < amount; i++) {
+          const colors = ['red', 'green', 'blue', 'yellow', 'orange', 'white'];
+          cubeState[face] = cubeState[face].map((_, index) => 
+            colors[(index + Math.floor(Math.random() * colors.length)) % colors.length]
+          );
+        }
       } else {
-        // 3x3 default
-        rotateFace(face, cubeState);
+        // Các loại khác: xử lý như cũ
+        let face = move[0] as Face;
+        let amount = move.includes("'") ? 3 : 1;
+        if (move.includes("2")) amount = 2;
+        for (let i = 0; i < amount; i++) {
+          if (size === 2) {
+            rotateFace2x2(face, cubeState);
+          } else if (size === 4) {
+            // 4x4 sử dụng logic 3x3 nhưng với 16 sticker
+            rotateFace(face, cubeState);
+          } else {
+            // 3x3 default
+            rotateFace(face, cubeState);
+          }
+        }
       }
-    }
-  });
-  return cubeState;
+    });
+    return cubeState;
+  } catch (error) {
+    console.error('Error in applyScrambleToCubeState:', error);
+    // Return solved state as fallback
+    return getSolvedCubeState(size);
+  }
 }
