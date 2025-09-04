@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { getScramble } from "@/lib/wcaScramble";
 import DropdownPortal from "./DropdownPortal";
+import { applyScrambleToCubeState, Face, CubeState } from '@/lib/rubikUtils';
 
 
 
@@ -106,6 +107,126 @@ interface Solve {
   penalty: 'OK' | '+2' | 'DNF';
 }
 
+// CubeNetModal component
+interface CubeNetModalProps {
+  scramble: string;
+  open: boolean;
+  onClose: () => void;
+  size: number | string;
+}
+
+function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
+  const [cubeState, setCubeState] = useState<CubeState>(() => applyScrambleToCubeState(scramble || '', size));
+  
+  useEffect(() => {
+    setCubeState(applyScrambleToCubeState(scramble || '', size));
+  }, [scramble, size]);
+  
+  const faceSize = 70;
+  // layoutGrid cho 2x2 và 3x3 giống nhau về vị trí, chỉ khác số sticker mỗi mặt
+  const layoutGrid: (Face | '')[][] = [
+    ['', 'U', '', ''],
+    ['L', 'F', 'R', 'B'],
+    ['', 'D', '', ''],
+  ];
+
+  function renderStickers(faceKey: Face) {
+    if (size === 2) {
+      // 2x2: 4 sticker
+      return (
+        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+          {cubeState[faceKey].slice(0, 4).map((color: string, i: number) => (
+            <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+          ))}
+        </div>
+      );
+    } else if (size === 4) {
+      // 4x4: 16 sticker
+      return (
+        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(4, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+          {cubeState[faceKey].slice(0, 16).map((color: string, i: number) => (
+            <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+          ))}
+        </div>
+      );
+    } else if (size === 'pyraminx') {
+      // Pyraminx: hiển thị dạng tam giác đều được chia thành 9 tam giác nhỏ
+      return (
+        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+          <div style={{ 
+            width: '80%', 
+            height: '80%', 
+            position: 'relative',
+            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+            border: '1px solid #888'
+          }}>
+            {/* 9 tam giác nhỏ bên trong */}
+            {Array.from({ length: 9 }).map((_, i) => {
+              const row = Math.floor(i / 3);
+              const col = i % 3;
+              const color = cubeState[faceKey][i] || '#fff';
+              
+              // Tính toán vị trí và kích thước của từng tam giác
+              const triangleSize = 1/3; // Mỗi tam giác chiếm 1/3 kích thước
+              const x = col * triangleSize;
+              const y = row * triangleSize;
+              
+              return (
+                <div
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    width: `${triangleSize * 100}%`,
+                    height: `${triangleSize * 100}%`,
+                    left: `${x * 100}%`,
+                    top: `${y * 100}%`,
+                    background: color,
+                    clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+                    border: '0.5px solid #333',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      );
+    } else {
+      // 3x3: 9 sticker (default)
+      return (
+        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
+          {cubeState[faceKey].slice(0, 9).map((color: string, i: number) => (
+            <div key={i} className="net-sticker" style={{ width: '100%', height: '100%', background: color, border: '1px solid #888', boxSizing: 'border-box' }}></div>
+          ))}
+        </div>
+      );
+    }
+  }
+
+  return open ? (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(2px)' }}>
+      <div className="bg-pink-100 rounded-xl p-4 shadow-lg relative modal-content" style={{ minWidth: 320, minHeight: 320 }}>
+        <button onClick={onClose} className="absolute top-2 right-2 px-2 py-1 bg-red-500 hover:bg-red-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Đóng</button>
+        <div className="mb-2 text-center font-bold text-lg text-gray-700"></div>
+        <div id="net-view" style={{ display: 'grid', gridTemplateColumns: `repeat(4, ${faceSize}px)`, gridTemplateRows: `repeat(3, ${faceSize}px)`, gap: 2, background: 'none' }}>
+          {layoutGrid.flatMap((row, rowIdx) =>
+            row.map((faceKey, colIdx) => {
+              if (faceKey === '') {
+                return <div key={`blank-${rowIdx}-${colIdx}`} className="net-face-empty" style={{ width: faceSize, height: faceSize, background: 'none' }}></div>;
+              } else {
+                return (
+                  <React.Fragment key={faceKey}>{renderStickers(faceKey as Face)}</React.Fragment>
+                );
+              }
+            })
+          )}
+        </div>
+        <div className="mt-3 text-gray-700 text-sm text-center font-mono">Scramble: <span className="font-bold">{scramble}</span></div>
+      </div>
+    </div>
+  ) : null;
+}
+
 export default function TimerTab() {
   const [time, setTime] = useState(0);
   const [running, setRunning] = useState(false);
@@ -128,6 +249,7 @@ export default function TimerTab() {
   const [isScrambleLocked, setIsScrambleLocked] = useState(false); // Khóa scramble
   const [showCopiedMessage, setShowCopiedMessage] = useState(false); // Hiển thị thông báo "Copied"
   const [newSolveId, setNewSolveId] = useState<string | null>(null); // ID của solve mới để highlight
+  const [showCubeNet, setShowCubeNet] = useState(false); // Hiển thị modal lưới scramble
   
   // Refs for dropdown positioning
   const sessionBtnRef = useRef<HTMLButtonElement>(null);
@@ -298,6 +420,16 @@ export default function TimerTab() {
   
   // Sử dụng useMemo để đảm bảo mobileShrink được tính toán đúng mỗi khi state thay đổi
   const mobileShrink = useMemo(() => isMobileLandscape, [isMobileLandscape]);
+  
+  // Tính toán kích thước cube dựa trên session
+  const cubeSize = useMemo(() => {
+    switch (session) {
+      case '2x2': return 2;
+      case '4x4': return 4;
+      case 'pyraminx': return 'pyraminx';
+      default: return 3; // 3x3
+    }
+  }, [session]);
   
   useEffect(() => {
     function checkDevice() {
@@ -902,6 +1034,18 @@ export default function TimerTab() {
               </div>
             </div>
           <div className="flex items-center gap-1 sm:gap-4">
+            {/* Scramble Grid Button */}
+            <button
+              className="bg-gray-700 hover:bg-gray-600 text-white rounded-full font-bold shadow-lg flex items-center justify-center transition-transform duration-200 hover:scale-110 active:scale-95"
+              style={{ fontSize: 20, width: 40, height: 40, lineHeight: '40px' }}
+              type="button"
+              aria-label="Lưới scramble"
+              title="Lưới scramble"
+              onClick={() => setShowCubeNet(true)}
+            >
+              <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
+            </button>
+            
             <div className="relative">
               <button
                 ref={modeBtnRef}
@@ -1333,6 +1477,15 @@ export default function TimerTab() {
           </div>
         </div>
       </div>
+      
+      {/* CubeNetModal */}
+      <CubeNetModal 
+        key={`${scramble}-${String(cubeSize)}`} 
+        scramble={scramble} 
+        open={showCubeNet} 
+        onClose={() => setShowCubeNet(false)} 
+        size={cubeSize} 
+      />
     </>
   );
 }

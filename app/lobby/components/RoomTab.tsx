@@ -268,10 +268,10 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
               <div>
                 <div className="text-lg font-semibold text-white mb-4">Tạo phòng mới</div>
                 <div className="mb-3">
-                  <label className="block text-gray-300 mb-1">Tên phòng (tối đa 8 ký tự)</label>
+                  <label className="block text-gray-300 mb-1">Tên phòng (tối đa 10 ký tự)</label>
                   <input
                     className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    maxLength={8}
+                    maxLength={10}
                     value={modalRoomName}
                     onChange={e => setModalRoomName(e.target.value)}
                     placeholder="Nhập tên phòng"
