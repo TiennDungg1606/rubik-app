@@ -26,16 +26,21 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // Password modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordModalRoomId, setPasswordModalRoomId] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
-    if (showCreateModal) {
+    if (showCreateModal || showPasswordModal) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = originalOverflow; };
     }
-  }, [showCreateModal]);
+  }, [showCreateModal, showPasswordModal]);
   // Animation state for modal
   const [modalVisible, setModalVisible] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [modalEvent, setModalEvent] = useState<'2x2' | '3x3' | '4x4' | 'pyraminx'>("3x3");
   const [modalRoomName, setModalRoomName] = useState("");
   const [modalPassword, setModalPassword] = useState("");
@@ -135,6 +140,30 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   setModalError("");
   }
 
+  // Password modal functions
+  function openPasswordModal(roomId: string) {
+    setPasswordModalRoomId(roomId);
+    setPasswordInput("");
+    setShowPasswordModal(true);
+    setTimeout(() => setPasswordModalVisible(true), 10);
+  }
+
+  function closePasswordModal() {
+    setPasswordModalVisible(false);
+    setTimeout(() => {
+      setShowPasswordModal(false);
+      setPasswordModalRoomId("");
+      setPasswordInput("");
+    }, 200);
+  }
+
+  function handlePasswordConfirm() {
+    if (!passwordModalRoomId) return;
+    window._roomPassword = passwordInput;
+    closePasswordModal();
+    handleJoinRoom(passwordModalRoomId);
+  }
+
   function handleModalConfirm() {
     // Validate room name
     if (!modalRoomName.trim() || modalRoomName.length > 8) {
@@ -170,7 +199,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   // Ẩn thanh tab khi modal mở
   React.useEffect(() => {
     const tabBar = document.querySelector('.tab-navbar');
-    if (showCreateModal && tabBar) {
+    if ((showCreateModal || showPasswordModal) && tabBar) {
       tabBar.classList.add('hidden');
     } else if (tabBar) {
       tabBar.classList.remove('hidden');
@@ -178,7 +207,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     return () => {
       if (tabBar) tabBar.classList.remove('hidden');
     };
-  }, [showCreateModal]);
+  }, [showCreateModal, showPasswordModal]);
 
   return (
     <div className="w-full flex flex-col items-center bg-neutral-900/50 justify-center">
@@ -285,6 +314,60 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         </div>,
         document.body
       )}
+
+      {/* Modal nhập mật khẩu phòng */}
+      {showPasswordModal && typeof window !== 'undefined' && ReactDOM.createPortal(
+        <div
+          className={`fixed inset-0 z-50 bg-black/50 flex items-center justify-center transition-opacity duration-200 ${passwordModalVisible ? 'opacity-100' : 'opacity-0'}`}
+          style={{ minHeight: '100dvh', minWidth: '100vw', padding: 0 }}
+        >
+          <div
+            className={`bg-gray-900 rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 transform transition-all duration-200 ${passwordModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+          >
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-semibold text-white mb-2">
+                Phòng này có mật khẩu
+              </h3>
+              <p className="text-gray-300">
+                Vui lòng nhập mật khẩu để vào phòng:
+              </p>
+            </div>
+            <div className="mb-6">
+              <input
+                className="w-full px-4 py-3 rounded-lg border border-gray-600 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Nhập mật khẩu phòng"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handlePasswordConfirm();
+                  } else if (e.key === 'Escape') {
+                    closePasswordModal();
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                className="flex-1 px-4 py-3 rounded-lg bg-gray-600 text-white hover:bg-gray-500 transition-colors"
+                onClick={closePasswordModal}
+              >
+                Hủy
+              </button>
+              <button
+                className="flex-1 px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors font-semibold"
+                onClick={handlePasswordConfirm}
+              >
+                Vào phòng
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       <h2 className="text-2xl font-bold mb-6">Phòng giải Rubik Online</h2>
       {/*
       <div className="flex flex-col gap-4 w-full max-w-md bg-gray-800 rounded-xl p-8 shadow-lg mb-8">
@@ -479,14 +562,14 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
               activeRooms.map((room: string) => (
                 <div
                   key={room}
-                  onClick={async () => {
+                  onClick={() => {
                     const meta = roomMetas[room] || {};
-                    let password = "";
                     if (meta.password) {
-                      password = window.prompt("Phòng này có mật khẩu. Vui lòng nhập mật khẩu để vào:") || "";
+                      openPasswordModal(room);
+                    } else {
+                      window._roomPassword = "";
+                      handleJoinRoom(room);
                     }
-                    window._roomPassword = password;
-                    handleJoinRoom(room);
                   }}
                   className="flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-xl"
                 >
