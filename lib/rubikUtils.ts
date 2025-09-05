@@ -192,18 +192,16 @@ export function rotateFace4x4(face: Face, cubeState: CubeState) {
         cubeState.L[0], cubeState.L[4], cubeState.L[8], cubeState.L[12],
         cubeState.D[12], cubeState.D[13], cubeState.D[14], cubeState.D[15],
         cubeState.R[3], cubeState.R[7], cubeState.R[11], cubeState.R[15]] =
-        [cubeState.R[15], cubeState.R[11], cubeState.R[7], cubeState.R[3],
+        [cubeState.R[3], cubeState.R[7], cubeState.R[11], cubeState.R[15],
           cubeState.U[3], cubeState.U[2], cubeState.U[1], cubeState.U[0],
-          cubeState.L[12], cubeState.L[8], cubeState.L[4], cubeState.L[0],
+          cubeState.L[0], cubeState.L[4], cubeState.L[8], cubeState.L[12],
           cubeState.D[15], cubeState.D[14], cubeState.D[13], cubeState.D[12]];
       break;
   }
 }
 
-export function rotateWideMove4x4(move: string, cubeState: CubeState) {
+export function rotateWideMove4x4(face: Face, cubeState: CubeState) {
   // Xử lý wide moves cho 4x4: Uw, Rw, Fw
-  const face = move[0] as Face;
-  
   // Thực hiện move một lần (amount được xử lý ở ngoài)
   switch (face) {
       case 'U':
@@ -214,23 +212,23 @@ export function rotateWideMove4x4(move: string, cubeState: CubeState) {
         // Uw: hoán đổi các sticker giữa các mặt liên quan
         // F[0-3] <-> R[0-3] <-> B[0-3] <-> L[0-3] (hàng 1)
         // F[4-7] <-> R[4-7] <-> B[4-7] <-> L[4-7] (hàng 2)
-        [cubeState.F[0], cubeState.F[1], cubeState.F[2], cubeState.F[3],
-         cubeState.R[0], cubeState.R[1], cubeState.R[2], cubeState.R[3],
-         cubeState.B[0], cubeState.B[1], cubeState.B[2], cubeState.B[3],
-         cubeState.L[0], cubeState.L[1], cubeState.L[2], cubeState.L[3]] =
-        [cubeState.L[0], cubeState.L[1], cubeState.L[2], cubeState.L[3],
-         cubeState.F[0], cubeState.F[1], cubeState.F[2], cubeState.F[3],
-         cubeState.R[0], cubeState.R[1], cubeState.R[2], cubeState.R[3],
-         cubeState.B[0], cubeState.B[1], cubeState.B[2], cubeState.B[3]];
+        // [cubeState.F[0], cubeState.F[1], cubeState.F[2], cubeState.F[3],
+        //  cubeState.R[0], cubeState.R[1], cubeState.R[2], cubeState.R[3],
+        //  cubeState.B[0], cubeState.B[1], cubeState.B[2], cubeState.B[3],
+        //  cubeState.L[0], cubeState.L[1], cubeState.L[2], cubeState.L[3]] =
+        // [cubeState.L[0], cubeState.L[1], cubeState.L[2], cubeState.L[3],
+        //  cubeState.F[0], cubeState.F[1], cubeState.F[2], cubeState.F[3],
+        //  cubeState.R[0], cubeState.R[1], cubeState.R[2], cubeState.R[3],
+        //  cubeState.B[0], cubeState.B[1], cubeState.B[2], cubeState.B[3]];
         
         [cubeState.F[4], cubeState.F[5], cubeState.F[6], cubeState.F[7],
          cubeState.R[4], cubeState.R[5], cubeState.R[6], cubeState.R[7],
          cubeState.B[4], cubeState.B[5], cubeState.B[6], cubeState.B[7],
          cubeState.L[4], cubeState.L[5], cubeState.L[6], cubeState.L[7]] =
-        [cubeState.L[4], cubeState.L[5], cubeState.L[6], cubeState.L[7],
-         cubeState.F[4], cubeState.F[5], cubeState.F[6], cubeState.F[7],
-         cubeState.R[4], cubeState.R[5], cubeState.R[6], cubeState.R[7],
-         cubeState.B[4], cubeState.B[5], cubeState.B[6], cubeState.B[7]];
+        [cubeState.R[4], cubeState.R[5], cubeState.R[6], cubeState.R[7],
+         cubeState.B[4], cubeState.B[5], cubeState.B[6], cubeState.B[7],
+         cubeState.L[4], cubeState.L[5], cubeState.L[6], cubeState.L[7],
+         cubeState.F[4], cubeState.F[5], cubeState.F[6], cubeState.F[7]];
         break;
       case 'R':
         // Rw: xoay cả 2 lớp R (lớp phải R và lớp trái R)
@@ -239,14 +237,14 @@ export function rotateWideMove4x4(move: string, cubeState: CubeState) {
         
         // Rw: hoán đổi các sticker giữa các mặt liên quan
         // U[3,7,11,15] <-> F[3,7,11,15] <-> D[3,7,11,15] <-> B[0,4,8,12]
-        [cubeState.U[3], cubeState.U[7], cubeState.U[11], cubeState.U[15],
-        cubeState.F[3], cubeState.F[7], cubeState.F[11], cubeState.F[15],
-        cubeState.D[3], cubeState.D[7], cubeState.D[11], cubeState.D[15],
-        cubeState.B[0], cubeState.B[4], cubeState.B[8], cubeState.B[12]] =
-        [cubeState.F[3], cubeState.F[7], cubeState.F[11], cubeState.F[15],
-          cubeState.D[3], cubeState.D[7], cubeState.D[11], cubeState.D[15],
-          cubeState.B[12], cubeState.B[8], cubeState.B[4], cubeState.B[0],
-          cubeState.U[15], cubeState.U[11], cubeState.U[7], cubeState.U[3]];
+        // [cubeState.U[3], cubeState.U[7], cubeState.U[11], cubeState.U[15],
+        // cubeState.F[3], cubeState.F[7], cubeState.F[11], cubeState.F[15],
+        // cubeState.D[3], cubeState.D[7], cubeState.D[11], cubeState.D[15],
+        // cubeState.B[0], cubeState.B[4], cubeState.B[8], cubeState.B[12]] =
+        // [cubeState.F[3], cubeState.F[7], cubeState.F[11], cubeState.F[15],
+        //   cubeState.D[3], cubeState.D[7], cubeState.D[11], cubeState.D[15],
+        //   cubeState.B[12], cubeState.B[8], cubeState.B[4], cubeState.B[0],
+        //   cubeState.U[15], cubeState.U[11], cubeState.U[7], cubeState.U[3]];
 
         [cubeState.U[2], cubeState.U[6], cubeState.U[10], cubeState.U[14],
         cubeState.F[2], cubeState.F[6], cubeState.F[10], cubeState.F[14],
@@ -264,22 +262,22 @@ export function rotateWideMove4x4(move: string, cubeState: CubeState) {
         
         // Fw: hoán đổi các sticker giữa các mặt liên quan (lớp ngoài)
         // U[12-15] <-> R[0,4,8,12] <-> D[0-3] <-> L[3,7,11,15]
-        [cubeState.U[12], cubeState.U[13], cubeState.U[14], cubeState.U[15],
-         cubeState.R[0], cubeState.R[4], cubeState.R[8], cubeState.R[12],
-         cubeState.D[0], cubeState.D[1], cubeState.D[2], cubeState.D[3],
-         cubeState.L[3], cubeState.L[7], cubeState.L[11], cubeState.L[15]] =
-        [cubeState.L[15], cubeState.L[11], cubeState.L[7], cubeState.L[3],
-         cubeState.U[12], cubeState.U[13], cubeState.U[14], cubeState.U[15],
-         cubeState.R[12], cubeState.R[8], cubeState.R[4], cubeState.R[0],
-         cubeState.D[0], cubeState.D[1], cubeState.D[2], cubeState.D[3]];
+        // [cubeState.U[12], cubeState.U[13], cubeState.U[14], cubeState.U[15],
+        //  cubeState.R[0], cubeState.R[4], cubeState.R[8], cubeState.R[12],
+        //  cubeState.D[0], cubeState.D[1], cubeState.D[2], cubeState.D[3],
+        //  cubeState.L[3], cubeState.L[7], cubeState.L[11], cubeState.L[15]] =
+        // [cubeState.L[15], cubeState.L[11], cubeState.L[7], cubeState.L[3],
+        //  cubeState.U[12], cubeState.U[13], cubeState.U[14], cubeState.U[15],
+        //  cubeState.R[12], cubeState.R[8], cubeState.R[4], cubeState.R[0],
+        //  cubeState.D[0], cubeState.D[1], cubeState.D[2], cubeState.D[3]];
 
         // Fw: hoán đổi các sticker giữa các mặt liên quan (lớp trong)
         // U[8-11] <-> R[1,5,9,13] <-> D[4-7] <-> L[1,5,9,13]
         [cubeState.U[8], cubeState.U[9], cubeState.U[10], cubeState.U[11],
          cubeState.R[1], cubeState.R[5], cubeState.R[9], cubeState.R[13],
          cubeState.D[4], cubeState.D[5], cubeState.D[6], cubeState.D[7],
-         cubeState.L[1], cubeState.L[5], cubeState.L[9], cubeState.L[13]] =
-        [cubeState.L[13], cubeState.L[9], cubeState.L[5], cubeState.L[1],
+         cubeState.L[2], cubeState.L[6], cubeState.L[10], cubeState.L[14]] =
+        [cubeState.L[14], cubeState.L[10], cubeState.L[6], cubeState.L[2],
          cubeState.U[8], cubeState.U[9], cubeState.U[10], cubeState.U[11],
          cubeState.R[13], cubeState.R[9], cubeState.R[5], cubeState.R[1],
          cubeState.D[4], cubeState.D[5], cubeState.D[6], cubeState.D[7]];
@@ -367,7 +365,7 @@ export function applyScrambleToCubeState(scramble: string, size: number | string
         // Xử lý wide moves cho 4x4
         if (size === 4 && move.includes('w')) {
           for (let i = 0; i < amount; i++) {
-            rotateWideMove4x4(move, cubeState);
+            rotateWideMove4x4(face, cubeState);
           }
         } else {
           for (let i = 0; i < amount; i++) {
