@@ -3,6 +3,7 @@
 
 export type Face = 'U' | 'D' | 'L' | 'R' | 'F' | 'B';
 export type CubeState = Record<Face, string[]>;
+export type PyraminxState = Record<'D' | 'L' | 'R' | 'F', string[]>;
 
 export function rotateFace(face: Face, cubeState: CubeState) {
   const faceColors = [...cubeState[face]];
@@ -285,7 +286,7 @@ export function rotateWideMove4x4(face: Face, cubeState: CubeState) {
     }
 }
 
-export function getSolvedCubeState(size: number | string): CubeState {
+export function getSolvedCubeState(size: number | string): CubeState | PyraminxState {
   if (size === 2) {
     return {
       B: Array(4).fill('blue'),
@@ -306,12 +307,10 @@ export function getSolvedCubeState(size: number | string): CubeState {
     };
   } else if (size === 'pyraminx') {
     return {
-      B: Array(9).fill('blue'),
-      U: Array(9).fill('white'),
-      D: Array(9).fill('yellow'),
-      L: Array(9).fill('orange'),
-      R: Array(9).fill('red'),
-      F: Array(9).fill('green'),
+      D: Array(9).fill('#ffeb3b'),    // Mặt dưới - vàng
+      L: Array(9).fill('#f44336'),    // Mặt trái - đỏ
+      R: Array(9).fill('#2196f3'),    // Mặt phải - xanh dương
+      F: Array(9).fill('#4caf50'),    // Mặt giữa - xanh lá cây
     };
   } else {
     // 3x3 default
@@ -326,9 +325,88 @@ export function getSolvedCubeState(size: number | string): CubeState {
   }
 }
 
+// Hàm xoay tip Pyraminx (chữ thường: l, r, u, b)
+function rotatePyraminxTip(face: Face, cubeState: CubeState) {
+  // Chỉ hoán đổi 1 sticker theo cấu trúc 1-3-5
+  switch (face) {
+    case 'L':
+      
+      [cubeState.F[4], cubeState.L[8], cubeState.D[8]] = 
+      [cubeState.L[8], cubeState.D[8], cubeState.F[4]];
+      break;
+      
+    case 'R':
+    
+      [cubeState.F[8], cubeState.R[4], cubeState.D[4]] = 
+      [cubeState.D[4], cubeState.F[8], cubeState.R[4]];
+      break;
+      
+    case 'U':
+
+      [cubeState.F[0], cubeState.L[0], cubeState.R[0]] = 
+      [cubeState.R[0], cubeState.F[0], cubeState.L[0]];
+      break;
+      
+    case 'B':
+     
+      [cubeState.L[4], cubeState.D[0], cubeState.R[8]] = 
+      [cubeState.R[8], cubeState.L[4], cubeState.D[0]];
+      break;
+  }
+}
+
+// Hàm xoay toàn bộ Pyraminx (chữ hoa: L, R, U, B)
+function rotatePyraminx(face: Face, cubeState: CubeState) {
+  // Hoán đổi 3 sticker giữa các mặt liên quan (chỉ sử dụng F, L, R, D)
+  switch (face) {
+    case 'L':
+     
+      [cubeState.F[1], cubeState.F[5], cubeState.F[6],
+       cubeState.L[6], cubeState.L[7], cubeState.L[3], 
+       cubeState.D[6], cubeState.D[7], cubeState.D[3]] =
+      [cubeState.L[6], cubeState.L[7], cubeState.L[3],
+       cubeState.D[6], cubeState.D[7], cubeState.D[3],
+       cubeState.F[1], cubeState.F[5], cubeState.F[6]];
+      break;
+      
+    case 'R':
+     
+      [cubeState.F[6], cubeState.F[7], cubeState.F[3],
+       cubeState.R[1], cubeState.R[5], cubeState.R[6],
+       cubeState.D[1], cubeState.D[5], cubeState.D[6]] =
+      [cubeState.D[1], cubeState.D[5], cubeState.D[6],
+       cubeState.F[6], cubeState.F[7], cubeState.F[3], 
+       cubeState.R[1], cubeState.R[5], cubeState.R[6]];
+      break;
+      
+    case 'U':
+    
+      [cubeState.F[1], cubeState.F[2], cubeState.F[3],
+       cubeState.R[1], cubeState.R[2], cubeState.R[3], 
+       cubeState.L[1], cubeState.L[2], cubeState.L[3]] =
+      [cubeState.R[1], cubeState.R[2], cubeState.R[3], 
+       cubeState.L[1], cubeState.L[2], cubeState.L[3], 
+       cubeState.F[1], cubeState.F[2], cubeState.F[3]];
+      break;
+      
+    case 'B':
+   
+      [cubeState.L[1], cubeState.L[5], cubeState.L[6], 
+       cubeState.R[3], cubeState.R[7], cubeState.R[6],
+       cubeState.D[1], cubeState.D[2], cubeState.D[3]] =
+      [cubeState.R[6], cubeState.R[7], cubeState.R[3],
+       cubeState.D[1], cubeState.D[2], cubeState.D[3], 
+       cubeState.L[6], cubeState.L[5], cubeState.L[1]];
+      break;
+  }
+  
+  // Gọi luôn hàm xoay tip vì phép xoay chữ hoa bao gồm cả chữ thường
+  rotatePyraminxTip(face, cubeState);
+}
+
 export function applyScrambleToCubeState(scramble: string, size: number | string): CubeState {
   try {
-    let cubeState = getSolvedCubeState(size);
+    let cubeState = getSolvedCubeState(size) as CubeState;
     const moves = scramble.split(/\s+/);
     moves.forEach((move: string) => {
       if (!move) return;
@@ -336,25 +414,30 @@ export function applyScrambleToCubeState(scramble: string, size: number | string
       if (size === 'pyraminx') {
         // Pyraminx: xử lý cả ký tự lớn và nhỏ
         let face: Face;
-        if (move[0] === 'l') face = 'L';
-        else if (move[0] === 'r') face = 'R';
-        else if (move[0] === 'u') face = 'U';
-        else if (move[0] === 'b') face = 'B';
+        let isTip = false;
+        
+        if (move[0] === 'l') { face = 'L'; isTip = true; }
+        else if (move[0] === 'r') { face = 'R'; isTip = true; }
+        else if (move[0] === 'u') { face = 'U'; isTip = true; }
+        else if (move[0] === 'b') { face = 'B'; isTip = true; }
         else if (move[0] === 'R' || move[0] === 'L' || move[0] === 'U' || move[0] === 'B') {
           face = move[0] as Face;
+          isTip = false;
         } else {
           // Skip invalid moves
           return;
         }
         
-        let amount = move.includes("'") ? 3 : 1;
-        if (move.includes("2")) amount = 2;
+        let amount = move.includes("'") ? 2 : 1;
         
         for (let i = 0; i < amount; i++) {
-          const colors = ['red', 'green', 'blue', 'yellow', 'orange', 'white'];
-          cubeState[face] = cubeState[face].map((_, index) => 
-            colors[(index + Math.floor(Math.random() * colors.length)) % colors.length]
-          );
+          if (isTip) {
+            // Xoay tip (chỉ 3 sticker ngoài cùng)
+            rotatePyraminxTip(face, cubeState as any);
+          } else {
+            // Xoay toàn bộ mặt
+            rotatePyraminx(face, cubeState as any);
+          }
         }
       } else {
         // Các loại khác: xử lý như cũ
@@ -382,10 +465,10 @@ export function applyScrambleToCubeState(scramble: string, size: number | string
         }
       }
     });
-    return cubeState;
+    return cubeState as CubeState;
   } catch (error) {
     console.error('Error in applyScrambleToCubeState:', error);
     // Return solved state as fallback
-    return getSolvedCubeState(size);
+    return getSolvedCubeState(size) as CubeState;
   }
 }

@@ -107,6 +107,666 @@ interface Solve {
   penalty: 'OK' | '+2' | 'DNF';
 }
 
+// PyraminxTriangle component - Tam giác hướng lên với cấu trúc 1-3-5
+interface PyraminxTriangleProps {
+  faceSize?: number;
+  faceArray?: string[]; // Mảng 9 phần tử cho mặt F
+}
+
+function PyraminxTriangle({ faceSize = 80, faceArray = [] }: PyraminxTriangleProps) {
+  // Tính toán kích thước cho tam giác đều
+  const triangleWidth = faceSize;
+  const triangleHeight = faceSize * Math.sqrt(3) / 2; // √3/2 ≈ 0.866
+  
+  // Các điểm chia cạnh làm 3 phần bằng nhau theo cấu trúc 1-2-3-4-5-6-7-8-9-10
+  // Điểm 1: đỉnh tam giác
+  const point1 = { x: triangleWidth/2, y: 0 };
+  
+  // Điểm 2: 1/3 từ đỉnh trên cạnh trái
+  const point2 = { x: triangleWidth/2 - triangleWidth/6, y: triangleHeight/3 };
+  
+  // Điểm 3: 2/3 từ đỉnh trên cạnh trái  
+  const point3 = { x: triangleWidth/2 - 2*triangleWidth/6, y: 2*triangleHeight/3 };
+  
+  // Điểm 4: góc trái dưới
+  const point4 = { x: 0, y: triangleHeight };
+  
+  // Điểm 5: 1/3 từ trái trên cạnh dưới
+  const point5 = { x: triangleWidth/3, y: triangleHeight };
+  
+  // Điểm 6: 2/3 từ trái trên cạnh dưới
+  const point6 = { x: 2*triangleWidth/3, y: triangleHeight };
+  
+  // Điểm 7: góc phải dưới
+  const point7 = { x: triangleWidth, y: triangleHeight };
+  
+  // Điểm 8: 2/3 từ đỉnh trên cạnh phải
+  const point8 = { x: triangleWidth/2 + 2*triangleWidth/6, y: 2*triangleHeight/3 };
+  
+  // Điểm 9: 1/3 từ đỉnh trên cạnh phải
+  const point9 = { x: triangleWidth/2 + triangleWidth/6, y: triangleHeight/3 };
+  
+  // Điểm 10: giao điểm trung tâm
+  const point10 = { x: triangleWidth/2, y: 2*triangleHeight/3 };
+  
+  return (
+    <svg 
+      width={triangleWidth} 
+      height={triangleHeight} 
+      viewBox={`0 0 ${triangleWidth} ${triangleHeight}`}
+      style={{ display: 'block' }}
+    >
+      {/* Tam giác lớn */}
+      <polygon
+        points={`${triangleWidth/2},0 0,${triangleHeight} ${triangleWidth},${triangleHeight}`}
+        fill="#4caf50"
+        stroke="#333"
+        strokeWidth="2"
+      />
+      
+      {/* Render các tam giác con với màu sắc từ mảng faceArray */}
+      {/* Cấu trúc 1-3-5: Hàng 1 có 1 tam giác, Hàng 2 có 3 tam giác, Hàng 3 có 5 tam giác */}
+      
+      {/* Hàng 1: 1 tam giác (số 0) - đỉnh trên cùng */}
+      <polygon
+        points={`${point1.x},${point1.y} ${point2.x},${point2.y} ${point9.x},${point9.y}`}
+        fill={faceArray[0] || '#4caf50'}
+        stroke="none"
+      />
+      
+      {/* Hàng 2: 3 tam giác (số 1, 2, 3) - từ trái sang phải */}
+      {/* Tam giác 1: 2-3-10 */}
+      <polygon
+        points={`${point2.x},${point2.y} ${point3.x},${point3.y} ${point10.x},${point10.y}`}
+        fill={faceArray[1] || '#4caf50'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 2: 2-9-10 */}
+      <polygon
+        points={`${point2.x},${point2.y} ${point9.x},${point9.y} ${point10.x},${point10.y}`}
+        fill={faceArray[2] || '#4caf50'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 3: 8-9-10 */}
+      <polygon
+        points={`${point8.x},${point8.y} ${point9.x},${point9.y} ${point10.x},${point10.y}`}
+        fill={faceArray[3] || '#4caf50'}
+        stroke="none"
+      />
+      
+      {/* Hàng 3: 5 tam giác (số 4, 5, 6, 7, 8) - từ trái sang phải */}
+      {/* Tam giác 4: 3-4-5 */}
+      <polygon
+        points={`${point3.x},${point3.y} ${point4.x},${point4.y} ${point5.x},${point5.y}`}
+        fill={faceArray[4] || '#4caf50'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 5: 5-6-10 */}
+      <polygon
+        points={`${point5.x},${point5.y} ${point6.x},${point6.y} ${point10.x},${point10.y}`}
+        fill={faceArray[6] || '#4caf50'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 6: 3-5-10 */}
+      <polygon
+        points={`${point3.x},${point3.y} ${point5.x},${point5.y} ${point10.x},${point10.y}`}
+        fill={faceArray[5] || '#4caf50'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 7: 6-8-10 */}
+      <polygon
+        points={`${point6.x},${point6.y} ${point8.x},${point8.y} ${point10.x},${point10.y}`}
+        fill={faceArray[7] || '#4caf50'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 8: 6-7-8 */}
+      <polygon
+        points={`${point6.x},${point6.y} ${point7.x},${point7.y} ${point8.x},${point8.y}`}
+        fill={faceArray[8] || '#4caf50'}
+        stroke="none"
+      />
+      
+      {/* Các đường kẻ phân tách - vẽ sau để hiển thị trên cùng */}
+      {/* Đường ngang trên: 2-9 */}
+      <line x1={point2.x} y1={point2.y} x2={point9.x} y2={point9.y} stroke="#333" strokeWidth="2" />
+      
+      {/* Đường ngang giữa: 3-8 */}
+      <line x1={point3.x} y1={point3.y} x2={point8.x} y2={point8.y} stroke="#333" strokeWidth="2" />
+      
+      {/* Chỉ vẽ các đường kẻ cần thiết để tạo 9 tam giác con */}
+      {/* 2-10: cần để tạo tam giác 2-3-10 và 2-9-10 */}
+      <line x1={point2.x} y1={point2.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 3-10: cần để tạo tam giác 2-3-10 */}
+      <line x1={point3.x} y1={point3.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 9-10: cần để tạo tam giác 2-9-10 và 8-9-10 */}
+      <line x1={point9.x} y1={point9.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 8-10: cần để tạo tam giác 8-9-10 và 6-8-10 */}
+      <line x1={point8.x} y1={point8.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 3-5: cần để tạo tam giác 3-4-5 và 3-5-10 */}
+      <line x1={point3.x} y1={point3.y} x2={point5.x} y2={point5.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 5-10: cần để tạo tam giác 5-6-10 và 3-5-10 */}
+      <line x1={point5.x} y1={point5.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 6-10: cần để tạo tam giác 5-6-10 và 6-8-10 */}
+      <line x1={point6.x} y1={point6.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 6-8: cần để tạo tam giác 6-7-8 và 6-8-10 */}
+      <line x1={point6.x} y1={point6.y} x2={point8.x} y2={point8.y} stroke="#333" strokeWidth="2" />
+    </svg>
+  );
+}
+
+// PyraminxTriangleDown component - Tam giác hướng xuống với cấu trúc 1-3-5
+interface PyraminxTriangleDownProps {
+  faceSize?: number;
+  faceArray?: string[]; // Mảng 9 phần tử cho mặt D
+}
+
+function PyraminxTriangleDown({ faceSize = 80, faceArray = [] }: PyraminxTriangleDownProps) {
+  // Tính toán kích thước cho tam giác đều
+  const triangleWidth = faceSize;
+  const triangleHeight = faceSize * Math.sqrt(3) / 2; // √3/2 ≈ 0.866
+  
+  // Các điểm chia cạnh làm 3 phần bằng nhau theo cấu trúc 1-2-3-4-5-6-7-8-9-10
+  // Điểm 1: đỉnh tam giác (hướng xuống)
+  const point1 = { x: triangleWidth/2, y: triangleHeight };
+  
+  // Điểm 2: 1/3 từ đỉnh trên cạnh trái
+  const point2 = { x: triangleWidth/2 - triangleWidth/6, y: 2*triangleHeight/3 };
+  
+  // Điểm 3: 2/3 từ đỉnh trên cạnh trái  
+  const point3 = { x: triangleWidth/2 - 2*triangleWidth/6, y: triangleHeight/3 };
+  
+  // Điểm 4: góc trái trên
+  const point4 = { x: 0, y: 0 };
+  
+  // Điểm 5: 1/3 từ trái trên cạnh trên
+  const point5 = { x: triangleWidth/3, y: 0 };
+  
+  // Điểm 6: 2/3 từ trái trên cạnh trên
+  const point6 = { x: 2*triangleWidth/3, y: 0 };
+  
+  // Điểm 7: góc phải trên
+  const point7 = { x: triangleWidth, y: 0 };
+  
+  // Điểm 8: 2/3 từ đỉnh trên cạnh phải
+  const point8 = { x: triangleWidth/2 + 2*triangleWidth/6, y: triangleHeight/3 };
+  
+  // Điểm 9: 1/3 từ đỉnh trên cạnh phải
+  const point9 = { x: triangleWidth/2 + triangleWidth/6, y: 2*triangleHeight/3 };
+  
+  // Điểm 10: giao điểm trung tâm
+  const point10 = { x: triangleWidth/2, y: triangleHeight/3 };
+  
+  return (
+    <svg 
+      width={triangleWidth} 
+      height={triangleHeight} 
+      viewBox={`0 0 ${triangleWidth} ${triangleHeight}`}
+      style={{ display: 'block' }}
+    >
+      {/* Tam giác lớn */}
+      <polygon
+        points={`${triangleWidth/2},${triangleHeight} 0,0 ${triangleWidth},0`}
+        fill="#ffeb3b"
+        stroke="#333"
+        strokeWidth="2"
+      />
+      
+      {/* Render các tam giác con với màu sắc từ mảng faceArray */}
+      {/* Cấu trúc 5-3-1: Hàng 1 có 5 tam giác, Hàng 2 có 3 tam giác, Hàng 3 có 1 tam giác */}
+      
+      {/* Hàng 1: 5 tam giác (số 8, 7, 6, 5, 4) - đáy tam giác - từ trái sang phải */}
+      {/* Tam giác 8: 6-7-8 */}
+      <polygon
+        points={`${point6.x},${point6.y} ${point7.x},${point7.y} ${point8.x},${point8.y}`}
+        fill={faceArray[4] || '#ffeb3b'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 7: 6-8-10 */}
+      <polygon
+        points={`${point6.x},${point6.y} ${point8.x},${point8.y} ${point10.x},${point10.y}`}
+        fill={faceArray[5] || '#ffeb3b'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 6: 3-5-10 */}
+      <polygon
+        points={`${point3.x},${point3.y} ${point5.x},${point5.y} ${point10.x},${point10.y}`}
+        fill={faceArray[7] || '#ffeb3b'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 5: 5-6-10 */}
+      <polygon
+        points={`${point5.x},${point5.y} ${point6.x},${point6.y} ${point10.x},${point10.y}`}
+        fill={faceArray[6] || '#ffeb3b'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 4: 3-4-5 */}
+      <polygon
+        points={`${point3.x},${point3.y} ${point4.x},${point4.y} ${point5.x},${point5.y}`}
+        fill={faceArray[8] || '#ffeb3b'}
+        stroke="none"
+      />
+      
+      
+      {/* Hàng 2: 3 tam giác (số 3, 2, 1) - từ trái sang phải */}
+      {/* Tam giác 3: 8-9-10 */}
+      <polygon
+        points={`${point8.x},${point8.y} ${point9.x},${point9.y} ${point10.x},${point10.y}`}
+        fill={faceArray[1] || '#ffeb3b'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 2: 2-9-10 */}
+      <polygon
+        points={`${point2.x},${point2.y} ${point9.x},${point9.y} ${point10.x},${point10.y}`}
+        fill={faceArray[2] || '#ffeb3b'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 1: 2-3-10 */}
+      <polygon
+        points={`${point2.x},${point2.y} ${point3.x},${point3.y} ${point10.x},${point10.y}`}
+        fill={faceArray[3] || '#ffeb3b'}
+        stroke="none"
+      />
+     
+      
+      {/* Hàng 3: 1 tam giác (số 0) - đỉnh dưới cùng */}
+      {/* Tam giác 0: 1-2-9 */}
+      <polygon
+        points={`${point1.x},${point1.y} ${point2.x},${point2.y} ${point9.x},${point9.y}`}
+        fill={faceArray[0] || '#ffeb3b'}
+        stroke="none"
+      />
+      
+      
+      {/* Các đường kẻ phân tách - vẽ sau để hiển thị trên cùng */}
+      {/* Đường ngang trên: 2-9 */}
+      <line x1={point2.x} y1={point2.y} x2={point9.x} y2={point9.y} stroke="#333" strokeWidth="2" />
+      
+      {/* Đường ngang giữa: 3-8 */}
+      <line x1={point3.x} y1={point3.y} x2={point8.x} y2={point8.y} stroke="#333" strokeWidth="2" />
+      
+      {/* Chỉ vẽ các đường kẻ cần thiết để tạo 9 tam giác con */}
+      {/* 2-10: cần để tạo tam giác 2-3-10 và 2-9-10 */}
+      <line x1={point2.x} y1={point2.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 3-10: cần để tạo tam giác 2-3-10 */}
+      <line x1={point3.x} y1={point3.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 9-10: cần để tạo tam giác 2-9-10 và 8-9-10 */}
+      <line x1={point9.x} y1={point9.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 8-10: cần để tạo tam giác 8-9-10 và 6-8-10 */}
+      <line x1={point8.x} y1={point8.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 3-5: cần để tạo tam giác 3-4-5 và 3-5-10 */}
+      <line x1={point3.x} y1={point3.y} x2={point5.x} y2={point5.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 5-10: cần để tạo tam giác 5-6-10 và 3-5-10 */}
+      <line x1={point5.x} y1={point5.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 6-10: cần để tạo tam giác 5-6-10 và 6-8-10 */}
+      <line x1={point6.x} y1={point6.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 6-8: cần để tạo tam giác 6-7-8 và 6-8-10 */}
+      <line x1={point6.x} y1={point6.y} x2={point8.x} y2={point8.y} stroke="#333" strokeWidth="2" />
+    </svg>
+  );
+}
+
+
+// PyraminxTriangleLeft component - Tam giác hướng xuống màu đỏ bên trái
+interface PyraminxTriangleLeftProps {
+  faceSize?: number;
+  faceArray?: string[]; // Mảng 9 phần tử cho mặt L
+}
+
+function PyraminxTriangleLeft({ faceSize = 80, faceArray = [] }: PyraminxTriangleLeftProps) {
+  // Tính toán kích thước cho tam giác đều
+  const triangleWidth = faceSize;
+  const triangleHeight = faceSize * Math.sqrt(3) / 2; // √3/2 ≈ 0.866
+  
+  // Các điểm chia cạnh làm 3 phần bằng nhau theo cấu trúc 1-2-3-4-5-6-7-8-9-10
+  // Điểm 1: đỉnh tam giác (hướng xuống)
+  const point1 = { x: triangleWidth/2, y: triangleHeight };
+  
+  // Điểm 2: 1/3 từ đỉnh trên cạnh trái
+  const point2 = { x: triangleWidth/2 - triangleWidth/6, y: 2*triangleHeight/3 };
+  
+  // Điểm 3: 2/3 từ đỉnh trên cạnh trái  
+  const point3 = { x: triangleWidth/2 - 2*triangleWidth/6, y: triangleHeight/3 };
+  
+  // Điểm 4: góc trái trên
+  const point4 = { x: 0, y: 0 };
+  
+  // Điểm 5: 1/3 từ trái trên cạnh trên
+  const point5 = { x: triangleWidth/3, y: 0 };
+  
+  // Điểm 6: 2/3 từ trái trên cạnh trên
+  const point6 = { x: 2*triangleWidth/3, y: 0 };
+  
+  // Điểm 7: góc phải trên
+  const point7 = { x: triangleWidth, y: 0 };
+  
+  // Điểm 8: 2/3 từ đỉnh trên cạnh phải
+  const point8 = { x: triangleWidth/2 + 2*triangleWidth/6, y: triangleHeight/3 };
+  
+  // Điểm 9: 1/3 từ đỉnh trên cạnh phải
+  const point9 = { x: triangleWidth/2 + triangleWidth/6, y: 2*triangleHeight/3 };
+  
+  // Điểm 10: giao điểm trung tâm
+  const point10 = { x: triangleWidth/2, y: triangleHeight/3 };
+  
+  return (
+    <svg 
+      width={triangleWidth} 
+      height={triangleHeight} 
+      viewBox={`0 0 ${triangleWidth} ${triangleHeight}`}
+      style={{ display: 'block' }}
+    >
+      {/* Tam giác lớn */}
+      <polygon
+        points={`${triangleWidth/2},${triangleHeight} 0,0 ${triangleWidth},0`}
+        fill="#f44336"
+        stroke="#333"
+        strokeWidth="2"
+      />
+      
+      {/* Render các tam giác con với màu sắc từ faceArray */}
+      {/* Cấu trúc 1-3-5: Hàng 1 có 1 tam giác, Hàng 2 có 3 tam giác, Hàng 3 có 5 tam giác */}
+      
+      {/* Hàng 1: 5 tam giác (số 4, 5, 1, 2, 0) - đáy tam giác - từ trái sang phải */}
+      {/* Tam giác 4: 3-4-5 */}
+      <polygon
+        points={`${point3.x},${point3.y} ${point4.x},${point4.y} ${point5.x},${point5.y}`}
+        fill={faceArray[4] || '#f44336'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 5: 5-6-10 */}
+      <polygon
+        points={`${point5.x},${point5.y} ${point6.x},${point6.y} ${point10.x},${point10.y}`}
+        fill={faceArray[1] || '#f44336'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 1: 2-3-10 */}
+      <polygon
+        points={`${point2.x},${point2.y} ${point3.x},${point3.y} ${point10.x},${point10.y}`}
+        fill={faceArray[6] || '#f44336'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 2: 2-9-10 */}
+      <polygon
+        points={`${point2.x},${point2.y} ${point9.x},${point9.y} ${point10.x},${point10.y}`}
+        fill={faceArray[7] || '#f44336'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 0: 1-2-9 */}
+      <polygon
+        points={`${point1.x},${point1.y} ${point2.x},${point2.y} ${point9.x},${point9.y}`}
+        fill={faceArray[8] || '#f44336'}
+        stroke="none"
+      />
+      
+      
+      {/* Hàng 2: 3 tam giác (số 6, 7, 3) - từ trái sang phải */}
+      {/* Tam giác 6: 3-5-10 */}
+      <polygon
+        points={`${point3.x},${point3.y} ${point5.x},${point5.y} ${point10.x},${point10.y}`}
+        fill={faceArray[5] || '#f44336'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 7: 6-8-10 */}
+      <polygon
+        points={`${point6.x},${point6.y} ${point8.x},${point8.y} ${point10.x},${point10.y}`}
+        fill={faceArray[2] || '#f44336'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 3: 8-9-10 */}
+      <polygon
+        points={`${point8.x},${point8.y} ${point9.x},${point9.y} ${point10.x},${point10.y}`}
+        fill={faceArray[3] || '#f44336'}
+        stroke="none"
+      />
+      
+      {/* Hàng 3: 1 tam giác (số 8) - đỉnh dưới cùng */}
+      {/* Tam giác 8: 6-7-8 */}
+      <polygon
+        points={`${point6.x},${point6.y} ${point7.x},${point7.y} ${point8.x},${point8.y}`}
+        fill={faceArray[0] || '#f44336'}
+        stroke="none"
+      />
+      
+      {/* Các đường kẻ phân tách - vẽ sau để hiển thị trên cùng */}
+      {/* Đường ngang trên: 2-9 */}
+      <line x1={point2.x} y1={point2.y} x2={point9.x} y2={point9.y} stroke="#333" strokeWidth="2" />
+      
+      {/* Đường ngang giữa: 3-8 */}
+      <line x1={point3.x} y1={point3.y} x2={point8.x} y2={point8.y} stroke="#333" strokeWidth="2" />
+      
+      {/* Chỉ vẽ các đường kẻ cần thiết để tạo 9 tam giác con */}
+      {/* 2-10: cần để tạo tam giác 2-3-10 và 2-9-10 */}
+      <line x1={point2.x} y1={point2.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 3-10: cần để tạo tam giác 2-3-10 */}
+      <line x1={point3.x} y1={point3.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 9-10: cần để tạo tam giác 2-9-10 và 8-9-10 */}
+      <line x1={point9.x} y1={point9.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 8-10: cần để tạo tam giác 8-9-10 và 6-8-10 */}
+      <line x1={point8.x} y1={point8.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 3-5: cần để tạo tam giác 3-4-5 và 3-5-10 */}
+      <line x1={point3.x} y1={point3.y} x2={point5.x} y2={point5.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 5-10: cần để tạo tam giác 5-6-10 và 3-5-10 */}
+      <line x1={point5.x} y1={point5.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 6-10: cần để tạo tam giác 5-6-10 và 6-8-10 */}
+      <line x1={point6.x} y1={point6.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 6-8: cần để tạo tam giác 6-7-8 và 6-8-10 */}
+      <line x1={point6.x} y1={point6.y} x2={point8.x} y2={point8.y} stroke="#333" strokeWidth="2" />
+    </svg>
+  );
+}
+
+// PyraminxTriangleRight component - Tam giác hướng xuống màu xanh biển bên phải
+interface PyraminxTriangleRightProps {
+  faceSize?: number;
+  faceArray?: string[]; // Mảng 9 phần tử cho mặt R
+}
+
+function PyraminxTriangleRight({ faceSize = 80, faceArray = [] }: PyraminxTriangleRightProps) {
+  // Tính toán kích thước cho tam giác đều
+  const triangleWidth = faceSize;
+  const triangleHeight = faceSize * Math.sqrt(3) / 2; // √3/2 ≈ 0.866
+  
+  // Các điểm chia cạnh làm 3 phần bằng nhau theo cấu trúc 1-2-3-4-5-6-7-8-9-10
+  // Điểm 1: đỉnh tam giác (hướng xuống)
+  const point1 = { x: triangleWidth/2, y: triangleHeight };
+  
+  // Điểm 2: 1/3 từ đỉnh trên cạnh trái
+  const point2 = { x: triangleWidth/2 - triangleWidth/6, y: 2*triangleHeight/3 };
+  
+  // Điểm 3: 2/3 từ đỉnh trên cạnh trái  
+  const point3 = { x: triangleWidth/2 - 2*triangleWidth/6, y: triangleHeight/3 };
+  
+  // Điểm 4: góc trái trên
+  const point4 = { x: 0, y: 0 };
+  
+  // Điểm 5: 1/3 từ trái trên cạnh trên
+  const point5 = { x: triangleWidth/3, y: 0 };
+  
+  // Điểm 6: 2/3 từ trái trên cạnh trên
+  const point6 = { x: 2*triangleWidth/3, y: 0 };
+  
+  // Điểm 7: góc phải trên
+  const point7 = { x: triangleWidth, y: 0 };
+  
+  // Điểm 8: 2/3 từ đỉnh trên cạnh phải
+  const point8 = { x: triangleWidth/2 + 2*triangleWidth/6, y: triangleHeight/3 };
+  
+  // Điểm 9: 1/3 từ đỉnh trên cạnh phải
+  const point9 = { x: triangleWidth/2 + triangleWidth/6, y: 2*triangleHeight/3 };
+  
+  // Điểm 10: giao điểm trung tâm
+  const point10 = { x: triangleWidth/2, y: triangleHeight/3 };
+  
+  return (
+    <svg 
+      width={triangleWidth} 
+      height={triangleHeight} 
+      viewBox={`0 0 ${triangleWidth} ${triangleHeight}`}
+      style={{ display: 'block' }}
+    >
+      {/* Tam giác lớn */}
+      <polygon
+        points={`${triangleWidth/2},${triangleHeight} 0,0 ${triangleWidth},0`}
+        fill="#2196f3"
+        stroke="#333"
+        strokeWidth="2"
+      />
+      
+      {/* Render các tam giác con với màu sắc từ faceArray */}
+      {/* Cấu trúc 1-3-5: Hàng 1 có 1 tam giác, Hàng 2 có 3 tam giác, Hàng 3 có 5 tam giác */}
+      
+      {/* Hàng 1: 5 tam giác (số 0, 2, 3, 7, 8) - đáy tam giác - từ trái sang phải */}
+      {/* Tam giác 0: 1-2-9 */}
+      <polygon
+        points={`${point1.x},${point1.y} ${point2.x},${point2.y} ${point9.x},${point9.y}`}
+        fill={faceArray[4] || '#2196f3'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 2: 2-9-10 */}
+      <polygon
+        points={`${point2.x},${point2.y} ${point9.x},${point9.y} ${point10.x},${point10.y}`}
+        fill={faceArray[5] || '#2196f3'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 3: 8-9-10 */}
+      <polygon
+        points={`${point8.x},${point8.y} ${point9.x},${point9.y} ${point10.x},${point10.y}`}
+        fill={faceArray[6] || '#2196f3'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 7: 6-8-10 */}
+      <polygon
+        points={`${point6.x},${point6.y} ${point8.x},${point8.y} ${point10.x},${point10.y}`}
+        fill={faceArray[7] || '#2196f3'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 8: 6-7-8 */}
+      <polygon
+        points={`${point6.x},${point6.y} ${point7.x},${point7.y} ${point8.x},${point8.y}`}
+        fill={faceArray[8] || '#2196f3'}
+        stroke="none"
+      />
+      
+      {/* Hàng 2: 3 tam giác (số 1, 5, 6) - từ trái sang phải */}
+      {/* Tam giác 1: 2-3-10 */}
+      <polygon
+        points={`${point2.x},${point2.y} ${point3.x},${point3.y} ${point10.x},${point10.y}`}
+        fill={faceArray[1] || '#2196f3'}
+        stroke="none"
+      />
+      
+      {/* Tam giác 5: 5-6-10 */}
+      <polygon
+        points={`${point5.x},${point5.y} ${point6.x},${point6.y} ${point10.x},${point10.y}`}
+        fill={faceArray[3] || '#2196f3'}
+        stroke="none"
+      />
+      
+      
+      {/* Tam giác 6: 3-5-10 */}
+      <polygon
+        points={`${point3.x},${point3.y} ${point5.x},${point5.y} ${point10.x},${point10.y}`}
+        fill={faceArray[2] || '#2196f3'}
+        stroke="none"
+      />
+      
+      {/* Hàng 3: 1 tam giác (số 4) - đỉnh dưới cùng */}
+      {/* Tam giác 4: 3-4-5 */}
+      <polygon
+        points={`${point3.x},${point3.y} ${point4.x},${point4.y} ${point5.x},${point5.y}`}
+        fill={faceArray[0] || '#2196f3'}
+        stroke="none"
+      />
+    
+      
+      {/* Các đường kẻ phân tách - vẽ sau để hiển thị trên cùng */}
+      {/* Đường ngang trên: 2-9 */}
+      <line x1={point2.x} y1={point2.y} x2={point9.x} y2={point9.y} stroke="#333" strokeWidth="2" />
+      
+      {/* Đường ngang giữa: 3-8 */}
+      <line x1={point3.x} y1={point3.y} x2={point8.x} y2={point8.y} stroke="#333" strokeWidth="2" />
+      
+      {/* Chỉ vẽ các đường kẻ cần thiết để tạo 9 tam giác con */}
+      {/* 2-10: cần để tạo tam giác 2-3-10 và 2-9-10 */}
+      <line x1={point2.x} y1={point2.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 3-10: cần để tạo tam giác 2-3-10 */}
+      <line x1={point3.x} y1={point3.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 9-10: cần để tạo tam giác 2-9-10 và 8-9-10 */}
+      <line x1={point9.x} y1={point9.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 8-10: cần để tạo tam giác 8-9-10 và 6-8-10 */}
+      <line x1={point8.x} y1={point8.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 3-5: cần để tạo tam giác 3-4-5 và 3-5-10 */}
+      <line x1={point3.x} y1={point3.y} x2={point5.x} y2={point5.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 5-10: cần để tạo tam giác 5-6-10 và 3-5-10 */}
+      <line x1={point5.x} y1={point5.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 6-10: cần để tạo tam giác 5-6-10 và 6-8-10 */}
+      <line x1={point6.x} y1={point6.y} x2={point10.x} y2={point10.y} stroke="#333" strokeWidth="2" />
+      
+      {/* 6-8: cần để tạo tam giác 6-7-8 và 6-8-10 */}
+      <line x1={point6.x} y1={point6.y} x2={point8.x} y2={point8.y} stroke="#333" strokeWidth="2" />
+    </svg>
+  );
+}
+
 // CubeNetModal component
 interface CubeNetModalProps {
   scramble: string;
@@ -124,7 +784,10 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
   
   const faceSize = 70;
   // layoutGrid cho 2x2 và 3x3 giống nhau về vị trí, chỉ khác số sticker mỗi mặt
-  const layoutGrid: (Face | '')[][] = [
+  const layoutGrid: (Face | '')[][] = size === 'pyraminx' ? [
+    ['L', 'F', 'R'],
+    ['', 'D', ''],
+  ] : [
     ['', 'U', '', ''],
     ['L', 'F', 'R', 'B'],
     ['', 'D', '', ''],
@@ -149,48 +812,6 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
           ))}
         </div>
       );
-    } else if (size === 'pyraminx') {
-      // Pyraminx: hiển thị dạng tam giác đều được chia thành 9 tam giác nhỏ
-      return (
-        <div className="net-face" style={{ width: faceSize, height: faceSize, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #333', background: '#fff', boxSizing: 'border-box' }}>
-          <div style={{ 
-            width: '80%', 
-            height: '80%', 
-            position: 'relative',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            border: '1px solid #888'
-          }}>
-            {/* 9 tam giác nhỏ bên trong */}
-            {Array.from({ length: 9 }).map((_, i) => {
-              const row = Math.floor(i / 3);
-              const col = i % 3;
-              const color = cubeState[faceKey][i] || '#fff';
-              
-              // Tính toán vị trí và kích thước của từng tam giác
-              const triangleSize = 1/3; // Mỗi tam giác chiếm 1/3 kích thước
-              const x = col * triangleSize;
-              const y = row * triangleSize;
-              
-              return (
-                <div
-                  key={i}
-                  style={{
-                    position: 'absolute',
-                    width: `${triangleSize * 100}%`,
-                    height: `${triangleSize * 100}%`,
-                    left: `${x * 100}%`,
-                    top: `${y * 100}%`,
-                    background: color,
-                    clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-                    border: '0.5px solid #333',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
-      );
     } else {
       // 3x3: 9 sticker (default)
       return (
@@ -208,17 +829,51 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
       <div className="bg-pink-100 rounded-xl p-4 shadow-lg relative modal-content" style={{ minWidth: 320, minHeight: 320 }}>
         <button onClick={onClose} className="absolute top-2 right-2 px-2 py-1 bg-red-500 hover:bg-red-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Đóng</button>
         <div className="mb-2 text-center font-bold text-lg text-gray-700"></div>
-        <div id="net-view" style={{ display: 'grid', gridTemplateColumns: `repeat(4, ${faceSize}px)`, gridTemplateRows: `repeat(3, ${faceSize}px)`, gap: 2, background: 'none' }}>
-          {layoutGrid.flatMap((row, rowIdx) =>
-            row.map((faceKey, colIdx) => {
-              if (faceKey === '') {
-                return <div key={`blank-${rowIdx}-${colIdx}`} className="net-face-empty" style={{ width: faceSize, height: faceSize, background: 'none' }}></div>;
-              } else {
-                return (
-                  <React.Fragment key={faceKey}>{renderStickers(faceKey as Face)}</React.Fragment>
-                );
-              }
-            })
+        <div id="net-view" style={{ 
+          display: size === 'pyraminx' ? 'flex' : 'grid', 
+          flexDirection: size === 'pyraminx' ? 'column' : 'row',
+          alignItems: size === 'pyraminx' ? 'center' : 'stretch',
+          justifyContent: size === 'pyraminx' ? 'center' : 'stretch',
+          gridTemplateColumns: size === 'pyraminx' ? 'none' : `repeat(4, ${faceSize}px)`, 
+          gridTemplateRows: size === 'pyraminx' ? 'none' : `repeat(3, ${faceSize}px)`, 
+          gap: size === 'pyraminx' ? 0 : 2, 
+          background: 'none' 
+        }}>
+          {size === 'pyraminx' ? (
+            // Pyraminx: hiển thị 4 tam giác với cấu trúc 1-3-5
+            <div className="flex flex-col items-center gap-2">
+              {/* Hàng trên: 2 tam giác hướng xuống + 1 tam giác hướng lên */}
+              <div className="flex items-center gap-1">
+                {/* Tam giác đỏ bên trái (mặt L) - dịch sang phải */}
+                <div style={{ marginRight: '-35px' }}>
+                  <PyraminxTriangleLeft faceSize={80} faceArray={cubeState.L || []} />
+                </div>
+                {/* Tam giác xanh lá giữa (mặt F) */}
+                <PyraminxTriangle faceSize={80} faceArray={cubeState.F || []} />
+                {/* Tam giác xanh biển bên phải (mặt R) - dịch sang trái */}
+                <div style={{ marginLeft: '-35px' }}>
+                  <PyraminxTriangleRight faceSize={80} faceArray={cubeState.R || []} />
+                </div>
+              </div>
+              {/* Hàng dưới: 1 tam giác hướng xuống */}
+              <div className="flex justify-center">
+                {/* Tam giác vàng dưới (mặt D) */}
+                <PyraminxTriangleDown faceSize={80} faceArray={cubeState.D || []} />
+              </div>
+            </div>
+          ) : (
+            // Các loại khác: grid layout bình thường
+            layoutGrid.flatMap((row, rowIdx) =>
+              row.map((faceKey, colIdx) => {
+                if (faceKey === '') {
+                  return <div key={`blank-${rowIdx}-${colIdx}`} className="net-face-empty" style={{ width: faceSize, height: faceSize, background: 'none' }}></div>;
+                } else {
+                  return (
+                    <React.Fragment key={faceKey}>{renderStickers(faceKey as Face)}</React.Fragment>
+                  );
+                }
+              })
+            )
           )}
         </div>
         <div className="mt-3 text-gray-700 text-sm text-center font-mono">Scramble: <span className="font-bold">{scramble}</span></div>
