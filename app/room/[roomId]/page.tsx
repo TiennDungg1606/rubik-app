@@ -103,6 +103,10 @@ export default function RoomPage() {
   const [isMobileLandscape, setIsMobileLandscape] = useState<boolean>(false);
   // State theo dõi trạng thái toàn màn hình
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  // Ref để lưu timeout đăng nhập
+  const loginTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Ref để lưu userName hiện tại
+  const userNameRef = useRef<string>("");
   const [camOn, setCamOn] = useState<boolean>(true);
   const [opponentCamOn, setOpponentCamOn] = useState<boolean>(true);
   const [micOn, setMicOn] = useState<boolean>(true);
@@ -2210,18 +2214,30 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     return () => timeout && clearTimeout(timeout);
   }, [userName, roomId]);
 
+  // Effect để cập nhật userNameRef khi userName thay đổi
+  useEffect(() => {
+    userNameRef.current = userName;
+  }, [userName]);
+
   // Effect riêng để kiểm tra timeout 15 giây cho đăng nhập
   useEffect(() => {
-    const loginTimeout = setTimeout(() => {
-      console.log('15s timeout reached, userName:', userName);
-      if (!userName) {
-        console.log('No userName found, redirecting to login');
+    loginTimeoutRef.current = setTimeout(() => {
+      // Kiểm tra userName tại thời điểm timeout (15s sau)
+      const currentUserName = userNameRef.current;
+      console.log('15s timeout reached, userName:', currentUserName);
+      if (!currentUserName) {
+        console.log('No userName found after 15s, redirecting to login');
         window.location.href = 'https://rubik-app-buhb.vercel.app/';
+      } else {
+        console.log('userName found after 15s, staying in room');
       }
     }, 15000);
 
     return () => {
-      clearTimeout(loginTimeout);
+      if (loginTimeoutRef.current) {
+        clearTimeout(loginTimeoutRef.current);
+        loginTimeoutRef.current = null;
+      }
     };
   }, []); // Chỉ chạy một lần khi mount
 
