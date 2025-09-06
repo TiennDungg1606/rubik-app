@@ -101,6 +101,8 @@ export default function RoomPage() {
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState<boolean>(false);
+  // State theo dõi trạng thái toàn màn hình
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [camOn, setCamOn] = useState<boolean>(true);
   const [opponentCamOn, setOpponentCamOn] = useState<boolean>(true);
   const [micOn, setMicOn] = useState<boolean>(true);
@@ -1641,6 +1643,107 @@ useEffect(() => {
     }
   }, []);
 
+  // Tự động yêu cầu chế độ toàn màn hình khi sử dụng điện thoại
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isMobile) {
+      // Hàm kiểm tra trạng thái toàn màn hình
+      const checkFullscreenStatus = () => {
+        const fullscreenElement = 
+          document.fullscreenElement ||
+          (document as any).webkitFullscreenElement ||
+          (document as any).mozFullScreenElement ||
+          (document as any).msFullscreenElement;
+        
+        const wasFullscreen = isFullscreen;
+        setIsFullscreen(!!fullscreenElement);
+        
+        if (fullscreenElement && !wasFullscreen) {
+          // Vừa vào chế độ toàn màn hình - dừng interval
+          if (interval) {
+            clearInterval(interval);
+            interval = undefined;
+          }
+        } else if (!fullscreenElement && wasFullscreen && isMobile) {
+          // Vừa thoát khỏi chế độ toàn màn hình - khởi động lại interval
+          startInterval();
+          // Và ngay lập tức yêu cầu lại
+          requestFullscreen();
+        } else if (!fullscreenElement && isMobile) {
+          // Không ở chế độ toàn màn hình và đang dùng điện thoại
+          requestFullscreen();
+        }
+      };
+
+      // Hàm yêu cầu chế độ toàn màn hình
+      const requestFullscreen = () => {
+        try {
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+          } else if ((document.documentElement as any).webkitRequestFullscreen) {
+            (document.documentElement as any).webkitRequestFullscreen();
+          } else if ((document.documentElement as any).mozRequestFullScreen) {
+            (document.documentElement as any).mozRequestFullScreen();
+          } else if ((document.documentElement as any).msRequestFullscreen) {
+            (document.documentElement as any).msRequestFullscreen();
+          }
+        } catch (error) {
+          // Không thể chuyển sang chế độ toàn màn hình
+          console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
+        }
+      };
+
+      // Kiểm tra trạng thái ban đầu
+      checkFullscreenStatus();
+
+      // Thêm event listeners để theo dõi thay đổi trạng thái toàn màn hình
+      const fullscreenChangeEvents = [
+        'fullscreenchange',
+        'webkitfullscreenchange',
+        'mozfullscreenchange',
+        'MSFullscreenChange'
+      ];
+
+      fullscreenChangeEvents.forEach(event => {
+        document.addEventListener(event, checkFullscreenStatus);
+      });
+
+      // Tự động yêu cầu chế độ toàn màn hình sau 1 giây
+      const initialTimeout = setTimeout(requestFullscreen, 1000);
+
+      // Chỉ kiểm tra định kỳ khi KHÔNG ở chế độ toàn màn hình
+      let interval: NodeJS.Timeout | undefined;
+      
+      const startInterval = () => {
+        if (!isFullscreen && !interval) {
+          interval = setInterval(() => {
+            if (isMobile && !isFullscreen) {
+              requestFullscreen();
+            } else {
+              // Nếu đã ở chế độ toàn màn hình, dừng interval
+              if (interval) {
+                clearInterval(interval);
+                interval = undefined;
+              }
+            }
+          }, 3000);
+        }
+      };
+
+      // Bắt đầu interval ban đầu
+      startInterval();
+
+      return () => {
+        clearTimeout(initialTimeout);
+        if (interval) {
+          clearInterval(interval);
+        }
+        fullscreenChangeEvents.forEach(event => {
+          document.removeEventListener(event, checkFullscreenStatus);
+        });
+      };
+    }
+  }, [isMobile, isFullscreen]);
+
   // Lấy roomId từ URL client-side để tránh lỗi build
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -2107,13 +2210,28 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     return () => timeout && clearTimeout(timeout);
   }, [userName, roomId]);
 
+  // Effect riêng để kiểm tra timeout 15 giây cho đăng nhập
+  useEffect(() => {
+    const loginTimeout = setTimeout(() => {
+      console.log('15s timeout reached, userName:', userName);
+      if (!userName) {
+        console.log('No userName found, redirecting to login');
+        window.location.href = 'https://rubik-app-buhb.vercel.app/';
+      }
+    }, 15000);
+
+    return () => {
+      clearTimeout(loginTimeout);
+    };
+  }, []); // Chỉ chạy một lần khi mount
+
   if (showLoading || !userName || !roomId) {
     // Thanh loading đơn giản phía dưới màn hình
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black">
         {/* Video loading đã được comment lại - 1 tuần sau sẽ gỡ comment */}
          <video
-          src="/2-9.mp4"
+          src="/loadingroom.mp4"
           autoPlay
           loop
           muted
@@ -2121,9 +2239,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           className="w-full h-full object-cover"
           style={{ position: 'absolute', inset: 0, zIndex: 1 }}
         /> 
-        
-        {/* Thay thế bằng ảnh 2-9.jpg */}
-        
+            
         {/* Thanh loading nâng lên cao hơn mép dưới */}
         <div className="fixed left-1/2 -translate-x-1/2" style={{ bottom: '60px', width: '90vw', maxWidth: 480, zIndex: 10000 }}>
           <div className="h-2 bg-gradient-to-r from-blue-400 to-pink-400 rounded-full animate-loading-bar" style={{ width: '100%' }}></div>
@@ -2143,6 +2259,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       </div>
     );
   }
+
   if (isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
@@ -2627,10 +2744,19 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             Phòng: <span className="text-blue-400">{roomId}</span>
           </h2>
         </div>
-        <div className={mobileShrink ? "mb-1 px-2 py-1 bg-gray-800 rounded text-[16px] font-mono font-bold tracking-widest select-all w-[90vw] max-w-[340px] overflow-x-auto whitespace-normal" : "mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all max-w-4xl overflow-x-auto"}
-          style={mobileShrink ? { fontSize: 16, minWidth: '60vw', maxWidth: 340, overflowX: 'auto', whiteSpace: 'normal' } : { maxWidth: '56rem', overflowX: 'auto' }}>
-          {scramble}
-        </div>
+        {mobileShrink ? (
+          <div className="flex justify-center w-full">
+            <div className="mb-1 px-2 py-1 bg-gray-800 rounded text-[16px] font-mono font-bold tracking-widest select-all min-w-[60vw] max-w-[90vw] overflow-x-auto whitespace-normal inline-block"
+              style={{ fontSize: 16, minWidth: '60vw', maxWidth: '90vw', overflowX: 'auto', whiteSpace: 'normal', width: 'fit-content' }}>
+              {scramble}
+            </div>
+          </div>
+        ) : (
+          <div className="mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all max-w-4xl overflow-x-auto"
+            style={{ maxWidth: '56rem', overflowX: 'auto' }}>
+            {scramble}
+          </div>
+        )}
       </div>
       {/* Hàng ngang 3 khối: bảng tổng hợp | trạng thái + thông báo | bảng kết quả */}
       <div
