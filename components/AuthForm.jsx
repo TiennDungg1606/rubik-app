@@ -205,11 +205,10 @@ export default function AuthForm({ onLogin }) {
         </div>
         {/* Footer app links */}
         <div className="flex justify-center gap-4 mt-8 w-full flex-wrap">
-          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/file.svg" alt="file" width={16} height={16}/> KWFinder</span>
-          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/globe.svg" alt="globe" width={16} height={16}/> SERPChecker</span>
-          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/window.svg" alt="window" width={16} height={16}/> SERPWatcher</span>
-          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/vercel.svg" alt="vercel" width={16} height={16}/> LinkMiner</span>
-          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/google.svg" alt="google" width={16} height={16}/> SiteProfiler</span>
+          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/vercel.svg" alt="file" width={16} height={16}/> Vercel</span>
+          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/railway.png" alt="globe" width={16} height={16}/> Railway</span>
+          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/mongodb.png" alt="window" width={16} height={16}/> MongoDB</span>
+
         </div>
       </div>
     </div>

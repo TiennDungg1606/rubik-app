@@ -110,6 +110,7 @@ export default function RoomPage() {
   const [camOn, setCamOn] = useState<boolean>(true);
   const [opponentCamOn, setOpponentCamOn] = useState<boolean>(true);
   const [micOn, setMicOn] = useState<boolean>(true);
+  const [opponentMicOn, setOpponentMicOn] = useState<boolean>(true);
   // Đã loại bỏ các ref và state liên quan đến Stringee và mediaStream, chỉ giữ lại state cho Daily.co và socket
  
   // (Đã di chuyển khai báo roomId lên đầu)
@@ -1599,6 +1600,25 @@ useEffect(() => {
       if (roomId && userId) {
         socket.emit('leave-room', { roomId, userId });
       }
+    };
+  }, [roomId, userId]);
+
+  // Socket listener cho mic toggle
+  useEffect(() => {
+    const socket = getSocket();
+    
+    const handleMicToggle = (data: { userId: string; micOn: boolean; userName: string }) => {
+      if (data.userId !== userId) {
+        // Chỉ cập nhật state nếu không phải từ chính mình
+        setOpponentMicOn(data.micOn);
+        console.log(`${data.userName} ${data.micOn ? 'bật' : 'tắt'} mic`);
+      }
+    };
+
+    socket.on('user-mic-toggle', handleMicToggle);
+
+    return () => {
+      socket.off('user-mic-toggle', handleMicToggle);
     };
   }, [roomId, userId]);
 
@@ -3199,6 +3219,21 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }}
               type="button"
             >{camOn ? 'Tắt cam' : 'Bật cam'}</button>
+            {/* Nút bật/tắt mic */}
+            <button
+              className={mobileShrink ? `absolute bottom-0.5 right-0.5 px-0.5 py-0.5 rounded text-[8px] ${micOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 right-3 px-3 py-1 rounded text-base ${micOn ? 'bg-gray-700' : 'bg-red-600'}`}
+              style={mobileShrink ? { minWidth: 0, minHeight: 0, pointerEvents: 'auto', zIndex: 4 } : { pointerEvents: 'auto', zIndex: 4 }}
+              onClick={() => {
+                setMicOn(v => {
+                  const newVal = !v;
+                  // Gửi trạng thái micOn mới cho đối thủ qua socket, kèm userName
+                  const socket = getSocket();
+                  socket.emit('user-mic-toggle', { roomId, userId, micOn: newVal, userName });
+                  return newVal;
+                });
+              }}
+              type="button"
+            >{micOn ? 'Tắt mic' : 'Bật mic'}</button>
           </div>
           {/* Dãy thành phần dưới webcam của bạn */}
           <div style={{
