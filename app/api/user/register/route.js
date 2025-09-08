@@ -25,7 +25,14 @@ export async function POST(req) {
   if (existing) {
     return new Response(JSON.stringify({ error: 'Email already exists' }), { status: 409 });
   }
-  const user = new User({ email, password, firstName, lastName, birthday });
+  const user = new User({ 
+    email, 
+    password, 
+    firstName, 
+    lastName, 
+    birthday,
+    customBg: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAA..."
+  });
   await user.save();
   return new Response(JSON.stringify({ success: true }), { status: 201 });
 }
