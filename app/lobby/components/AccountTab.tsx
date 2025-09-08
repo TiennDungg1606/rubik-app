@@ -170,7 +170,7 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
       ) : user ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-6">
           {/* Header card */}
-          <div className="xl:col-span-12 md:col-span-2 col-span-1 rounded-2xl border border-neutral-800 bg-neutral-900/30 backdrop-blur-sm shadow-sm">
+          <div className="xl:col-span-12 md:col-span-2 col-span-1 rounded-2xl border border-neutral-800 bg-neutral-900/40 shadow-sm">
             <div className="p-6 flex items-center gap-5">
               <div className="size-14 md:size-16 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white grid place-items-center font-semibold">
                 {getInitials(user.firstName, user.lastName)}
@@ -215,7 +215,7 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
           </div>
 
           {/* Birthday settings */}
-          <div className="xl:col-span-6 md:col-span-1 col-span-1 rounded-2xl border border-neutral-800 bg-neutral-900/30 backdrop-blur-sm shadow-sm">
+          <div className="xl:col-span-6 md:col-span-1 col-span-1 rounded-2xl border border-neutral-800 bg-neutral-900/40 shadow-sm">
             <div className="px-6 pt-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -278,7 +278,7 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
           </div>
 
           {/* Security settings */}
-          <div className="xl:col-span-6 md:col-span-1 col-span-1 rounded-2xl border border-neutral-800 bg-neutral-900/30 backdrop-blur-sm shadow-sm">
+          <div className="xl:col-span-6 md:col-span-1 col-span-1 rounded-2xl border border-neutral-800 bg-neutral-900/40 shadow-sm">
             <div className="px-6 pt-6 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold">Bảo mật</h3>
@@ -411,7 +411,7 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
           </div>
 
           {/* Name settings */}
-          <div className="xl:col-span-12 rounded-2xl border border-neutral-800 bg-neutral-900/30 backdrop-blur-sm shadow-sm">
+          <div className="xl:col-span-12 rounded-2xl border border-neutral-800 bg-neutral-900/40 shadow-sm">
             <div className="px-6 pt-6 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold">Họ và tên</h3>
