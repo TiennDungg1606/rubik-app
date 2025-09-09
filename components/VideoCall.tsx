@@ -180,6 +180,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
             player2VideoRef.current.srcObject = el.srcObject;
             player2VideoRef.current.muted = false;
             player2VideoRef.current.style.display = '';
+            console.log('[VideoCall] Spectator received player2 video stream');
           }
         } else {
           // Người chơi: hiển thị camera của mình
@@ -200,11 +201,12 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         const el = remotetrack.attach();
         
         if (isSpectator) {
-          // Người xem: hiển thị camera của người chơi
+          // Người xem: hiển thị camera của người chơi thứ 1
           if (player1VideoRef?.current && el instanceof HTMLVideoElement) {
             player1VideoRef.current.srcObject = el.srcObject;
             player1VideoRef.current.muted = false;
             player1VideoRef.current.style.display = '';
+            console.log('[VideoCall] Spectator received player1 video stream');
           }
         } else {
           // Người chơi: hiển thị camera của đối thủ

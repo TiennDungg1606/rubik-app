@@ -3253,35 +3253,40 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <span style={{ color: '#fff', fontWeight: 600, fontSize: mobileShrink ? 11 : 20, textAlign: 'center' }}>Camera của bạn sẽ hiện khi đối thủ vào</span>
               </div>
             )}
-            <button
-              className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
-              style={mobileShrink ? { minWidth: 0, minHeight: 0, pointerEvents: 'auto', zIndex: 4 } : { pointerEvents: 'auto', zIndex: 4 }}
-              onClick={() => {
-                setCamOn(v => {
-                  const newVal = !v;
-                  // Gửi trạng thái camOn mới cho đối thủ qua socket, kèm userName
-                  const socket = getSocket();
-                  socket.emit('user-cam-toggle', { roomId, userId, camOn: newVal, userName });
-                  return newVal;
-                });
-              }}
-              type="button"
-            >{camOn ? 'Tắt cam' : 'Bật cam'}</button>
-            {/* Nút bật/tắt mic */}
-            <button
-              className={mobileShrink ? `absolute bottom-0.5 right-0.5 px-0.5 py-0.5 rounded text-[8px] ${micOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 right-3 px-3 py-1 rounded text-base ${micOn ? 'bg-gray-700' : 'bg-red-600'}`}
-              style={mobileShrink ? { minWidth: 0, minHeight: 0, pointerEvents: 'auto', zIndex: 4 } : { pointerEvents: 'auto', zIndex: 4 }}
-              onClick={() => {
-                setMicOn(v => {
-                  const newVal = !v;
-                  // Gửi trạng thái micOn mới cho đối thủ qua socket, kèm userName
-                  const socket = getSocket();
-                  socket.emit('user-mic-toggle', { roomId, userId, micOn: newVal, userName });
-                  return newVal;
-                });
-              }}
-              type="button"
-            >{micOn ? 'Tắt mic' : 'Bật mic'}</button>
+            {/* Nút cam/mic - Ẩn cho người xem */}
+            {!isSpectator && (
+              <>
+                <button
+                  className={mobileShrink ? `absolute bottom-0.5 left-0.5 px-0.5 py-0.5 rounded text-[8px] ${camOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 left-3 px-3 py-1 rounded text-base ${camOn ? 'bg-gray-700' : 'bg-red-600'}`}
+                  style={mobileShrink ? { minWidth: 0, minHeight: 0, pointerEvents: 'auto', zIndex: 4 } : { pointerEvents: 'auto', zIndex: 4 }}
+                  onClick={() => {
+                    setCamOn(v => {
+                      const newVal = !v;
+                      // Gửi trạng thái camOn mới cho đối thủ qua socket, kèm userName
+                      const socket = getSocket();
+                      socket.emit('user-cam-toggle', { roomId, userId, camOn: newVal, userName });
+                      return newVal;
+                    });
+                  }}
+                  type="button"
+                >{camOn ? 'Tắt cam' : 'Bật cam'}</button>
+                {/* Nút bật/tắt mic */}
+                <button
+                  className={mobileShrink ? `absolute bottom-0.5 right-0.5 px-0.5 py-0.5 rounded text-[8px] ${micOn ? 'bg-gray-700' : 'bg-red-600'}` : `absolute bottom-3 right-3 px-3 py-1 rounded text-base ${micOn ? 'bg-gray-700' : 'bg-red-600'}`}
+                  style={mobileShrink ? { minWidth: 0, minHeight: 0, pointerEvents: 'auto', zIndex: 4 } : { pointerEvents: 'auto', zIndex: 4 }}
+                  onClick={() => {
+                    setMicOn(v => {
+                      const newVal = !v;
+                      // Gửi trạng thái micOn mới cho đối thủ qua socket, kèm userName
+                      const socket = getSocket();
+                      socket.emit('user-mic-toggle', { roomId, userId, micOn: newVal, userName });
+                      return newVal;
+                    });
+                  }}
+                  type="button"
+                >{micOn ? 'Tắt mic' : 'Bật mic'}</button>
+              </>
+            )}
           </div>
           {/* Dãy thành phần dưới webcam của bạn */}
           <div style={{
@@ -4281,9 +4286,31 @@ function formatStat(val: number|null, showDNF: boolean = false) {
 
       {/* Video elements cho người xem để xem camera của 2 người chơi */}
       {isSpectator && (
-        <div style={{ display: 'none' }}>
-          <video ref={spectatorPlayer1Ref} id="spectator-player1-video" autoPlay playsInline style={{ display: 'none', width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, background: '#111' }} />
-          <video ref={spectatorPlayer2Ref} id="spectator-player2-video" autoPlay playsInline style={{ display: 'none', width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, background: '#111' }} />
+        <div className="fixed inset-0 pointer-events-none z-10">
+          <video ref={spectatorPlayer1Ref} id="spectator-player1-video" autoPlay playsInline style={{ 
+            position: 'absolute', 
+            top: '20px', 
+            left: '20px', 
+            width: '300px', 
+            height: '200px', 
+            objectFit: 'cover', 
+            borderRadius: 12, 
+            background: '#111',
+            border: '2px solid #4f46e5',
+            zIndex: 20
+          }} />
+          <video ref={spectatorPlayer2Ref} id="spectator-player2-video" autoPlay playsInline style={{ 
+            position: 'absolute', 
+            top: '20px', 
+            right: '20px', 
+            width: '300px', 
+            height: '200px', 
+            objectFit: 'cover', 
+            borderRadius: 12, 
+            background: '#111',
+            border: '2px solid #dc2626',
+            zIndex: 20
+          }} />
         </div>
       )}
 
