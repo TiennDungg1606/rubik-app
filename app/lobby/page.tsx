@@ -427,27 +427,6 @@ function LobbyContent() {
     router.push(`/room/${code}`);
   };
 
-  // Hàm xem phòng: vào với vai trò người xem
-  const handleWatchRoom = (roomId: string) => {
-    const code = roomId.trim().toUpperCase();
-    if (!code) return;
-    setJoinError("");
-    // Lấy password từ window._roomPassword nếu có (do RoomTab truyền vào)
-    let password = "";
-    if (typeof window !== "undefined" && window._roomPassword) {
-      password = window._roomPassword;
-      // Lưu tạm vào sessionStorage để trang room/[roomId] lấy khi join-room
-      sessionStorage.setItem(`roomPassword_${code}`, password);
-      // Xóa biến tạm sau khi dùng
-      delete window._roomPassword;
-    }
-    // Lưu flag để biết đây là chế độ xem
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem(`watchMode_${code}`, "true");
-    }
-    router.push(`/room/${code}`);
-  };
-
   if (isMobile && isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
@@ -576,7 +555,6 @@ function LobbyContent() {
               setRoomInput={setRoomInput}
               handleCreateRoom={handleCreateRoom}
               handleJoinRoom={handleJoinRoom}
-              handleWatchRoom={handleWatchRoom}
             />
             {joinError && <div className="text-red-400 text-center mt-2">{joinError}</div>}
           </>
