@@ -59,9 +59,6 @@ export default function RoomPage() {
   const [joinedRoom, setJoinedRoom] = useState(false);
   // State cho chế độ người xem
   const [isSpectator, setIsSpectator] = useState<boolean>(false);
-  // Refs cho người xem để xem camera của 2 người chơi
-  const spectatorPlayer1Ref = useRef<HTMLVideoElement>(null);
-  const spectatorPlayer2Ref = useRef<HTMLVideoElement>(null);
   // Kiểm tra chế độ xem từ sessionStorage
   useEffect(() => {
     if (typeof window !== 'undefined' && roomId) {
@@ -1503,7 +1500,14 @@ useEffect(() => {
       .then(data => {
         if (data && data.access_token) {
                   // Tạo roomUrl đúng định dạng JSON cho VideoCall
-        const url = JSON.stringify({ access_token: data.access_token, userId, opponentId });
+        // Tất cả người trong phòng đều có thể call với nhau
+        const url = JSON.stringify({ 
+          access_token: data.access_token, 
+          userId, 
+          roomId,
+          player1Id: users[0] || '',
+          player2Id: users[1] || ''
+        });
         setRoomUrl(url);
         } else {
           console.error('[RoomPage] Không nhận được access_token từ API:', data);
@@ -1512,7 +1516,7 @@ useEffect(() => {
       .catch(err => {
         console.error('[RoomPage] Lỗi fetch /api/token:', err);
       });
-  }, [roomId, userId, opponentId, roomUrl]);
+  }, [roomId, userId, users, roomUrl]);
 
 
   // ...giữ nguyên toàn bộ logic và return JSX phía sau...
@@ -2538,63 +2542,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>
         )}
                 {/* Thông báo khi bị khóa do 2 lần DNF - ĐÃ HỦY */}
-                {/* {showLockedDNFModal && (
-                  <div className="fixed inset-0 z-[199] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(1px)' }}>
-                    <div className={`${mobileShrink ? "bg-gray-900 rounded p-3 w-[90vw] max-w-[300px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[500px] max-w-[95vw] border-4 border-red-400 flex flex-col items-center justify-center"} modal-content`}>
-                      <div className={`${mobileShrink ? "text-base" : "text-xl"} font-bold text-red-400 mb-3 text-center`}>
-                        🚫 KHÓA THAO TÁC DO 2 LẦN DNF!
-                      </div>
-                      <div className={`${mobileShrink ? "text-sm" : "text-lg"} text-gray-300 mb-4 text-center`}>
-                        {(() => {
-                          // Sử dụng thông tin từ server để hiển thị chính xác
-                          if (lockDNFInfo) {
-                            const { myDnfCount, oppDnfCount, lockedByUserId } = lockDNFInfo;
-                            
-                            if (myDnfCount >= 2 && oppDnfCount >= 2) {
-                              return `Cả ${userName} và ${opponentName} đều có 2 lần DNF. Trận đấu kết thúc sớm.`;
-                            } else if (myDnfCount >= 2) {
-                              return `${userName} có 2 lần DNF. ${opponentName} thắng. Trận đấu kết thúc sớm.`;
-                            } else if (oppDnfCount >= 2) {
-                              return `${opponentName} có 2 lần DNF. ${userName} thắng. Trận đấu kết thúc sớm.`;
-                            } else {
-                              return `Có người bị 2 lần DNF. Trận đấu kết thúc sớm.`;
-                            }
-                          } else {
-                            // Fallback nếu không có thông tin từ server
-                            const myDnfCount = myResults.filter(r => r === null).length;
-                            const oppDnfCount = opponentResults.filter(r => r === null).length;
-                            
-                            if (myDnfCount >= 2 && oppDnfCount >= 2) {
-                              return `Cả ${userName} và ${opponentName} đều có 2 lần DNF. Trận đấu kết thúc sớm.`;
-                            } else if (myDnfCount >= 2) {
-                              return `${userName} có 2 lần DNF. ${opponentName} thắng. Trận đấu kết thúc sớm.`;
-                            } else if (oppDnfCount >= 2) {
-                              return `${opponentName} có 2 lần DNF. ${userName} thắng. Trận đấu kết thúc sớm.`;
-                            } else {
-                              return `Có người bị 2 lần DNF. Trận đấu kết thúc sớm.`;
-                            }
-                          }
-                        })()}
-                        <br /><br />
-                        Bạn không thể thực hiện bất kỳ thao tác nào cho đến khi tái đấu.
-                        <br />
-                        Hãy nhấn nút <span className="text-yellow-400">🔄</span> để yêu cầu tái đấu từ đối thủ.
-                      </div>
-                      <div className={`${mobileShrink ? "text-xs" : "text-sm"} text-gray-400 text-center`}>
-                      </div>
-                      <button
-                        onClick={() => {
-                          // Chỉ ẩn modal, KHÔNG mở khóa
-                          setShowLockedDNFModal(false);
-                          // isLockedDue2DNF vẫn giữ nguyên = true
-                        }}
-                        className={`${mobileShrink ? "px-3 py-1 text-xs" : "px-4 py-2 text-sm"} bg-gray-600 hover:bg-gray-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95`}
-                      >
-                        Đóng thông báo
-                      </button>
-                    </div>
-                  </div>
-                )} */}
+         
 
           {/* Modal xác nhận tái đấu khi nhận được yêu cầu từ đối phương */}
       {rematchModal.show && rematchModal.from === 'opponent' && (
@@ -3232,23 +3180,25 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
           >
-            {/* Video element for local webcam */}
-            <video
-              id="my-video"
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }}
-            />
-            {/* Overlay che webcam local khi camOn=false, pointerEvents none để không che nút */}
-            {!camOn && (
+            {/* Video element for local webcam - Ẩn cho người xem */}
+            {!isSpectator && (
+              <video
+                id="my-video"
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }}
+              />
+            )}
+            {/* Overlay che webcam local khi camOn=false, pointerEvents none để không che nút - Ẩn cho người xem */}
+            {!isSpectator && !camOn && (
               <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>Đã tắt camera</span>
               </div>
             )}
-            {/* Overlay thông báo khi chưa đủ 2 người */}
-            {waiting && (
+            {/* Overlay thông báo khi chưa đủ 2 người - Ẩn cho người xem */}
+            {!isSpectator && waiting && (
               <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.85, borderRadius: 'inherit', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ color: '#fff', fontWeight: 600, fontSize: mobileShrink ? 11 : 20, textAlign: 'center' }}>Camera của bạn sẽ hiện khi đối thủ vào</span>
               </div>
@@ -4284,35 +4234,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
       )}
 
-      {/* Video elements cho người xem để xem camera của 2 người chơi */}
-      {isSpectator && (
-        <div className="fixed inset-0 pointer-events-none z-10">
-          <video ref={spectatorPlayer1Ref} id="spectator-player1-video" autoPlay playsInline style={{ 
-            position: 'absolute', 
-            top: '20px', 
-            left: '20px', 
-            width: '300px', 
-            height: '200px', 
-            objectFit: 'cover', 
-            borderRadius: 12, 
-            background: '#111',
-            border: '2px solid #4f46e5',
-            zIndex: 20
-          }} />
-          <video ref={spectatorPlayer2Ref} id="spectator-player2-video" autoPlay playsInline style={{ 
-            position: 'absolute', 
-            top: '20px', 
-            right: '20px', 
-            width: '300px', 
-            height: '200px', 
-            objectFit: 'cover', 
-            borderRadius: 12, 
-            background: '#111',
-            border: '2px solid #dc2626',
-            zIndex: 20
-          }} />
-        </div>
-      )}
 
       {/* Mount VideoCall (Stringee) sau webcam row để quản lý stream */}
       {roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0 ? (
@@ -4324,8 +4245,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           localVideoRef={localVideoRef}
           remoteVideoRef={remoteVideoRef}
           isSpectator={isSpectator}
-          player1VideoRef={isSpectator ? spectatorPlayer1Ref : localVideoRef}
-          player2VideoRef={isSpectator ? spectatorPlayer2Ref : remoteVideoRef}
         />
       ) : null}
 
