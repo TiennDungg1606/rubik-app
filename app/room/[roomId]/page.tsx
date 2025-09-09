@@ -57,6 +57,23 @@ export default function RoomPage() {
   // State cho meta phòng
   const [roomMeta, setRoomMeta] = useState<{ displayName?: string; event?: string } | null>(null);
   const [joinedRoom, setJoinedRoom] = useState(false);
+  // State cho chế độ người xem
+  const [isSpectator, setIsSpectator] = useState<boolean>(false);
+  // Refs cho người xem để xem camera của 2 người chơi
+  const spectatorPlayer1Ref = useRef<HTMLVideoElement>(null);
+  const spectatorPlayer2Ref = useRef<HTMLVideoElement>(null);
+  // Kiểm tra chế độ xem từ sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && roomId) {
+      const watchMode = sessionStorage.getItem(`watchMode_${roomId.toUpperCase()}`);
+      if (watchMode === "true") {
+        setIsSpectator(true);
+        // Xóa flag sau khi sử dụng
+        sessionStorage.removeItem(`watchMode_${roomId.toUpperCase()}`);
+      }
+    }
+  }, [roomId]);
+
   // Fetch meta phòng từ API
   useEffect(() => {
     if (!roomId || !joinedRoom) return;
@@ -1801,7 +1818,7 @@ useEffect(() => {
         sessionStorage.removeItem(`roomPassword_${roomId}`);
       }
     }
-    socket.emit("join-room", { roomId, userId, userName, event, displayName, password });
+    socket.emit("join-room", { roomId, userId, userName, isSpectator, event, displayName, password });
     // Lắng nghe xác nhận đã join phòng
     const handleRoomJoined = () => {
       setJoinedRoom(true);
@@ -2403,92 +2420,123 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         }
         style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
       >
-                {/* Nút typing, nút tái đấu và nút lưới scramble */}
-        <div className="flex items-center gap-1">
-          {/* Nút Typing */}
-          <button
-            onClick={handleTypingMode}
-            disabled={users.length < 2 || userId !== turnUserId || isLockedDue2DNF}
-            className={
-              (mobileShrink
-                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || userId !== turnUserId || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || userId !== turnUserId || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`)
-              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
-            }
-            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
-            type="button"
-            aria-label={isTypingMode ? "Chế độ timer" : "Chế độ typing"}
-            title={isTypingMode ? "Chế độ timer" : "Chế độ typing"}
-          >
-            {/* Icon keyboard hoặc clock */}
-            {isTypingMode ? (
-              <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⏰</span>
-            ) : (
-              <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⌨️</span>
-            )}
-          </button>
-          <button
-            onClick={handleRematch}
-            disabled={rematchPending || users.length < 2}
-            className={
-              (mobileShrink
-                ? `px-1 py-0.5 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`)
-              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
-            }
-            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
-            type="button"
-            aria-label={isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu"}
-            title={isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu"}
-          >
-            {/* Icon vòng lặp/refresh */}
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
-              <path d="M24 8a16 16 0 1 1-11.31 4.69" stroke="white" strokeWidth="3" fill="none"/>
-              <path d="M12 8v5a1 1 0 0 0 1 1h5" stroke="white" strokeWidth="3" fill="none"/>
-            </svg>
-            {/* Hiển thị icon khóa khi bị khóa do 2 lần DNF */}
-            {isLockedDue2DNF && (
-              <span style={{ 
-                position: 'absolute', 
-                top: -2, 
-                right: -2, 
-                width: mobileShrink ? 12 : 16, 
-                height: mobileShrink ? 12 : 16, 
-                background: '#f00', 
-                borderRadius: '50%', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                fontSize: mobileShrink ? 8 : 10,
-                color: 'white',
-                fontWeight: 'bold',
-                border: '1px solid white',
-                zIndex: 10 
-              }}>
-                🔒
-              </span>
-            )}
-          </button>
-          <button
-            className={
-              (mobileShrink
-                ? "bg-gray-500 hover:bg-gray-700 text-[13px] rounded-full font-bold shadow-lg flex items-center justify-center"
-                : "bg-gray-500 hover:bg-gray-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center")
-              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
-            }
-            style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
-            type="button"
-            aria-label="Lưới scramble"
-            title="Lưới scramble"
-            onClick={() => {
-              setShowCubeNet(true);
-            }}
-          >
-            <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
-          </button>
-          {/* Modal lưới Rubik */}
-          <CubeNetModal key={`${scramble}-${String(cubeSize)}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
-        </div>
+                {/* Nút typing, nút tái đấu và nút lưới scramble - Ẩn cho người xem */}
+        {!isSpectator && (
+          <div className="flex items-center gap-1">
+            {/* Nút Typing */}
+            <button
+              onClick={handleTypingMode}
+              disabled={users.length < 2 || userId !== turnUserId || isLockedDue2DNF}
+              className={
+                (mobileShrink
+                  ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || userId !== turnUserId || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`
+                  : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || userId !== turnUserId || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`)
+                + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
+              }
+              style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+              type="button"
+              aria-label={isTypingMode ? "Chế độ timer" : "Chế độ typing"}
+              title={isTypingMode ? "Chế độ timer" : "Chế độ typing"}
+            >
+              {/* Icon keyboard hoặc clock */}
+              {isTypingMode ? (
+                <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⏰</span>
+              ) : (
+                <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⌨️</span>
+              )}
+            </button>
+            <button
+              onClick={handleRematch}
+              disabled={rematchPending || users.length < 2}
+              className={
+                (mobileShrink
+                  ? `px-1 py-0.5 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
+                  : `px-4 py-2 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`)
+                + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
+              }
+              style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+              type="button"
+              aria-label={isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu"}
+              title={isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu"}
+            >
+              {/* Icon vòng lặp/refresh */}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
+                <path d="M24 8a16 16 0 1 1-11.31 4.69" stroke="white" strokeWidth="3" fill="none"/>
+                <path d="M12 8v5a1 1 0 0 0 1 1h5" stroke="white" strokeWidth="3" fill="none"/>
+              </svg>
+              {/* Hiển thị icon khóa khi bị khóa do 2 lần DNF */}
+              {isLockedDue2DNF && (
+                <span style={{ 
+                  position: 'absolute', 
+                  top: -2, 
+                  right: -2, 
+                  width: mobileShrink ? 12 : 16, 
+                  height: mobileShrink ? 12 : 16, 
+                  background: '#f00', 
+                  borderRadius: '50%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  fontSize: mobileShrink ? 8 : 10,
+                  color: 'white',
+                  fontWeight: 'bold',
+                  border: '1px solid white',
+                  zIndex: 10 
+                }}>
+                  🔒
+                </span>
+              )}
+            </button>
+            <button
+              className={
+                (mobileShrink
+                  ? "bg-gray-500 hover:bg-gray-700 text-[13px] rounded-full font-bold shadow-lg flex items-center justify-center"
+                  : "bg-gray-500 hover:bg-gray-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center")
+                + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
+              }
+              style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+              type="button"
+              aria-label="Lưới scramble"
+              title="Lưới scramble"
+              onClick={() => {
+                setShowCubeNet(true);
+              }}
+            >
+              <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
+            </button>
+            {/* Modal lưới Rubik */}
+            <CubeNetModal key={`${scramble}-${String(cubeSize)}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
+          </div>
+        )}
+        
+        {/* Nút mic cho người xem */}
+        {isSpectator && (
+          <div className="flex items-center gap-1">
+            <button
+              className={
+                (mobileShrink
+                  ? `px-1 py-0.5 ${micOn ? 'bg-gray-700' : 'bg-red-600'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center`
+                  : `px-4 py-2 ${micOn ? 'bg-gray-700' : 'bg-red-600'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center`)
+                + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
+              }
+              style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+              type="button"
+              aria-label={micOn ? "Tắt mic" : "Bật mic"}
+              title={micOn ? "Tắt mic" : "Bật mic"}
+              onClick={() => {
+                setMicOn(v => {
+                  const newVal = !v;
+                  // Gửi trạng thái micOn mới cho đối thủ qua socket, kèm userName
+                  const socket = getSocket();
+                  socket.emit('user-mic-toggle', { roomId, userId, micOn: newVal, userName });
+                  return newVal;
+                });
+              }}
+            >
+              <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>🎤</span>
+            </button>
+          </div>
+        )}
                 {/* Thông báo khi bị khóa do 2 lần DNF - ĐÃ HỦY */}
                 {/* {showLockedDNFModal && (
                   <div className="fixed inset-0 z-[199] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(1px)' }}>
@@ -3417,10 +3465,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </div>
           </div>
         </div>
-        {/* Timer ở giữa - cột 2 */}
-        <div
-          className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
-          style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
+        {/* Timer ở giữa - cột 2 - Ẩn cho người xem */}
+        {!isSpectator && (
+          <div
+            className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
+            style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
         {...(isMobile ? {
             onTouchStart: (e) => {
               if (pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
@@ -3992,6 +4041,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </span>
           )}
         </div>
+        )}
         {/* Webcam đối thủ - cột 3 */}
         <div
           className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
@@ -4204,15 +4254,51 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
       </div>
 
+      {/* Nút mic cho người xem */}
+      {isSpectator && (
+        <div className="fixed top-4 right-4 z-50">
+          <button
+            onClick={() => setMicOn(!micOn)}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
+              micOn 
+                ? 'bg-green-500 hover:bg-green-600 text-white' 
+                : 'bg-red-500 hover:bg-red-600 text-white'
+            } shadow-lg hover:shadow-xl`}
+            title={micOn ? 'Tắt mic' : 'Bật mic'}
+          >
+            {micOn ? (
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Video elements cho người xem để xem camera của 2 người chơi */}
+      {isSpectator && (
+        <div style={{ display: 'none' }}>
+          <video ref={spectatorPlayer1Ref} id="spectator-player1-video" autoPlay playsInline style={{ display: 'none', width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, background: '#111' }} />
+          <video ref={spectatorPlayer2Ref} id="spectator-player2-video" autoPlay playsInline style={{ display: 'none', width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, background: '#111' }} />
+        </div>
+      )}
+
       {/* Mount VideoCall (Stringee) sau webcam row để quản lý stream */}
       {roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0 ? (
         <VideoCall
           key={roomUrl}
           roomUrl={roomUrl}
-          camOn={camOn}
+          camOn={!isSpectator ? camOn : false}
           micOn={micOn}
           localVideoRef={localVideoRef}
           remoteVideoRef={remoteVideoRef}
+          isSpectator={isSpectator}
+          player1VideoRef={isSpectator ? spectatorPlayer1Ref : localVideoRef}
+          player2VideoRef={isSpectator ? spectatorPlayer2Ref : remoteVideoRef}
         />
       ) : null}
 

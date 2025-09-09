@@ -6,11 +6,14 @@ interface VideoCallProps {
   micOn: boolean;
   localVideoRef?: React.RefObject<HTMLVideoElement | null>;
   remoteVideoRef?: React.RefObject<HTMLVideoElement | null>;
+  isSpectator?: boolean;
+  player1VideoRef?: React.RefObject<HTMLVideoElement | null>;
+  player2VideoRef?: React.RefObject<HTMLVideoElement | null>;
 }
 
 
 // roomUrl: dạng JSON.stringify({ access_token, userId, opponentId })
-const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideoRef: propLocalVideoRef, remoteVideoRef: propRemoteVideoRef }) => {
+const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideoRef: propLocalVideoRef, remoteVideoRef: propRemoteVideoRef, isSpectator = false, player1VideoRef, player2VideoRef }) => {
   const clientRef = useRef<any>(null);
   const callRef = useRef<any>(null);
   const localTrackRef = useRef<any>(null);
@@ -38,10 +41,10 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
     console.error('[VideoCall] roomUrl parse error:', e, roomUrl);
   }
 
-  // Luôn show local cam preview khi vào phòng (dù chưa có call)
+  // Luôn show local cam preview khi vào phòng (dù chưa có call) - chỉ cho người chơi
   useEffect(() => {
     let stopped = false;
-    if (localVideoRef.current) {
+    if (localVideoRef.current && !isSpectator) {
       // Nếu đã có call Stringee thì không cần getUserMedia nữa
       if (hasCallRef.current) return;
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -73,7 +76,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       }
     };
     // eslint-disable-next-line
-  }, [localVideoRef, camOn, micOn]);
+  }, [localVideoRef, camOn, micOn, isSpectator]);
 
   // Nếu chưa có access_token, thử lấy từ API (dùng userId)
   useEffect(() => {
@@ -170,41 +173,81 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         console.log('[VideoCall] addlocaltrack', localtrack);
         localTrackRef.current = localtrack;
         const el = localtrack.attach();
-        const vid = localVideoRef.current;
-        if (vid && el instanceof HTMLVideoElement) {
-          vid.srcObject = el.srcObject;
-          vid.muted = true;
-        }
-        // Đảm bảo luôn cập nhật lại display khi camOn thay đổi
-        if (localVideoRef.current) {
-          localVideoRef.current.style.display = camOn ? '' : 'none';
+        
+        if (isSpectator) {
+          // Người xem: hiển thị camera của người chơi thứ 2
+          if (player2VideoRef?.current && el instanceof HTMLVideoElement) {
+            player2VideoRef.current.srcObject = el.srcObject;
+            player2VideoRef.current.muted = false;
+            player2VideoRef.current.style.display = '';
+          }
+        } else {
+          // Người chơi: hiển thị camera của mình
+          const vid = localVideoRef.current;
+          if (vid && el instanceof HTMLVideoElement) {
+            vid.srcObject = el.srcObject;
+            vid.muted = true;
+          }
+          // Đảm bảo luôn cập nhật lại display khi camOn thay đổi
+          if (localVideoRef.current) {
+            localVideoRef.current.style.display = camOn ? '' : 'none';
+          }
         }
       });
       call.on('addremotetrack', (remotetrack: any) => {
         console.log('[VideoCall] addremotetrack', remotetrack);
         remoteTrackRef.current = remotetrack;
         const el = remotetrack.attach();
-        const vid = remoteVideoRef.current;
-        if (vid && el instanceof HTMLVideoElement) {
-          vid.srcObject = el.srcObject;
-          vid.muted = false;
-          vid.style.display = '';
+        
+        if (isSpectator) {
+          // Người xem: hiển thị camera của người chơi
+          if (player1VideoRef?.current && el instanceof HTMLVideoElement) {
+            player1VideoRef.current.srcObject = el.srcObject;
+            player1VideoRef.current.muted = false;
+            player1VideoRef.current.style.display = '';
+          }
+        } else {
+          // Người chơi: hiển thị camera của đối thủ
+          const vid = remoteVideoRef.current;
+          if (vid && el instanceof HTMLVideoElement) {
+            vid.srcObject = el.srcObject;
+            vid.muted = false;
+            vid.style.display = '';
+          }
         }
       });
       call.on('removelocaltrack', (track: any) => {
         if (track && track.detachAndRemove) track.detachAndRemove();
         localTrackRef.current = null;
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = null;
-          localVideoRef.current.style.display = 'none';
+        if (isSpectator) {
+          // Người xem: xóa camera của người chơi thứ 2
+          if (player2VideoRef?.current) {
+            player2VideoRef.current.srcObject = null;
+            player2VideoRef.current.style.display = 'none';
+          }
+        } else {
+          // Người chơi: xóa camera của mình
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = null;
+            localVideoRef.current.style.display = 'none';
+          }
         }
       });
       call.on('removeremotetrack', (track: any) => {
         if (track && track.detachAndRemove) track.detachAndRemove();
         remoteTrackRef.current = null;
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = null;
-          remoteVideoRef.current.style.display = 'none';
+        if (isSpectator) {
+          // Người xem: xóa camera của người chơi thứ 1
+          if (player1VideoRef?.current) {
+            player1VideoRef.current.srcObject = null;
+            player1VideoRef.current.style.display = 'none';
+          }
+        } else {
+          // Người chơi: xóa camera của đối thủ
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = null;
+            remoteVideoRef.current.style.display = 'none';
+          }
         }
       });
       call.on('signalingstate', (state: any) => {
@@ -260,8 +303,8 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         const audioTracks = localTrackRef.current._localStream.getAudioTracks();
         audioTracks.forEach((track: MediaStreamTrack) => { track.enabled = micOn; });
       }
-      // Đảm bảo luôn cập nhật lại display khi camOn thay đổi
-      if (localVideoRef.current) {
+      // Đảm bảo luôn cập nhật lại display khi camOn thay đổi - chỉ cho người chơi
+      if (localVideoRef.current && !isSpectator) {
         localVideoRef.current.style.display = camOn ? '' : 'none';
         // Nếu camOn=true mà srcObject bị mất (do detach trước đó), attach lại local track
         if (camOn && localTrackRef.current && localTrackRef.current.attach) {
@@ -273,15 +316,15 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
           }
         }
       }
-    } else if (localStreamRef.current) {
-      // Nếu chưa có call, thao tác trực tiếp lên local stream
+    } else if (localStreamRef.current && !isSpectator) {
+      // Nếu chưa có call, thao tác trực tiếp lên local stream - chỉ cho người chơi
       localStreamRef.current.getVideoTracks().forEach(track => { track.enabled = camOn; });
       localStreamRef.current.getAudioTracks().forEach(track => { track.enabled = micOn; });
       if (localVideoRef.current) {
         localVideoRef.current.style.display = camOn ? '' : 'none';
       }
     }
-  }, [camOn, micOn]);
+  }, [camOn, micOn, isSpectator]);
 
   // Nếu không nhận ref từ ngoài thì render video ở đây (giữ tương thích cũ)
   if (!propLocalVideoRef && !propRemoteVideoRef) {
