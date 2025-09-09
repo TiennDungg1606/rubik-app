@@ -30,12 +30,13 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
   // State: đã có call Stringee chưa
   const hasCallRef = useRef(false);
 
-  // Parse roomUrl to get access_token, userId, roomId, player1Id, player2Id
+  // Parse roomUrl to get access_token, userId, roomId, player1Id, player2Id, spectators
   let access_token = '';
   let userId = '';
   let roomId = '';
   let player1Id = '';
   let player2Id = '';
+  let spectatorIds: string[] = [];
   try {
     if (roomUrl) {
       const obj = JSON.parse(roomUrl);
@@ -44,6 +45,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       roomId = obj.roomId || '';
       player1Id = obj.player1Id || '';
       player2Id = obj.player2Id || '';
+      spectatorIds = obj.spectators || [];
     }
   } catch (e) {
     console.error('[VideoCall] roomUrl parse error:', e, roomUrl);
@@ -144,8 +146,27 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
     });
     client.on('incomingcall2', (call2: any) => {
       console.log('[VideoCall] incomingcall2', call2);
-      callRef.current = call2;
-      setupCallEvents(call2);
+      
+      if (isSpectator) {
+        // Người xem: nhận incoming call từ người chơi
+        const callerId = call2.fromUserId;
+        console.log('[VideoCall] Spectator receiving call from:', callerId);
+        
+        // Lưu call vào refs
+        callsRef.current.push(call2);
+        if (callerId === player1Id) {
+          player1CallRef.current = call2;
+        } else if (callerId === player2Id) {
+          player2CallRef.current = call2;
+        }
+        
+        setupCallEvents(call2, callerId);
+      } else {
+        // Người chơi: nhận incoming call
+        callRef.current = call2;
+        setupCallEvents(call2);
+      }
+      
       call2.answer((res: any) => {
         console.log('[VideoCall] answer result', res);
       });
@@ -187,15 +208,9 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       // Chỉ 2 người chơi mới hiển thị webcam, người xem chỉ có audio
       
       if (isSpectator) {
-        // Người xem: tạo call với cả 2 người chơi để xem webcam của họ
-        // Tạo call với player1
-        if (player1Id && userId !== player1Id) {
-          makeCall(client, player1Id);
-        }
-        // Tạo call với player2
-        if (player2Id && userId !== player2Id) {
-          makeCall(client, player2Id);
-        }
+        // Người xem: chỉ setup mic stream, KHÔNG tạo outgoing calls
+        // Sẽ nhận incoming calls từ 2 người chơi
+        console.log('[VideoCall] Spectator setup - waiting for incoming calls from players:', { userId, player1Id, player2Id });
         
         // Cũng tạo media stream để mute/unmute mic
         navigator.mediaDevices.getUserMedia({ video: false, audio: true })
@@ -208,11 +223,23 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
             console.error('[VideoCall] Spectator getUserMedia error:', err);
           });
       } else {
-        // Người chơi: tạo call với người chơi khác
+        // Người chơi: tạo call với tất cả người khác trong phòng (người chơi khác + người xem)
+        console.log('[VideoCall] Player setup calls:', { userId, player1Id, player2Id });
+        
+        // Tạo call với người chơi khác
         const otherPlayerId = userId === player1Id ? player2Id : player1Id;
         if (otherPlayerId && userId < otherPlayerId) {
+          console.log('[VideoCall] Player creating call with other player:', otherPlayerId);
           makeCall(client, otherPlayerId);
         }
+        
+        // Tạo call với tất cả người xem
+        spectatorIds.forEach(spectatorId => {
+          if (spectatorId && spectatorId !== userId) {
+            console.log('[VideoCall] Player creating call with spectator:', spectatorId);
+            makeCall(client, spectatorId);
+          }
+        });
       }
     }
 
@@ -269,11 +296,25 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
           const isPlayer1 = otherPlayerId === player1Id;
           const targetVideoRef = isPlayer1 ? localVideoRef : remoteVideoRef;
           
+          console.log('[VideoCall] Spectator addremotetrack:', { 
+            otherPlayerId, 
+            player1Id, 
+            player2Id, 
+            isPlayer1, 
+            targetVideoRef: targetVideoRef?.current ? 'exists' : 'null',
+            el: el instanceof HTMLVideoElement ? 'video' : 'not video'
+          });
+          
           if (targetVideoRef?.current && el instanceof HTMLVideoElement) {
             targetVideoRef.current.srcObject = el.srcObject;
             targetVideoRef.current.muted = false;
             targetVideoRef.current.style.display = '';
             console.log('[VideoCall] Spectator received player video stream:', isPlayer1 ? 'player1' : 'player2');
+          } else {
+            console.log('[VideoCall] Spectator failed to attach video stream:', { 
+              targetVideoRef: targetVideoRef?.current ? 'exists' : 'null',
+              el: el instanceof HTMLVideoElement ? 'video' : 'not video'
+            });
           }
         } else {
           // Người chơi: hiển thị camera của đối thủ
@@ -365,7 +406,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       }
     };
     // eslint-disable-next-line
-  }, [roomUrl, player1Id, player2Id]);
+  }, [roomUrl, player1Id, player2Id, spectatorIds]);
 
   // React to cam/mic changes
   useEffect(() => {

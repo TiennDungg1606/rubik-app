@@ -145,6 +145,7 @@ export default function RoomPage() {
   const [userId, setUserId] = useState<string>("");
   const [opponentId, setOpponentId] = useState<string>("");
   const [waiting, setWaiting] = useState<boolean>(true);
+  const [spectators, setSpectators] = useState<{ userId: string, userName: string }[]>([]); // spectators array
   // turnUserId: userId của người được quyền giải (đồng bộ từ server)
   const [turnUserId, setTurnUserId] = useState<string>("");
   const [myResults, setMyResults] = useState<(number|null)[]>([]);
@@ -276,6 +277,18 @@ useEffect(() => {
       socket.off('room-users', handleUsers);
     };
   }, [userId]);
+
+  // Lắng nghe danh sách spectators từ server
+  useEffect(() => {
+    const socket = getSocket();
+    const handleSpectators = (data: { spectators: { userId: string, userName: string }[] }) => {
+      setSpectators(data.spectators || []);
+    };
+    socket.on('room-spectators', handleSpectators);
+    return () => {
+      socket.off('room-spectators', handleSpectators);
+    };
+  }, []);
 
   // Lắng nghe sự kiện hủy tái đấu từ đối phương
   useEffect(() => {
@@ -1501,12 +1514,17 @@ useEffect(() => {
         if (data && data.access_token) {
                   // Tạo roomUrl đúng định dạng JSON cho VideoCall
         // Tất cả người trong phòng đều có thể call với nhau
+        // Lấy player1Id và player2Id từ users array (chỉ có 2 người chơi)
+        const player1Id = users.length > 0 ? users[0] : '';
+        const player2Id = users.length > 1 ? users[1] : '';
+        
         const url = JSON.stringify({ 
           access_token: data.access_token, 
           userId, 
           roomId,
-          player1Id: users[0] || '',
-          player2Id: users[1] || ''
+          player1Id,
+          player2Id,
+          spectators: spectators.map(s => s.userId)
         });
         setRoomUrl(url);
         } else {
@@ -1516,7 +1534,7 @@ useEffect(() => {
       .catch(err => {
         console.error('[RoomPage] Lỗi fetch /api/token:', err);
       });
-  }, [roomId, userId, users, roomUrl]);
+  }, [roomId, userId, users, spectators, roomUrl]);
 
 
   // ...giữ nguyên toàn bộ logic và return JSX phía sau...
@@ -3164,7 +3182,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       {/* Đã xóa Timer phía trên, chỉ giữ lại Timer nằm ngang giữa hai webcam */}
       {/* Webcam + Timer ngang hàng, chia 3 cột: webcam - timer - webcam */}
       <div
-        className={mobileShrink ? "w-full flex flex-row justify-center items-center gap-2 box-border mb-2" : "w-full flex flex-row justify-center items-center gap-4 box-border"}
+        className={mobileShrink ? "w-full flex flex-row justify-center items-center gap-2 box-border mb-2" : `w-full flex flex-row justify-center items-center ${isSpectator ? 'gap-8' : 'gap-4'} box-border`}
         style={mobileShrink ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' }}
       >
         {/* Webcam của bạn - cột 1 */}
@@ -3398,7 +3416,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{userName}</div>
+            }}>{isSpectator ? (pendingUsers?.[0]?.userName || 'Player 1') : userName}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -4021,7 +4039,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             {/* Overlay che webcam remote khi opponentCamOn=false (tức đối thủ đã tắt cam), hiện tên đối thủ */}
             {!opponentCamOn && (
               <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>{opponentName} đang tắt cam</span>
+                <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>{isSpectator ? (pendingUsers?.[1]?.userName || 'Player 2') : opponentName} đang tắt cam</span>
               </div>
             )}
           </div>
@@ -4185,7 +4203,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{opponentName}</div>
+            }}>{isSpectator ? (pendingUsers?.[1]?.userName || 'Player 2') : opponentName}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
