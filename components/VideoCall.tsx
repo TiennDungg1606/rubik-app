@@ -131,6 +131,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
     
     // Đợi Stringee SDK load
     const checkStringeeSDK = () => {
+      console.log('[VideoCall] checkStringeeSDK called, access_token:', access_token, 'roomId:', roomId, 'userId:', userId);
       // eslint-disable-next-line no-undef
       const StringeeClient = (window as any).StringeeClient;
       const StringeeRoom = (window as any).StringeeRoom;
@@ -140,172 +141,167 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         return;
       }
       console.log('[VideoCall] Stringee SDK loaded successfully');
-      initializeStringeeClient();
-    };
-    
-    const initializeStringeeClient = () => {
-      // eslint-disable-next-line no-undef
-      const StringeeClient = (window as any).StringeeClient;
-      const StringeeRoom = (window as any).StringeeRoom;
+      
+      // Khởi tạo StringeeClient ngay tại đây
       const client = new StringeeClient();
-    clientRef.current = client;
-    hasCallRef.current = false;
-    
-    // Listen events
-    client.on('connect', () => {
-      console.log('[VideoCall] client connected');
-    });
-    client.on('authen', (res: any) => {
-      console.log('[VideoCall] client authen:', res);
-      if (res.r === 0) {
-        // Join room for all users (players and spectators)
-        joinRoom(client);
-      }
-    });
-    client.on('disconnect', () => {
-      console.log('[VideoCall] client disconnected');
-    });
-    client.on('requestnewtoken', () => {
-      console.log('[VideoCall] client requestnewtoken');
-      // TODO: Gọi lại API để lấy access_token mới và gọi client.connect(new_access_token)
-    });
-    
-    // Connect
-    client.connect(access_token);
-
-    // Join room for group video call
-    function joinRoom(client: any) {
-      const room = new StringeeRoom(client, roomId);
-      roomRef.current = room;
-      setupRoomEvents(room);
-      room.join((res: any) => {
-        console.log('[VideoCall] joinRoom result', res);
-      });
-    }
-
-    function setupRoomEvents(room: any) {
-      hasCallRef.current = true;
-      // Khi đã có room, tắt local preview stream (nếu có)
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
-        localStreamRef.current = null;
-      }
+      clientRef.current = client;
+      hasCallRef.current = false;
       
-      // Handle local track (only for players, not spectators)
-      room.on('addlocaltrack', (localtrack: any) => {
-        console.log('[VideoCall] addlocaltrack', localtrack);
-        localTrackRef.current = localtrack;
-        const el = localtrack.attach();
-        const vid = localVideoRef.current;
-        if (vid && el instanceof HTMLVideoElement) {
-          vid.srcObject = el.srcObject;
-          vid.muted = true;
-        }
-        // Đảm bảo luôn cập nhật lại display khi camOn thay đổi
-        if (localVideoRef.current) {
-          localVideoRef.current.style.display = camOn ? '' : 'none';
+      // Listen events
+      client.on('connect', () => {
+        console.log('[VideoCall] client connected');
+      });
+      client.on('authen', (res: any) => {
+        console.log('[VideoCall] client authen:', res);
+        if (res.r === 0) {
+          // Join room for all users (players and spectators)
+          joinRoom(client);
         }
       });
+      client.on('disconnect', () => {
+        console.log('[VideoCall] client disconnected');
+      });
+      client.on('requestnewtoken', () => {
+        console.log('[VideoCall] client requestnewtoken');
+        // TODO: Gọi lại API để lấy access_token mới và gọi client.connect(new_access_token)
+      });
       
-      // Publish local video when joining room (for players only)
-      if (!isSpectator) {
-        room.publish({
-          video: camOn,
-          audio: micOn
+      // Connect
+      client.connect(access_token);
+
+      // Join room for group video call
+      function joinRoom(client: any) {
+        const room = new StringeeRoom(client, roomId);
+        roomRef.current = room;
+        setupRoomEvents(room);
+        room.join((res: any) => {
+          console.log('[VideoCall] joinRoom result', res);
         });
       }
-      
-      // Handle remote tracks from other participants
-      room.on('addremotetrack', (remotetrack: any) => {
-        console.log('[VideoCall] addremotetrack', remotetrack);
-        const el = remotetrack.attach();
+
+      function setupRoomEvents(room: any) {
+        hasCallRef.current = true;
+        // Khi đã có room, tắt local preview stream (nếu có)
+        if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach(track => track.stop());
+          localStreamRef.current = null;
+        }
         
-        if (isSpectator) {
-          // For spectators, determine which player this is based on participant info
-          const participantId = remotetrack.participantId;
-          if (participantId === player1Id) {
-            player1TrackRef.current = remotetrack;
-            const vid = localVideoRef.current; // This will be player1VideoRef for spectators
-            if (vid && el instanceof HTMLVideoElement) {
-              vid.srcObject = el.srcObject;
-              vid.muted = false;
-              vid.style.display = '';
-            }
-          } else if (participantId === player2Id) {
-            player2TrackRef.current = remotetrack;
-            const vid = remoteVideoRef.current; // This will be player2VideoRef for spectators
-            if (vid && el instanceof HTMLVideoElement) {
-              vid.srcObject = el.srcObject;
-              vid.muted = false;
-              vid.style.display = '';
-            }
-          }
-        } else {
-          // For players, use remoteVideoRef as usual
-          remoteTrackRef.current = remotetrack;
-          const vid = remoteVideoRef.current;
+        // Handle local track (only for players, not spectators)
+        room.on('addlocaltrack', (localtrack: any) => {
+          console.log('[VideoCall] addlocaltrack', localtrack);
+          localTrackRef.current = localtrack;
+          const el = localtrack.attach();
+          const vid = localVideoRef.current;
           if (vid && el instanceof HTMLVideoElement) {
             vid.srcObject = el.srcObject;
-            vid.muted = false;
-            vid.style.display = '';
+            vid.muted = true;
           }
-        }
-      });
-      
-      // Handle track removal
-      room.on('removelocaltrack', (track: any) => {
-        if (track && track.detachAndRemove) track.detachAndRemove();
-        localTrackRef.current = null;
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = null;
-          localVideoRef.current.style.display = 'none';
-        }
-      });
-      
-      room.on('removeremotetrack', (track: any) => {
-        if (track && track.detachAndRemove) track.detachAndRemove();
-        const participantId = track.participantId;
+          // Đảm bảo luôn cập nhật lại display khi camOn thay đổi
+          if (localVideoRef.current) {
+            localVideoRef.current.style.display = camOn ? '' : 'none';
+          }
+        });
         
-        if (isSpectator) {
-          if (participantId === player1Id) {
-            player1TrackRef.current = null;
-            if (localVideoRef.current) {
-              localVideoRef.current.srcObject = null;
-              localVideoRef.current.style.display = 'none';
+        // Publish local video when joining room (for players only)
+        if (!isSpectator) {
+          room.publish({
+            video: camOn,
+            audio: micOn
+          });
+        }
+        
+        // Handle remote tracks from other participants
+        room.on('addremotetrack', (remotetrack: any) => {
+          console.log('[VideoCall] addremotetrack', remotetrack);
+          const el = remotetrack.attach();
+          
+          if (isSpectator) {
+            // For spectators, determine which player this is based on participant info
+            const participantId = remotetrack.participantId;
+            if (participantId === player1Id) {
+              player1TrackRef.current = remotetrack;
+              const vid = localVideoRef.current; // This will be player1VideoRef for spectators
+              if (vid && el instanceof HTMLVideoElement) {
+                vid.srcObject = el.srcObject;
+                vid.muted = false;
+                vid.style.display = '';
+              }
+            } else if (participantId === player2Id) {
+              player2TrackRef.current = remotetrack;
+              const vid = remoteVideoRef.current; // This will be player2VideoRef for spectators
+              if (vid && el instanceof HTMLVideoElement) {
+                vid.srcObject = el.srcObject;
+                vid.muted = false;
+                vid.style.display = '';
+              }
             }
-          } else if (participantId === player2Id) {
-            player2TrackRef.current = null;
+          } else {
+            // For players, use remoteVideoRef as usual
+            remoteTrackRef.current = remotetrack;
+            const vid = remoteVideoRef.current;
+            if (vid && el instanceof HTMLVideoElement) {
+              vid.srcObject = el.srcObject;
+              vid.muted = false;
+              vid.style.display = '';
+            }
+          }
+        });
+        
+        // Handle track removal
+        room.on('removelocaltrack', (track: any) => {
+          if (track && track.detachAndRemove) track.detachAndRemove();
+          localTrackRef.current = null;
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = null;
+            localVideoRef.current.style.display = 'none';
+          }
+        });
+        
+        room.on('removeremotetrack', (track: any) => {
+          if (track && track.detachAndRemove) track.detachAndRemove();
+          const participantId = track.participantId;
+          
+          if (isSpectator) {
+            if (participantId === player1Id) {
+              player1TrackRef.current = null;
+              if (localVideoRef.current) {
+                localVideoRef.current.srcObject = null;
+                localVideoRef.current.style.display = 'none';
+              }
+            } else if (participantId === player2Id) {
+              player2TrackRef.current = null;
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = null;
+                remoteVideoRef.current.style.display = 'none';
+              }
+            }
+          } else {
+            remoteTrackRef.current = null;
             if (remoteVideoRef.current) {
               remoteVideoRef.current.srcObject = null;
               remoteVideoRef.current.style.display = 'none';
             }
           }
-        } else {
-          remoteTrackRef.current = null;
-          if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = null;
-            remoteVideoRef.current.style.display = 'none';
-          }
-        }
-      });
-      
-      // Room events
-      room.on('roomjoined', (res: any) => {
-        console.log('[VideoCall] roomjoined', res);
-      });
-      
-      room.on('roomleft', (res: any) => {
-        console.log('[VideoCall] roomleft', res);
-      });
-      
-      room.on('participantjoined', (participant: any) => {
-        console.log('[VideoCall] participantjoined', participant);
-      });
-      
-      room.on('participantleft', (participant: any) => {
-        console.log('[VideoCall] participantleft', participant);
-      });
-    }
+        });
+        
+        // Room events
+        room.on('roomjoined', (res: any) => {
+          console.log('[VideoCall] roomjoined', res);
+        });
+        
+        room.on('roomleft', (res: any) => {
+          console.log('[VideoCall] roomleft', res);
+        });
+        
+        room.on('participantjoined', (participant: any) => {
+          console.log('[VideoCall] participantjoined', participant);
+        });
+        
+        room.on('participantleft', (participant: any) => {
+          console.log('[VideoCall] participantleft', participant);
+        });
+      }
     };
 
     // Cleanup on unmount
