@@ -128,14 +128,26 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       try { roomRef.current.leave(); } catch {}
       roomRef.current = null;
     }
-    // eslint-disable-next-line no-undef
-    const StringeeClient = (window as any).StringeeClient;
-    const StringeeRoom = (window as any).StringeeRoom;
-    if (!StringeeClient || !StringeeRoom) {
-      console.error('[VideoCall] StringeeClient or StringeeRoom not found on window');
-      return;
-    }
-    const client = new StringeeClient();
+    
+    // Đợi Stringee SDK load
+    const checkStringeeSDK = () => {
+      // eslint-disable-next-line no-undef
+      const StringeeClient = (window as any).StringeeClient;
+      const StringeeRoom = (window as any).StringeeRoom;
+      if (!StringeeClient || !StringeeRoom) {
+        console.log('[VideoCall] Waiting for Stringee SDK to load...');
+        setTimeout(checkStringeeSDK, 100);
+        return;
+      }
+      console.log('[VideoCall] Stringee SDK loaded successfully');
+      initializeStringeeClient();
+    };
+    
+    const initializeStringeeClient = () => {
+      // eslint-disable-next-line no-undef
+      const StringeeClient = (window as any).StringeeClient;
+      const StringeeRoom = (window as any).StringeeRoom;
+      const client = new StringeeClient();
     clientRef.current = client;
     hasCallRef.current = false;
     
@@ -294,6 +306,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         console.log('[VideoCall] participantleft', participant);
       });
     }
+    };
 
     // Cleanup on unmount
     return () => {
@@ -315,6 +328,9 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         remoteVideoRef.current.style.display = 'none';
       }
     };
+    
+    // Bắt đầu kiểm tra Stringee SDK
+    checkStringeeSDK();
     // eslint-disable-next-line
   }, [roomUrl, roomId]);
 

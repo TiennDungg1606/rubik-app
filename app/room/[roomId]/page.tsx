@@ -162,6 +162,15 @@ export default function RoomPage() {
   // State cho sets của người chơi 1 và 2 (dành cho người xem)
   const [player1Sets, setPlayer1Sets] = useState<number>(0);
   const [player2Sets, setPlayer2Sets] = useState<number>(0);
+  // State cho timer của người chơi 1 và 2 (dành cho người xem)
+  const [player1Timer, setPlayer1Timer] = useState<number>(0);
+  const [player2Timer, setPlayer2Timer] = useState<number>(0);
+  const [player1Prep, setPlayer1Prep] = useState<boolean>(false);
+  const [player2Prep, setPlayer2Prep] = useState<boolean>(false);
+  const [player1PrepTime, setPlayer1PrepTime] = useState<number>(0);
+  const [player2PrepTime, setPlayer2PrepTime] = useState<number>(0);
+  const [player1Dnf, setPlayer1Dnf] = useState<boolean>(false);
+  const [player2Dnf, setPlayer2Dnf] = useState<boolean>(false);
   const [dnf, setDnf] = useState<boolean>(false);
   // Thêm state cho xác nhận kết quả
   const [pendingResult, setPendingResult] = useState<number|null>(null);
@@ -1481,6 +1490,43 @@ useEffect(() => {
     socket.on('player-results', handlePlayerResults);
     return () => {
       socket.off('player-results', handlePlayerResults);
+    };
+  }, [isSpectator]);
+
+  // Lắng nghe sự kiện player-timer từ server (dành cho người xem)
+  useEffect(() => {
+    if (!isSpectator) return;
+    const socket = getSocket();
+    const handlePlayerTimer = (data: {
+      player1: {
+        userId: string;
+        timer: number;
+        prep: boolean;
+        prepTime: number;
+        dnf: boolean;
+      };
+      player2: {
+        userId: string;
+        timer: number;
+        prep: boolean;
+        prepTime: number;
+        dnf: boolean;
+      };
+    }) => {
+      // Cập nhật timer của người chơi 1 và 2
+      setPlayer1Timer(data.player1.timer);
+      setPlayer1Prep(data.player1.prep);
+      setPlayer1PrepTime(data.player1.prepTime);
+      setPlayer1Dnf(data.player1.dnf);
+      setPlayer2Timer(data.player2.timer);
+      setPlayer2Prep(data.player2.prep);
+      setPlayer2PrepTime(data.player2.prepTime);
+      setPlayer2Dnf(data.player2.dnf);
+    };
+    
+    socket.on('player-timer', handlePlayerTimer);
+    return () => {
+      socket.off('player-timer', handlePlayerTimer);
     };
   }, [isSpectator]);
   // Lắng nghe sự kiện khóa do 2 lần DNF từ server
@@ -3456,7 +3502,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               maxWidth: 120,
               textAlign: 'center',
               fontSize: mobileShrink ? 18 : 24,
-              color: dnf ? '#e53935' : '#ff3b1d',
+              color: (isSpectator ? player1Dnf : dnf) ? '#e53935' : '#ff3b1d',
               fontWeight: 700,
               letterSpacing: 1,
               boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
@@ -3466,11 +3512,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               justifyContent: 'center',
               gap: 4
             }}>
-              {prep ? (
+              {(isSpectator ? player1Prep : prep) ? (
                 <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16 }}>
-                  Chuẩn bị: {prepTime}s
+                  Chuẩn bị: {(isSpectator ? player1PrepTime : prepTime)}s
                 </span>
-              ) : dnf ? (
+              ) : (isSpectator ? player1Dnf : dnf) ? (
                 <span style={{ color: '#e53935', fontWeight: 700 }}>DNF</span>
               ) : (
                 <>
@@ -3478,9 +3524,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                     fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace",
                     fontSize: (() => {
                       // Tự động điều chỉnh cỡ chữ dựa trên độ dài thời gian
-                      const cs = Math.floor((timer % 1000) / 10);
-                      const s = Math.floor((timer / 1000) % 60);
-                      const m = Math.floor(timer / 60000);
+                      const currentTimer = isSpectator ? player1Timer : timer;
+                      const cs = Math.floor((currentTimer % 1000) / 10);
+                      const s = Math.floor((currentTimer / 1000) % 60);
+                      const m = Math.floor(currentTimer / 60000);
                       let timeStr = '';
                       
                       if (m > 0) {
@@ -3498,9 +3545,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                     })()
                   }}>
                     {(() => {
-                      const cs = Math.floor((timer % 1000) / 10);
-                      const s = Math.floor((timer / 1000) % 60);
-                      const m = Math.floor(timer / 60000);
+                      const currentTimer = isSpectator ? player1Timer : timer;
+                      const cs = Math.floor((currentTimer % 1000) / 10);
+                      const s = Math.floor((currentTimer / 1000) % 60);
+                      const m = Math.floor(currentTimer / 60000);
                       
                       if (m > 0) {
                         return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
@@ -4263,7 +4311,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               maxWidth: 120,
               textAlign: 'center',
               fontSize: mobileShrink ? 18 : 24,
-              color: '#ff3b1d',
+              color: (isSpectator ? player2Dnf : false) ? '#e53935' : '#ff3b1d',
               fontWeight: 700,
               letterSpacing: 1,
               boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
@@ -4274,17 +4322,20 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               gap: 4,
               fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
             }}>
-              {opponentPrep ? (
-                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>
+              {(isSpectator ? player2Prep : opponentPrep) ? (
+                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {(isSpectator ? player2PrepTime : opponentPrepTime)}s</span>
+              ) : (isSpectator ? player2Dnf : false) ? (
+                <span style={{ color: '#e53935', fontWeight: 700 }}>DNF</span>
               ) : (
                 <>
                   <span style={{ 
                     fontFamily: 'inherit',
                     fontSize: (() => {
                       // Tự động điều chỉnh cỡ chữ dựa trên độ dài thời gian
-                      const cs = Math.floor((opponentTimer % 1000) / 10);
-                      const s = Math.floor((opponentTimer / 1000) % 60);
-                      const m = Math.floor(opponentTimer / 60000);
+                      const currentTimer = isSpectator ? player2Timer : opponentTimer;
+                      const cs = Math.floor((currentTimer % 1000) / 10);
+                      const s = Math.floor((currentTimer / 1000) % 60);
+                      const m = Math.floor(currentTimer / 60000);
                       let timeStr = '';
                       
                       if (m > 0) {
@@ -4302,9 +4353,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                     })()
                   }}>
                     {(() => {
-                      const cs = Math.floor((opponentTimer % 1000) / 10);
-                      const s = Math.floor((opponentTimer / 1000) % 60);
-                      const m = Math.floor(opponentTimer / 60000);
+                      const currentTimer = isSpectator ? player2Timer : opponentTimer;
+                      const cs = Math.floor((currentTimer % 1000) / 10);
+                      const s = Math.floor((currentTimer / 1000) % 60);
+                      const m = Math.floor(currentTimer / 60000);
                       
                       if (m > 0) {
                         // Có phút: hiển thị m:ss.cs
