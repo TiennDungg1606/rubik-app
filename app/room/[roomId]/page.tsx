@@ -128,6 +128,9 @@ export default function RoomPage() {
   const [opponentCamOn, setOpponentCamOn] = useState<boolean>(true);
   const [micOn, setMicOn] = useState<boolean>(true);
   const [opponentMicOn, setOpponentMicOn] = useState<boolean>(true);
+  // State cho trạng thái camera của người chơi 1 và 2 (dành cho người xem)
+  const [player1CamOn, setPlayer1CamOn] = useState<boolean>(true);
+  const [player2CamOn, setPlayer2CamOn] = useState<boolean>(true);
   // Đã loại bỏ các ref và state liên quan đến Stringee và mediaStream, chỉ giữ lại state cho Daily.co và socket
  
   // (Đã di chuyển khai báo roomId lên đầu)
@@ -153,6 +156,12 @@ export default function RoomPage() {
   const [turnUserId, setTurnUserId] = useState<string>("");
   const [myResults, setMyResults] = useState<(number|null)[]>([]);
   const [opponentResults, setOpponentResults] = useState<(number|null)[]>([]);
+  // State cho kết quả của người chơi 1 và 2 (dành cho người xem)
+  const [player1Results, setPlayer1Results] = useState<(number|null)[]>([]);
+  const [player2Results, setPlayer2Results] = useState<(number|null)[]>([]);
+  // State cho sets của người chơi 1 và 2 (dành cho người xem)
+  const [player1Sets, setPlayer1Sets] = useState<number>(0);
+  const [player2Sets, setPlayer2Sets] = useState<number>(0);
   const [dnf, setDnf] = useState<boolean>(false);
   // Thêm state cho xác nhận kết quả
   const [pendingResult, setPendingResult] = useState<number|null>(null);
@@ -1502,9 +1511,9 @@ useEffect(() => {
     };
   }, [userId]);
 
-  // Lấy access_token cho Stringee khi vào phòng (dùng userId và opponentId)
+  // Lấy access_token cho Stringee khi vào phòng (StringeeRoom chỉ cần roomId và userId)
   useEffect(() => {
-    if (!roomId || !userId || !opponentId) return;
+    if (!roomId || !userId) return;
     if (roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0) return;
     // Gọi API lấy access_token cho userId
     fetch('/api/token', {
@@ -1518,6 +1527,7 @@ useEffect(() => {
                   // Tạo roomUrl đúng định dạng JSON cho VideoCall
         // Tất cả người trong phòng đều có thể call với nhau
         // Lấy player1Id và player2Id từ users array (chỉ có 2 người chơi)
+        // users là array của userId strings
         const player1Id = users.length > 0 ? users[0] : '';
         const player2Id = users.length > 1 ? users[1] : '';
         
@@ -2254,6 +2264,9 @@ useEffect(() => {
   // Tính toán thống kê
   const myStats = calcStats(myResults);
   const oppStats = calcStats(opponentResults);
+  // Tính toán thống kê cho người chơi 1 và 2 (dành cho người xem)
+  const player1Stats = calcStats(player1Results);
+  const player2Stats = calcStats(player2Results);
 
 function formatTime(ms: number|null, showDNF: boolean = false) {
   if (ms === null) return showDNF ? 'DNF' : '';
@@ -2846,122 +2859,174 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </thead>
             <tbody>
               <tr>
-                <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>{userName}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{myStats.best !== null ? (() => {
-                  const ms = myStats.best;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{myStats.worst !== null ? (() => {
-                  const ms = myStats.worst;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{myStats.mean !== null ? (() => {
-                  const ms = myStats.mean;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{myStats.ao5 !== null ? (() => {
-                  const ms = myStats.ao5;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
+                <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>
+                  {isSpectator ? (pendingUsers?.[0]?.userName || 'Player 1') : userName}
+                </td>
+                <td className="px-1 py-0.5 border border-gray-700 text-green-300">
+                  {(() => {
+                    const stats = isSpectator ? player1Stats : myStats;
+                    const results = isSpectator ? player1Results : myResults;
+                    return stats.best !== null ? (() => {
+                      const ms = stats.best;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : (results.length >= 5 ? 'DNF' : '');
+                  })()}
+                </td>
+                <td className="px-1 py-0.5 border border-gray-700 text-red-300">
+                  {(() => {
+                    const stats = isSpectator ? player1Stats : myStats;
+                    const results = isSpectator ? player1Results : myResults;
+                    return stats.worst !== null ? (() => {
+                      const ms = stats.worst;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : (results.length >= 5 ? 'DNF' : '');
+                  })()}
+                </td>
+                <td className="px-1 py-0.5 border border-gray-700">
+                  {(() => {
+                    const stats = isSpectator ? player1Stats : myStats;
+                    const results = isSpectator ? player1Results : myResults;
+                    return stats.mean !== null ? (() => {
+                      const ms = stats.mean;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : (results.length >= 5 ? 'DNF' : '');
+                  })()}
+                </td>
+                <td className="px-1 py-0.5 border border-gray-700">
+                  {(() => {
+                    const stats = isSpectator ? player1Stats : myStats;
+                    const results = isSpectator ? player1Results : myResults;
+                    return stats.ao5 !== null ? (() => {
+                      const ms = stats.ao5;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : (results.length >= 5 ? 'DNF' : '');
+                  })()}
+                </td>
               </tr>
               <tr>
-                <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>{opponentName}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{oppStats.best !== null ? (() => {
-                  const ms = oppStats.best;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{oppStats.worst !== null ? (() => {
-                  const ms = oppStats.worst;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{oppStats.mean !== null ? (() => {
-                  const ms = oppStats.mean;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{oppStats.ao5 !== null ? (() => {
-                  const ms = oppStats.ao5;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
+                <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>
+                  {isSpectator ? (pendingUsers?.[1]?.userName || 'Player 2') : opponentName}
+                </td>
+                <td className="px-1 py-0.5 border border-gray-700 text-green-300">
+                  {(() => {
+                    const stats = isSpectator ? player2Stats : oppStats;
+                    const results = isSpectator ? player2Results : opponentResults;
+                    return stats.best !== null ? (() => {
+                      const ms = stats.best;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : (results.length >= 5 ? 'DNF' : '');
+                  })()}
+                </td>
+                <td className="px-1 py-0.5 border border-gray-700 text-red-300">
+                  {(() => {
+                    const stats = isSpectator ? player2Stats : oppStats;
+                    const results = isSpectator ? player2Results : opponentResults;
+                    return stats.worst !== null ? (() => {
+                      const ms = stats.worst;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : (results.length >= 5 ? 'DNF' : '');
+                  })()}
+                </td>
+                <td className="px-1 py-0.5 border border-gray-700">
+                  {(() => {
+                    const stats = isSpectator ? player2Stats : oppStats;
+                    const results = isSpectator ? player2Results : opponentResults;
+                    return stats.mean !== null ? (() => {
+                      const ms = stats.mean;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : (results.length >= 5 ? 'DNF' : '');
+                  })()}
+                </td>
+                <td className="px-1 py-0.5 border border-gray-700">
+                  {(() => {
+                    const stats = isSpectator ? player2Stats : oppStats;
+                    const results = isSpectator ? player2Results : opponentResults;
+                    return stats.ao5 !== null ? (() => {
+                      const ms = stats.ao5;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : (results.length >= 5 ? 'DNF' : '');
+                  })()}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -3229,7 +3294,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               </div>
             )}
             {/* Overlay cho người xem khi người chơi 1 tắt camera */}
-            {isSpectator && !camOn && (
+            {isSpectator && !player1CamOn && (
               <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>{pendingUsers?.[0]?.userName || 'Player 1'} đang tắt cam</span>
               </div>
@@ -3303,8 +3368,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
               <div style={{fontSize: (() => {
-                if (myResults.length > 0) {
-                  const stats = calcStats(myResults);
+                const results = isSpectator ? player1Results : myResults;
+                if (results.length > 0) {
+                  const stats = calcStats(results);
                   if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
                     const ms = stats.mean;
                     const cs = Math.floor((ms % 1000) / 10);
@@ -3328,8 +3394,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 }
                 return mobileShrink ? 11 : 18;
               })()}}>{(() => {
-                if (myResults.length > 0) {
-                  const stats = calcStats(myResults);
+                const results = isSpectator ? player1Results : myResults;
+                if (results.length > 0) {
+                  const stats = calcStats(results);
                   if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
                     const ms = stats.mean;
                     const cs = Math.floor((ms % 1000) / 10);
@@ -3453,7 +3520,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{mySets}</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{isSpectator ? player1Sets : mySets}</div>
             </div>
           </div>
         </div>
@@ -4074,7 +4141,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               </div>
             )}
             {/* Overlay cho người xem khi người chơi 2 tắt camera */}
-            {isSpectator && !opponentCamOn && (
+            {isSpectator && !player2CamOn && (
               <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>{pendingUsers?.[1]?.userName || 'Player 2'} đang tắt cam</span>
               </div>
@@ -4108,8 +4175,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
               <div style={{fontSize: (() => {
-                if (opponentResults.length > 0) {
-                  const stats = calcStats(opponentResults);
+                const results = isSpectator ? player2Results : opponentResults;
+                if (results.length > 0) {
+                  const stats = calcStats(results);
                   if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
                     const ms = stats.mean;
                     const cs = Math.floor((ms % 1000) / 10);
@@ -4133,8 +4201,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 }
                 return mobileShrink ? 11 : 18;
               })()}}>{(() => {
-                if (opponentResults.length > 0) {
-                  const stats = calcStats(opponentResults);
+                const results = isSpectator ? player2Results : opponentResults;
+                if (results.length > 0) {
+                  const stats = calcStats(results);
                   if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
                     const ms = stats.mean;
                     const cs = Math.floor((ms % 1000) / 10);
@@ -4258,7 +4327,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{opponentSets}</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{isSpectator ? player2Sets : opponentSets}</div>
             </div>
           </div>
         </div>
