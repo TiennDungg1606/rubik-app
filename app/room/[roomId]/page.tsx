@@ -4212,7 +4212,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           camOn={camOn}
           micOn={micOn}
           localVideoRef={localVideoRef}
-          remoteVideoRef={remoteVideoRef}
+          remoteVideoRefs={[remoteVideoRef]}
+          userId={userId}
         />
       ) : null}
 
