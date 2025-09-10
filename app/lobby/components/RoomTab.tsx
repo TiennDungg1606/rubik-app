@@ -11,11 +11,10 @@ type RoomTabProps = {
   setRoomInput: (v: string) => void;
   handleCreateRoom: (event: '2x2' | '3x3' | '4x4' | 'pyraminx', displayName: string, password: string) => void;
   handleJoinRoom: (roomId: string) => void;
-  handleWatchRoom: (roomId: string) => void;
 };
 
 
-export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, handleWatchRoom }: RoomTabProps) {
+export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom }: RoomTabProps) {
 
   // Skeleton loading state
   const [loadingRooms, setLoadingRooms] = useState(true);
@@ -31,7 +30,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordModalRoomId, setPasswordModalRoomId] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
-  const [isWatchMode, setIsWatchMode] = useState(false);
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
     if (showCreateModal || showPasswordModal) {
@@ -143,10 +141,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   }
 
   // Password modal functions
-  function openPasswordModal(roomId: string, watchMode: boolean = false) {
+  function openPasswordModal(roomId: string) {
     setPasswordModalRoomId(roomId);
     setPasswordInput("");
-    setIsWatchMode(watchMode);
     setShowPasswordModal(true);
     setTimeout(() => setPasswordModalVisible(true), 10);
   }
@@ -157,7 +154,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setShowPasswordModal(false);
       setPasswordModalRoomId("");
       setPasswordInput("");
-      setIsWatchMode(false);
     }, 200);
   }
 
@@ -165,11 +161,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     if (!passwordModalRoomId) return;
     window._roomPassword = passwordInput;
     closePasswordModal();
-    if (isWatchMode) {
-      handleWatchRoom(passwordModalRoomId);
-    } else {
-      handleJoinRoom(passwordModalRoomId);
-    }
+    handleJoinRoom(passwordModalRoomId);
   }
 
   function handleModalConfirm() {
@@ -337,10 +329,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 Phòng này có mật khẩu
               </h3>
               <p className="text-gray-300">
-                {isWatchMode 
-                  ? "Vui lòng nhập mật khẩu để xem phòng:" 
-                  : "Vui lòng nhập mật khẩu để vào phòng:"
-                }
+                Vui lòng nhập mật khẩu để vào phòng:
               </p>
             </div>
             <div className="mb-6">
@@ -371,7 +360,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 className="flex-1 px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors font-semibold"
                 onClick={handlePasswordConfirm}
               >
-                {isWatchMode ? "Xem phòng" : "Vào phòng"}
+                Vào phòng
               </button>
             </div>
           </div>
@@ -426,18 +415,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   key={room}
                   className="flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-xl"
                 >
-                  <div 
-                    className="w-24 h-24 bg-red-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative cursor-pointer"
-                    onClick={() => {
-                      const meta = roomMetas[room] || {};
-                      if (meta.password) {
-                        openPasswordModal(room, true);
-                      } else {
-                        window._roomPassword = "";
-                        handleWatchRoom(room);
-                      }
-                    }}
-                  >
+                  <div className="w-24 h-24 bg-red-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
                     {/* Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx */}
                     {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
                       roomMetas[room].event.includes('2x2') ? (
@@ -546,7 +524,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     <span className="absolute top-1 right-1 text-yellow-300"></span>
                   </div>
                   <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
-                  <div className="text-xs text-gray-400 mt-1">Nhấn để xem</div>
                 </div>
               ))
             )}

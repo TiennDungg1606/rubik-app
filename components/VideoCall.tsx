@@ -6,18 +6,15 @@ interface VideoCallProps {
   micOn: boolean;
   localVideoRef?: React.RefObject<HTMLVideoElement | null>;
   remoteVideoRef?: React.RefObject<HTMLVideoElement | null>;
-  isSpectator?: boolean;
 }
 
 
 // roomUrl: dạng JSON.stringify({ access_token, userId, opponentId })
-const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideoRef: propLocalVideoRef, remoteVideoRef: propRemoteVideoRef, isSpectator = false }) => {
+const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideoRef: propLocalVideoRef, remoteVideoRef: propRemoteVideoRef }) => {
   const clientRef = useRef<any>(null);
-  const roomRef = useRef<any>(null);
+  const callRef = useRef<any>(null);
   const localTrackRef = useRef<any>(null);
   const remoteTrackRef = useRef<any>(null);
-  const player1TrackRef = useRef<any>(null);
-  const player2TrackRef = useRef<any>(null);
   // Nếu có ref truyền từ ngoài thì dùng, không thì tạo ref nội bộ
   const localVideoRef = propLocalVideoRef || useRef<HTMLVideoElement>(null);
   const remoteVideoRef = propRemoteVideoRef || useRef<HTMLVideoElement>(null);
@@ -30,42 +27,21 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
   let access_token = '';
   let userId = '';
   let opponentId = '';
-  let roomId = '';
-  let player1Id = '';
-  let player2Id = '';
-  let spectators: string[] = [];
   try {
     if (roomUrl) {
       const obj = JSON.parse(roomUrl);
       access_token = obj.access_token || '';
       userId = obj.userId || '';
-      roomId = obj.roomId || '';
-      player1Id = obj.player1Id || '';
-      player2Id = obj.player2Id || '';
-      spectators = obj.spectators || [];
-      
-      // Determine opponentId based on current user
-      if (userId === player1Id) {
-        opponentId = player2Id;
-      } else if (userId === player2Id) {
-        opponentId = player1Id;
-      } else if (isSpectator) {
-        // Spectators don't need opponentId for video calls
-        // They will receive video from both players
-        opponentId = '';
-      } else {
-        // Fallback for other cases
-        opponentId = player1Id || player2Id;
-      }
+      opponentId = obj.opponentId || '';
     }
   } catch (e) {
     console.error('[VideoCall] roomUrl parse error:', e, roomUrl);
   }
 
-  // Luôn show local cam preview khi vào phòng (dù chưa có call) - chỉ cho người chơi, không cho spectator
+  // Luôn show local cam preview khi vào phòng (dù chưa có call)
   useEffect(() => {
     let stopped = false;
-    if (localVideoRef.current && !isSpectator) {
+    if (localVideoRef.current) {
       // Nếu đã có call Stringee thì không cần getUserMedia nữa
       if (hasCallRef.current) return;
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -97,7 +73,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
       }
     };
     // eslint-disable-next-line
-  }, [localVideoRef, camOn, micOn, isSpectator]);
+  }, [localVideoRef, camOn, micOn]);
 
   // Nếu chưa có access_token, thử lấy từ API (dùng userId)
   useEffect(() => {
@@ -115,201 +91,142 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         });
     }
   }, [access_token, userId]);
-  // Khởi tạo StringeeClient/room khi có roomId
+  // Khởi tạo StringeeClient/call khi đủ 2 người (có opponentId)
   useEffect(() => {
-    if (!access_token || !userId || !roomId) return;
-    
-    // Cleanup old client/room
+    if (!access_token || !userId || !opponentId) return;
+    // Cleanup old client/call
     if (clientRef.current) {
       try { clientRef.current.disconnect(); } catch {}
       clientRef.current = null;
     }
-    if (roomRef.current) {
-      try { roomRef.current.leave(); } catch {}
-      roomRef.current = null;
+    if (callRef.current) {
+      try { callRef.current.hangup(); } catch {}
+      callRef.current = null;
     }
-    
-    // Đợi Stringee SDK load
-    const checkStringeeSDK = () => {
-      console.log('[VideoCall] checkStringeeSDK called, access_token:', access_token, 'roomId:', roomId, 'userId:', userId);
+    // eslint-disable-next-line no-undef
+    const StringeeClient = (window as any).StringeeClient;
+    if (!StringeeClient) {
+      console.error('[VideoCall] StringeeClient not found on window');
+      return;
+    }
+    const client = new StringeeClient();
+    clientRef.current = client;
+    hasCallRef.current = false;
+    // Listen events
+    client.on('connect', () => {
+      console.log('[VideoCall] client connected');
+    });
+    client.on('authen', (res: any) => {
+      console.log('[VideoCall] client authen:', res);
+      if (res.r === 0) {
+        // Outgoing call if userId < opponentId, else wait for incoming
+        if (userId < opponentId) {
+          makeCall(client);
+        }
+      }
+    });
+    client.on('disconnect', () => {
+      console.log('[VideoCall] client disconnected');
+    });
+    client.on('requestnewtoken', () => {
+      console.log('[VideoCall] client requestnewtoken');
+      // TODO: Gọi lại API để lấy access_token mới và gọi client.connect(new_access_token)
+    });
+    client.on('incomingcall2', (call2: any) => {
+      console.log('[VideoCall] incomingcall2', call2);
+      callRef.current = call2;
+      setupCallEvents(call2);
+      call2.answer((res: any) => {
+        console.log('[VideoCall] answer result', res);
+      });
+    });
+    // Connect
+    client.connect(access_token);
+
+    // Outgoing call if userId < opponentId (avoid double call)
+    function makeCall(client: any) {
       // eslint-disable-next-line no-undef
-      const StringeeClient = (window as any).StringeeClient;
-      const StringeeRoom = (window as any).StringeeRoom;
-      if (!StringeeClient || !StringeeRoom) {
-        console.log('[VideoCall] Waiting for Stringee SDK to load...');
-        setTimeout(checkStringeeSDK, 100);
+      const StringeeCall2 = (window as any).StringeeCall2;
+      if (!StringeeCall2) {
+        console.error('[VideoCall] StringeeCall2 not found on window');
         return;
       }
-      console.log('[VideoCall] Stringee SDK loaded successfully');
-      
-      // Khởi tạo StringeeClient ngay tại đây
-      const client = new StringeeClient();
-      clientRef.current = client;
-      hasCallRef.current = false;
-      
-      // Listen events
-      client.on('connect', () => {
-        console.log('[VideoCall] client connected');
+      const call = new StringeeCall2(client, userId, opponentId, true);
+      callRef.current = call;
+      setupCallEvents(call);
+      call.makeCall((res: any) => {
+        console.log('[VideoCall] makeCall result', res);
       });
-      client.on('authen', (res: any) => {
-        console.log('[VideoCall] client authen:', res);
-        if (res.r === 0) {
-          // Join room for all users (players and spectators)
-          joinRoom(client);
-        }
-      });
-      client.on('disconnect', () => {
-        console.log('[VideoCall] client disconnected');
-      });
-      client.on('requestnewtoken', () => {
-        console.log('[VideoCall] client requestnewtoken');
-        // TODO: Gọi lại API để lấy access_token mới và gọi client.connect(new_access_token)
-      });
-      
-      // Connect
-      client.connect(access_token);
+    }
 
-      // Join room for group video call
-      function joinRoom(client: any) {
-        const room = new StringeeRoom(client, roomId);
-        roomRef.current = room;
-        setupRoomEvents(room);
-        room.join((res: any) => {
-          console.log('[VideoCall] joinRoom result', res);
-        });
+    function setupCallEvents(call: any) {
+      hasCallRef.current = true;
+      // Khi đã có call, tắt local preview stream (nếu có)
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
       }
-
-      function setupRoomEvents(room: any) {
-        hasCallRef.current = true;
-        // Khi đã có room, tắt local preview stream (nếu có)
-        if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach(track => track.stop());
-          localStreamRef.current = null;
+      call.on('addlocaltrack', (localtrack: any) => {
+        console.log('[VideoCall] addlocaltrack', localtrack);
+        localTrackRef.current = localtrack;
+        const el = localtrack.attach();
+        const vid = localVideoRef.current;
+        if (vid && el instanceof HTMLVideoElement) {
+          vid.srcObject = el.srcObject;
+          vid.muted = true;
         }
-        
-        // Handle local track (only for players, not spectators)
-        room.on('addlocaltrack', (localtrack: any) => {
-          console.log('[VideoCall] addlocaltrack', localtrack);
-          localTrackRef.current = localtrack;
-          const el = localtrack.attach();
-          const vid = localVideoRef.current;
-          if (vid && el instanceof HTMLVideoElement) {
-            vid.srcObject = el.srcObject;
-            vid.muted = true;
-          }
-          // Đảm bảo luôn cập nhật lại display khi camOn thay đổi
-          if (localVideoRef.current) {
-            localVideoRef.current.style.display = camOn ? '' : 'none';
-          }
-        });
-        
-        // Publish local video when joining room (for players only)
-        if (!isSpectator) {
-          room.publish({
-            video: camOn,
-            audio: micOn
-          });
+        // Đảm bảo luôn cập nhật lại display khi camOn thay đổi
+        if (localVideoRef.current) {
+          localVideoRef.current.style.display = camOn ? '' : 'none';
         }
-        
-        // Handle remote tracks from other participants
-        room.on('addremotetrack', (remotetrack: any) => {
-          console.log('[VideoCall] addremotetrack', remotetrack);
-          const el = remotetrack.attach();
-          
-          if (isSpectator) {
-            // For spectators, determine which player this is based on participant info
-            const participantId = remotetrack.participantId;
-            if (participantId === player1Id) {
-              player1TrackRef.current = remotetrack;
-              const vid = localVideoRef.current; // This will be player1VideoRef for spectators
-              if (vid && el instanceof HTMLVideoElement) {
-                vid.srcObject = el.srcObject;
-                vid.muted = false;
-                vid.style.display = '';
-              }
-            } else if (participantId === player2Id) {
-              player2TrackRef.current = remotetrack;
-              const vid = remoteVideoRef.current; // This will be player2VideoRef for spectators
-              if (vid && el instanceof HTMLVideoElement) {
-                vid.srcObject = el.srcObject;
-                vid.muted = false;
-                vid.style.display = '';
-              }
-            }
-          } else {
-            // For players, use remoteVideoRef as usual
-            remoteTrackRef.current = remotetrack;
-            const vid = remoteVideoRef.current;
-            if (vid && el instanceof HTMLVideoElement) {
-              vid.srcObject = el.srcObject;
-              vid.muted = false;
-              vid.style.display = '';
-            }
-          }
-        });
-        
-        // Handle track removal
-        room.on('removelocaltrack', (track: any) => {
-          if (track && track.detachAndRemove) track.detachAndRemove();
-          localTrackRef.current = null;
-          if (localVideoRef.current) {
-            localVideoRef.current.srcObject = null;
-            localVideoRef.current.style.display = 'none';
-          }
-        });
-        
-        room.on('removeremotetrack', (track: any) => {
-          if (track && track.detachAndRemove) track.detachAndRemove();
-          const participantId = track.participantId;
-          
-          if (isSpectator) {
-            if (participantId === player1Id) {
-              player1TrackRef.current = null;
-              if (localVideoRef.current) {
-                localVideoRef.current.srcObject = null;
-                localVideoRef.current.style.display = 'none';
-              }
-            } else if (participantId === player2Id) {
-              player2TrackRef.current = null;
-              if (remoteVideoRef.current) {
-                remoteVideoRef.current.srcObject = null;
-                remoteVideoRef.current.style.display = 'none';
-              }
-            }
-          } else {
-            remoteTrackRef.current = null;
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = null;
-              remoteVideoRef.current.style.display = 'none';
-            }
-          }
-        });
-        
-        // Room events
-        room.on('roomjoined', (res: any) => {
-          console.log('[VideoCall] roomjoined', res);
-        });
-        
-        room.on('roomleft', (res: any) => {
-          console.log('[VideoCall] roomleft', res);
-        });
-        
-        room.on('participantjoined', (participant: any) => {
-          console.log('[VideoCall] participantjoined', participant);
-        });
-        
-        room.on('participantleft', (participant: any) => {
-          console.log('[VideoCall] participantleft', participant);
-        });
-      }
-    };
+      });
+      call.on('addremotetrack', (remotetrack: any) => {
+        console.log('[VideoCall] addremotetrack', remotetrack);
+        remoteTrackRef.current = remotetrack;
+        const el = remotetrack.attach();
+        const vid = remoteVideoRef.current;
+        if (vid && el instanceof HTMLVideoElement) {
+          vid.srcObject = el.srcObject;
+          vid.muted = false;
+          vid.style.display = '';
+        }
+      });
+      call.on('removelocaltrack', (track: any) => {
+        if (track && track.detachAndRemove) track.detachAndRemove();
+        localTrackRef.current = null;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = null;
+          localVideoRef.current.style.display = 'none';
+        }
+      });
+      call.on('removeremotetrack', (track: any) => {
+        if (track && track.detachAndRemove) track.detachAndRemove();
+        remoteTrackRef.current = null;
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = null;
+          remoteVideoRef.current.style.display = 'none';
+        }
+      });
+      call.on('signalingstate', (state: any) => {
+        console.log('[VideoCall] signalingstate', state);
+      });
+      call.on('mediastate', (state: any) => {
+        console.log('[VideoCall] mediastate', state);
+      });
+      call.on('info', (info: any) => {
+        console.log('[VideoCall] info', info);
+      });
+      call.on('otherdevice', (msg: any) => {
+        console.log('[VideoCall] otherdevice', msg);
+      });
+    }
 
     // Cleanup on unmount
     return () => {
       hasCallRef.current = false;
-      if (roomRef.current) {
-        try { roomRef.current.leave(); } catch {}
-        roomRef.current = null;
+      if (callRef.current) {
+        try { callRef.current.hangup(); } catch {}
+        callRef.current = null;
       }
       if (clientRef.current) {
         try { clientRef.current.disconnect(); } catch {}
@@ -324,29 +241,20 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         remoteVideoRef.current.style.display = 'none';
       }
     };
-    
-    // Bắt đầu kiểm tra Stringee SDK
-    checkStringeeSDK();
     // eslint-disable-next-line
-  }, [roomUrl, roomId]);
+  }, [roomUrl, opponentId]);
 
   // React to cam/mic changes
   useEffect(() => {
-    // Spectators don't have local video/mic controls
-    if (isSpectator) return;
-    
-    // Nếu đã có room Stringee thì thao tác lên room
-    if (roomRef.current) {
+    // Nếu đã có call Stringee thì thao tác lên call
+    if (callRef.current) {
       try {
-        // Publish/unpublish video and audio based on camOn/micOn
-        roomRef.current.publish({
-          video: camOn,
-          audio: micOn
-        });
+        callRef.current.enableLocalVideo(camOn);
+        callRef.current.mute(!micOn);
       } catch (e) {
         console.error('[VideoCall] cam/mic toggle error', e);
       }
-      // Không disable trực tiếp video track khi đã có room (Stringee sẽ xử lý)
+      // Không disable trực tiếp video track khi đã có call (Stringee sẽ xử lý)
       // Chỉ disable audio track local để đảm bảo mute đúng
       if (localTrackRef.current && localTrackRef.current._localStream) {
         const audioTracks = localTrackRef.current._localStream.getAudioTracks();
@@ -373,7 +281,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         localVideoRef.current.style.display = camOn ? '' : 'none';
       }
     }
-  }, [camOn, micOn, isSpectator]);
+  }, [camOn, micOn]);
 
   // Nếu không nhận ref từ ngoài thì render video ở đây (giữ tương thích cũ)
   if (!propLocalVideoRef && !propRemoteVideoRef) {
