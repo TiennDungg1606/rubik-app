@@ -1452,6 +1452,37 @@ useEffect(() => {
       socket.off('chat', handleChat);
     };
   }, [userId]);
+
+  // Lắng nghe sự kiện player-results từ server (dành cho người xem)
+  useEffect(() => {
+    if (!isSpectator) return;
+    const socket = getSocket();
+    const handlePlayerResults = (data: {
+      player1: {
+        userId: string;
+        userName: string;
+        results: (number|null)[];
+        sets: number;
+      };
+      player2: {
+        userId: string;
+        userName: string;
+        results: (number|null)[];
+        sets: number;
+      };
+    }) => {
+      // Cập nhật kết quả và sets của người chơi 1 và 2
+      setPlayer1Results(data.player1.results);
+      setPlayer2Results(data.player2.results);
+      setPlayer1Sets(data.player1.sets);
+      setPlayer2Sets(data.player2.sets);
+    };
+    
+    socket.on('player-results', handlePlayerResults);
+    return () => {
+      socket.off('player-results', handlePlayerResults);
+    };
+  }, [isSpectator]);
   // Lắng nghe sự kiện khóa do 2 lần DNF từ server
   useEffect(() => {
     const socket = getSocket();
