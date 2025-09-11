@@ -44,6 +44,8 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
 
   // Debug logging
   console.log('[VideoCall] Parsed data:', { roomName, userId, roomUrl });
+  console.log('[VideoCall] Current URL:', window.location.href);
+  console.log('[VideoCall] Room ID from URL:', window.location.pathname.split('/').pop());
 
   // Render Daily Video Call component
   if (!roomName || !userId) {

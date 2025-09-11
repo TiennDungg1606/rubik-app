@@ -24,6 +24,8 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
   const callFrameRef = useRef<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [participantCount, setParticipantCount] = useState(0);
 
   // Nếu có ref truyền từ ngoài thì dùng, không thì tạo ref nội bộ
   const localVideoRef = propLocalVideoRef || useRef<HTMLVideoElement>(null);
@@ -57,6 +59,8 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
 
         const roomData = await response.json();
         console.log('Room created successfully:', roomData);
+        console.log('Daily.co Room URL:', getDailyRoomUrl(roomName));
+        console.log('Expected participants to join:', roomName);
         
         roomCreated = true;
 
@@ -86,6 +90,31 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
     console.log('Cam/Mic state changed:', { camOn, micOn });
   }, [camOn, micOn]);
 
+  // Kiểm tra participants trong phòng
+  useEffect(() => {
+    if (!isConnected || !roomName) return;
+
+    const checkParticipants = async () => {
+      try {
+        const response = await fetch(`/api/daily-room-participants?roomName=${roomName}`);
+        if (response.ok) {
+          const data = await response.json();
+          setParticipants(data.participants || []);
+          setParticipantCount(data.participantCount || 0);
+          console.log('Room participants:', data);
+        }
+      } catch (err) {
+        console.error('Error checking participants:', err);
+      }
+    };
+
+    // Kiểm tra participants mỗi 3 giây
+    const interval = setInterval(checkParticipants, 3000);
+    checkParticipants(); // Kiểm tra ngay lập tức
+
+    return () => clearInterval(interval);
+  }, [isConnected, roomName]);
+
   // Nếu không nhận ref từ ngoài thì render video ở đây
   if (!propLocalVideoRef && !propRemoteVideoRef) {
     return (
@@ -107,20 +136,29 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
               }}
               allow="camera; microphone; fullscreen; speaker; display-capture"
               allowFullScreen
-              onLoad={() => {
-                console.log('Daily.co iframe loaded for room:', roomName);
-              }}
+            onLoad={() => {
+              console.log('Daily.co iframe loaded for room:', roomName);
+              console.log('Current user:', userId);
+              console.log('Room URL:', getDailyRoomUrl(roomName));
+            }}
               onError={(e) => {
                 console.error('Daily.co iframe error:', e);
                 setError('Failed to load video call');
               }}
             />
             {/* Debug info */}
-            <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs p-2 rounded">
+            <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs p-3 rounded max-w-xs">
+              <div className="font-bold mb-1">Daily.co Debug Info</div>
               <div>Room: {roomName}</div>
               <div>User: {userId}</div>
               <div>Cam: {camOn ? 'ON' : 'OFF'}</div>
               <div>Mic: {micOn ? 'ON' : 'OFF'}</div>
+              <div>Participants: {participantCount}</div>
+              <div>Status: {isConnected ? 'Connected' : 'Disconnected'}</div>
+              <div className="mt-2 text-yellow-300">
+                <div>Room URL:</div>
+                <div className="text-xs break-all">{getDailyRoomUrl(roomName)}</div>
+              </div>
             </div>
           </div>
         ) : (

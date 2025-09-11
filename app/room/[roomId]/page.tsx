@@ -1480,6 +1480,11 @@ useEffect(() => {
     // Tạo room name đơn giản - chỉ dùng roomId để 2 máy cùng phòng
     const roomName = `room-${roomId}`;
     
+    // Debug logging
+    console.log('[Room Page] Room ID:', roomId);
+    console.log('[Room Page] User ID:', userId);
+    console.log('[Room Page] Generated room name:', roomName);
+    
     // Tạo roomUrl đúng định dạng JSON cho Daily VideoCall
     const url = JSON.stringify({ roomName, userId });
     setRoomUrl(url);
