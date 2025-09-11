@@ -56,7 +56,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
           </div>
         )}
         <iframe
-          src={`${getDailyRoomUrl(roomName)}?userName=${encodeURIComponent(userId)}&startVideoOff=${!camOn}&startAudioOff=${!micOn}`}
+          src={`${getDailyRoomUrl(roomName)}?userName=${encodeURIComponent(userId)}&startVideoOff=${!camOn}&startAudioOff=${!micOn}&t=${Date.now()}`}
           style={{ 
             width: '100%', 
             height: '100%', 
@@ -65,6 +65,14 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
           }}
           allow="camera; microphone; fullscreen; speaker; display-capture"
           allowFullScreen
+          onLoad={() => {
+            console.log('Daily.co iframe loaded for room:', roomName);
+            setIsConnected(true);
+          }}
+          onError={(e) => {
+            console.error('Daily.co iframe error:', e);
+            setError('Failed to load video call');
+          }}
         />
         {isConnected && (
           <div className="absolute bottom-4 left-4 bg-green-500 text-white px-2 py-1 rounded text-sm z-10">
