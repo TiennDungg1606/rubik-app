@@ -1477,8 +1477,8 @@ useEffect(() => {
     if (!roomId || !userId) return;
     if (roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0) return;
     
-    // Tạo room name từ roomId (Daily.co sử dụng room name đơn giản)
-    const roomName = opponentId ? `room-${roomId}-${userId}-${opponentId}` : `room-${roomId}`;
+    // Tạo room name đơn giản - chỉ dùng roomId để 2 máy cùng phòng
+    const roomName = `room-${roomId}`;
     
     // Tạo roomUrl đúng định dạng JSON cho Daily VideoCall
     const url = JSON.stringify({ roomName, userId });

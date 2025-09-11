@@ -28,9 +28,12 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
         roomName = obj.roomName;
         userId = obj.userId;
       } 
-      // Legacy Stringee format - convert to room name
+      // Legacy Stringee format - convert to room name (sử dụng roomId từ URL)
       else if (obj.userId && obj.opponentId) {
-        roomName = `room-${obj.userId}-${obj.opponentId}`;
+        // Lấy roomId từ window.location.pathname
+        const pathParts = window.location.pathname.split('/');
+        const roomId = pathParts[pathParts.length - 1];
+        roomName = `room-${roomId}`;
         userId = obj.userId;
         isLegacyFormat = true;
       }
@@ -39,7 +42,10 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
     console.error('[VideoCall] roomUrl parse error:', e, roomUrl);
   }
 
-  // Render Twilio Video Call component
+  // Debug logging
+  console.log('[VideoCall] Parsed data:', { roomName, userId, roomUrl });
+
+  // Render Daily Video Call component
   if (!roomName || !userId) {
     return (
       <div className="flex items-center justify-center h-full">
