@@ -29,12 +29,18 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
   const localVideoRef = propLocalVideoRef || useRef<HTMLVideoElement>(null);
   const remoteVideoRef = propRemoteVideoRef || useRef<HTMLVideoElement>(null);
 
-  // Tạo room trước khi join
+  // Tạo room trước khi join - chỉ tạo 1 lần
   useEffect(() => {
     let isMounted = true;
+    let roomCreated = false;
 
     const createAndJoinRoom = async () => {
+      // Tránh tạo room nhiều lần
+      if (roomCreated) return;
+      
       try {
+        console.log('Creating room:', roomName);
+        
         // Tạo room trên Daily.co trước
         const response = await fetch('/api/daily-room', {
           method: 'POST',
@@ -51,6 +57,8 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
 
         const roomData = await response.json();
         console.log('Room created successfully:', roomData);
+        
+        roomCreated = true;
 
         if (isMounted) {
           setIsConnected(true);
@@ -68,9 +76,9 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
 
     return () => {
       isMounted = false;
-      setIsConnected(false);
+      // Không set isConnected = false ở đây để tránh re-render
     };
-  }, [roomName, userId]);
+  }, [roomName]); // Chỉ depend vào roomName, không depend vào userId
 
   // Xử lý thay đổi cam/mic - iframe tự xử lý
   useEffect(() => {
@@ -88,24 +96,33 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
           </div>
         )}
         {isConnected ? (
-          <iframe
-            src={`${getDailyRoomUrl(roomName)}?userName=${encodeURIComponent(userId)}&startVideoOff=${!camOn}&startAudioOff=${!micOn}&t=${Date.now()}`}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              border: 'none',
-              background: '#000'
-            }}
-            allow="camera; microphone; fullscreen; speaker; display-capture"
-            allowFullScreen
-            onLoad={() => {
-              console.log('Daily.co iframe loaded for room:', roomName);
-            }}
-            onError={(e) => {
-              console.error('Daily.co iframe error:', e);
-              setError('Failed to load video call');
-            }}
-          />
+          <div className="relative w-full h-full">
+            <iframe
+              src={`${getDailyRoomUrl(roomName)}?userName=${encodeURIComponent(userId)}&startVideoOff=${!camOn}&startAudioOff=${!micOn}&t=${Date.now()}`}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                border: 'none',
+                background: '#000'
+              }}
+              allow="camera; microphone; fullscreen; speaker; display-capture"
+              allowFullScreen
+              onLoad={() => {
+                console.log('Daily.co iframe loaded for room:', roomName);
+              }}
+              onError={(e) => {
+                console.error('Daily.co iframe error:', e);
+                setError('Failed to load video call');
+              }}
+            />
+            {/* Debug info */}
+            <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs p-2 rounded">
+              <div>Room: {roomName}</div>
+              <div>User: {userId}</div>
+              <div>Cam: {camOn ? 'ON' : 'OFF'}</div>
+              <div>Mic: {micOn ? 'ON' : 'OFF'}</div>
+            </div>
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full bg-gray-900">
             <div className="text-white text-center">

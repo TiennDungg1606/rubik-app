@@ -8,7 +8,29 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Room name is required' }, { status: 400 });
     }
 
-    // Tạo room thật trên Daily.co
+    // Kiểm tra room đã tồn tại chưa
+    const checkResponse = await fetch(`https://api.daily.co/v1/rooms/${roomName}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${process.env.DAILY_API_KEY}`,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (checkResponse.ok) {
+      // Room đã tồn tại
+      const existingRoom = await checkResponse.json();
+      console.log('Room already exists:', existingRoom);
+      
+      return NextResponse.json({ 
+        roomUrl: `https://rubik-app.daily.co/${roomName}`,
+        roomName,
+        roomData: existingRoom,
+        message: 'Room already exists'
+      });
+    }
+
+    // Tạo room mới trên Daily.co
     const response = await fetch(`https://api.daily.co/v1/rooms`, {
       method: 'POST',
       headers: {
