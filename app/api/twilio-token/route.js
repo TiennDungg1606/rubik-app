@@ -1,5 +1,6 @@
 // rubik-app/app/api/twilio-token/route.js
 import { NextResponse } from 'next/server';
+import { AccessToken } from 'twilio-jwt';
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_API_SECRET = process.env.TWILIO_API_SECRET;
@@ -31,20 +32,7 @@ export async function POST(request) {
       );
     }
 
-    // Dynamic import Twilio
-    const twilio = await import('twilio');
-    const twilioDefault = twilio.default || twilio;
-    
-    console.log('Twilio module loaded:', {
-      hasJwt: !!twilioDefault.jwt,
-      hasAccessToken: !!twilioDefault.jwt?.AccessToken,
-      hasVideoGrant: !!twilioDefault.jwt?.VideoGrant
-    });
-
-    // Create access token
-    const AccessToken = twilioDefault.jwt.AccessToken;
-    const VideoGrant = twilioDefault.jwt.VideoGrant;
-    
+    // Create access token using twilio-jwt
     const token = new AccessToken(
       TWILIO_ACCOUNT_SID,
       TWILIO_API_SECRET,
@@ -52,7 +40,7 @@ export async function POST(request) {
     );
 
     // Grant video access
-    const videoGrant = new VideoGrant({
+    const videoGrant = new AccessToken.VideoGrant({
       room: roomName,
     });
     token.addGrant(videoGrant);
