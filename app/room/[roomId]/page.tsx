@@ -1472,15 +1472,15 @@ useEffect(() => {
     };
   }, [userId]);
 
-  // Tạo roomUrl cho Twilio Video khi vào phòng
+  // Tạo roomUrl cho Daily.co Video khi vào phòng
   useEffect(() => {
     if (!roomId || !userId) return;
     if (roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0) return;
     
-    // Tạo room name từ roomId (có thể thêm opponentId nếu cần 1-1)
+    // Tạo room name từ roomId (Daily.co sử dụng room name đơn giản)
     const roomName = opponentId ? `room-${roomId}-${userId}-${opponentId}` : `room-${roomId}`;
     
-    // Tạo roomUrl đúng định dạng JSON cho Twilio VideoCall
+    // Tạo roomUrl đúng định dạng JSON cho Daily VideoCall
     const url = JSON.stringify({ roomName, userId });
     setRoomUrl(url);
   }, [roomId, userId, opponentId, roomUrl]);
@@ -4192,7 +4192,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
       </div>
 
-      {/* Mount VideoCall (Stringee) sau webcam row để quản lý stream */}
+      {/* Mount VideoCall (Daily.co) sau webcam row để quản lý stream */}
       {roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0 ? (
         <VideoCall
           key={roomUrl}

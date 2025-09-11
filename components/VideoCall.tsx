@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import TwilioVideoCall from './TwilioVideoCall';
+import DailyVideoCall from './DailyVideoCall';
 
 interface VideoCallProps {
   roomUrl: string;
@@ -49,7 +49,7 @@ const VideoCall: React.FC<VideoCallProps> = ({ roomUrl, camOn, micOn, localVideo
   }
 
   return (
-    <TwilioVideoCall
+    <DailyVideoCall
       roomName={roomName}
       userId={userId}
       camOn={camOn}
