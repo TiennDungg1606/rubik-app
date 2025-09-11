@@ -1,51 +1,16 @@
-# Twilio Video Setup Guide
+# DEPRECATED: Twilio Video Setup Guide
 
-## Cấu hình môi trường
+⚠️ **THÔNG BÁO QUAN TRỌNG**: Twilio Video API đã ngừng hoạt động từ ngày 5 tháng 12 năm 2024.
 
-Thêm các biến môi trường sau vào file `.env.local`:
+## Giải pháp thay thế
 
-```env
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_API_SECRET=your_twilio_api_secret
-```
+Dự án đã được chuyển đổi sang **Daily.co** để thay thế Twilio Video.
 
-## Lấy thông tin Twilio
+### Xem hướng dẫn mới:
+- [README-DAILY-SETUP.md](./README-DAILY-SETUP.md) - Hướng dẫn cấu hình Daily.co
 
-1. Đăng ký tài khoản tại [Twilio Console](https://console.twilio.com/)
-2. Vào **Account** > **API Keys & Tokens**
-3. Copy **Account SID** và **Auth Token** (hoặc tạo API Key mới)
-4. Copy các giá trị vào file `.env.local`
-
-## Cài đặt dependencies
-
-```bash
-npm install twilio twilio-video
-```
-
-## Tính năng mới
-
-- ✅ Hỗ trợ nhiều người trong 1 phòng (lên đến 50 người)
-- ✅ Tương thích với format cũ (Stringee)
-- ✅ Tự động chuyển đổi room name
-- ✅ Quản lý cam/mic real-time
-- ✅ Error handling và reconnection
-
-## Migration từ Stringee
-
-Code hiện tại đã được cập nhật để:
-- Tự động detect format cũ và chuyển đổi
-- Sử dụng Twilio cho video calls
-- Giữ nguyên interface VideoCall component
-
-## Testing
-
-1. Cấu hình Twilio credentials
-2. Chạy `npm run dev`
-3. Vào room và test video call
-4. Kiểm tra console để debug
-
-## Troubleshooting
-
-- Kiểm tra Twilio credentials
-- Đảm bảo HTTPS cho production
-- Check browser permissions cho camera/mic
+### Lý do chuyển đổi:
+- Twilio Video API đã ngừng hoạt động
+- Daily.co cung cấp tính năng tương tự
+- API đơn giản hơn và ổn định hơn
+- Hỗ trợ nhiều người trong 1 phòng (lên đến 1,000 người)
