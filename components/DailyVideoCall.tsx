@@ -34,18 +34,32 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
 
     const startCall = async () => {
       try {
-        // Tạo Daily call frame
-        const containerElement = localVideoRef.current || remoteVideoRef.current?.parentElement;
+        // Cleanup existing frame trước khi tạo mới
+        if (callFrameRef.current) {
+          callFrameRef.current.destroy();
+          callFrameRef.current = null;
+        }
+
+        // Tạo Daily call frame - sử dụng cách đơn giản hơn
+        const containerElement = document.getElementById('daily-call-frame');
         if (!containerElement) {
-          throw new Error('No container element found for Daily call frame');
+          throw new Error('Daily call frame container not found');
         }
         
         const callFrame = DailyIframe.createFrame(
           containerElement,
-          DAILY_CONFIG.DEFAULT_CONFIG
+          {
+            showLeaveButton: false,
+            showFullscreenButton: false,
+            showLocalVideo: true,
+            showParticipantsBar: false,
+          }
         );
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          callFrame.destroy();
+          return;
+        }
 
         callFrameRef.current = callFrame;
 
@@ -92,7 +106,11 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
     return () => {
       isMounted = false;
       if (callFrameRef.current) {
-        callFrameRef.current.destroy();
+        try {
+          callFrameRef.current.destroy();
+        } catch (e) {
+          console.warn('Error destroying Daily call frame:', e);
+        }
         callFrameRef.current = null;
       }
       setIsConnected(false);
@@ -116,12 +134,12 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
     return (
       <div className="relative w-full h-full">
         {error && (
-          <div className="absolute top-4 left-4 bg-red-500 text-white p-2 rounded">
+          <div className="absolute top-4 left-4 bg-red-500 text-white p-2 rounded z-10">
             Error: {error}
           </div>
         )}
         <div 
-          id="daily-local-video" 
+          id="daily-call-frame" 
           style={{ 
             width: '100%', 
             height: '100%', 
@@ -129,7 +147,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
           }} 
         />
         {isConnected && (
-          <div className="absolute bottom-4 left-4 bg-green-500 text-white px-2 py-1 rounded text-sm">
+          <div className="absolute bottom-4 left-4 bg-green-500 text-white px-2 py-1 rounded text-sm z-10">
             Connected to {roomName}
           </div>
         )}

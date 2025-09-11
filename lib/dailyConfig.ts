@@ -11,15 +11,17 @@ export const DAILY_CONFIG = {
     showLocalVideo: true,
     showParticipantsBar: false,
     theme: {
-      accent: '#007bff',
-      accentText: '#ffffff',
-      background: '#1a1a1a',
-      backgroundAccent: '#2d2d2d',
-      baseText: '#ffffff',
-      border: '#404040',
-      mainAreaBg: '#000000',
-      supportiveText: '#cccccc',
-    } as any
+      colors: {
+        accent: '#007bff',
+        accentText: '#ffffff',
+        background: '#1a1a1a',
+        backgroundAccent: '#2d2d2d',
+        baseText: '#ffffff',
+        border: '#404040',
+        mainAreaBg: '#000000',
+        supportiveText: '#cccccc',
+      }
+    }
   }
 };
 
