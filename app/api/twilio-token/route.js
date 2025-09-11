@@ -1,7 +1,5 @@
 // rubik-app/app/api/twilio-token/route.js
 import { NextResponse } from 'next/server';
-import { AccessToken } from 'twilio';
-import { VideoGrant } from 'twilio';
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_API_SECRET = process.env.TWILIO_API_SECRET;
@@ -33,7 +31,20 @@ export async function POST(request) {
       );
     }
 
+    // Dynamic import Twilio
+    const twilio = await import('twilio');
+    const twilioDefault = twilio.default || twilio;
+    
+    console.log('Twilio module loaded:', {
+      hasJwt: !!twilioDefault.jwt,
+      hasAccessToken: !!twilioDefault.jwt?.AccessToken,
+      hasVideoGrant: !!twilioDefault.jwt?.VideoGrant
+    });
+
     // Create access token
+    const AccessToken = twilioDefault.jwt.AccessToken;
+    const VideoGrant = twilioDefault.jwt.VideoGrant;
+    
     const token = new AccessToken(
       TWILIO_ACCOUNT_SID,
       TWILIO_API_SECRET,
@@ -53,7 +64,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('Error generating Twilio token:', error);
     return NextResponse.json(
-      { error: 'Failed to generate token' },
+      { error: 'Failed to generate token', details: error.message },
       { status: 500 }
     );
   }
