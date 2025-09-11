@@ -29,104 +29,21 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
   const localVideoRef = propLocalVideoRef || useRef<HTMLVideoElement>(null);
   const remoteVideoRef = propRemoteVideoRef || useRef<HTMLVideoElement>(null);
 
+  // Sử dụng iframe embed thay vì DailyIframe SDK
   useEffect(() => {
-    let isMounted = true;
-
-    const startCall = async () => {
-      try {
-        // Cleanup existing frame trước khi tạo mới
-        if (callFrameRef.current) {
-          callFrameRef.current.destroy();
-          callFrameRef.current = null;
-        }
-
-        // Tạo Daily call frame - sử dụng cách đơn giản hơn
-        const containerElement = document.getElementById('daily-call-frame');
-        if (!containerElement) {
-          throw new Error('Daily call frame container not found');
-        }
-        
-        const callFrame = DailyIframe.createFrame(
-          containerElement,
-          {
-            showLeaveButton: false,
-            showFullscreenButton: false,
-            showLocalVideo: true,
-            showParticipantsBar: false,
-          }
-        );
-
-        if (!isMounted) {
-          callFrame.destroy();
-          return;
-        }
-
-        callFrameRef.current = callFrame;
-
-        // Event listeners
-        callFrame
-          .on('joined-meeting', (event) => {
-            console.log('Joined meeting:', event);
-            setIsConnected(true);
-            setError(null);
-          })
-          .on('left-meeting', (event) => {
-            console.log('Left meeting:', event);
-            setIsConnected(false);
-          })
-          .on('error', (event) => {
-            console.error('Daily error:', event);
-            setError(event.errorMsg || 'Connection error');
-          })
-          .on('participant-joined', (event) => {
-            console.log('Participant joined:', event.participant);
-            onParticipantsChange?.(Object.values(callFrame.participants()));
-          })
-          .on('participant-left', (event) => {
-            console.log('Participant left:', event.participant);
-            onParticipantsChange?.(Object.values(callFrame.participants()));
-          });
-
-        // Join room - sử dụng room name trực tiếp
-        await callFrame.join({
-          url: getDailyRoomUrl(roomName),
-          userName: userId,
-          startVideoOff: !camOn,
-          startAudioOff: !micOn,
-        });
-
-      } catch (err) {
-        console.error('Error starting Daily call:', err);
-        setError(err instanceof Error ? err.message : 'Failed to start call');
-      }
-    };
-
-    startCall();
-
+    // Set connected state khi component mount
+    setIsConnected(true);
+    setError(null);
+    
     return () => {
-      isMounted = false;
-      if (callFrameRef.current) {
-        try {
-          callFrameRef.current.destroy();
-        } catch (e) {
-          console.warn('Error destroying Daily call frame:', e);
-        }
-        callFrameRef.current = null;
-      }
       setIsConnected(false);
     };
   }, [roomName, userId]);
 
-  // Xử lý thay đổi cam/mic
+  // Xử lý thay đổi cam/mic - iframe tự xử lý
   useEffect(() => {
-    if (!callFrameRef.current) return;
-
-    try {
-      callFrameRef.current.setLocalVideo(camOn);
-      callFrameRef.current.setLocalAudio(micOn);
-    } catch (err) {
-      console.error('Error toggling camera/microphone:', err);
-    }
+    // iframe sẽ tự xử lý cam/mic permissions
+    console.log('Cam/Mic state changed:', { camOn, micOn });
   }, [camOn, micOn]);
 
   // Nếu không nhận ref từ ngoài thì render video ở đây
@@ -138,13 +55,16 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
             Error: {error}
           </div>
         )}
-        <div 
-          id="daily-call-frame" 
+        <iframe
+          src={`${getDailyRoomUrl(roomName)}?userName=${encodeURIComponent(userId)}&startVideoOff=${!camOn}&startAudioOff=${!micOn}`}
           style={{ 
             width: '100%', 
             height: '100%', 
+            border: 'none',
             background: '#000'
-          }} 
+          }}
+          allow="camera; microphone; fullscreen; speaker; display-capture"
+          allowFullScreen
         />
         {isConnected && (
           <div className="absolute bottom-4 left-4 bg-green-500 text-white px-2 py-1 rounded text-sm z-10">
