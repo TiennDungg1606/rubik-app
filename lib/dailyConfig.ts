@@ -19,7 +19,7 @@ export const DAILY_CONFIG = {
       border: '#404040',
       mainAreaBg: '#000000',
       supportiveText: '#cccccc',
-    }
+    } as any
   }
 };
 

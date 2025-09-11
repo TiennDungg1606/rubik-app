@@ -35,8 +35,13 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
     const startCall = async () => {
       try {
         // Tạo Daily call frame
+        const containerElement = localVideoRef.current || remoteVideoRef.current?.parentElement;
+        if (!containerElement) {
+          throw new Error('No container element found for Daily call frame');
+        }
+        
         const callFrame = DailyIframe.createFrame(
-          localVideoRef.current || remoteVideoRef.current?.parentElement,
+          containerElement,
           DAILY_CONFIG.DEFAULT_CONFIG
         );
 
@@ -66,14 +71,6 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
           .on('participant-left', (event) => {
             console.log('Participant left:', event.participant);
             onParticipantsChange?.(Object.values(callFrame.participants()));
-          })
-          .on('camera-error', (event) => {
-            console.error('Camera error:', event);
-            setError('Camera access denied');
-          })
-          .on('microphone-error', (event) => {
-            console.error('Microphone error:', event);
-            setError('Microphone access denied');
           });
 
         // Join room - sử dụng room name trực tiếp
@@ -124,7 +121,6 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
           </div>
         )}
         <div 
-          ref={localVideoRef} 
           id="daily-local-video" 
           style={{ 
             width: '100%', 
