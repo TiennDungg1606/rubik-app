@@ -57,7 +57,11 @@ const TwilioVideoCall: React.FC<TwilioVideoCallProps> = ({
         });
 
         if (!isMounted) {
-          localTracks.forEach(track => track.stop());
+          localTracks.forEach(track => {
+            if (track.kind === 'video' || track.kind === 'audio') {
+              track.stop();
+            }
+          });
           return;
         }
 
@@ -156,7 +160,11 @@ const TwilioVideoCall: React.FC<TwilioVideoCallProps> = ({
         roomRef.current.disconnect();
         roomRef.current = null;
       }
-      localTracksRef.current.forEach(track => track.stop());
+      localTracksRef.current.forEach(track => {
+        if (track.kind === 'video' || track.kind === 'audio') {
+          track.stop();
+        }
+      });
       localTracksRef.current = [];
       participantsRef.current = [];
       onParticipantsChange?.(participantsRef.current);
