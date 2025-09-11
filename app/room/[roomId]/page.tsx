@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import React from "react";
 // import Peer from "simple-peer"; // REMOVED
-// import { createStringeeClient, createStringeeCall } from "@/lib/stringeeClient"; // REMOVED - using Twilio now
+import { createStringeeClient, createStringeeCall } from "@/lib/stringeeClient";
 import { useRouter } from "next/navigation";
 // Đảm bảo window.userName luôn có giá trị đúng khi vào phòng
 declare global {
@@ -1472,22 +1472,29 @@ useEffect(() => {
     };
   }, [userId]);
 
-  // Tạo roomUrl cho Daily.co Video khi vào phòng
+  // Lấy access_token cho Stringee khi vào phòng (dùng userId và opponentId)
   useEffect(() => {
-    if (!roomId || !userId) return;
+    if (!roomId || !userId || !opponentId) return;
     if (roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0) return;
-    
-    // Tạo room name đơn giản - chỉ dùng roomId để 2 máy cùng phòng
-    const roomName = `room-${roomId}`;
-    
-    // Debug logging
-    console.log('[Room Page] Room ID:', roomId);
-    console.log('[Room Page] User ID:', userId);
-    console.log('[Room Page] Generated room name:', roomName);
-    
-    // Tạo roomUrl đúng định dạng JSON cho Daily VideoCall
-    const url = JSON.stringify({ roomName, userId });
-    setRoomUrl(url);
+    // Gọi API lấy access_token cho userId
+    fetch('/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.access_token) {
+                  // Tạo roomUrl đúng định dạng JSON cho VideoCall
+        const url = JSON.stringify({ access_token: data.access_token, userId, opponentId });
+        setRoomUrl(url);
+        } else {
+          console.error('[RoomPage] Không nhận được access_token từ API:', data);
+        }
+      })
+      .catch(err => {
+        console.error('[RoomPage] Lỗi fetch /api/token:', err);
+      });
   }, [roomId, userId, opponentId, roomUrl]);
 
 
@@ -2276,7 +2283,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             Đang tải thông tin ...
           </div>
         </div>
-        <style>{`
+        <style jsx global>{`
           @keyframes loading-bar {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
@@ -4197,7 +4204,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
       </div>
 
-      {/* Mount VideoCall (Daily.co) sau webcam row để quản lý stream */}
+      {/* Mount VideoCall (Stringee) sau webcam row để quản lý stream */}
       {roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0 ? (
         <VideoCall
           key={roomUrl}
@@ -4210,7 +4217,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       ) : null}
 
       {/* CSS cho hiệu ứng modal và các nút */}
-      <style>{`
+      <style jsx global>{`
         .modal-backdrop {
           animation: fadeIn 0.3s ease-out;
         }
