@@ -6,7 +6,6 @@ Thêm các biến môi trường sau vào file `.env.local`:
 
 ```env
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_API_KEY=your_twilio_api_key
 TWILIO_API_SECRET=your_twilio_api_secret
 ```
 
@@ -14,7 +13,7 @@ TWILIO_API_SECRET=your_twilio_api_secret
 
 1. Đăng ký tài khoản tại [Twilio Console](https://console.twilio.com/)
 2. Vào **Account** > **API Keys & Tokens**
-3. Tạo API Key mới hoặc sử dụng Account SID
+3. Copy **Account SID** và **Auth Token** (hoặc tạo API Key mới)
 4. Copy các giá trị vào file `.env.local`
 
 ## Cài đặt dependencies
