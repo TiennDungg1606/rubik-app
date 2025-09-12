@@ -14,51 +14,14 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Daily.co API key not configured' }, { status: 500 });
     }
 
-    // Tạo room trên Daily.co
+    // Tạo room trên Daily.co với cấu hình đơn giản theo tài liệu
     const roomConfig = {
       name: roomId,
       privacy: 'public',
       properties: {
-        max_participants: gameMode === '2vs2' ? 4 : 2,
-        enable_screenshare: false,
-        enable_chat: true,
-        enable_knocking: false,
-        enable_prejoin_ui: false,
-        enable_network_ui: false,
-        enable_people_ui: false,
-        enable_pip_ui: false,
-        enable_hand_raising: false,
-        enable_emoji_reactions: false,
-        enable_recording: false,
-        enable_transcription: false,
-        start_video_off: false,
         start_audio_off: false,
-        owner_only_broadcast: false,
-        enable_breakout_rooms: false,
-        enable_network_connection_quality: false,
-        enable_noise_cancellation: true,
-        enable_dialin: false,
-        enable_knocking: false,
-        enable_screenshare: false,
-        enable_chat: true,
-        enable_hand_raising: false,
-        enable_emoji_reactions: false,
-        enable_recording: false,
-        enable_transcription: false,
         start_video_off: false,
-        start_audio_off: false,
-        owner_only_broadcast: false,
-        enable_breakout_rooms: false,
-        enable_network_connection_quality: false,
-        enable_noise_cancellation: true,
-        enable_dialin: false,
-        // Custom properties for Rubik's cube game
-        custom_properties: {
-          gameType: 'rubik',
-          event: event,
-          displayName: displayName,
-          gameMode: gameMode
-        }
+        max_participants: gameMode === '2vs2' ? 4 : 2
       }
     };
 
