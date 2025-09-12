@@ -9,7 +9,7 @@ import { io } from "socket.io-client";
 type RoomTabProps = {
   roomInput: string;
   setRoomInput: (v: string) => void;
-  handleCreateRoom: (event: '2x2' | '3x3' | '4x4' | 'pyraminx', displayName: string, password: string) => void;
+  handleCreateRoom: (event: '2x2' | '3x3' | '4x4' | 'pyraminx', displayName: string, password: string, gameMode: '1vs1' | '2vs2') => void;
   handleJoinRoom: (roomId: string) => void;
 };
 
@@ -22,7 +22,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [activeRooms, setActiveRooms] = useState<string[]>([]);
   const [competingRooms, setCompetingRooms] = useState<string[]>([]);
   // Lưu meta phòng để kiểm tra mật khẩu
-  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string; event?: string; displayName?: string }>>({});
+  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string; event?: string; displayName?: string; gameMode?: string }>>({});
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -42,6 +42,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [modalVisible, setModalVisible] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [modalEvent, setModalEvent] = useState<'2x2' | '3x3' | '4x4' | 'pyraminx'>("3x3");
+  const [modalGameMode, setModalGameMode] = useState<'1vs1' | '2vs2'>("1vs1");
   const [modalRoomName, setModalRoomName] = useState("");
   const [modalPassword, setModalPassword] = useState("");
   const [modalPasswordConfirm, setModalPasswordConfirm] = useState("");
@@ -128,6 +129,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   setShowCreateModal(true);
   setTimeout(() => setModalVisible(true), 10); // trigger animation
     setModalEvent("3x3");
+    setModalGameMode("1vs1");
     setModalRoomName("");
     setModalPassword("");
     setModalPasswordConfirm("");
@@ -177,8 +179,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }
     setModalError("");
     setShowCreateModal(false);
-    // Truyền event, tên phòng, mật khẩu cho handleCreateRoom
-    handleCreateRoom(modalEvent, modalRoomName, modalPassword);
+    // Truyền event, tên phòng, mật khẩu, gameMode cho handleCreateRoom
+    handleCreateRoom(modalEvent, modalRoomName, modalPassword, modalGameMode);
   }
 
   function handleJoin() {
@@ -244,7 +246,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             }}
           >
             {/* Cột 1: Chọn thể loại rubik */}
-            <div className="flex flex-col items-center justify-start w-1/3 pr-4 border-r border-gray-700">
+            <div className="flex flex-col items-center justify-start w-1/4 pr-4 border-r border-gray-700">
               <div className="text-lg font-semibold text-white mb-4">Thể loại</div>
               <button
                 className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '2x2' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
@@ -263,7 +265,19 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 onClick={() => setModalEvent('pyraminx')}
               >Pyraminx</button>
             </div>
-            {/* Cột 2: Nhập tên phòng, mật khẩu, xác nhận */}
+            {/* Cột 2: Chọn chế độ đấu */}
+            <div className="flex flex-col items-center justify-start w-1/4 pr-4 border-r border-gray-700">
+              <div className="text-lg font-semibold text-white mb-4">Chế độ đấu</div>
+              <button
+                className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalGameMode === '1vs1' ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                onClick={() => setModalGameMode('1vs1')}
+              >1vs1</button>
+              <button
+                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalGameMode === '2vs2' ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                onClick={() => setModalGameMode('2vs2')}
+              >2vs2</button>
+            </div>
+            {/* Cột 3: Nhập tên phòng, mật khẩu, xác nhận */}
             <div className="flex-1 pl-6 flex flex-col justify-between">
               <div>
                 <div className="text-lg font-semibold text-white mb-4">Tạo phòng mới</div>
@@ -524,6 +538,11 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     <span className="absolute top-1 right-1 text-yellow-300"></span>
                   </div>
                   <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
+                  {roomMetas[room] && roomMetas[room].gameMode && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -682,6 +701,11 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     <span className="absolute top-1 right-1 text-green-300"></span>
                   </div>
                   <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
+                  {roomMetas[room] && roomMetas[room].gameMode && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
+                    </div>
+                  )}
                 </div>
               ))
             )}

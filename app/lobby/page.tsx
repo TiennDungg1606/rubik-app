@@ -397,21 +397,46 @@ function LobbyContent() {
     }
   }, [searchParams]);
 
-  const handleCreateRoom = (event: '2x2' | '3x3' | '4x4' | 'pyraminx', displayName: string, password: string) => {
+  const handleCreateRoom = async (event: '2x2' | '3x3' | '4x4' | 'pyraminx', displayName: string, password: string, gameMode: '1vs1' | '2vs2') => {
     const roomId = generateRoomId();
+    
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('justCreatedRoom', roomId);
       // Lưu meta phòng để trang room/[roomId] lấy khi join-room
-      sessionStorage.setItem(`roomMeta_${roomId}`, JSON.stringify({ event, displayName, password }));
+      sessionStorage.setItem(`roomMeta_${roomId}`, JSON.stringify({ event, displayName, password, gameMode }));
       // Không lưu password vào roomPassword_{roomId} khi tạo phòng mới!
     }
-    router.push(`/room/${roomId}`);
+
+    // Nếu là chế độ 2vs2, tạo room trên Daily.co
+    if (gameMode === '2vs2') {
+      try {
+        const response = await fetch('/api/daily-room', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId, gameMode, event, displayName })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Lưu room URL vào sessionStorage để page2 sử dụng
+          sessionStorage.setItem(`dailyRoomUrl_${roomId}`, data.roomUrl);
+        } else {
+          console.error('Failed to create Daily.co room:', await response.text());
+        }
+      } catch (error) {
+        console.error('Error creating Daily.co room:', error);
+      }
+      
+      router.push(`/room/${roomId}/page2`);
+    } else {
+      router.push(`/room/${roomId}`);
+    }
   };
 
   const [joinError, setJoinError] = useState("");
 
   // Hàm join phòng: chỉ cho phép vào với vai trò người chơi
-  const handleJoinRoom = (roomId: string) => {
+  const handleJoinRoom = async (roomId: string) => {
     const code = roomId.trim().toUpperCase();
     if (!code) return;
     setJoinError("");
@@ -424,6 +449,43 @@ function LobbyContent() {
       // Xóa biến tạm sau khi dùng
       delete window._roomPassword;
     }
+    
+    // Kiểm tra gameMode từ meta phòng để quyết định chuyển hướng
+    try {
+      const res = await fetch(`/api/room-meta/${code}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.gameMode === '2vs2') {
+          // Tạo room trên Daily.co nếu chưa có
+          try {
+            const dailyRes = await fetch('/api/daily-room', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                roomId: code, 
+                gameMode: '2vs2', 
+                event: data.event || '3x3',
+                displayName: data.displayName || 'Room'
+              })
+            });
+            
+            if (dailyRes.ok) {
+              const dailyData = await dailyRes.json();
+              sessionStorage.setItem(`dailyRoomUrl_${code}`, dailyData.roomUrl);
+            }
+          } catch (error) {
+            console.error('Error creating Daily.co room for join:', error);
+          }
+          
+          router.push(`/room/${code}/page2`);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching room meta:', error);
+    }
+    
+    // Mặc định chuyển đến page thường (1vs1)
     router.push(`/room/${code}`);
   };
 
