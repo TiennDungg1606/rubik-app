@@ -246,7 +246,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             }}
           >
             {/* Cột 1: Chọn thể loại rubik */}
-            <div className="flex flex-col items-center justify-start w-1/4 pr-4 border-r border-gray-700">
+            <div className="flex flex-col items-center justify-start w-1/4 px-4 border-r border-gray-700">
               <div className="text-lg font-semibold text-white mb-4">Thể loại</div>
               <button
                 className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '2x2' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
@@ -266,19 +266,21 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
               >Pyraminx</button>
             </div>
             {/* Cột 2: Chọn chế độ đấu */}
-            <div className="flex flex-col items-center justify-start w-1/4 pr-4 border-r border-gray-700">
+            <div className="flex flex-col items-center justify-start w-1/4 px-4 border-r border-gray-700">
               <div className="text-lg font-semibold text-white mb-4">Chế độ đấu</div>
               <button
                 className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalGameMode === '1vs1' ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'}`}
                 onClick={() => setModalGameMode('1vs1')}
               >1vs1</button>
               <button
-                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalGameMode === '2vs2' ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                onClick={() => setModalGameMode('2vs2')}
-              >2vs2</button>
+                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors opacity-50 cursor-not-allowed`}
+                disabled
+                onClick={(e) => e.preventDefault()}
+                title="Chế độ 2vs2 đang được phát triển"
+              >2vs2 (Sắp ra mắt)</button>
             </div>
             {/* Cột 3: Nhập tên phòng, mật khẩu, xác nhận */}
-            <div className="flex-1 pl-6 flex flex-col justify-between">
+            <div className="flex-1 px-4 flex flex-col justify-between">
               <div>
                 <div className="text-lg font-semibold text-white mb-4">Tạo phòng mới</div>
                 <div className="mb-3">

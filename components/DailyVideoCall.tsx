@@ -76,6 +76,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
         .on('joined-meeting', (event: any) => {
           console.log('[DailyVideoCall] joined-meeting', event);
           setIsJoined(true);
+          updateParticipants();
         })
         .on('left-meeting', (event: any) => {
           console.log('[DailyVideoCall] left-meeting', event);
@@ -98,14 +99,28 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
         .on('local-video-track-started', (event: any) => {
           console.log('[DailyVideoCall] local-video-track-started', event);
           if (localVideoRef.current && event.track) {
-            localVideoRef.current.srcObject = event.track.attach();
+            const videoElement = event.track.attach();
+            localVideoRef.current.srcObject = videoElement.srcObject;
+            localVideoRef.current.style.display = 'block';
+            // Ẩn placeholder text
+            const placeholder = localVideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
+            if (placeholder) placeholder.style.display = 'none';
           }
         })
         .on('remote-video-track-started', (event: any) => {
           console.log('[DailyVideoCall] remote-video-track-started', event);
           if (remoteVideoRef.current && event.track) {
-            remoteVideoRef.current.srcObject = event.track.attach();
+            const videoElement = event.track.attach();
+            remoteVideoRef.current.srcObject = videoElement.srcObject;
+            remoteVideoRef.current.style.display = 'block';
+            // Ẩn placeholder text
+            const placeholder = remoteVideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
+            if (placeholder) placeholder.style.display = 'none';
           }
+        })
+        .on('participant-updated', (event: any) => {
+          console.log('[DailyVideoCall] participant-updated', event);
+          updateParticipants();
         });
 
       // Join room
@@ -115,6 +130,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
     function updateParticipants() {
       if (callObjectRef.current) {
         const participants = callObjectRef.current.participants();
+        console.log('[DailyVideoCall] participants:', participants);
         setParticipants(Object.values(participants));
       }
     }
@@ -139,28 +155,42 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
   if (is2vs2) {
     return (
       <div className="w-full h-full relative">
-        {/* Custom video layout cho 2vs2 */}
-        <div className="grid grid-cols-2 grid-rows-2 gap-2 h-full p-2">
-          {participants.slice(0, 4).map((participant, index) => (
-            <div key={participant.session_id} className="relative bg-gray-800 rounded-lg overflow-hidden">
-              <video
-                autoPlay
-                playsInline
-                muted={participant.local}
-                className="w-full h-full object-cover"
-                ref={(el) => {
-                  if (participant.local && localVideoRef) {
-                    (localVideoRef as any).current = el;
-                  } else if (!participant.local && remoteVideoRef) {
-                    (remoteVideoRef as any).current = el;
-                  }
-                }}
-              />
-              <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
-                {participant.user_name || `Player ${index + 1}`}
-              </div>
+        {/* Custom video layout cho 2vs2 - chỉ 2 video */}
+        <div className="grid grid-cols-2 gap-2 h-full p-2">
+          {/* Local video */}
+          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+              style={{ display: 'none' }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
+              {isJoined ? 'Local Video' : 'Connecting...'}
             </div>
-          ))}
+            <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
+              You
+            </div>
+          </div>
+          
+          {/* Remote video */}
+          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+              style={{ display: 'none' }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
+              {participants.length > 1 ? 'Remote Video' : 'Waiting for player...'}
+            </div>
+            <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
+              Player 2
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -171,26 +201,40 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
     <div className="w-full h-full relative">
       {/* Custom video layout cho 1vs1 */}
       <div className="grid grid-cols-2 gap-2 h-full p-2">
-        {participants.slice(0, 2).map((participant, index) => (
-          <div key={participant.session_id} className="relative bg-gray-800 rounded-lg overflow-hidden">
-            <video
-              autoPlay
-              playsInline
-              muted={participant.local}
-              className="w-full h-full object-cover"
-              ref={(el) => {
-                if (participant.local && localVideoRef) {
-                  (localVideoRef as any).current = el;
-                } else if (!participant.local && remoteVideoRef) {
-                  (remoteVideoRef as any).current = el;
-                }
-              }}
-            />
-            <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
-              {participant.user_name || (participant.local ? 'You' : 'Opponent')}
-            </div>
+        {/* Local video */}
+        <div className="relative bg-gray-800 rounded-lg overflow-hidden">
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+            style={{ display: 'none' }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
+            {isJoined ? 'Local Video' : 'Connecting...'}
           </div>
-        ))}
+          <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
+            You
+          </div>
+        </div>
+        
+        {/* Remote video */}
+        <div className="relative bg-gray-800 rounded-lg overflow-hidden">
+          <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+            style={{ display: 'none' }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
+            {participants.length > 1 ? 'Remote Video' : 'Waiting for opponent...'}
+          </div>
+          <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
+            Opponent
+          </div>
+        </div>
       </div>
     </div>
   );

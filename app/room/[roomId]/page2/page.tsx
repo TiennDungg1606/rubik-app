@@ -1481,7 +1481,7 @@ useEffect(() => {
     const savedRoomUrl = sessionStorage.getItem(`dailyRoomUrl_${roomId}`);
     if (savedRoomUrl) {
       setRoomUrl(savedRoomUrl);
-    } else {
+        } else {
       // Fallback: tạo room URL mặc định
       const dailyRoomUrl = `https://rubik-app.daily.co/${roomId}`;
       setRoomUrl(dailyRoomUrl);
