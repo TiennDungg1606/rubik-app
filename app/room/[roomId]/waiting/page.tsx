@@ -239,15 +239,12 @@ export default function WaitingRoom() {
     });
 
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
-
-      
       // Cập nhật currentUser role từ server data
       // Tìm player data dựa trên userId đã gửi lên server
       const playerData = data.players.find(p => {
         // Tìm theo ID hiện tại hoặc theo tên nếu ID chưa match
         const matchById = p.id === currentUser?.id;
         const matchByName = currentUser?.name && p.name === currentUser.name;
-        console.log(`=== DEBUG: Checking player ${p.name} (${p.id}): matchById=${matchById}, matchByName=${matchByName}, currentUser.id=${currentUser?.id}, currentUser.name=${currentUser?.name}`);
         return matchById || matchByName;
       });
       
@@ -271,18 +268,17 @@ export default function WaitingRoom() {
         });
       } else if (currentUser?.id && data.roomCreator === currentUser.id) {
         // Fallback: nếu không tìm thấy playerData nhưng là roomCreator, set role creator và ready
-        console.log('=== DEBUG: Fallback - Setting creator role and ready status ===');
         setCurrentUser(prev => prev ? {
           ...prev,
-          role: 'creator',
+          role: 'creator' as const,
           isReady: true
         } : {
           id: currentUser.id,
           name: currentUser.name,
-          role: 'creator',
+          role: 'creator' as const,
           isReady: true,
           isObserver: false,
-          team: 'team1',
+          team: 'team1' as const,
           position: 1
         });
       }
@@ -414,14 +410,6 @@ export default function WaitingRoom() {
     allPlayers: roomState.players
   });
   
-  // Debug room creator logic
-  console.log('=== DEBUG: Room Creator Logic ===', {
-    currentUserId: currentUser?.id,
-    roomCreator: roomState.roomCreator,
-    isRoomCreator: currentUser?.id === roomState.roomCreator,
-    currentUserType: typeof currentUser?.id,
-    roomCreatorType: typeof roomState.roomCreator
-  });
 
   // Handler để yêu cầu fullscreen khi chạm vào màn hình
   const handleScreenTap = () => {
@@ -607,17 +595,6 @@ export default function WaitingRoom() {
             
             const isCreator = isCreatorByRole || isCreatorByRoomCreator || isCreatorByOrder || isCreatorByFallback;
             
-            console.log('=== DEBUG: Creator check ===', {
-              isCreatorByRole,
-              isCreatorByRoomCreator,
-              isCreatorByOrder,
-              isCreatorByFallback,
-              isCreator,
-              currentUserId: currentUser?.id,
-              roomCreator: roomState.roomCreator,
-              firstPlayerId: roomState.players[0]?.id,
-              playersLength: roomState.players.length
-            });
             
             if (isCreator) {
               return (
@@ -643,7 +620,7 @@ export default function WaitingRoom() {
                       : 'bg-yellow-500 text-white hover:bg-yellow-600'
                   }`}
                 >
-                  {currentUser?.isReady ? ' Sẵn sàng' : ' Chưa sẵn sàng'}
+                  {currentUser?.isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng'}
                 </button>
               );
             } else if (currentUser?.role === 'observer') {
@@ -656,7 +633,6 @@ export default function WaitingRoom() {
               // Fallback khi role chưa được set - kiểm tra thứ tự join
               if (currentUser?.id && roomState.players.length > 0 && 
                   roomState.players[0].id === currentUser.id) {
-                console.log('=== DEBUG: Fallback - User is first player, showing start button ===');
                 return (
                   <button
                     onClick={handleStartGame}
@@ -680,7 +656,7 @@ export default function WaitingRoom() {
                         : 'bg-yellow-500 text-white hover:bg-yellow-600'
                     }`}
                   >
-                    {currentUser?.isReady ? 'Đã sẵn sàng' : 'Chưa sẵn sàng'}
+                    {currentUser?.isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng'} {/* Debug: isReady = {String(currentUser?.isReady)} */}
                   </button>
                 );
               }
