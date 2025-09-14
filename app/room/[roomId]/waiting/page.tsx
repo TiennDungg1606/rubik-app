@@ -15,6 +15,7 @@ interface Player {
   isObserver: boolean;
   team?: 'team1' | 'team2';
   position?: number;
+  role?: 'creator' | 'player' | 'observer';
 }
 
 interface WaitingRoomState {
@@ -329,7 +330,7 @@ export default function WaitingRoom() {
 
   // Kiểm tra điều kiện bắt đầu game
   const canStartGame = () => {
-    if (!currentUser || currentUser.id !== roomState.roomCreator) return false;
+    if (!currentUser || currentUser.role !== 'creator') return false;
     
     const team1Players = roomState.players.filter(p => p.team === 'team1' && !p.isObserver);
     const team2Players = roomState.players.filter(p => p.team === 'team2' && !p.isObserver);
@@ -355,6 +356,15 @@ export default function WaitingRoom() {
     team1Players,
     team2Players,
     allPlayers: roomState.players
+  });
+  
+  // Debug room creator logic
+  console.log('=== DEBUG: Room Creator Logic ===', {
+    currentUserId: currentUser?.id,
+    roomCreator: roomState.roomCreator,
+    isRoomCreator: currentUser?.id === roomState.roomCreator,
+    currentUserType: typeof currentUser?.id,
+    roomCreatorType: typeof roomState.roomCreator
   });
 
   // Handler để yêu cầu fullscreen khi chạm vào màn hình
@@ -497,20 +507,29 @@ export default function WaitingRoom() {
 
         {/* Action Buttons */}
         <div className="flex justify-between items-center">
-          {/* Observer Button - sát bên trái */}
-          <button
-            onClick={handleToggleObserver}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
-              currentUser?.isObserver
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            {currentUser?.isObserver ? ' Đang quan sát' : ' Quan sát'}
-          </button>
+          {/* Observer Button - sát bên trái - chỉ hiển thị cho players */}
+          {currentUser?.role === 'player' && (
+            <button
+              onClick={handleToggleObserver}
+              className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                currentUser?.isObserver
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {currentUser?.isObserver ? ' Đang quan sát' : ' Quan sát'}
+            </button>
+          )}
+          
+          {/* Creator info - chỉ hiển thị cho creator */}
+          {currentUser?.role === 'creator' && (
+            <div className="text-blue-300 font-medium">
+              👑 Bạn là chủ phòng
+            </div>
+          )}
 
           {/* Ready/Start Button - sát bên phải */}
-          {currentUser?.id === roomState.roomCreator ? (
+          {currentUser?.role === 'creator' ? (
             <button
               onClick={handleStartGame}
               disabled={!canStartGame()}
@@ -522,7 +541,7 @@ export default function WaitingRoom() {
             >
                Bắt đầu
             </button>
-          ) : (
+          ) : currentUser?.role === 'player' ? (
             <button
               onClick={handleToggleReady}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
@@ -533,12 +552,21 @@ export default function WaitingRoom() {
             >
               {currentUser?.isReady ? ' Sẵn sàng' : ' Chưa sẵn sàng'}
             </button>
-          )}
+          ) : currentUser?.role === 'observer' ? (
+            <div className="text-gray-400 font-medium">
+              👁️ Bạn đang quan sát
+            </div>
+          ) : null}
+          
+          {/* Debug info */}
+          <div className="text-xs text-gray-400 mt-2">
+            Debug: Role = {currentUser?.role || 'Unknown'} | ID = {currentUser?.id}
+          </div>
         </div>
 
         {/* Status Info */}
         <div className="mt-6 text-center text-sm text-gray-300">
-          {currentUser?.id === roomState.roomCreator ? (
+          {currentUser?.role === 'creator' ? (
             <div>
               Điều kiện bắt đầu: Đội 1 có 2 người sẵn sàng, Đội 2 có 2 người sẵn sàng
               <br />
