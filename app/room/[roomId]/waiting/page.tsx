@@ -269,6 +269,22 @@ export default function WaitingRoom() {
           team: playerData.team,
           position: playerData.position
         });
+      } else if (currentUser?.id && data.roomCreator === currentUser.id) {
+        // Fallback: nếu không tìm thấy playerData nhưng là roomCreator, set role creator và ready
+        console.log('=== DEBUG: Fallback - Setting creator role and ready status ===');
+        setCurrentUser(prev => prev ? {
+          ...prev,
+          role: 'creator',
+          isReady: true
+        } : {
+          id: currentUser.id,
+          name: currentUser.name,
+          role: 'creator',
+          isReady: true,
+          isObserver: false,
+          team: 'team1',
+          position: 1
+        });
       }
       
       setRoomState(data);
