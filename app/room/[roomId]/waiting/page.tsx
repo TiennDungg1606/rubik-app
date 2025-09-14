@@ -184,19 +184,6 @@ export default function WaitingRoom() {
   }, [isMobile, isFullscreen]);
 
   useEffect(() => {
-    // Lấy thông tin user từ sessionStorage
-    const userInfo = sessionStorage.getItem('userInfo');
-    if (userInfo) {
-      const user = JSON.parse(userInfo);
-      const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
-      setCurrentUser({
-        id: user.id || Date.now().toString(),
-        name: userName,
-        isReady: false,
-        isObserver: false
-      });
-    }
-
     // Lấy room URL từ sessionStorage
     const dailyRoomUrl = sessionStorage.getItem(`dailyRoomUrl_${roomId}`);
     if (dailyRoomUrl) {
@@ -205,100 +192,73 @@ export default function WaitingRoom() {
 
     // Kết nối socket
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://rubik-socket-server-production-3b21.up.railway.app';
-    console.log('=== INITIALIZING SOCKET CONNECTION ===');
-    console.log('Socket URL:', socketUrl);
-    console.log('NEXT_PUBLIC_SOCKET_URL:', process.env.NEXT_PUBLIC_SOCKET_URL);
     const newSocket = io(socketUrl);
-    console.log('Socket object created:', newSocket);
-    console.log('Socket connected initially:', newSocket.connected);
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('=== SOCKET CONNECTED ===');
-      console.log('Socket ID:', newSocket.id);
-      console.log('Socket connected:', newSocket.connected);
       setIsConnected(true);
       
-      // Join waiting room - sử dụng user info từ sessionStorage
-      console.log('=== CHECKING SESSION STORAGE ===');
-      const userInfo = sessionStorage.getItem('userInfo');
-      console.log('userInfo from sessionStorage:', userInfo);
-      console.log('userInfo type:', typeof userInfo);
-      console.log('userInfo truthy:', !!userInfo);
+      // Lấy thông tin user từ API thay vì sessionStorage
+      const fetchUserAndJoin = async () => {
+        try {
+          const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
+          const data = await res.json();
+          console.log('=== DEBUG: User data from API ===', data);
+          
+          if (data && data.user) {
+            const user = data.user;
+            const userId = user._id || user.id || Date.now().toString();
+            const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
+            
+            console.log('=== DEBUG: Parsed user data ===', { userId, userName, user });
+            
+            // Cập nhật currentUser state
+            setCurrentUser({
+              id: userId,
+              name: userName,
+              isReady: false,
+              isObserver: false
+            });
+            
+            console.log('=== DEBUG: Emitting join-waiting-room ===', { roomId, userId, userName });
+            newSocket.emit('join-waiting-room', {
+              roomId,
+              userId,
+              userName
+            });
+          } else {
+            console.log('=== DEBUG: No user data from API ===');
+          }
+        } catch (error) {
+          console.error('=== DEBUG: Error fetching user data ===', error);
+        }
+      };
       
-      if (userInfo) {
-        const user = JSON.parse(userInfo);
-        const userId = user.id || Date.now().toString();
-        const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
-        
-        console.log('=== CLIENT SENDING TO SERVER ===');
-        console.log('roomId:', roomId);
-        console.log('userId:', userId);
-        console.log('userName:', userName);
-        console.log('userName type:', typeof userName);
-        console.log('userName length:', userName ? userName.length : 'null/undefined');
-        console.log('User data from sessionStorage:', user);
-        console.log('Full data being sent:', { roomId, userId, userName });
-        
-        // Cập nhật currentUser state
-        setCurrentUser({
-          id: userId,
-          name: userName,
-          isReady: false,
-          isObserver: false
-        });
-        
-        console.log('=== SENDING JOIN WAITING ROOM ===');
-        console.log('Socket connected:', newSocket.connected);
-        console.log('Socket ID:', newSocket.id);
-        console.log('Emitting join-waiting-room event...');
-        newSocket.emit('join-waiting-room', {
-          roomId,
-          userId,
-          userName
-        });
-        console.log('join-waiting-room event emitted successfully');
-      } else {
-        console.log('=== NO USER INFO IN SESSION STORAGE ===');
-        console.log('Cannot join waiting room without user info');
-      }
+      fetchUserAndJoin();
     });
 
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
-      console.log('=== CLIENT RECEIVED WAITING ROOM UPDATE ===');
-      console.log('Full data received:', JSON.stringify(data, null, 2));
-      console.log('Players in data:', data.players?.map(p => ({ id: p.id, name: p.name, team: p.team, position: p.position })));
-      console.log('Players count:', data.players?.length || 0);
-      console.log('Current user:', currentUser);
-      console.log('Team 1 players:', data.players?.filter(p => p.team === 'team1') || []);
-      console.log('Team 2 players:', data.players?.filter(p => p.team === 'team2') || []);
-      console.log('Setting roomState to:', data);
-      console.log('Before setRoomState - roomState.players:', roomState.players);
+      console.log('=== DEBUG: Received waiting-room-updated ===', data);
+      console.log('=== DEBUG: Players in data ===', data.players);
       setRoomState(data);
-      console.log('After setRoomState - data.players:', data.players);
     });
 
     newSocket.on('game-started', (data: { roomId: string, gameMode: string }) => {
-      console.log('Game started, redirecting to room');
       router.push(`/room/${data.roomId}/page2`);
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('=== SOCKET CONNECTION ERROR ===');
-      console.error('Error:', error);
       setIsConnected(false);
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('=== SOCKET DISCONNECTED ===');
-      console.log('Reason:', reason);
       setIsConnected(false);
     });
 
     return () => {
       newSocket.disconnect();
     };
-  }, [roomId, currentUser?.id, currentUser?.name, router]);
+  }, [roomId, router]);
 
   // Set background giống như lobby
   useEffect(() => {
@@ -381,25 +341,21 @@ export default function WaitingRoom() {
   };
 
   // Lấy danh sách players theo team và position
-  console.log('=== FILTERING PLAYERS ===');
-  console.log('roomState.players:', roomState.players);
-  console.log('roomState.players length:', roomState.players?.length);
-  
   const team1Players = roomState.players
     .filter(p => p.team === 'team1')
     .sort((a, b) => (a.position || 0) - (b.position || 0));
   const team2Players = roomState.players
     .filter(p => p.team === 'team2')
     .sort((a, b) => (a.position || 0) - (b.position || 0));
-    
-  console.log('team1Players after filter:', team1Players);
-  console.log('team2Players after filter:', team2Players);
-  
-  // Debug
-  console.log('Render - Current user:', currentUser);
-  console.log('Render - Room state:', roomState);
-  console.log('Render - Team 1 players:', team1Players);
-  console.log('Render - Team 2 players:', team2Players);
+
+  // Debug logs
+  console.log('=== DEBUG: Render state ===', {
+    roomState,
+    currentUser,
+    team1Players,
+    team2Players,
+    allPlayers: roomState.players
+  });
 
   // Handler để yêu cầu fullscreen khi chạm vào màn hình
   const handleScreenTap = () => {
