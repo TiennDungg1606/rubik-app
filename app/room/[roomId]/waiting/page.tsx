@@ -245,8 +245,10 @@ export default function WaitingRoom() {
       // Tìm player data dựa trên userId đã gửi lên server
       const playerData = data.players.find(p => {
         // Tìm theo ID hiện tại hoặc theo tên nếu ID chưa match
-        return p.id === currentUser?.id || 
-               (currentUser?.name && p.name === currentUser.name);
+        const matchById = p.id === currentUser?.id;
+        const matchByName = currentUser?.name && p.name === currentUser.name;
+        console.log(`=== DEBUG: Checking player ${p.name} (${p.id}): matchById=${matchById}, matchByName=${matchByName}, currentUser.id=${currentUser?.id}, currentUser.name=${currentUser?.name}`);
+        return matchById || matchByName;
       });
       
       if (playerData) {
@@ -358,7 +360,11 @@ export default function WaitingRoom() {
 
   // Kiểm tra điều kiện bắt đầu game
   const canStartGame = () => {
-    if (!currentUser || currentUser.role !== 'creator') return false;
+    // Kiểm tra xem có phải creator không (theo role hoặc roomCreator)
+    const isCreator = currentUser?.role === 'creator' || 
+                     (currentUser?.id && roomState.roomCreator === currentUser.id);
+    
+    if (!currentUser || !isCreator) return false;
     
     const team1Players = roomState.players.filter(p => p.team === 'team1' && !p.isObserver);
     const team2Players = roomState.players.filter(p => p.team === 'team2' && !p.isObserver);
@@ -566,60 +572,103 @@ export default function WaitingRoom() {
           )}
 
           {/* Ready/Start Button - sát bên phải */}
-          {currentUser?.role === 'creator' ? (
-            <button
-              onClick={handleStartGame}
-              disabled={!canStartGame()}
-              className={`px-8 py-3 rounded-lg font-medium transition-all ${
-                canStartGame()
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-               Bắt đầu
-            </button>
-          ) : currentUser?.role === 'player' ? (
-            <button
-              onClick={handleToggleReady}
-              className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                currentUser?.isReady
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-yellow-500 text-white hover:bg-yellow-600'
-              }`}
-            >
-              {currentUser?.isReady ? ' Sẵn sàng' : ' Chưa sẵn sàng'}
-            </button>
-          ) : currentUser?.role === 'observer' ? (
-            <div className="text-gray-400 font-medium">
-              👁️ Bạn đang quan sát
-            </div>
-          ) : (
-            // Fallback khi role chưa được set
-            <button
-              onClick={handleToggleReady}
-              className="px-6 py-3 rounded-lg font-medium transition-all bg-yellow-500 text-white hover:bg-yellow-600"
-            >
-              Chưa sẵn sàng
-            </button>
-          )}
+          {(() => {
+            // Kiểm tra xem có phải creator không (theo role hoặc roomCreator)
+            const isCreator = currentUser?.role === 'creator' || 
+                             (currentUser?.id && roomState.roomCreator === currentUser.id);
+            
+            if (isCreator) {
+              return (
+                <button
+                  onClick={handleStartGame}
+                  disabled={!canStartGame()}
+                  className={`px-8 py-3 rounded-lg font-medium transition-all ${
+                    canStartGame()
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                   Bắt đầu
+                </button>
+              );
+            } else if (currentUser?.role === 'player') {
+              return (
+                <button
+                  onClick={handleToggleReady}
+                  className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                    currentUser?.isReady
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                  }`}
+                >
+                  {currentUser?.isReady ? ' Sẵn sàng' : ' Chưa sẵn sàng'}
+                </button>
+              );
+            } else if (currentUser?.role === 'observer') {
+              return (
+                <div className="text-gray-400 font-medium">
+                  👁️ Bạn đang quan sát
+                </div>
+              );
+            } else {
+              // Fallback khi role chưa được set - kiểm tra roomCreator
+              if (currentUser?.id && roomState.roomCreator === currentUser.id) {
+                return (
+                  <button
+                    onClick={handleStartGame}
+                    disabled={!canStartGame()}
+                    className={`px-8 py-3 rounded-lg font-medium transition-all ${
+                      canStartGame()
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                     Bắt đầu
+                  </button>
+                );
+              } else {
+                return (
+                  <button
+                    onClick={handleToggleReady}
+                    className="px-6 py-3 rounded-lg font-medium transition-all bg-yellow-500 text-white hover:bg-yellow-600"
+                  >
+                    Chưa sẵn sàng
+                  </button>
+                );
+              }
+            }
+          })()}
           
-
+          {/* Debug info */}
+          <div className="text-xs text-gray-400 mt-2">
+            Debug: Role = {currentUser?.role || 'Unknown'} | ID = {currentUser?.id} | Name = {currentUser?.name} | RoomCreator = {roomState.roomCreator} | IsCreator = {(() => {
+              const isCreator = currentUser?.role === 'creator' || 
+                               (currentUser?.id && roomState.roomCreator === currentUser.id);
+              return isCreator ? 'Yes' : 'No';
+            })()}
+          </div>
         </div>
 
         {/* Status Info */}
         <div className="mt-6 text-center text-sm text-gray-300">
-          {currentUser?.role === 'creator' ? (
-            <div>
-              Điều kiện bắt đầu: Đội 1 có 2 người sẵn sàng, Đội 2 có 2 người sẵn sàng
-              <br />
-              Hiện tại: Đội 1 ({team1Players.filter(p => !p.isObserver).length}/2), 
-              Đội 2 ({team2Players.filter(p => !p.isObserver).length}/2)
-            </div>
-          ) : (
-            <div>
-              Chờ chủ phòng bắt đầu...
-            </div>
-          )}
+          {(() => {
+            // Kiểm tra xem có phải creator không (theo role hoặc roomCreator)
+            const isCreator = currentUser?.role === 'creator' || 
+                             (currentUser?.id && roomState.roomCreator === currentUser.id);
+            
+            return isCreator ? (
+              <div>
+                Điều kiện bắt đầu: Đội 1 có 2 người sẵn sàng, Đội 2 có 2 người sẵn sàng
+                <br />
+                Hiện tại: Đội 1 ({team1Players.filter(p => !p.isObserver).length}/2), 
+                Đội 2 ({team2Players.filter(p => !p.isObserver).length}/2)
+              </div>
+            ) : (
+              <div>
+                Chờ chủ phòng bắt đầu...
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
