@@ -241,6 +241,23 @@ export default function WaitingRoom() {
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
       console.log('=== DEBUG: Received waiting-room-updated ===', data);
       console.log('=== DEBUG: Players in data ===', data.players);
+      
+      // Cập nhật currentUser role từ server data
+      if (currentUser?.id) {
+        const playerData = data.players.find(p => p.id === currentUser.id);
+        if (playerData) {
+          console.log('=== DEBUG: Updating currentUser role ===', playerData.role);
+          setCurrentUser(prev => prev ? {
+            ...prev,
+            role: playerData.role,
+            isObserver: playerData.isObserver,
+            isReady: playerData.isReady,
+            team: playerData.team,
+            position: playerData.position
+          } : null);
+        }
+      }
+      
       setRoomState(data);
     });
 
@@ -507,8 +524,8 @@ export default function WaitingRoom() {
 
         {/* Action Buttons */}
         <div className="flex justify-between items-center">
-          {/* Observer Button - sát bên trái - chỉ hiển thị cho players */}
-          {currentUser?.role === 'player' && (
+          {/* Observer Button - sát bên trái */}
+          {currentUser?.role === 'player' ? (
             <button
               onClick={handleToggleObserver}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
@@ -519,13 +536,22 @@ export default function WaitingRoom() {
             >
               {currentUser?.isObserver ? ' Đang quan sát' : ' Quan sát'}
             </button>
-          )}
-          
-          {/* Creator info - chỉ hiển thị cho creator */}
-          {currentUser?.role === 'creator' && (
+          ) : currentUser?.role === 'creator' ? (
             <div className="text-blue-300 font-medium">
               👑 Bạn là chủ phòng
             </div>
+          ) : currentUser?.role === 'observer' ? (
+            <div className="text-gray-400 font-medium">
+              👁️ Bạn đang quan sát
+            </div>
+          ) : (
+            // Fallback khi role chưa được set
+            <button
+              onClick={handleToggleObserver}
+              className="px-6 py-3 rounded-lg font-medium transition-all bg-gray-200 text-gray-700 hover:bg-gray-300"
+            >
+              Quan sát
+            </button>
           )}
 
           {/* Ready/Start Button - sát bên phải */}
@@ -556,7 +582,15 @@ export default function WaitingRoom() {
             <div className="text-gray-400 font-medium">
               👁️ Bạn đang quan sát
             </div>
-          ) : null}
+          ) : (
+            // Fallback khi role chưa được set
+            <button
+              onClick={handleToggleReady}
+              className="px-6 py-3 rounded-lg font-medium transition-all bg-yellow-500 text-white hover:bg-yellow-600"
+            >
+              Chưa sẵn sàng
+            </button>
+          )}
           
           {/* Debug info */}
           <div className="text-xs text-gray-400 mt-2">
