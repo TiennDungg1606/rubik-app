@@ -239,35 +239,49 @@ export default function WaitingRoom() {
     });
 
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
+      console.log('=== WAITING ROOM UPDATED ===');
+      console.log('Current user before update:', currentUser);
+      console.log('Server data players:', data.players.map(p => ({ id: p.id, name: p.name, isReady: p.isReady })));
+      
       // Cập nhật currentUser role từ server data
       // Tìm player data dựa trên userId đã gửi lên server
       const playerData = data.players.find(p => {
         // Tìm theo ID hiện tại hoặc theo tên nếu ID chưa match
         const matchById = p.id === currentUser?.id;
         const matchByName = currentUser?.name && p.name === currentUser.name;
+        console.log(`Checking player ${p.name} (${p.id}): matchById=${matchById}, matchByName=${matchByName}`);
         return matchById || matchByName;
       });
       
+      console.log('Found playerData:', playerData);
+      
       if (playerData) {
-        setCurrentUser(prev => prev ? {
-          ...prev,
-          id: playerData.id, // Đảm bảo ID được cập nhật
-          role: playerData.role,
-          isObserver: playerData.isObserver,
-          isReady: playerData.isReady,
-          team: playerData.team,
-          position: playerData.position
-        } : {
-          id: playerData.id,
-          name: playerData.name,
-          isReady: playerData.isReady,
-          isObserver: playerData.isObserver,
-          role: playerData.role,
-          team: playerData.team,
-          position: playerData.position
+        console.log('=== UPDATING CURRENT USER ===');
+        console.log('Player data from server:', playerData);
+        setCurrentUser(prev => {
+          const updated = prev ? {
+            ...prev,
+            id: playerData.id, // Đảm bảo ID được cập nhật
+            role: playerData.role,
+            isObserver: playerData.isObserver,
+            isReady: playerData.isReady,
+            team: playerData.team,
+            position: playerData.position
+          } : {
+            id: playerData.id,
+            name: playerData.name,
+            isReady: playerData.isReady,
+            isObserver: playerData.isObserver,
+            role: playerData.role,
+            team: playerData.team,
+            position: playerData.position
+          };
+          console.log('Updated currentUser:', updated);
+          return updated;
         });
       } else if (currentUser?.id && data.roomCreator === currentUser.id) {
         // Fallback: nếu không tìm thấy playerData nhưng là roomCreator, set role creator và ready
+        console.log('=== FALLBACK: Setting creator role ===');
         setCurrentUser(prev => prev ? {
           ...prev,
           role: 'creator' as const,
@@ -281,9 +295,61 @@ export default function WaitingRoom() {
           team: 'team1' as const,
           position: 1
         });
+      } else {
+        console.log('=== NO PLAYER DATA FOUND ===');
+        console.log('Current user ID:', currentUser?.id);
+        console.log('Room creator:', data.roomCreator);
+        console.log('Available players:', data.players.map(p => ({ id: p.id, name: p.name })));
+        
+        // Fallback: Tìm player theo tên nếu có currentUser.name
+        if (currentUser?.name) {
+          const playerByName = data.players.find(p => p.name === currentUser.name);
+          if (playerByName) {
+            console.log('=== FALLBACK: Found player by name ===');
+            console.log('Player by name:', playerByName);
+            setCurrentUser(prev => prev ? {
+              ...prev,
+              id: playerByName.id,
+              role: playerByName.role,
+              isObserver: playerByName.isObserver,
+              isReady: playerByName.isReady,
+              team: playerByName.team,
+              position: playerByName.position
+            } : {
+              id: playerByName.id,
+              name: playerByName.name,
+              isReady: playerByName.isReady,
+              isObserver: playerByName.isObserver,
+              role: playerByName.role,
+              team: playerByName.team,
+              position: playerByName.position
+            });
+          }
+        }
       }
       
       setRoomState(data);
+      
+      // Fallback cuối cùng: Nếu currentUser vẫn null sau khi cập nhật roomState
+      // Tìm player có tên trùng với user hiện tại (từ user state)
+      if (!currentUser && data.players.length > 0 && user?.firstName && user?.lastName) {
+        const currentUserName = `${user.firstName} ${user.lastName}`.trim();
+        const playerByName = data.players.find(p => p.name === currentUserName);
+        if (playerByName) {
+          console.log('=== FINAL FALLBACK: Setting currentUser by matching name ===');
+          console.log('Looking for name:', currentUserName);
+          console.log('Found player:', playerByName);
+          setCurrentUser({
+            id: playerByName.id,
+            name: playerByName.name,
+            isReady: playerByName.isReady,
+            isObserver: playerByName.isObserver,
+            role: playerByName.role,
+            team: playerByName.team,
+            position: playerByName.position
+          });
+        }
+      }
     });
 
     newSocket.on('game-started', (data: { roomId: string, gameMode: string }) => {
