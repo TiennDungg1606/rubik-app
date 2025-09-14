@@ -350,6 +350,25 @@ export default function WaitingRoom() {
           });
         }
       }
+      
+      // Fallback bổ sung: Nếu vẫn không tìm thấy, tìm theo ID từ user data
+      if (!currentUser && data.players.length > 0 && user?._id) {
+        const playerById = data.players.find(p => p.id === user._id);
+        if (playerById) {
+          console.log('=== ADDITIONAL FALLBACK: Setting currentUser by user._id ===');
+          console.log('Looking for ID:', user._id);
+          console.log('Found player:', playerById);
+          setCurrentUser({
+            id: playerById.id,
+            name: playerById.name,
+            isReady: playerById.isReady,
+            isObserver: playerById.isObserver,
+            role: playerById.role,
+            team: playerById.team,
+            position: playerById.position
+          });
+        }
+      }
     });
 
     newSocket.on('game-started', (data: { roomId: string, gameMode: string }) => {
@@ -476,6 +495,13 @@ export default function WaitingRoom() {
     allPlayers: roomState.players
   });
   
+
+  // Helper function để tìm player hiện tại từ roomState
+  const getCurrentPlayer = () => {
+    if (!user?.firstName || !user?.lastName) return null;
+    const currentUserName = `${user.firstName} ${user.lastName}`.trim();
+    return roomState.players.find(p => p.name === currentUserName);
+  };
 
   // Handler để yêu cầu fullscreen khi chạm vào màn hình
   const handleScreenTap = () => {
@@ -681,12 +707,12 @@ export default function WaitingRoom() {
                 <button
                   onClick={handleToggleReady}
                   className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                    currentUser?.isReady
+                    getCurrentPlayer()?.isReady
                       ? 'bg-green-600 text-white hover:bg-green-700'
                       : 'bg-yellow-500 text-white hover:bg-yellow-600'
                   }`}
                 >
-                  {currentUser?.isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng'}
+                  {getCurrentPlayer()?.isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng'}
                 </button>
               );
             } else if (currentUser?.role === 'observer') {
@@ -717,12 +743,12 @@ export default function WaitingRoom() {
                   <button
                     onClick={handleToggleReady}
                     className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                      currentUser?.isReady 
+                      getCurrentPlayer()?.isReady 
                         ? 'bg-green-500 text-white hover:bg-green-600'
                         : 'bg-yellow-500 text-white hover:bg-yellow-600'
                     }`}
                   >
-                    {currentUser?.isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng'} {/* Debug: isReady = {String(currentUser?.isReady)} */}
+                    {getCurrentPlayer()?.isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng'} 
                   </button>
                 );
               }
