@@ -320,7 +320,6 @@ export default function WaitingRoom() {
       document.body.style.backgroundColor = 'transparent';
     } else {
       // Default background - sử dụng images.jpg
-      document.body.style.backgroundImage = `url('/images.jpg')`;
       document.body.style.backgroundSize = 'cover';
       document.body.style.backgroundPosition = 'center';
       document.body.style.backgroundAttachment = 'fixed';
