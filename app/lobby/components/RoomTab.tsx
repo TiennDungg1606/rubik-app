@@ -22,7 +22,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [activeRooms, setActiveRooms] = useState<string[]>([]);
   const [competingRooms, setCompetingRooms] = useState<string[]>([]);
   // Lưu meta phòng để kiểm tra mật khẩu
-  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string; event?: string; displayName?: string; gameMode?: string }>>({});
+  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string; event?: string; displayName?: string; gameMode?: string; isWaitingRoom?: boolean }>>({});
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -545,10 +545,17 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     {/* Icon thi đấu */}
                     <span className="absolute top-1 right-1 text-yellow-300"></span>
                   </div>
-                  <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
-                  {roomMetas[room] && roomMetas[room].gameMode && (
+                  <div className="text-base text-gray-200">
+                    {roomMetas[room]?.isWaitingRoom ? `Phòng chờ ${room}` : (roomMetas[room]?.displayName || room)}
+                  </div>
+                  {roomMetas[room]?.gameMode && (
                     <div className="text-xs text-gray-400 mt-1">
                       {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
+                    </div>
+                  )}
+                  {roomMetas[room]?.isWaitingRoom && (
+                    <div className="text-xs text-yellow-400 mt-1">
+                      Đang chờ
                     </div>
                   )}
                 </div>
@@ -591,7 +598,10 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   key={room}
                   onClick={() => {
                     const meta = roomMetas[room] || {};
-                    if (meta.password) {
+                    if (meta.isWaitingRoom) {
+                      // Chuyển hướng đến waiting room
+                      window.location.href = `/room/${room}/waiting?roomId=${room}`;
+                    } else if (meta.password) {
                       openPasswordModal(room);
                     } else {
                       window._roomPassword = "";
@@ -600,9 +610,15 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   }}
                   className="flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-xl"
                 >
-                  <div className="w-24 h-24 bg-blue-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
-                    {/* Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx */}
-                    {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
+                  <div className={`w-24 h-24 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative ${
+                    roomMetas[room]?.isWaitingRoom ? 'bg-yellow-800' : 'bg-blue-800'
+                  }`}>
+                    {roomMetas[room]?.isWaitingRoom ? (
+                      // Icon waiting room
+                      <div className="text-4xl">⏳</div>
+                    ) : (
+                      // Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx
+                      roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
                       roomMetas[room].event.includes('2x2') ? (
                         <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
                           {Array.from({ length: 4 }).map((_, i) => (
@@ -704,14 +720,22 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                           <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
                         ))}
                       </div>
+                    )
                     )}
                     {/* Icon chờ người */}
                     <span className="absolute top-1 right-1 text-green-300"></span>
                   </div>
-                  <div className="text-base text-gray-200">{roomMetas[room] && roomMetas[room].displayName ? roomMetas[room].displayName : room}</div>
-                  {roomMetas[room] && roomMetas[room].gameMode && (
+                  <div className="text-base text-gray-200">
+                    {roomMetas[room]?.isWaitingRoom ? `Phòng chờ ${room}` : (roomMetas[room]?.displayName || room)}
+                  </div>
+                  {roomMetas[room]?.gameMode && (
                     <div className="text-xs text-gray-400 mt-1">
                       {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
+                    </div>
+                  )}
+                  {roomMetas[room]?.isWaitingRoom && (
+                    <div className="text-xs text-yellow-400 mt-1">
+                      Đang chờ
                     </div>
                   )}
                 </div>
