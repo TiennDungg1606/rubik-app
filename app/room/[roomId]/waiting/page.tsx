@@ -239,23 +239,34 @@ export default function WaitingRoom() {
     });
 
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
-      console.log('=== DEBUG: Received waiting-room-updated ===', data);
-      console.log('=== DEBUG: Players in data ===', data.players);
+
       
       // Cập nhật currentUser role từ server data
-      if (currentUser?.id) {
-        const playerData = data.players.find(p => p.id === currentUser.id);
-        if (playerData) {
-          console.log('=== DEBUG: Updating currentUser role ===', playerData.role);
-          setCurrentUser(prev => prev ? {
-            ...prev,
-            role: playerData.role,
-            isObserver: playerData.isObserver,
-            isReady: playerData.isReady,
-            team: playerData.team,
-            position: playerData.position
-          } : null);
-        }
+      // Tìm player data dựa trên userId đã gửi lên server
+      const playerData = data.players.find(p => {
+        // Tìm theo ID hiện tại hoặc theo tên nếu ID chưa match
+        return p.id === currentUser?.id || 
+               (currentUser?.name && p.name === currentUser.name);
+      });
+      
+      if (playerData) {
+        setCurrentUser(prev => prev ? {
+          ...prev,
+          id: playerData.id, // Đảm bảo ID được cập nhật
+          role: playerData.role,
+          isObserver: playerData.isObserver,
+          isReady: playerData.isReady,
+          team: playerData.team,
+          position: playerData.position
+        } : {
+          id: playerData.id,
+          name: playerData.name,
+          isReady: playerData.isReady,
+          isObserver: playerData.isObserver,
+          role: playerData.role,
+          team: playerData.team,
+          position: playerData.position
+        });
       }
       
       setRoomState(data);
