@@ -84,7 +84,9 @@ export default function WaitingRoom() {
     }
 
     // Kết nối socket
-    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001');
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://rubik-socket-server-production-3b21.up.railway.app';
+    console.log('Connecting to socket:', socketUrl);
+    const newSocket = io(socketUrl);
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
@@ -132,6 +134,11 @@ export default function WaitingRoom() {
 
     newSocket.on('disconnect', () => {
       console.log('Disconnected from waiting room socket');
+      setIsConnected(false);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
       setIsConnected(false);
     });
 

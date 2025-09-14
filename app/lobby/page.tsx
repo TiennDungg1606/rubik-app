@@ -407,7 +407,7 @@ function LobbyContent() {
       // Không lưu password vào roomPassword_{roomId} khi tạo phòng mới!
     }
 
-    // Nếu là chế độ 2vs2, tạo room trên Daily.co
+    // Nếu là chế độ 2vs2, tạo room trên Daily.co và waiting room
     if (gameMode === '2vs2') {
       try {
         const response = await fetch('/api/daily-room', {
@@ -425,6 +425,23 @@ function LobbyContent() {
         }
       } catch (error) {
         console.error('Error creating Daily.co room:', error);
+      }
+      
+      // Tạo waiting room trên server
+      try {
+        const waitingResponse = await fetch('/api/waiting-room', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId, gameMode, event, displayName })
+        });
+        
+        if (waitingResponse.ok) {
+          console.log('Waiting room created successfully');
+        } else {
+          console.error('Failed to create waiting room:', await waitingResponse.text());
+        }
+      } catch (error) {
+        console.error('Error creating waiting room:', error);
       }
       
       router.push(`/room/${roomId}/waiting?roomId=${roomId}`);
