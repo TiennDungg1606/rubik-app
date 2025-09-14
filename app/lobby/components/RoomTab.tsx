@@ -61,9 +61,11 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     let socket;
     
     async function fetchRooms() {
+      console.log('=== FETCHROOMS CALLED ===');
       try {
         const res = await fetch(`${API_BASE}/active-rooms`);
         const roomObjs = await res.json();
+        console.log('Fetched rooms:', roomObjs);
         if (!Array.isArray(roomObjs)) {
           setActiveRooms([]);
           setCompetingRooms([]);
@@ -109,6 +111,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     // Lắng nghe sự kiện update-active-rooms từ server để reload danh sách phòng ngay lập tức
     socket = io(API_BASE, { transports: ["websocket"] });
     socket.on("update-active-rooms", () => {
+      console.log('=== ROOMTAB RECEIVED UPDATE-ACTIVE-ROOMS ===');
+      console.log('Refreshing rooms list...');
       fetchRooms();
     });
 

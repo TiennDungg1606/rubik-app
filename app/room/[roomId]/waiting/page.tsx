@@ -249,10 +249,14 @@ export default function WaitingRoom() {
       console.log('=== CLIENT RECEIVED WAITING ROOM UPDATE ===');
       console.log('Full data received:', JSON.stringify(data, null, 2));
       console.log('Players in data:', data.players?.map(p => ({ id: p.id, name: p.name, team: p.team, position: p.position })));
+      console.log('Players count:', data.players?.length || 0);
       console.log('Current user:', currentUser);
-      console.log('Team 1 players:', data.players.filter(p => p.team === 'team1'));
-      console.log('Team 2 players:', data.players.filter(p => p.team === 'team2'));
+      console.log('Team 1 players:', data.players?.filter(p => p.team === 'team1') || []);
+      console.log('Team 2 players:', data.players?.filter(p => p.team === 'team2') || []);
+      console.log('Setting roomState to:', data);
+      console.log('Before setRoomState - roomState.players:', roomState.players);
       setRoomState(data);
+      console.log('After setRoomState - data.players:', data.players);
     });
 
     newSocket.on('game-started', (data: { roomId: string, gameMode: string }) => {
@@ -356,12 +360,19 @@ export default function WaitingRoom() {
   };
 
   // Lấy danh sách players theo team và position
+  console.log('=== FILTERING PLAYERS ===');
+  console.log('roomState.players:', roomState.players);
+  console.log('roomState.players length:', roomState.players?.length);
+  
   const team1Players = roomState.players
     .filter(p => p.team === 'team1')
     .sort((a, b) => (a.position || 0) - (b.position || 0));
   const team2Players = roomState.players
     .filter(p => p.team === 'team2')
     .sort((a, b) => (a.position || 0) - (b.position || 0));
+    
+  console.log('team1Players after filter:', team1Players);
+  console.log('team2Players after filter:', team2Players);
   
   // Debug
   console.log('Render - Current user:', currentUser);
@@ -403,14 +414,6 @@ export default function WaitingRoom() {
         </div>
       )}
       
-      {isMobile && !isFullscreen && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-yellow-600 text-white p-3 text-center">
-          <div className="flex items-center justify-center space-x-2">
-            <span className="text-xl">🔍</span>
-            <span className="font-bold">Chạm vào màn hình để vào chế độ toàn màn hình</span>
-          </div>
-        </div>
-      )}
 
       {/* Nút Rời phòng ở góc trên bên trái */}
       <div className="fixed top-4 left-4 z-50 flex flex-row gap-2">
