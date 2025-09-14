@@ -210,7 +210,9 @@ export default function WaitingRoom() {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('Connected to waiting room socket');
+      console.log('=== SOCKET CONNECTED ===');
+      console.log('Socket ID:', newSocket.id);
+      console.log('Socket connected:', newSocket.connected);
       setIsConnected(true);
       
       // Join waiting room - sử dụng user info từ sessionStorage
@@ -264,13 +266,15 @@ export default function WaitingRoom() {
       router.push(`/room/${data.roomId}/page2`);
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('Disconnected from waiting room socket');
+    newSocket.on('connect_error', (error) => {
+      console.error('=== SOCKET CONNECTION ERROR ===');
+      console.error('Error:', error);
       setIsConnected(false);
     });
 
-    newSocket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+    newSocket.on('disconnect', (reason) => {
+      console.log('=== SOCKET DISCONNECTED ===');
+      console.log('Reason:', reason);
       setIsConnected(false);
     });
 
