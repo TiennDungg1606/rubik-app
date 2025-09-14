@@ -220,7 +220,12 @@ export default function WaitingRoom() {
       setIsConnected(true);
       
       // Join waiting room - sử dụng user info từ sessionStorage
+      console.log('=== CHECKING SESSION STORAGE ===');
       const userInfo = sessionStorage.getItem('userInfo');
+      console.log('userInfo from sessionStorage:', userInfo);
+      console.log('userInfo type:', typeof userInfo);
+      console.log('userInfo truthy:', !!userInfo);
+      
       if (userInfo) {
         const user = JSON.parse(userInfo);
         const userId = user.id || Date.now().toString();
@@ -253,6 +258,9 @@ export default function WaitingRoom() {
           userName
         });
         console.log('join-waiting-room event emitted successfully');
+      } else {
+        console.log('=== NO USER INFO IN SESSION STORAGE ===');
+        console.log('Cannot join waiting room without user info');
       }
     });
 
@@ -453,19 +461,6 @@ export default function WaitingRoom() {
           </div>
         </div>
 
-        {/* Video Call Section - Tắt camera ở phòng chờ */}
-        {/* {roomUrl && (
-          <div className="mb-8">
-            <DailyVideoCall
-              roomUrl={roomUrl}
-              camOn={false}
-              micOn={false}
-              localVideoRef={localVideoRef}
-              remoteVideoRef={remoteVideoRef}
-              is2vs2={true}
-            />
-          </div>
-        )} */}
 
         {/* Teams Section */}
         <div className="grid grid-cols-2 gap-8 mb-8">
