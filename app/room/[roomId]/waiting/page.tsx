@@ -68,9 +68,10 @@ export default function WaitingRoom() {
     const userInfo = sessionStorage.getItem('userInfo');
     if (userInfo) {
       const user = JSON.parse(userInfo);
+      const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
       setCurrentUser({
         id: user.id || Date.now().toString(),
-        name: user.displayName || 'Player',
+        name: userName,
         isReady: false,
         isObserver: false
       });
@@ -94,10 +95,24 @@ export default function WaitingRoom() {
       const userInfo = sessionStorage.getItem('userInfo');
       if (userInfo) {
         const user = JSON.parse(userInfo);
+        const userId = user.id || Date.now().toString();
+        const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
+        
+        console.log('Sending to server:', { roomId, userId, userName });
+        console.log('User data from sessionStorage:', user);
+        
+        // Cập nhật currentUser state
+        setCurrentUser({
+          id: userId,
+          name: userName,
+          isReady: false,
+          isObserver: false
+        });
+        
         newSocket.emit('join-waiting-room', {
           roomId,
-          userId: user.id || Date.now().toString(),
-          userName: user.displayName || 'Player'
+          userId,
+          userName
         });
       }
     });
