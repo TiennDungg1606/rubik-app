@@ -36,6 +36,11 @@ export default function WaitingRoom() {
     roomCreator: '',
     gameStarted: false
   });
+
+  // State cho device detection và fullscreen
+  const [isMobile, setIsMobile] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [roomUrl, setRoomUrl] = useState('');
@@ -62,6 +67,121 @@ export default function WaitingRoom() {
     };
     fetchUser();
   }, []);
+
+  // Device detection và orientation check
+  useEffect(() => {
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      const portrait = window.innerHeight > window.innerWidth;
+      setIsPortrait(portrait);
+    }
+    if (typeof window !== 'undefined') {
+      checkDevice();
+      window.addEventListener('resize', checkDevice);
+      window.addEventListener('orientationchange', checkDevice);
+      return () => {
+        window.removeEventListener('resize', checkDevice);
+        window.removeEventListener('orientationchange', checkDevice);
+      };
+    }
+  }, []);
+
+  // Tự động yêu cầu chế độ toàn màn hình khi sử dụng điện thoại
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isMobile) {
+      // Hàm kiểm tra trạng thái toàn màn hình
+      const checkFullscreenStatus = () => {
+        const fullscreenElement = 
+          document.fullscreenElement ||
+          (document as any).webkitFullscreenElement ||
+          (document as any).mozFullScreenElement ||
+          (document as any).msFullscreenElement;
+        
+        const wasFullscreen = isFullscreen;
+        setIsFullscreen(!!fullscreenElement);
+        
+        if (fullscreenElement && !wasFullscreen) {
+          // Vừa vào chế độ toàn màn hình - dừng interval
+          if (interval) {
+            clearInterval(interval);
+            interval = undefined;
+          }
+        } else if (!fullscreenElement && wasFullscreen && isMobile) {
+          // Vừa thoát khỏi chế độ toàn màn hình - khởi động lại interval
+          startInterval();
+          // Và ngay lập tức yêu cầu lại
+          requestFullscreen();
+        } else if (!fullscreenElement && isMobile) {
+          // Không ở chế độ toàn màn hình và đang dùng điện thoại
+          requestFullscreen();
+        }
+      };
+
+      // Hàm yêu cầu chế độ toàn màn hình
+      const requestFullscreen = () => {
+        try {
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+          } else if ((document.documentElement as any).webkitRequestFullscreen) {
+            (document.documentElement as any).webkitRequestFullscreen();
+          } else if ((document.documentElement as any).mozRequestFullScreen) {
+            (document.documentElement as any).mozRequestFullScreen();
+          } else if ((document.documentElement as any).msRequestFullscreen) {
+            (document.documentElement as any).msRequestFullscreen();
+          }
+        } catch (error) {
+          console.log('Fullscreen request failed:', error);
+        }
+      };
+
+      // Kiểm tra trạng thái ban đầu
+      checkFullscreenStatus();
+
+      // Thêm event listeners để theo dõi thay đổi trạng thái toàn màn hình
+      const fullscreenChangeEvents = [
+        'fullscreenchange',
+        'webkitfullscreenchange',
+        'mozfullscreenchange',
+        'MSFullscreenChange'
+      ];
+
+      fullscreenChangeEvents.forEach(event => {
+        document.addEventListener(event, checkFullscreenStatus);
+      });
+
+      // Tự động yêu cầu chế độ toàn màn hình sau 1 giây
+      const initialTimeout = setTimeout(requestFullscreen, 1000);
+
+      // Chỉ kiểm tra định kỳ khi KHÔNG ở chế độ toàn màn hình
+      let interval: NodeJS.Timeout | undefined;
+      
+      const startInterval = () => {
+        if (!interval) {
+          interval = setInterval(() => {
+            checkFullscreenStatus();
+            if (!isFullscreen) {
+              requestFullscreen();
+            }
+          }, 2000);
+        }
+      };
+
+      // Khởi động interval sau 2 giây
+      const intervalTimeout = setTimeout(startInterval, 2000);
+
+      return () => {
+        clearTimeout(initialTimeout);
+        clearTimeout(intervalTimeout);
+        if (interval) {
+          clearInterval(interval);
+        }
+        fullscreenChangeEvents.forEach(event => {
+          document.removeEventListener(event, checkFullscreenStatus);
+        });
+      };
+    }
+  }, [isMobile, isFullscreen]);
 
   useEffect(() => {
     // Lấy thông tin user từ sessionStorage
@@ -100,8 +220,14 @@ export default function WaitingRoom() {
         const userId = user.id || Date.now().toString();
         const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
         
-        console.log('Sending to server:', { roomId, userId, userName });
+        console.log('=== CLIENT SENDING TO SERVER ===');
+        console.log('roomId:', roomId);
+        console.log('userId:', userId);
+        console.log('userName:', userName);
+        console.log('userName type:', typeof userName);
+        console.log('userName length:', userName ? userName.length : 'null/undefined');
         console.log('User data from sessionStorage:', user);
+        console.log('Full data being sent:', { roomId, userId, userName });
         
         // Cập nhật currentUser state
         setCurrentUser({
@@ -120,7 +246,9 @@ export default function WaitingRoom() {
     });
 
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
-      console.log('Waiting room updated:', data);
+      console.log('=== CLIENT RECEIVED WAITING ROOM UPDATE ===');
+      console.log('Full data received:', JSON.stringify(data, null, 2));
+      console.log('Players in data:', data.players?.map(p => ({ id: p.id, name: p.name, team: p.team, position: p.position })));
       console.log('Current user:', currentUser);
       console.log('Team 1 players:', data.players.filter(p => p.team === 'team1'));
       console.log('Team 2 players:', data.players.filter(p => p.team === 'team2'));
@@ -241,8 +369,49 @@ export default function WaitingRoom() {
   console.log('Render - Team 1 players:', team1Players);
   console.log('Render - Team 2 players:', team2Players);
 
+  // Handler để yêu cầu fullscreen khi chạm vào màn hình
+  const handleScreenTap = () => {
+    if (isMobile && !isFullscreen) {
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen();
+        } else if ((document.documentElement as any).webkitRequestFullscreen) {
+          (document.documentElement as any).webkitRequestFullscreen();
+        } else if ((document.documentElement as any).mozRequestFullScreen) {
+          (document.documentElement as any).mozRequestFullScreen();
+        } else if ((document.documentElement as any).msRequestFullscreen) {
+          (document.documentElement as any).msRequestFullscreen();
+        }
+      } catch (error) {
+        console.log('Fullscreen request failed:', error);
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 relative"
+      onClick={handleScreenTap}
+    >
+      {/* Mobile và Portrait Mode Warnings */}
+      {isMobile && isPortrait && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white p-4 text-center">
+          <div className="flex items-center justify-center space-x-2">
+            <span className="text-2xl">📱</span>
+            <span className="font-bold">Vui lòng xoay ngang màn hình để có trải nghiệm tốt nhất!</span>
+          </div>
+        </div>
+      )}
+      
+      {isMobile && !isFullscreen && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-yellow-600 text-white p-3 text-center">
+          <div className="flex items-center justify-center space-x-2">
+            <span className="text-xl">🔍</span>
+            <span className="font-bold">Chạm vào màn hình để vào chế độ toàn màn hình</span>
+          </div>
+        </div>
+      )}
+
       {/* Nút Rời phòng ở góc trên bên trái */}
       <div className="fixed top-4 left-4 z-50 flex flex-row gap-2">
         <button

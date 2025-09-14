@@ -542,8 +542,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                         ))}
                       </div>
                     )}
-                    {/* Icon thi đấu */}
-                    <span className="absolute top-1 right-1 text-yellow-300"></span>
+                    {/* Icon indicator */}
+                    {roomMetas[room]?.isWaitingRoom ? (
+                      <span className="absolute top-1 right-1 text-yellow-300">⏳</span>
+                    ) : (
+                      <span className="absolute top-1 right-1 text-yellow-300"></span>
+                    )}
                   </div>
                   <div className="text-base text-gray-200">
                     {roomMetas[room]?.isWaitingRoom ? `Phòng chờ ${room}` : (roomMetas[room]?.displayName || room)}
@@ -613,12 +617,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   <div className={`w-24 h-24 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative ${
                     roomMetas[room]?.isWaitingRoom ? 'bg-yellow-800' : 'bg-blue-800'
                   }`}>
-                    {roomMetas[room]?.isWaitingRoom ? (
-                      // Icon waiting room
-                      <div className="text-4xl">⏳</div>
-                    ) : (
-                      // Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx
-                      roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
+                    {/* Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx - áp dụng cho cả waiting room và phòng thường */}
+                    {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
                       roomMetas[room].event.includes('2x2') ? (
                         <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
                           {Array.from({ length: 4 }).map((_, i) => (
@@ -720,13 +720,16 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                           <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
                         ))}
                       </div>
-                    )
                     )}
-                    {/* Icon chờ người */}
-                    <span className="absolute top-1 right-1 text-green-300"></span>
+                    {/* Icon indicator */}
+                    {roomMetas[room]?.isWaitingRoom ? (
+                      <span className="absolute top-1 right-1 text-yellow-300">⏳</span>
+                    ) : (
+                      <span className="absolute top-1 right-1 text-green-300"></span>
+                    )}
                   </div>
                   <div className="text-base text-gray-200">
-                    {roomMetas[room]?.isWaitingRoom ? `Phòng chờ ${room}` : (roomMetas[room]?.displayName || room)}
+                    {roomMetas[room]?.isWaitingRoom ? `${room}` : (roomMetas[room]?.displayName || room)}
                   </div>
                   {roomMetas[room]?.gameMode && (
                     <div className="text-xs text-gray-400 mt-1">
