@@ -273,11 +273,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 onClick={() => setModalGameMode('1vs1')}
               >1vs1</button>
               <button
-                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors opacity-50 cursor-not-allowed`}
-                disabled
-                onClick={(e) => e.preventDefault()}
-                title="Chế độ 2vs2 đang được phát triển"
-              >2vs2 (Sắp ra mắt)</button>
+                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalGameMode === '2vs2' ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                onClick={() => setModalGameMode('2vs2')}
+              >2vs2</button>
             </div>
             {/* Cột 3: Nhập tên phòng, mật khẩu, xác nhận */}
             <div className="flex-1 px-4 flex flex-col justify-between">

@@ -34,3 +34,4 @@ DAILY_API_KEY_2=your_daily_api_key_2_here
 - Chế độ 1vs1 vẫn sử dụng Stringee (không cần cấu hình gì thêm)
 - Chế độ 2vs2 sử dụng Daily.co (cần cấu hình API key)
 - Room được tạo tự động trên Daily.co khi chọn chế độ 2vs2
+

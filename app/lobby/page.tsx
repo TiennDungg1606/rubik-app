@@ -427,7 +427,7 @@ function LobbyContent() {
         console.error('Error creating Daily.co room:', error);
       }
       
-      router.push(`/room/${roomId}/page2`);
+      router.push(`/room/${roomId}/waiting?roomId=${roomId}`);
     } else {
       router.push(`/room/${roomId}`);
     }
@@ -477,7 +477,7 @@ function LobbyContent() {
             console.error('Error creating Daily.co room for join:', error);
           }
           
-          router.push(`/room/${code}/page2`);
+          router.push(`/room/${code}/waiting?roomId=${code}`);
           return;
         }
       }
