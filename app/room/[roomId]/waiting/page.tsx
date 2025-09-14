@@ -205,8 +205,12 @@ export default function WaitingRoom() {
 
     // Kết nối socket
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://rubik-socket-server-production-3b21.up.railway.app';
-    console.log('Connecting to socket:', socketUrl);
+    console.log('=== INITIALIZING SOCKET CONNECTION ===');
+    console.log('Socket URL:', socketUrl);
+    console.log('NEXT_PUBLIC_SOCKET_URL:', process.env.NEXT_PUBLIC_SOCKET_URL);
     const newSocket = io(socketUrl);
+    console.log('Socket object created:', newSocket);
+    console.log('Socket connected initially:', newSocket.connected);
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
@@ -239,11 +243,16 @@ export default function WaitingRoom() {
           isObserver: false
         });
         
+        console.log('=== SENDING JOIN WAITING ROOM ===');
+        console.log('Socket connected:', newSocket.connected);
+        console.log('Socket ID:', newSocket.id);
+        console.log('Emitting join-waiting-room event...');
         newSocket.emit('join-waiting-room', {
           roomId,
           userId,
           userName
         });
+        console.log('join-waiting-room event emitted successfully');
       }
     });
 
