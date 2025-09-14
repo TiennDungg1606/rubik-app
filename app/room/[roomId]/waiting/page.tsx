@@ -77,12 +77,16 @@ export default function WaitingRoom() {
   }, []);
 
   // Device detection và orientation check
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
+  
   useEffect(() => {
     function checkDevice() {
       const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
       setIsMobile(mobile);
       const portrait = window.innerHeight > window.innerWidth;
       setIsPortrait(portrait);
+      // Điều chỉnh logic mobile landscape để phù hợp với điện thoại hiện đại
+      setIsMobileLandscape(mobile && !portrait && window.innerWidth < 1200);
     }
     if (typeof window !== 'undefined') {
       checkDevice();
@@ -811,21 +815,22 @@ export default function WaitingRoom() {
           style={{ backdropFilter: 'blur(2px)' }}
         >
           <div
-            className="bg-gray-900 rounded-2xl pt-6 px-6 w-[400px] max-w-[95vw] h-[520px] border-4 border-blue-400 relative flex flex-col modal-content"
-            style={{ overflow: 'hidden' }}
+            className={`${isMobileLandscape ? "bg-gray-900 rounded pt-2 px-2 w-[90vw] max-w-[260px] h-[320px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl pt-6 px-6 w-[400px] max-w-[95vw] h-[520px] border-4 border-blue-400 relative flex flex-col"} modal-content`}
+            style={isMobileLandscape ? { fontSize: 10, overflow: 'hidden' } : { overflow: 'hidden' }}
           >
             <button
               onClick={() => setShowChat(false)}
-              className="absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold transition-all duration-200 hover:scale-105 active:scale-95"
+              className={`${isMobileLandscape ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"} transition-all duration-200 hover:scale-105 active:scale-95`}
+              style={isMobileLandscape ? { minWidth: 0, minHeight: 0 } : {}}
               type="button"
             >Đóng</button>
-            <div className="text-xl font-bold text-blue-300 mb-3 text-center">
+            <div className={isMobileLandscape ? "text-[11px] font-bold text-blue-300 mb-1 text-center" : "text-xl font-bold text-blue-300 mb-3 text-center"}>
               Chat phòng
             </div>
             <div
               ref={chatListRef}
-              className="flex-1 overflow-y-auto"
-              style={{ maxHeight: 350 }}
+              className={isMobileLandscape ? "flex-1 overflow-y-auto" : "flex-1 overflow-y-auto"}
+              style={isMobileLandscape ? { maxHeight: 230 } : { maxHeight: 350 }}
             >
               {chatMessages.length === 0 && (
                 <div className="text-gray-400 text-center mt-4">Chưa có tin nhắn nào</div>
@@ -835,12 +840,12 @@ export default function WaitingRoom() {
                   key={idx}
                   className={`${
                     msg.from === 'me'
-                      ? "flex justify-end mb-2"
-                      : "flex justify-start mb-2"
+                      ? (isMobileLandscape ? "flex justify-end mb-1" : "flex justify-end mb-2")
+                      : (isMobileLandscape ? "flex justify-start mb-1" : "flex justify-start mb-2")
                   } chat-message ${idx === chatMessages.length - 1 ? 'new-message' : ''}`}
                 >
                   <div className="flex flex-col max-w-[70%]">
-                    <div className={`text-xs text-gray-400 mb-1 ${
+                    <div className={`${isMobileLandscape ? "text-[8px]" : "text-xs"} text-gray-400 mb-1 ${
                       msg.from === 'me' ? 'text-right' : 'text-left'
                     }`}>
                       {msg.userName || (msg.from === 'me' ? 'Bạn' : 'Người khác')}
@@ -848,8 +853,8 @@ export default function WaitingRoom() {
                     <div
                       className={`${
                         msg.from === 'me'
-                          ? "bg-blue-500 text-white px-3 py-2 rounded-lg text-base"
-                          : "bg-gray-700 text-white px-3 py-2 rounded-lg text-base"
+                          ? (isMobileLandscape ? "bg-blue-500 text-white px-2 py-1 rounded-lg text-[10px]" : "bg-blue-500 text-white px-3 py-2 rounded-lg text-base")
+                          : (isMobileLandscape ? "bg-gray-700 text-white px-2 py-1 rounded-lg text-[10px]" : "bg-gray-700 text-white px-3 py-2 rounded-lg text-base")
                       } chat-bubble`}
                       style={{ wordBreak: 'break-word' }}
                     >
@@ -860,12 +865,12 @@ export default function WaitingRoom() {
               ))}
             </div>
             <form
-              className="flex flex-row items-center gap-2"
+              className={isMobileLandscape ? "flex flex-row items-center gap-1" : "flex flex-row items-center gap-2"}
               style={{ 
                 position: 'absolute', 
-                left: '24px', 
-                right: '24px', 
-                bottom: '24px' 
+                left: isMobileLandscape ? '8px' : '24px', 
+                right: isMobileLandscape ? '8px' : '24px', 
+                bottom: isMobileLandscape ? '8px' : '24px' 
               }}
               onSubmit={e => {
                 e.preventDefault();
@@ -884,19 +889,19 @@ export default function WaitingRoom() {
                 type="text"
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg bg-gray-800 text-white text-base border border-gray-600"
+                className={isMobileLandscape ? "flex-1 px-1 py-1 rounded bg-gray-800 text-white text-[10px] border border-gray-600" : "flex-1 px-3 py-2 rounded-lg bg-gray-800 text-white text-base border border-gray-600"}
                 placeholder="Nhập tin nhắn..."
                 autoFocus
               />
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
-                style={{ minWidth: 40, minHeight: 40, padding: 0 }}
+                className={`${isMobileLandscape ? "px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold flex items-center justify-center" : "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold flex items-center justify-center"} transition-all duration-200 hover:scale-105 active:scale-95`}
+                style={{ minWidth: isMobileLandscape ? 28 : 40, minHeight: isMobileLandscape ? 28 : 40, padding: 0 }}
                 aria-label="Gửi"
                 title="Gửi"
               >
                 {/* Icon máy bay giấy */}
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width={22} height={22} style={{ display: 'block' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width={isMobileLandscape ? 16 : 22} height={isMobileLandscape ? 16 : 22} style={{ display: 'block' }}>
                   <path d="M2 21L23 12L2 3L5 12L2 21Z" fill="white"/>
                 </svg>
               </button>
