@@ -360,9 +360,16 @@ export default function WaitingRoom() {
 
   // Kiểm tra điều kiện bắt đầu game
   const canStartGame = () => {
-    // Kiểm tra xem có phải creator không (theo role hoặc roomCreator)
-    const isCreator = currentUser?.role === 'creator' || 
-                     (currentUser?.id && roomState.roomCreator === currentUser.id);
+    // Kiểm tra xem có phải creator không (theo role, roomCreator, hoặc thứ tự join)
+    const isCreatorByRole = currentUser?.role === 'creator';
+    const isCreatorByRoomCreator = currentUser?.id && roomState.roomCreator === currentUser.id;
+    const isCreatorByOrder = currentUser?.id && roomState.players.length > 0 && 
+                           roomState.players[0].id === currentUser.id;
+    
+    // Fallback: nếu không có roomCreator và không có players, coi như creator
+    const isCreatorByFallback = currentUser?.id && !roomState.roomCreator && roomState.players.length === 0;
+    
+    const isCreator = isCreatorByRole || isCreatorByRoomCreator || isCreatorByOrder || isCreatorByFallback;
     
     if (!currentUser || !isCreator) return false;
     
@@ -573,9 +580,28 @@ export default function WaitingRoom() {
 
           {/* Ready/Start Button - sát bên phải */}
           {(() => {
-            // Kiểm tra xem có phải creator không (theo role hoặc roomCreator)
-            const isCreator = currentUser?.role === 'creator' || 
-                             (currentUser?.id && roomState.roomCreator === currentUser.id);
+            // Kiểm tra xem có phải creator không (theo role, roomCreator, hoặc thứ tự join)
+            const isCreatorByRole = currentUser?.role === 'creator';
+            const isCreatorByRoomCreator = currentUser?.id && roomState.roomCreator === currentUser.id;
+            const isCreatorByOrder = currentUser?.id && roomState.players.length > 0 && 
+                                   roomState.players[0].id === currentUser.id;
+            
+            // Fallback: nếu không có roomCreator và không có players, coi như creator
+            const isCreatorByFallback = currentUser?.id && !roomState.roomCreator && roomState.players.length === 0;
+            
+            const isCreator = isCreatorByRole || isCreatorByRoomCreator || isCreatorByOrder || isCreatorByFallback;
+            
+            console.log('=== DEBUG: Creator check ===', {
+              isCreatorByRole,
+              isCreatorByRoomCreator,
+              isCreatorByOrder,
+              isCreatorByFallback,
+              isCreator,
+              currentUserId: currentUser?.id,
+              roomCreator: roomState.roomCreator,
+              firstPlayerId: roomState.players[0]?.id,
+              playersLength: roomState.players.length
+            });
             
             if (isCreator) {
               return (
@@ -611,8 +637,10 @@ export default function WaitingRoom() {
                 </div>
               );
             } else {
-              // Fallback khi role chưa được set - kiểm tra roomCreator
-              if (currentUser?.id && roomState.roomCreator === currentUser.id) {
+              // Fallback khi role chưa được set - kiểm tra thứ tự join
+              if (currentUser?.id && roomState.players.length > 0 && 
+                  roomState.players[0].id === currentUser.id) {
+                console.log('=== DEBUG: Fallback - User is first player, showing start button ===');
                 return (
                   <button
                     onClick={handleStartGame}
@@ -641,9 +669,15 @@ export default function WaitingRoom() {
           
           {/* Debug info */}
           <div className="text-xs text-gray-400 mt-2">
-            Debug: Role = {currentUser?.role || 'Unknown'} | ID = {currentUser?.id} | Name = {currentUser?.name} | RoomCreator = {roomState.roomCreator} | IsCreator = {(() => {
-              const isCreator = currentUser?.role === 'creator' || 
-                               (currentUser?.id && roomState.roomCreator === currentUser.id);
+            Debug: Role = {currentUser?.role || 'Unknown'} | ID = {currentUser?.id} | Name = {currentUser?.name} | RoomCreator = {roomState.roomCreator || 'Empty'} | FirstPlayer = {roomState.players[0]?.id || 'None'} | IsCreator = {(() => {
+              const isCreatorByRole = currentUser?.role === 'creator';
+              const isCreatorByRoomCreator = currentUser?.id && roomState.roomCreator === currentUser.id;
+              const isCreatorByOrder = currentUser?.id && roomState.players.length > 0 && 
+                                     roomState.players[0].id === currentUser.id;
+              // Fallback: nếu không có roomCreator và không có players, coi như creator
+            const isCreatorByFallback = currentUser?.id && !roomState.roomCreator && roomState.players.length === 0;
+            
+            const isCreator = isCreatorByRole || isCreatorByRoomCreator || isCreatorByOrder || isCreatorByFallback;
               return isCreator ? 'Yes' : 'No';
             })()}
           </div>
@@ -652,9 +686,16 @@ export default function WaitingRoom() {
         {/* Status Info */}
         <div className="mt-6 text-center text-sm text-gray-300">
           {(() => {
-            // Kiểm tra xem có phải creator không (theo role hoặc roomCreator)
-            const isCreator = currentUser?.role === 'creator' || 
-                             (currentUser?.id && roomState.roomCreator === currentUser.id);
+            // Kiểm tra xem có phải creator không (theo role, roomCreator, hoặc thứ tự join)
+            const isCreatorByRole = currentUser?.role === 'creator';
+            const isCreatorByRoomCreator = currentUser?.id && roomState.roomCreator === currentUser.id;
+            const isCreatorByOrder = currentUser?.id && roomState.players.length > 0 && 
+                                   roomState.players[0].id === currentUser.id;
+            
+            // Fallback: nếu không có roomCreator và không có players, coi như creator
+            const isCreatorByFallback = currentUser?.id && !roomState.roomCreator && roomState.players.length === 0;
+            
+            const isCreator = isCreatorByRole || isCreatorByRoomCreator || isCreatorByOrder || isCreatorByFallback;
             
             return isCreator ? (
               <div>
