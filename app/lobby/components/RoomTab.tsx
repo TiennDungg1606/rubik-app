@@ -71,15 +71,23 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         }
         const active: string[] = [];
         const competing: string[] = [];
-        const metaMap: Record<string, { password?: string }> = {};
+        const metaMap: Record<string, { password?: string; gameMode?: string; isWaitingRoom?: boolean }> = {};
         for (const roomObj of roomObjs) {
           const roomId = typeof roomObj === 'string' ? roomObj : roomObj.roomId;
           const meta = typeof roomObj === 'object' && roomObj.meta ? roomObj.meta : {};
           const usersCount = typeof roomObj === 'object' && typeof roomObj.usersCount === 'number' ? roomObj.usersCount : undefined;
+          const isWaitingRoom = typeof roomObj === 'object' && roomObj.isWaitingRoom === true;
           if (!roomId) continue;
-          metaMap[roomId] = meta;
-          if (usersCount === 1) active.push(roomId);
-          else if (usersCount === 2) competing.push(roomId);
+          metaMap[roomId] = { ...meta, isWaitingRoom };
+          
+          if (isWaitingRoom) {
+            // Waiting rooms luôn hiển thị trong active rooms
+            active.push(roomId);
+          } else if (usersCount === 1) {
+            active.push(roomId);
+          } else if (usersCount === 2) {
+            competing.push(roomId);
+          }
         }
         setRoomMetas(metaMap);
         setActiveRooms(active);

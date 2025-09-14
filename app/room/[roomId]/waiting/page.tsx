@@ -14,6 +14,7 @@ interface Player {
   isReady: boolean;
   isObserver: boolean;
   team?: 'team1' | 'team2';
+  position?: number;
 }
 
 interface WaitingRoomState {
@@ -204,9 +205,13 @@ export default function WaitingRoom() {
            team2Players.every(p => p.isReady);
   };
 
-  // Lấy danh sách players theo team
-  const team1Players = roomState.players.filter(p => p.team === 'team1');
-  const team2Players = roomState.players.filter(p => p.team === 'team2');
+  // Lấy danh sách players theo team và position
+  const team1Players = roomState.players
+    .filter(p => p.team === 'team1')
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
+  const team2Players = roomState.players
+    .filter(p => p.team === 'team2')
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
   
   // Debug
   console.log('Render - Current user:', currentUser);
@@ -241,19 +246,19 @@ export default function WaitingRoom() {
           </div>
         </div>
 
-        {/* Video Call Section */}
-        {roomUrl && (
+        {/* Video Call Section - Tắt camera ở phòng chờ */}
+        {/* {roomUrl && (
           <div className="mb-8">
             <DailyVideoCall
               roomUrl={roomUrl}
-              camOn={true}
-              micOn={true}
+              camOn={false}
+              micOn={false}
               localVideoRef={localVideoRef}
               remoteVideoRef={remoteVideoRef}
               is2vs2={true}
             />
           </div>
-        )}
+        )} */}
 
         {/* Teams Section */}
         <div className="grid grid-cols-2 gap-8 mb-8">
@@ -261,17 +266,17 @@ export default function WaitingRoom() {
           <div className="bg-blue-500/20 rounded-xl p-6 border border-blue-400/30">
             <h3 className="text-xl font-bold text-blue-200 mb-4 text-center">Đội 1</h3>
             <div className="space-y-3">
-              {Array.from({ length: 3 }, (_, index) => {
-                const player = team1Players[index];
+              {Array.from({ length: 2 }, (_, index) => {
+                const player = team1Players.find(p => p.position === index + 1);
                 return (
                   <div
                     key={index}
                     className={`p-3 rounded-lg border-2 transition-all ${
                       player 
                         ? player.isReady 
-                          ? 'border-green-500 bg-green-50' 
-                          : 'border-yellow-500 bg-yellow-50'
-                        : 'border-gray-300 bg-gray-100'
+                          ? 'border-green-500 bg-green-500/20' 
+                          : 'border-yellow-500 bg-yellow-500/20'
+                        : 'border-gray-300 bg-gray-500/20'
                     }`}
                   >
                     {player ? (
@@ -282,9 +287,6 @@ export default function WaitingRoom() {
                             <span className="text-green-300 text-sm"> Sẵn sàng</span>
                           ) : (
                             <span className="text-yellow-300 text-sm"> Chưa sẵn sàng</span>
-                          )}
-                          {player.isObserver && (
-                            <span className="text-blue-300 text-sm"> Quan sát</span>
                           )}
                         </div>
                       </div>
@@ -301,17 +303,17 @@ export default function WaitingRoom() {
           <div className="bg-red-500/20 rounded-xl p-6 border border-red-400/30">
             <h3 className="text-xl font-bold text-red-200 mb-4 text-center">Đội 2</h3>
             <div className="space-y-3">
-              {Array.from({ length: 3 }, (_, index) => {
-                const player = team2Players[index];
+              {Array.from({ length: 2 }, (_, index) => {
+                const player = team2Players.find(p => p.position === index + 1);
                 return (
                   <div
                     key={index}
                     className={`p-3 rounded-lg border-2 transition-all ${
                       player 
                         ? player.isReady 
-                          ? 'border-green-500 bg-green-50' 
-                          : 'border-yellow-500 bg-yellow-50'
-                        : 'border-gray-300 bg-gray-100'
+                          ? 'border-green-500 bg-green-500/20' 
+                          : 'border-yellow-500 bg-yellow-500/20'
+                        : 'border-gray-300 bg-gray-500/20'
                     }`}
                   >
                     {player ? (
@@ -322,9 +324,6 @@ export default function WaitingRoom() {
                             <span className="text-green-300 text-sm"> Sẵn sàng</span>
                           ) : (
                             <span className="text-yellow-300 text-sm"> Chưa sẵn sàng</span>
-                          )}
-                          {player.isObserver && (
-                            <span className="text-blue-300 text-sm"> Quan sát</span>
                           )}
                         </div>
                       </div>
