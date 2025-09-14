@@ -592,10 +592,7 @@ export default function WaitingRoom() {
             </button>
           )}
           
-          {/* Debug info */}
-          <div className="text-xs text-gray-400 mt-2">
-            Debug: Role = {currentUser?.role || 'Unknown'} | ID = {currentUser?.id}
-          </div>
+
         </div>
 
         {/* Status Info */}
