@@ -1,5 +1,13 @@
 'use client';
 
+// Khai báo window._roomPassword và _roomDisplayName để tránh lỗi TS
+declare global {
+  interface Window { 
+    _roomPassword?: string;
+    _roomDisplayName?: string;
+  }
+}
+
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { io } from 'socket.io-client';
@@ -236,7 +244,9 @@ export default function WaitingRoom() {
             newSocket.emit('join-waiting-room', {
               roomId,
               userId,
-              userName
+              userName,
+              displayName: window._roomDisplayName || roomId,
+              password: window._roomPassword || null
             });
           } else {
             console.log('=== DEBUG: No user data from API ===');
@@ -396,18 +406,16 @@ export default function WaitingRoom() {
 
     // Chat handlers
     newSocket.on('chat', (data: { from: string; userName: string; message: string; userId: string }) => {
-      if (data.userId !== user?._id) {
-        // Tin nhắn từ người khác
-        setChatMessages(msgs => [...msgs, { from: 'opponent', text: data.message, userName: data.userName }]);
-        setHasNewChat(true);
-        
-        // Auto scroll to bottom
-        setTimeout(() => {
-          if (chatListRef.current) {
-            chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
-          }
-        }, 100);
-      }
+      // Tin nhắn từ người khác (server đã không gửi cho chính người gửi)
+      setChatMessages(msgs => [...msgs, { from: 'opponent', text: data.message, userName: data.userName }]);
+      setHasNewChat(true);
+      
+      // Auto scroll to bottom
+      setTimeout(() => {
+        if (chatListRef.current) {
+          chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+        }
+      }, 100);
     });
 
     return () => {

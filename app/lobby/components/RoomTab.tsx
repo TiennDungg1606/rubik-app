@@ -1,6 +1,9 @@
-// Khai báo window._roomPassword để tránh lỗi TS
+// Khai báo window._roomPassword và _roomDisplayName để tránh lỗi TS
 declare global {
-  interface Window { _roomPassword?: string }
+  interface Window { 
+    _roomPassword?: string;
+    _roomDisplayName?: string;
+  }
 }
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
@@ -30,6 +33,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordModalRoomId, setPasswordModalRoomId] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
+  const [passwordModalError, setPasswordModalError] = useState("");
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
     if (showCreateModal || showPasswordModal) {
@@ -168,14 +172,30 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setShowPasswordModal(false);
       setPasswordModalRoomId("");
       setPasswordInput("");
+      setPasswordModalError("");
     }, 200);
   }
 
   function handlePasswordConfirm() {
     if (!passwordModalRoomId) return;
+    
+    // Kiểm tra mật khẩu
+    const meta = roomMetas[passwordModalRoomId] || {};
+    if (meta.password && meta.password !== passwordInput) {
+      setPasswordModalError("Mật khẩu không đúng.");
+      return;
+    }
+    
+    setPasswordModalError("");
     window._roomPassword = passwordInput;
     closePasswordModal();
-    handleJoinRoom(passwordModalRoomId);
+    
+    // Nếu là waiting room, chuyển hướng trực tiếp
+    if (meta.isWaitingRoom) {
+      window.location.href = `/room/${passwordModalRoomId}/waiting?roomId=${passwordModalRoomId}`;
+    } else {
+      handleJoinRoom(passwordModalRoomId);
+    }
   }
 
   function handleModalConfirm() {
@@ -374,6 +394,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 }}
                 autoFocus
               />
+              {passwordModalError && (
+                <div className="text-red-400 text-sm mt-2">{passwordModalError}</div>
+              )}
             </div>
             <div className="flex gap-3">
               <button
@@ -607,8 +630,13 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   onClick={() => {
                     const meta = roomMetas[room] || {};
                     if (meta.isWaitingRoom) {
-                      // Chuyển hướng đến waiting room
-                      window.location.href = `/room/${room}/waiting?roomId=${room}`;
+                      // Kiểm tra mật khẩu cho waiting room
+                      if (meta.password) {
+                        openPasswordModal(room);
+                      } else {
+                        // Chuyển hướng đến waiting room
+                        window.location.href = `/room/${room}/waiting?roomId=${room}`;
+                      }
                     } else if (meta.password) {
                       openPasswordModal(room);
                     } else {
@@ -733,7 +761,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     )}
                   </div>
                   <div className="text-base text-gray-200">
-                    {roomMetas[room]?.isWaitingRoom ? `${room}` : (roomMetas[room]?.displayName || room)}
+                    {roomMetas[room]?.displayName || room}
                   </div>
                   {roomMetas[room]?.gameMode && (
                     <div className="text-xs text-gray-400 mt-1">
