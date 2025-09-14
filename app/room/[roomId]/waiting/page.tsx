@@ -418,29 +418,38 @@ export default function WaitingRoom() {
   }, [customBg]);
 
   const handleToggleReady = () => {
-    if (!socket || !currentUser) return;
+    if (!socket) return;
+    
+    const currentPlayer = getCurrentPlayer();
+    if (!currentPlayer) return;
     
     socket.emit('toggle-ready', {
       roomId,
-      userId: currentUser.id
+      userId: currentPlayer.id
     });
   };
 
   const handleToggleObserver = () => {
-    if (!socket || !currentUser) return;
+    if (!socket) return;
+    
+    const currentPlayer = getCurrentPlayer();
+    if (!currentPlayer) return;
     
     socket.emit('toggle-observer', {
       roomId,
-      userId: currentUser.id
+      userId: currentPlayer.id
     });
   };
 
   const handleStartGame = () => {
-    if (!socket || !currentUser) return;
+    if (!socket) return;
+    
+    const currentPlayer = getCurrentPlayer();
+    if (!currentPlayer) return;
     
     socket.emit('start-game', {
       roomId,
-      userId: currentUser.id
+      userId: currentPlayer.id
     });
   };
 
@@ -645,34 +654,38 @@ export default function WaitingRoom() {
         {/* Action Buttons */}
         <div className="flex justify-between items-center">
           {/* Observer Button - sát bên trái */}
-          {currentUser?.role === 'player' ? (
-            <button
-              onClick={handleToggleObserver}
-              className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                currentUser?.isObserver
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {currentUser?.isObserver ? ' Đang quan sát' : ' Quan sát'}
-            </button>
-          ) : currentUser?.role === 'creator' ? (
-            <div className="text-blue-300 font-medium">
-              👑 Bạn là chủ phòng
-            </div>
-          ) : currentUser?.role === 'observer' ? (
-            <div className="text-gray-400 font-medium">
-              👁️ Bạn đang quan sát
-            </div>
-          ) : (
-            // Fallback khi role chưa được set
-            <button
-              onClick={handleToggleObserver}
-              className="px-6 py-3 rounded-lg font-medium transition-all bg-gray-200 text-gray-700 hover:bg-gray-300"
-            >
-              Quan sát
-            </button>
-          )}
+          {(() => {
+            const currentPlayer = getCurrentPlayer();
+            const isCreator = currentUser?.role === 'creator' || 
+                             (currentUser?.id && roomState.roomCreator === currentUser.id) ||
+                             (currentPlayer?.id && roomState.roomCreator === currentPlayer.id);
+            
+            if (isCreator) {
+              return (
+                <div className="text-blue-300 font-medium">
+                  👑 Bạn là chủ phòng
+                </div>
+              );
+            } else if (currentPlayer?.isObserver) {
+              return (
+                <button
+                  onClick={handleToggleObserver}
+                  className="px-6 py-3 rounded-lg font-medium transition-all bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Hủy quan sát
+                </button>
+              );
+            } else {
+              return (
+                <button
+                  onClick={handleToggleObserver}
+                  className="px-6 py-3 rounded-lg font-medium transition-all bg-gray-200 text-gray-700 hover:bg-gray-300"
+                >
+                  Quan sát
+                </button>
+              );
+            }
+          })()}
 
           {/* Ready/Start Button - sát bên phải */}
           {(() => {
