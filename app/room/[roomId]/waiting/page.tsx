@@ -52,6 +52,13 @@ export default function WaitingRoom() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
+  // Chat states
+  const [showChat, setShowChat] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<{from: 'me'|'opponent', text: string, userName?: string}[]>([]);
+  const [hasNewChat, setHasNewChat] = useState(false);
+  const chatListRef = useRef<HTMLDivElement|null>(null);
+
   // Load user từ API giống như lobby
   useEffect(() => {
     const fetchUser = async () => {
@@ -383,6 +390,22 @@ export default function WaitingRoom() {
       setIsConnected(false);
     });
 
+    // Chat handlers
+    newSocket.on('chat', (data: { from: string; userName: string; message: string; userId: string }) => {
+      if (data.userId !== user?._id) {
+        // Tin nhắn từ người khác
+        setChatMessages(msgs => [...msgs, { from: 'opponent', text: data.message, userName: data.userName }]);
+        setHasNewChat(true);
+        
+        // Auto scroll to bottom
+        setTimeout(() => {
+          if (chatListRef.current) {
+            chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+          }
+        }, 100);
+      }
+    });
+
     return () => {
       newSocket.disconnect();
     };
@@ -563,6 +586,26 @@ export default function WaitingRoom() {
         </button>
       </div>
 
+      {/* Nút Chat ở góc trên bên phải */}
+      <div className="fixed top-4 right-4 z-50 flex flex-row gap-2">
+        <div className="flex items-center relative">
+          <button
+            onClick={() => { setShowChat(true); setHasNewChat(false); }}
+            className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center transition-transform duration-200 hover:scale-110 active:scale-95"
+            style={{ fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+            type="button"
+            aria-label="Chat"
+            title="Chat"
+          >
+            <span role="img" aria-label="Chat">💬</span>
+            {/* Chấm đỏ báo tin nhắn mới */}
+            {hasNewChat && (
+              <span style={{ position: 'absolute', top: 2, right: 2, width: 12, height: 12, background: '#f00', borderRadius: '50%', display: 'inline-block', border: '2px solid white', zIndex: 10 }}></span>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Overlay để text dễ đọc hơn */}
       <div className="w-full max-w-7xl p-15 mt-2 mb-4 rounded-xl bg-neutral-900/30 shadow-xl border border-neutral-700 mx-auto relative z-10">
         {/* Header */}
@@ -680,17 +723,6 @@ export default function WaitingRoom() {
 
           {/* Ready/Start Button - sát bên phải */}
           {(() => {
-            const currentPlayer = getCurrentPlayer();
-            
-            // Nếu đang quan sát, không hiển thị nút Ready/Start
-            if (currentPlayer?.isObserver) {
-              return (
-                <div className="text-gray-400 font-medium">
-                  👁️ Bạn đang quan sát
-                </div>
-              );
-            }
-            
             // Kiểm tra xem có phải creator không (theo role, roomCreator, hoặc thứ tự join)
             const isCreatorByRole = currentUser?.role === 'creator';
             const isCreatorByRoomCreator = currentUser?.id && roomState.roomCreator === currentUser.id;
@@ -717,6 +749,13 @@ export default function WaitingRoom() {
                 </button>
               );
             } else {
+              const currentPlayer = getCurrentPlayer();
+              
+              // Nếu đang quan sát, không hiển thị nút Ready/Start
+              if (currentPlayer?.isObserver) {
+                return null; // Ẩn hoàn toàn
+              }
+              
               return (
                 <button
                   onClick={handleToggleReady}
@@ -764,6 +803,158 @@ export default function WaitingRoom() {
           })()}
         </div>
       </div>
+
+      {/* Modal chat */}
+      {showChat && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent modal-backdrop"
+          style={{ backdropFilter: 'blur(2px)' }}
+        >
+          <div
+            className="bg-gray-900 rounded-2xl pt-6 px-6 w-[400px] max-w-[95vw] h-[520px] border-4 border-blue-400 relative flex flex-col modal-content"
+            style={{ overflow: 'hidden' }}
+          >
+            <button
+              onClick={() => setShowChat(false)}
+              className="absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold transition-all duration-200 hover:scale-105 active:scale-95"
+              type="button"
+            >Đóng</button>
+            <div className="text-xl font-bold text-blue-300 mb-3 text-center">
+              Chat phòng
+            </div>
+            <div
+              ref={chatListRef}
+              className="flex-1 overflow-y-auto"
+              style={{ maxHeight: 350 }}
+            >
+              {chatMessages.length === 0 && (
+                <div className="text-gray-400 text-center mt-4">Chưa có tin nhắn nào</div>
+              )}
+              {chatMessages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`${
+                    msg.from === 'me'
+                      ? "flex justify-end mb-2"
+                      : "flex justify-start mb-2"
+                  } chat-message ${idx === chatMessages.length - 1 ? 'new-message' : ''}`}
+                >
+                  <div className="flex flex-col max-w-[70%]">
+                    <div className={`text-xs text-gray-400 mb-1 ${
+                      msg.from === 'me' ? 'text-right' : 'text-left'
+                    }`}>
+                      {msg.userName || (msg.from === 'me' ? 'Bạn' : 'Người khác')}
+                    </div>
+                    <div
+                      className={`${
+                        msg.from === 'me'
+                          ? "bg-blue-500 text-white px-3 py-2 rounded-lg text-base"
+                          : "bg-gray-700 text-white px-3 py-2 rounded-lg text-base"
+                      } chat-bubble`}
+                      style={{ wordBreak: 'break-word' }}
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <form
+              className="flex flex-row items-center gap-2"
+              style={{ 
+                position: 'absolute', 
+                left: '24px', 
+                right: '24px', 
+                bottom: '24px' 
+              }}
+              onSubmit={e => {
+                e.preventDefault();
+                if (chatInput.trim() === "") return;
+                const userName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Bạn';
+                setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput, userName }]);
+                // Gửi chat qua socket
+                if (socket && user?._id && user?.firstName && user?.lastName) {
+                  const userName = `${user.firstName} ${user.lastName}`;
+                  socket.emit('chat', { roomId, userId: user._id, userName, message: chatInput });
+                }
+                setChatInput("");
+              }}
+            >
+              <input
+                type="text"
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-lg bg-gray-800 text-white text-base border border-gray-600"
+                placeholder="Nhập tin nhắn..."
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
+                style={{ minWidth: 40, minHeight: 40, padding: 0 }}
+                aria-label="Gửi"
+                title="Gửi"
+              >
+                {/* Icon máy bay giấy */}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width={22} height={22} style={{ display: 'block' }}>
+                  <path d="M2 21L23 12L2 3L5 12L2 21Z" fill="white"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Chat styles */}
+      <style jsx global>{`
+        /* Hiệu ứng cho tin nhắn mới nhất */
+        .chat-message.new-message {
+          animation: newMessagePop 0.6s ease-out;
+        }
+        
+        @keyframes newMessagePop {
+          0% {
+            opacity: 0;
+            transform: scale(0.8) translateY(10px);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.05) translateY(-2px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        /* Hiệu ứng đặc biệt cho tin nhắn của mình */
+        .chat-message:has(.bg-blue-500) .chat-bubble {
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Hiệu ứng đặc biệt cho tin nhắn của đối phương */
+        .chat-message:has(.bg-gray-700) .chat-bubble {
+          box-shadow: 0 2px 8px rgba(55, 65, 81, 0.3);
+        }
+        
+        /* Tùy chỉnh thanh cuộn cho chat */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: rgba(59, 130, 246, 0.5);
+          border-radius: 3px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: rgba(59, 130, 246, 0.7);
+        }
+      `}</style>
     </div>
   );
 }
