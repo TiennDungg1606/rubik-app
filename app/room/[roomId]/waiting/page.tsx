@@ -427,20 +427,21 @@ export default function WaitingRoom() {
     }
   };
 
+  // Kiểm tra mobile orientation giống lobby
+  if (isMobile && isPortrait) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
+        <div className="text-2xl font-bold text-red-400 mb-4 text-center">VUI LÒNG XOAY NGANG MÀN HÌNH ĐỂ SỬ DỤNG ỨNG DỤNG!</div>
+        <div className="text-lg text-red-300 mb-2 text-center">Nhớ tắt chế độ khóa xoay màn hình ở bảng điều khiển của thiết bị.</div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-4 relative"
       onClick={handleScreenTap}
     >
-      {/* Mobile và Portrait Mode Warnings */}
-      {isMobile && isPortrait && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white p-4 text-center">
-          <div className="flex items-center justify-center space-x-2">
-            <span className="text-2xl">📱</span>
-            <span className="font-bold">Vui lòng xoay ngang màn hình để có trải nghiệm tốt nhất!</span>
-          </div>
-        </div>
-      )}
       
 
       {/* Nút Rời phòng ở góc trên bên trái */}
@@ -658,29 +659,20 @@ export default function WaitingRoom() {
                 return (
                   <button
                     onClick={handleToggleReady}
-                    className="px-6 py-3 rounded-lg font-medium transition-all bg-yellow-500 text-white hover:bg-yellow-600"
+                    className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                      currentUser?.isReady 
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                    }`}
                   >
-                    Chưa sẵn sàng
+                    {currentUser?.isReady ? 'Đã sẵn sàng' : 'Chưa sẵn sàng'}
                   </button>
                 );
               }
             }
           })()}
           
-          {/* Debug info */}
-          <div className="text-xs text-gray-400 mt-2">
-            Debug: Role = {currentUser?.role || 'Unknown'} | ID = {currentUser?.id} | Name = {currentUser?.name} | RoomCreator = {roomState.roomCreator || 'Empty'} | FirstPlayer = {roomState.players[0]?.id || 'None'} | IsCreator = {(() => {
-              const isCreatorByRole = currentUser?.role === 'creator';
-              const isCreatorByRoomCreator = currentUser?.id && roomState.roomCreator === currentUser.id;
-              const isCreatorByOrder = currentUser?.id && roomState.players.length > 0 && 
-                                     roomState.players[0].id === currentUser.id;
-              // Fallback: nếu không có roomCreator và không có players, coi như creator
-            const isCreatorByFallback = currentUser?.id && !roomState.roomCreator && roomState.players.length === 0;
-            
-            const isCreator = isCreatorByRole || isCreatorByRoomCreator || isCreatorByOrder || isCreatorByFallback;
-              return isCreator ? 'Yes' : 'No';
-            })()}
-          </div>
+          
         </div>
 
         {/* Status Info */}
