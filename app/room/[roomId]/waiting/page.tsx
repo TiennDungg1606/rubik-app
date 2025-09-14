@@ -487,12 +487,12 @@ export default function WaitingRoom() {
            team2Players.every(p => p.isReady);
   };
 
-  // Lấy danh sách players theo team và position
+  // Lấy danh sách players theo team và position (ẩn observers)
   const team1Players = roomState.players
-    .filter(p => p.team === 'team1')
+    .filter(p => p.team === 'team1' && !p.isObserver)
     .sort((a, b) => (a.position || 0) - (b.position || 0));
   const team2Players = roomState.players
-    .filter(p => p.team === 'team2')
+    .filter(p => p.team === 'team2' && !p.isObserver)
     .sort((a, b) => (a.position || 0) - (b.position || 0));
 
   // Debug logs
@@ -656,17 +656,8 @@ export default function WaitingRoom() {
           {/* Observer Button - sát bên trái */}
           {(() => {
             const currentPlayer = getCurrentPlayer();
-            const isCreator = currentUser?.role === 'creator' || 
-                             (currentUser?.id && roomState.roomCreator === currentUser.id) ||
-                             (currentPlayer?.id && roomState.roomCreator === currentPlayer.id);
             
-            if (isCreator) {
-              return (
-                <div className="text-blue-300 font-medium">
-                  👑 Bạn là chủ phòng
-                </div>
-              );
-            } else if (currentPlayer?.isObserver) {
+            if (currentPlayer?.isObserver) {
               return (
                 <button
                   onClick={handleToggleObserver}
@@ -689,6 +680,17 @@ export default function WaitingRoom() {
 
           {/* Ready/Start Button - sát bên phải */}
           {(() => {
+            const currentPlayer = getCurrentPlayer();
+            
+            // Nếu đang quan sát, không hiển thị nút Ready/Start
+            if (currentPlayer?.isObserver) {
+              return (
+                <div className="text-gray-400 font-medium">
+                  👁️ Bạn đang quan sát
+                </div>
+              );
+            }
+            
             // Kiểm tra xem có phải creator không (theo role, roomCreator, hoặc thứ tự join)
             const isCreatorByRole = currentUser?.role === 'creator';
             const isCreatorByRoomCreator = currentUser?.id && roomState.roomCreator === currentUser.id;
@@ -699,7 +701,6 @@ export default function WaitingRoom() {
             const isCreatorByFallback = currentUser?.id && !roomState.roomCreator && roomState.players.length === 0;
             
             const isCreator = isCreatorByRole || isCreatorByRoomCreator || isCreatorByOrder || isCreatorByFallback;
-            
             
             if (isCreator) {
               return (
@@ -715,7 +716,7 @@ export default function WaitingRoom() {
                    Bắt đầu
                 </button>
               );
-            } else if (currentUser?.role === 'player') {
+            } else {
               return (
                 <button
                   onClick={handleToggleReady}
@@ -728,43 +729,6 @@ export default function WaitingRoom() {
                   {getCurrentPlayer()?.isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng'}
                 </button>
               );
-            } else if (currentUser?.role === 'observer') {
-              return (
-                <div className="text-gray-400 font-medium">
-                  👁️ Bạn đang quan sát
-                </div>
-              );
-            } else {
-              // Fallback khi role chưa được set - kiểm tra thứ tự join
-              if (currentUser?.id && roomState.players.length > 0 && 
-                  roomState.players[0].id === currentUser.id) {
-                return (
-                  <button
-                    onClick={handleStartGame}
-                    disabled={!canStartGame()}
-                    className={`px-8 py-3 rounded-lg font-medium transition-all ${
-                      canStartGame()
-                        ? 'bg-green-600 text-white hover:bg-green-700'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                     Bắt đầu
-                  </button>
-                );
-              } else {
-                return (
-                  <button
-                    onClick={handleToggleReady}
-                    className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                      getCurrentPlayer()?.isReady 
-                        ? 'bg-green-500 text-white hover:bg-green-600'
-                        : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                    }`}
-                  >
-                    {getCurrentPlayer()?.isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng'} 
-                  </button>
-                );
-              }
             }
           })()}
           
