@@ -410,6 +410,7 @@ export default function WaitingRoom() {
       fromPosition: number;
       toPosition: number;
     }) => {
+      console.log('Received swap-seat-request:', data);
       setPendingSwapRequest(data);
       setShowSwapModal(true);
     });
@@ -521,6 +522,14 @@ export default function WaitingRoom() {
     
     const currentPlayer = roomState.players.find(p => p.id === currentUser.id);
     if (!currentPlayer) return;
+    
+    console.log('Swap request:', {
+      roomId,
+      fromUserId: currentUser.id,
+      toUserId: targetPlayer.id,
+      fromPosition: currentPlayer.position || 0,
+      toPosition: targetPosition
+    });
     
     setSwapRequest({
       fromPlayer: currentPlayer,
