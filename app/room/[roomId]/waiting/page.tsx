@@ -67,6 +67,21 @@ export default function WaitingRoom() {
   const [hasNewChat, setHasNewChat] = useState(false);
   const chatListRef = useRef<HTMLDivElement|null>(null);
 
+  // Swap seat states
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [swapRequest, setSwapRequest] = useState<{
+    fromPlayer: Player | null;
+    toPlayer: Player | null;
+    fromPosition: number;
+    toPosition: number;
+  } | null>(null);
+  const [pendingSwapRequest, setPendingSwapRequest] = useState<{
+    fromPlayer: Player;
+    toPlayer: Player;
+    fromPosition: number;
+    toPosition: number;
+  } | null>(null);
+
   // Load user từ API giống như lobby
   useEffect(() => {
     const fetchUser = async () => {
@@ -388,6 +403,38 @@ export default function WaitingRoom() {
       }, 100);
     });
 
+    // Swap seat handlers
+    newSocket.on('swap-seat-request', (data: {
+      fromPlayer: Player;
+      toPlayer: Player;
+      fromPosition: number;
+      toPosition: number;
+    }) => {
+      setPendingSwapRequest(data);
+      setShowSwapModal(true);
+    });
+
+    newSocket.on('swap-seat-response', (data: {
+      accepted: boolean;
+      fromPlayer: Player;
+      toPlayer: Player;
+      fromPosition: number;
+      toPosition: number;
+    }) => {
+      if (data.accepted) {
+        // Swap thành công, đóng modal
+        setShowSwapModal(false);
+        setSwapRequest(null);
+        setPendingSwapRequest(null);
+      } else {
+        // Swap bị từ chối
+        setShowSwapModal(false);
+        setSwapRequest(null);
+        setPendingSwapRequest(null);
+        // Có thể hiển thị thông báo từ chối
+      }
+    });
+
     return () => {
       newSocket.disconnect();
     };
@@ -466,6 +513,55 @@ export default function WaitingRoom() {
       });
     }
     router.push('/lobby');
+  };
+
+  // Swap seat handlers
+  const handleSwapSeatRequest = (targetPlayer: Player, targetPosition: number) => {
+    if (!socket || !currentUser) return;
+    
+    const currentPlayer = roomState.players.find(p => p.id === currentUser.id);
+    if (!currentPlayer) return;
+    
+    setSwapRequest({
+      fromPlayer: currentPlayer,
+      toPlayer: targetPlayer,
+      fromPosition: currentPlayer.position || 0,
+      toPosition: targetPosition
+    });
+    
+    socket.emit('swap-seat-request', {
+      roomId,
+      fromUserId: currentUser.id,
+      toUserId: targetPlayer.id,
+      fromPosition: currentPlayer.position || 0,
+      toPosition: targetPosition
+    });
+  };
+
+  const handleSwapSeatAccept = () => {
+    if (!socket || !pendingSwapRequest) return;
+    
+    socket.emit('swap-seat-response', {
+      roomId,
+      accepted: true,
+      fromUserId: pendingSwapRequest.fromPlayer.id,
+      toUserId: pendingSwapRequest.toPlayer.id,
+      fromPosition: pendingSwapRequest.fromPosition,
+      toPosition: pendingSwapRequest.toPosition
+    });
+  };
+
+  const handleSwapSeatReject = () => {
+    if (!socket || !pendingSwapRequest) return;
+    
+    socket.emit('swap-seat-response', {
+      roomId,
+      accepted: false,
+      fromUserId: pendingSwapRequest.fromPlayer.id,
+      toUserId: pendingSwapRequest.toPlayer.id,
+      fromPosition: pendingSwapRequest.fromPosition,
+      toPosition: pendingSwapRequest.toPosition
+    });
   };
 
   // Kiểm tra điều kiện bắt đầu game
@@ -619,6 +715,18 @@ export default function WaitingRoom() {
                           ) : (
                             <span className="text-yellow-300 text-sm"> Chưa sẵn sàng</span>
                           )}
+                          {/* Nút swap - chỉ hiện khi không phải chính mình */}
+                          {currentUser && player.id !== currentUser.id && (
+                            <button
+                              onClick={() => handleSwapSeatRequest(player, index + 1)}
+                              className="ml-2 p-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                              title="Đổi chỗ với người này"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -655,6 +763,18 @@ export default function WaitingRoom() {
                             <span className="text-green-300 text-sm"> Sẵn sàng</span>
                           ) : (
                             <span className="text-yellow-300 text-sm"> Chưa sẵn sàng</span>
+                          )}
+                          {/* Nút swap - chỉ hiện khi không phải chính mình */}
+                          {currentUser && player.id !== currentUser.id && (
+                            <button
+                              onClick={() => handleSwapSeatRequest(player, index + 1)}
+                              className="ml-2 p-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                              title="Đổi chỗ với người này"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                              </svg>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -777,6 +897,41 @@ export default function WaitingRoom() {
           })()}
         </div>
       </div>
+
+      {/* Modal swap seat */}
+      {showSwapModal && pendingSwapRequest && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 modal-backdrop"
+          style={{ backdropFilter: 'blur(2px)' }}
+        >
+          <div className="bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] border-4 border-blue-400 relative modal-content">
+            <div className="text-xl font-bold text-blue-300 mb-4 text-center">
+              Yêu cầu đổi chỗ
+            </div>
+            <div className="text-white mb-4 text-center">
+              <span className="font-semibold text-yellow-400">{pendingSwapRequest.fromPlayer.name}</span> muốn đổi chỗ với bạn
+            </div>
+            <div className="text-gray-300 text-sm mb-6 text-center">
+              Chỗ hiện tại: <span className="font-semibold">{pendingSwapRequest.fromPlayer.name}</span><br/>
+              Chỗ muốn đổi: <span className="font-semibold">{pendingSwapRequest.toPlayer.name}</span>
+            </div>
+            <div className="flex gap-3">
+              <button
+                className="flex-1 px-4 py-3 rounded-lg bg-red-600 text-white hover:bg-red-500 transition-colors font-semibold"
+                onClick={handleSwapSeatReject}
+              >
+                Từ chối
+              </button>
+              <button
+                className="flex-1 px-4 py-3 rounded-lg bg-green-600 text-white hover:bg-green-500 transition-colors font-semibold"
+                onClick={handleSwapSeatAccept}
+              >
+                Đồng ý
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal chat */}
       {showChat && (
