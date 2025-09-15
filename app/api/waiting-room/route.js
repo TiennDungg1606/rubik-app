@@ -1,6 +1,6 @@
 export async function POST(request) {
   try {
-    const { roomId, gameMode, event, displayName } = await request.json();
+    const { roomId, gameMode, event, displayName, password } = await request.json();
     
     // Gọi đến socket server để tạo waiting room
     const response = await fetch(`${process.env.SOCKET_SERVER_URL || 'https://rubik-socket-server-production-3b21.up.railway.app'}/create-waiting-room`, {
@@ -12,7 +12,8 @@ export async function POST(request) {
         roomId,
         gameMode,
         event,
-        displayName
+        displayName,
+        password
       })
     });
     

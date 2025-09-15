@@ -432,7 +432,7 @@ function LobbyContent() {
         const waitingResponse = await fetch('/api/waiting-room', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId, gameMode, event, displayName })
+          body: JSON.stringify({ roomId, gameMode, event, displayName, password })
         });
         
         if (waitingResponse.ok) {

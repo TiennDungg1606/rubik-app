@@ -65,16 +65,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     let socket;
     
     async function fetchRooms() {
-      console.log('=== FETCHROOMS CALLED ===');
       try {
         const res = await fetch(`${API_BASE}/active-rooms`);
         const roomObjs = await res.json();
-        console.log('Fetched rooms:', roomObjs);
-        console.log('Room objects details:', roomObjs.map((room: any) => ({
-          roomId: typeof room === 'string' ? room : room.roomId,
-          meta: typeof room === 'object' && room.meta ? room.meta : {},
-          isWaitingRoom: typeof room === 'object' ? room.isWaitingRoom : false
-        })));
         if (!Array.isArray(roomObjs)) {
           setActiveRooms([]);
           setCompetingRooms([]);
@@ -100,7 +93,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             competing.push(roomId);
           }
         }
-        console.log('Final metaMap:', metaMap);
         setRoomMetas(metaMap);
         setActiveRooms(active);
         setCompetingRooms(competing);
@@ -636,23 +628,18 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   key={room}
                   onClick={() => {
                     const meta = roomMetas[room] || {};
-                    console.log('Click on room:', room, 'meta:', meta);
                     if (meta.isWaitingRoom) {
                       // Kiểm tra mật khẩu cho waiting room
                       if (meta.password) {
-                        console.log('Opening password modal for waiting room:', room);
                         openPasswordModal(room);
                       } else {
                         // Chuyển hướng đến waiting room
-                        console.log('Joining waiting room without password:', room);
                         window._roomDisplayName = meta.displayName || room;
                         window.location.href = `/room/${room}/waiting?roomId=${room}`;
                       }
                     } else if (meta.password) {
-                      console.log('Opening password modal for regular room:', room);
                       openPasswordModal(room);
                     } else {
-                      console.log('Joining regular room without password:', room);
                       window._roomPassword = "";
                       handleJoinRoom(room);
                     }

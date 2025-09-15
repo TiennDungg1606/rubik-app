@@ -223,14 +223,10 @@ export default function WaitingRoom() {
         try {
           const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
           const data = await res.json();
-          console.log('=== DEBUG: User data from API ===', data);
-          
           if (data && data.user) {
             const user = data.user;
             const userId = user._id || user.id || Date.now().toString();
             const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
-            
-            console.log('=== DEBUG: Parsed user data ===', { userId, userName, user });
             
             // Cập nhật currentUser state
             setCurrentUser({
@@ -239,8 +235,6 @@ export default function WaitingRoom() {
               isReady: false,
               isObserver: false
             });
-            
-            console.log('=== DEBUG: Emitting join-waiting-room ===', { roomId, userId, userName });
             newSocket.emit('join-waiting-room', {
               roomId,
               userId,
@@ -260,25 +254,16 @@ export default function WaitingRoom() {
     });
 
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
-      console.log('=== WAITING ROOM UPDATED ===');
-      console.log('Current user before update:', currentUser);
-      console.log('Server data players:', data.players.map(p => ({ id: p.id, name: p.name, isReady: p.isReady })));
-      
       // Cập nhật currentUser role từ server data
       // Tìm player data dựa trên userId đã gửi lên server
       const playerData = data.players.find(p => {
         // Tìm theo ID hiện tại hoặc theo tên nếu ID chưa match
         const matchById = p.id === currentUser?.id;
         const matchByName = currentUser?.name && p.name === currentUser.name;
-        console.log(`Checking player ${p.name} (${p.id}): matchById=${matchById}, matchByName=${matchByName}`);
         return matchById || matchByName;
       });
       
-      console.log('Found playerData:', playerData);
-      
       if (playerData) {
-        console.log('=== UPDATING CURRENT USER ===');
-        console.log('Player data from server:', playerData);
         setCurrentUser(prev => {
           const updated = prev ? {
             ...prev,
@@ -297,12 +282,10 @@ export default function WaitingRoom() {
             team: playerData.team,
             position: playerData.position
           };
-          console.log('Updated currentUser:', updated);
           return updated;
         });
       } else if (currentUser?.id && data.roomCreator === currentUser.id) {
         // Fallback: nếu không tìm thấy playerData nhưng là roomCreator, set role creator và ready
-        console.log('=== FALLBACK: Setting creator role ===');
         setCurrentUser(prev => prev ? {
           ...prev,
           role: 'creator' as const,
@@ -317,17 +300,10 @@ export default function WaitingRoom() {
           position: 1
         });
       } else {
-        console.log('=== NO PLAYER DATA FOUND ===');
-        console.log('Current user ID:', currentUser?.id);
-        console.log('Room creator:', data.roomCreator);
-        console.log('Available players:', data.players.map(p => ({ id: p.id, name: p.name })));
-        
         // Fallback: Tìm player theo tên nếu có currentUser.name
         if (currentUser?.name) {
           const playerByName = data.players.find(p => p.name === currentUser.name);
           if (playerByName) {
-            console.log('=== FALLBACK: Found player by name ===');
-            console.log('Player by name:', playerByName);
             setCurrentUser(prev => prev ? {
               ...prev,
               id: playerByName.id,
@@ -357,9 +333,6 @@ export default function WaitingRoom() {
         const currentUserName = `${user.firstName} ${user.lastName}`.trim();
         const playerByName = data.players.find(p => p.name === currentUserName);
         if (playerByName) {
-          console.log('=== FINAL FALLBACK: Setting currentUser by matching name ===');
-          console.log('Looking for name:', currentUserName);
-          console.log('Found player:', playerByName);
           setCurrentUser({
             id: playerByName.id,
             name: playerByName.name,
@@ -376,9 +349,6 @@ export default function WaitingRoom() {
       if (!currentUser && data.players.length > 0 && user?._id) {
         const playerById = data.players.find(p => p.id === user._id);
         if (playerById) {
-          console.log('=== ADDITIONAL FALLBACK: Setting currentUser by user._id ===');
-          console.log('Looking for ID:', user._id);
-          console.log('Found player:', playerById);
           setCurrentUser({
             id: playerById.id,
             name: playerById.name,
@@ -530,14 +500,6 @@ export default function WaitingRoom() {
     .filter(p => p.team === 'team2' && !p.isObserver)
     .sort((a, b) => (a.position || 0) - (b.position || 0));
 
-  // Debug logs
-  console.log('=== DEBUG: Render state ===', {
-    roomState,
-    currentUser,
-    team1Players,
-    team2Players,
-    allPlayers: roomState.players
-  });
   
 
   // Helper function để tìm player hiện tại từ roomState
@@ -561,7 +523,7 @@ export default function WaitingRoom() {
           (document.documentElement as any).msRequestFullscreen();
         }
       } catch (error) {
-        console.log('Fullscreen request failed:', error);
+        // Fullscreen request failed
       }
     }
   };
