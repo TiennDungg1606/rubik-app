@@ -77,7 +77,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         }
         const active: string[] = [];
         const competing: string[] = [];
-        const metaMap: Record<string, { password?: string; gameMode?: string; isWaitingRoom?: boolean }> = {};
+        const metaMap: Record<string, { password?: string; gameMode?: string; isWaitingRoom?: boolean; displayName?: string; event?: string }> = {};
         for (const roomObj of roomObjs) {
           const roomId = typeof roomObj === 'string' ? roomObj : roomObj.roomId;
           const meta = typeof roomObj === 'object' && roomObj.meta ? roomObj.meta : {};
@@ -192,6 +192,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     
     // Nếu là waiting room, chuyển hướng trực tiếp
     if (meta.isWaitingRoom) {
+      window._roomDisplayName = meta.displayName || passwordModalRoomId;
       window.location.href = `/room/${passwordModalRoomId}/waiting?roomId=${passwordModalRoomId}`;
     } else {
       handleJoinRoom(passwordModalRoomId);
@@ -635,6 +636,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                         openPasswordModal(room);
                       } else {
                         // Chuyển hướng đến waiting room
+                        window._roomDisplayName = meta.displayName || room;
                         window.location.href = `/room/${room}/waiting?roomId=${room}`;
                       }
                     } else if (meta.password) {

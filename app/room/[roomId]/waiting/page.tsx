@@ -624,7 +624,7 @@ export default function WaitingRoom() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Phòng chờ 2vs2</h1>
           <div className="text-lg text-gray-200">
-            Mã phòng: <span className="font-mono bg-white/20 px-3 py-1 rounded text-white">{roomId}</span>
+            Tên phòng: <span className="font-mono bg-white/20 px-3 py-1 rounded text-white">{window._roomDisplayName || roomId}</span>
           </div>
         </div>
 
