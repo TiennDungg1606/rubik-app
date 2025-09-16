@@ -413,11 +413,16 @@ export default function WaitingRoom() {
     }) => {
       console.log('Received swap-seat-request:', data);
       console.log('Current user:', currentUser);
+      console.log('User from API:', user);
       console.log('Target user ID:', data.targetUserId);
-      console.log('Should show modal:', data.targetUserId === currentUser?.id);
+      
+      // Sử dụng user từ API thay vì currentUser (có thể bị null)
+      const currentUserId = currentUser?.id || user?._id;
+      console.log('Current user ID:', currentUserId);
+      console.log('Should show modal:', data.targetUserId === currentUserId);
       
       // Chỉ hiện modal cho người được yêu cầu đổi chỗ
-      if (data.targetUserId === currentUser?.id) {
+      if (data.targetUserId === currentUserId) {
         console.log('Showing swap modal for current user');
         setPendingSwapRequest(data);
         setShowSwapModal(true);
