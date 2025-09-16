@@ -86,14 +86,28 @@ export default function WaitingRoom() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        console.log('=== FETCHING USER FROM API ===');
+        console.log('Current cookies:', document.cookie);
+        
         const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
+        console.log('API response status:', res.status);
+        console.log('API response headers:', res.headers);
+        
         const data = await res.json();
+        console.log('API response data:', data);
+        
         if (data && data.user) {
+          console.log('✅ User found:', data.user);
+          console.log('User ID:', data.user._id);
+          console.log('User name:', data.user.firstName, data.user.lastName);
           setUser(data.user);
           setCustomBg(data.user.customBg || '');
+        } else {
+          console.log('❌ No user data received from API');
+          console.log('Error:', data.error);
         }
       } catch (err) {
-        console.error("Error fetching user:", err);
+        console.error("❌ Error fetching user:", err);
       }
     };
     fetchUser();
@@ -414,10 +428,14 @@ export default function WaitingRoom() {
       console.log('Received swap-seat-request:', data);
       console.log('Current user:', currentUser);
       console.log('User from API:', user);
+      console.log('Room state players:', roomState.players);
       console.log('Target user ID:', data.targetUserId);
       
-      // Sử dụng user từ API thay vì currentUser (có thể bị null)
-      const currentUserId = currentUser?.id || user?._id;
+      // Dùng cùng pattern như getCurrentPlayer() cho ready button
+      const currentPlayer = getCurrentPlayer();
+      const currentUserId = currentPlayer?.id;
+      
+      console.log('Current player from getCurrentPlayer():', currentPlayer);
       console.log('Current user ID:', currentUserId);
       console.log('Should show modal:', data.targetUserId === currentUserId);
       
@@ -441,8 +459,11 @@ export default function WaitingRoom() {
     }) => {
       console.log('Received swap-seat-response:', data);
       
+      // Dùng cùng pattern như getCurrentPlayer() cho ready button
+      const currentPlayer = getCurrentPlayer();
+      const currentUserId = currentPlayer?.id;
+      
       // Chỉ xử lý phản hồi cho người yêu cầu
-      const currentUserId = currentUser?.id || user?._id;
       if (data.targetUserId === currentUserId) {
         if (data.accepted) {
           console.log('Seat swap accepted!');
