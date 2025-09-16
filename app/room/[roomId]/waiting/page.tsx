@@ -433,22 +433,30 @@ export default function WaitingRoom() {
 
     newSocket.on('swap-seat-response', (data: {
       accepted: boolean;
-      fromPlayer: Player;
-      toPlayer: Player;
+      fromUserId: string;
+      toUserId: string;
       fromPosition: number;
       toPosition: number;
+      targetUserId: string;
     }) => {
-      if (data.accepted) {
-        // Swap thành công, đóng modal
+      console.log('Received swap-seat-response:', data);
+      
+      // Chỉ xử lý phản hồi cho người yêu cầu
+      const currentUserId = currentUser?.id || user?._id;
+      if (data.targetUserId === currentUserId) {
+        if (data.accepted) {
+          console.log('Seat swap accepted!');
+          // Room state sẽ được cập nhật từ waiting-room-updated event
+        } else {
+          console.log('Seat swap rejected');
+        }
+      }
+      
+      // Đóng modal nếu đang mở
+      if (showSwapModal) {
         setShowSwapModal(false);
         setSwapRequest(null);
         setPendingSwapRequest(null);
-      } else {
-        // Swap bị từ chối
-        setShowSwapModal(false);
-        setSwapRequest(null);
-        setPendingSwapRequest(null);
-        // Có thể hiển thị thông báo từ chối
       }
     });
 
