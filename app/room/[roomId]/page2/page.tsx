@@ -4138,6 +4138,114 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
       </div>
 
+      {/* Hàng thứ 2: Webcam của người khác (người quan sát/người chơi khác) */}
+      <div
+        className={mobileShrink ? "w-full flex flex-row justify-center items-center gap-2 box-border mb-2" : "w-full flex flex-row justify-center items-center gap-4 box-border mb-4"}
+        style={mobileShrink ? { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' } : { maxWidth: '100vw', minHeight: 0, minWidth: 0, height: 'auto' }}
+      >
+        {/* Webcam người khác 1 - cột 1 */}
+        <div
+          className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
+          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
+        >
+          <div
+            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-green-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-green-400"}
+            style={mobileShrink
+              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
+              : isMobile && !isPortrait
+                ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+          >
+            {/* Video element for other person 1 */}
+            <video
+              id="other-person-1-video"
+              autoPlay
+              muted
+              playsInline
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', background: '#111', display: 'block' }}
+            />
+            {/* Overlay thông báo khi chưa có người */}
+            <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.85, borderRadius: 'inherit', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+              <span style={{ color: '#fff', fontWeight: 600, fontSize: mobileShrink ? 11 : 20, textAlign: 'center' }}>Chờ người khác...</span>
+            </div>
+          </div>
+          {/* Tên người khác 1 */}
+          <div style={{
+            background: '#fff',
+            color: '#222',
+            borderRadius: 4,
+            fontWeight: 700,
+            fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
+            padding: mobileShrink ? '2px 8px' : '4px 18px',
+            minWidth: 60,
+            maxWidth: mobileShrink ? 90 : 180,
+            textAlign: 'center',
+            border: '2px solid #bbb',
+            marginLeft: mobileShrink ? 2 : 6,
+            marginRight: mobileShrink ? 2 : 6,
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+            display: 'block'
+          }}>Người khác 1</div>
+        </div>
+
+        {/* Khoảng trống ở giữa - cột 2 */}
+        <div
+          className={mobileShrink ? "flex flex-col items-center justify-center" : "flex flex-col items-center justify-center"}
+          style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
+        >
+          {/* Có thể thêm thông tin khác ở đây nếu cần */}
+        </div>
+
+        {/* Webcam người khác 2 - cột 3 */}
+        <div
+          className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
+          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
+        >
+          <div
+            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-orange-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-orange-400"}
+            style={mobileShrink
+              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
+              : isMobile && !isPortrait
+                ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+          >
+            {/* Video element for other person 2 */}
+            <video
+              id="other-person-2-video"
+              autoPlay
+              muted
+              playsInline
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', background: '#111', display: 'block' }}
+            />
+            {/* Overlay thông báo khi chưa có người */}
+            <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.85, borderRadius: 'inherit', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+              <span style={{ color: '#fff', fontWeight: 600, fontSize: mobileShrink ? 11 : 20, textAlign: 'center' }}>Chờ người khác...</span>
+            </div>
+          </div>
+          {/* Tên người khác 2 */}
+          <div style={{
+            background: '#fff',
+            color: '#222',
+            borderRadius: 4,
+            fontWeight: 700,
+            fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
+            padding: mobileShrink ? '2px 8px' : '4px 18px',
+            minWidth: 60,
+            maxWidth: mobileShrink ? 90 : 180,
+            textAlign: 'center',
+            border: '2px solid #bbb',
+            marginLeft: mobileShrink ? 2 : 6,
+            marginRight: mobileShrink ? 2 : 6,
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+            display: 'block'
+          }}>Người khác 2</div>
+        </div>
+      </div>
+
       {/* Mount DailyVideoCall (Daily.co) sau webcam row để quản lý stream */}
       {roomUrl && typeof roomUrl === 'string' && roomUrl.length > 0 ? (
         <DailyVideoCall

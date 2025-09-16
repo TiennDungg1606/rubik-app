@@ -245,17 +245,23 @@ export default function WaitingRoom() {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
+      console.log('=== SOCKET CONNECTED ===');
       setIsConnected(true);
       
       // Lấy thông tin user từ API thay vì sessionStorage
       const fetchUserAndJoin = async () => {
         try {
+          console.log('=== FETCHING USER FOR SOCKET JOIN ===');
           const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
           const data = await res.json();
+          console.log('Socket join API response:', data);
+          
           if (data && data.user) {
             const user = data.user;
             const userId = user._id || user.id || Date.now().toString();
             const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
+            
+            console.log('Joining room with:', { userId, userName, roomId });
             
             // Cập nhật currentUser state
             setCurrentUser({
@@ -264,6 +270,7 @@ export default function WaitingRoom() {
               isReady: false,
               isObserver: false
             });
+            
             newSocket.emit('join-waiting-room', {
               roomId,
               userId,
@@ -271,11 +278,13 @@ export default function WaitingRoom() {
               displayName: window._roomDisplayName || roomId,
               password: window._roomPassword || null
             });
+            
+            console.log('Emitted join-waiting-room event');
           } else {
-            console.log('=== DEBUG: No user data from API ===');
+            console.log('=== DEBUG: No user data from API for socket join ===');
           }
         } catch (error) {
-          console.error('=== DEBUG: Error fetching user data ===', error);
+          console.error('=== DEBUG: Error fetching user data for socket join ===', error);
         }
       };
       
@@ -283,14 +292,23 @@ export default function WaitingRoom() {
     });
 
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
+      console.log('=== RECEIVED WAITING-ROOM-UPDATED ===');
+      console.log('Room data:', data);
+      console.log('Players count:', data.players.length);
+      console.log('Players:', data.players);
+      console.log('Current user before update:', currentUser);
+      
       // Cập nhật currentUser role từ server data
       // Tìm player data dựa trên userId đã gửi lên server
       const playerData = data.players.find(p => {
         // Tìm theo ID hiện tại hoặc theo tên nếu ID chưa match
         const matchById = p.id === currentUser?.id;
         const matchByName = currentUser?.name && p.name === currentUser.name;
+        console.log('Checking player:', p.name, 'vs currentUser:', currentUser?.name, 'matchById:', matchById, 'matchByName:', matchByName);
         return matchById || matchByName;
       });
+      
+      console.log('Found player data:', playerData);
       
       if (playerData) {
         setCurrentUser(prev => {
