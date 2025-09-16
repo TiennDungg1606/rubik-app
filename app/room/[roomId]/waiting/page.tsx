@@ -409,10 +409,21 @@ export default function WaitingRoom() {
       toPlayer: Player;
       fromPosition: number;
       toPosition: number;
+      targetUserId: string;
     }) => {
       console.log('Received swap-seat-request:', data);
-      setPendingSwapRequest(data);
-      setShowSwapModal(true);
+      console.log('Current user:', currentUser);
+      console.log('Target user ID:', data.targetUserId);
+      console.log('Should show modal:', data.targetUserId === currentUser?.id);
+      
+      // Chỉ hiện modal cho người được yêu cầu đổi chỗ
+      if (data.targetUserId === currentUser?.id) {
+        console.log('Showing swap modal for current user');
+        setPendingSwapRequest(data);
+        setShowSwapModal(true);
+      } else {
+        console.log('Not the target user, ignoring request');
+      }
     });
 
     newSocket.on('swap-seat-response', (data: {
