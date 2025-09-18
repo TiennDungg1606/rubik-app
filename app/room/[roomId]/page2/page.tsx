@@ -83,6 +83,9 @@ export default function RoomPage() {
   // Ref cho video local và remote để truyền vào DailyVideoCall
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  // Ref cho 2 video bổ sung trong 2vs2 mode
+  const otherPerson1VideoRef = useRef<HTMLVideoElement>(null);
+  const otherPerson2VideoRef = useRef<HTMLVideoElement>(null);
   // Trạng thái thông báo tráo scramble
   const [showScrambleMsg, setShowScrambleMsg] = useState<boolean>(false);
   // Trạng thái thông báo kết thúc sớm - ĐÃ HỦY
@@ -1768,15 +1771,22 @@ useEffect(() => {
     }
   }, []);
 
-  // Khi đã có roomId, join-room với password nếu có
+  // Khi đã có roomId, join-room với password nếu có (hỗ trợ cả 1vs1 và 2vs2)
   useEffect(() => {
     if (!roomId || !userName || !userId) return;
     const socket = getSocket();
-    // Lấy meta phòng từ sessionStorage nếu có (chỉ khi vừa tạo phòng)
+    
+    // Detect 2vs2 mode từ sessionStorage hoặc URL params
+    let is2vs2Mode = false;
     let password = "";
     let event = undefined;
     let displayName = undefined;
+    
     if (typeof window !== "undefined") {
+      // Check if this is from 2vs2 waiting room
+      const gameMode = sessionStorage.getItem(`gameMode_${roomId}`);
+      is2vs2Mode = gameMode === '2vs2';
+      
       // Ưu tiên lấy meta nếu là người tạo phòng
       const metaStr = sessionStorage.getItem(`roomMeta_${roomId}`);
       if (metaStr) {
@@ -1791,8 +1801,22 @@ useEffect(() => {
         password = sessionStorage.getItem(`roomPassword_${roomId}`) || "";
         sessionStorage.removeItem(`roomPassword_${roomId}`);
       }
+      
+      // Clean up sessionStorage for game mode
+      if (gameMode) {
+        sessionStorage.removeItem(`gameMode_${roomId}`);
+      }
     }
-    socket.emit("join-room", { roomId, userId, userName, event, displayName, password });
+    
+    if (is2vs2Mode) {
+      // Join room cho 2vs2 mode - sử dụng join-room thường nhưng với roomId đặc biệt
+      console.log(`🎮 Joining 2vs2 game room: ${roomId}`);
+      socket.emit("join-room", { roomId, userId, userName, event, displayName, password, gameMode: '2vs2' });
+    } else {
+      // Join room cho 1vs1 mode (logic cũ)
+      console.log(`🎮 Joining 1vs1 game room: ${roomId}`);
+      socket.emit("join-room", { roomId, userId, userName, event, displayName, password });
+    }
     // Lắng nghe xác nhận đã join phòng
     const handleRoomJoined = () => {
       setJoinedRoom(true);
@@ -2894,26 +2918,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           }
           style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
-          {/* Overlay dưới thanh trạng thái */}
-          <div style={{ position: 'relative', width: '100%' }}>
-            <div style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: '100%',
-              height: mobileShrink ? 28 : 48,
-              background: 'rgba(0,0,0,0.35)',
-              borderRadius: 12,
-              zIndex: 0
-            }} />
-            <div className="mb-2 w-full flex items-center justify-center" style={{ position: 'relative', zIndex: 1 }}>
-              {waiting ? (
-                <span className={mobileShrink ? "text-yellow-400 text-[10px] font-semibold text-center w-full block" : "text-yellow-400 text-2xl font-semibold text-center w-full block"}>Đang chờ đối thủ vào phòng...</span>
-              ) : (
-                <span className={mobileShrink ? "text-green-400 text-[10px] font-semibold text-center w-full block" : "text-green-400 text-2xl font-semibold text-center w-full block"}>Đã đủ 2 người, sẵn sàng thi đấu!</span>
-              )}
-            </div>
-          </div>
           {/* Thông báo trạng thái lượt giải + Thông báo lỗi camera */}
           <div className="mb-3 relative w-full flex flex-col items-center justify-center text-center" style={{ position: 'relative' }}>
             {/* Overlay dưới thông báo trạng thái lượt giải */}
@@ -3131,12 +3135,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             {!camOn && (
               <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.95, borderRadius: 'inherit', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                 <span style={{ color: '#fff', fontWeight: 700, fontSize: mobileShrink ? 12 : 24 }}>Đã tắt camera</span>
-              </div>
-            )}
-            {/* Overlay thông báo khi chưa đủ 2 người */}
-            {waiting && (
-              <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.85, borderRadius: 'inherit', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <span style={{ color: '#fff', fontWeight: 600, fontSize: mobileShrink ? 11 : 20, textAlign: 'center' }}>Camera của bạn sẽ hiện khi đối thủ vào</span>
               </div>
             )}
             <button
@@ -4164,30 +4162,94 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               playsInline
               style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', background: '#111', display: 'block' }}
             />
-            {/* Overlay thông báo khi chưa có người */}
-            <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.85, borderRadius: 'inherit', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-              <span style={{ color: '#fff', fontWeight: 600, fontSize: mobileShrink ? 11 : 20, textAlign: 'center' }}>Chờ người khác...</span>
+          </div>
+          {/* Thông tin người khác 1 */}
+          <div className="flex flex-row items-center gap-1 mb-1">
+            {/* MEDIAN */}
+            <div style={{
+              background: '#181c22',
+              borderRadius: 4,
+              border: '2px solid #222',
+              minWidth: 60,
+              maxWidth: 120,
+              textAlign: 'center',
+              fontSize: mobileShrink ? 11 : 18,
+              color: '#ff3b1d',
+              fontWeight: 700,
+              letterSpacing: 1,
+              boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
+              padding: '2px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4
+            }}>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>-</div>
+            </div>
+            {/* Timer */}
+            <div style={{
+              background: '#181c22',
+              borderRadius: 8,
+              border: '2px solid #222',
+              minWidth: 60,
+              minHeight: 28,
+              maxWidth: 120,
+              textAlign: 'center',
+              fontSize: mobileShrink ? 18 : 24,
+              color: '#ff3b1d',
+              fontWeight: 700,
+              letterSpacing: 1,
+              boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
+              padding: '2px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
+            }}>
+              <span style={{ fontFamily: 'inherit', fontSize: mobileShrink ? 18 : 24 }}>0.00</span>
+              <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+            </div>
+            {/* Tên người khác 1 */}
+            <div style={{
+              background: '#fff',
+              color: '#222',
+              borderRadius: 4,
+              fontWeight: 700,
+              fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
+              padding: mobileShrink ? '2px 8px' : '4px 18px',
+              minWidth: 60,
+              maxWidth: mobileShrink ? 90 : 180,
+              textAlign: 'center',
+              border: '2px solid #bbb',
+              marginLeft: mobileShrink ? 2 : 6,
+              marginRight: mobileShrink ? 2 : 6,
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+              display: 'block'
+            }}>Người khác 1</div>
+            {/* Số set thắng */}
+            <div style={{
+              background: '#7c3aed',
+              color: '#fff',
+              borderRadius: 4,
+              fontWeight: 700,
+              fontSize: mobileShrink ? 13 : 18,
+              padding: mobileShrink ? '2px 4px' : '4px 12px',
+              minWidth: mobileShrink ? 28 : 32,
+              maxWidth: mobileShrink ? 50 : 60,
+              textAlign: 'center',
+              border: '2px solid #5b21b6',
+              marginLeft: mobileShrink ? 2 : 6,
+              flexShrink: 0,
+              overflow: 'hidden'
+            }}>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>0</div>
             </div>
           </div>
-          {/* Tên người khác 1 */}
-          <div style={{
-            background: '#fff',
-            color: '#222',
-            borderRadius: 4,
-            fontWeight: 700,
-            fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-            padding: mobileShrink ? '2px 8px' : '4px 18px',
-            minWidth: 60,
-            maxWidth: mobileShrink ? 90 : 180,
-            textAlign: 'center',
-            border: '2px solid #bbb',
-            marginLeft: mobileShrink ? 2 : 6,
-            marginRight: mobileShrink ? 2 : 6,
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-            display: 'block'
-          }}>Người khác 1</div>
         </div>
 
         {/* Khoảng trống ở giữa - cột 2 */}
@@ -4219,30 +4281,94 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               playsInline
               style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', background: '#111', display: 'block' }}
             />
-            {/* Overlay thông báo khi chưa có người */}
-            <div style={{ position: 'absolute', inset: 0, background: '#111', opacity: 0.85, borderRadius: 'inherit', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-              <span style={{ color: '#fff', fontWeight: 600, fontSize: mobileShrink ? 11 : 20, textAlign: 'center' }}>Chờ người khác...</span>
+          </div>
+          {/* Thông tin người khác 2 */}
+          <div className="flex flex-row items-center gap-1 mb-1">
+            {/* MEDIAN */}
+            <div style={{
+              background: '#181c22',
+              borderRadius: 4,
+              border: '2px solid #222',
+              minWidth: 60,
+              maxWidth: 120,
+              textAlign: 'center',
+              fontSize: mobileShrink ? 11 : 18,
+              color: '#ff3b1d',
+              fontWeight: 700,
+              letterSpacing: 1,
+              boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
+              padding: '2px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4
+            }}>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>-</div>
+            </div>
+            {/* Timer */}
+            <div style={{
+              background: '#181c22',
+              borderRadius: 8,
+              border: '2px solid #222',
+              minWidth: 60,
+              minHeight: 28,
+              maxWidth: 120,
+              textAlign: 'center',
+              fontSize: mobileShrink ? 18 : 24,
+              color: '#ff3b1d',
+              fontWeight: 700,
+              letterSpacing: 1,
+              boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
+              padding: '2px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
+            }}>
+              <span style={{ fontFamily: 'inherit', fontSize: mobileShrink ? 18 : 24 }}>0.00</span>
+              <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+            </div>
+            {/* Tên người khác 2 */}
+            <div style={{
+              background: '#fff',
+              color: '#222',
+              borderRadius: 4,
+              fontWeight: 700,
+              fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
+              padding: mobileShrink ? '2px 8px' : '4px 18px',
+              minWidth: 60,
+              maxWidth: mobileShrink ? 90 : 180,
+              textAlign: 'center',
+              border: '2px solid #bbb',
+              marginLeft: mobileShrink ? 2 : 6,
+              marginRight: mobileShrink ? 2 : 6,
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+              display: 'block'
+            }}>Người khác 2</div>
+            {/* Số set thắng */}
+            <div style={{
+              background: '#7c3aed',
+              color: '#fff',
+              borderRadius: 4,
+              fontWeight: 700,
+              fontSize: mobileShrink ? 13 : 18,
+              padding: mobileShrink ? '2px 4px' : '4px 12px',
+              minWidth: mobileShrink ? 28 : 32,
+              maxWidth: mobileShrink ? 50 : 60,
+              textAlign: 'center',
+              border: '2px solid #5b21b6',
+              marginLeft: mobileShrink ? 2 : 6,
+              flexShrink: 0,
+              overflow: 'hidden'
+            }}>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>0</div>
             </div>
           </div>
-          {/* Tên người khác 2 */}
-          <div style={{
-            background: '#fff',
-            color: '#222',
-            borderRadius: 4,
-            fontWeight: 700,
-            fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-            padding: mobileShrink ? '2px 8px' : '4px 18px',
-            minWidth: 60,
-            maxWidth: mobileShrink ? 90 : 180,
-            textAlign: 'center',
-            border: '2px solid #bbb',
-            marginLeft: mobileShrink ? 2 : 6,
-            marginRight: mobileShrink ? 2 : 6,
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-            display: 'block'
-          }}>Người khác 2</div>
         </div>
       </div>
 
@@ -4255,6 +4381,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           micOn={micOn}
           localVideoRef={localVideoRef}
           remoteVideoRef={remoteVideoRef}
+          otherPerson1VideoRef={otherPerson1VideoRef}
+          otherPerson2VideoRef={otherPerson2VideoRef}
           is2vs2={true}
         />
       ) : null}

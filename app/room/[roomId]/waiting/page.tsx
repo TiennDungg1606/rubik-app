@@ -410,6 +410,10 @@ export default function WaitingRoom() {
     });
 
     newSocket.on('game-started', (data: { roomId: string, gameMode: string }) => {
+      // Set sessionStorage để page2 biết đây là 2vs2 mode
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(`gameMode_${data.roomId}`, data.gameMode);
+      }
       router.push(`/room/${data.roomId}/page2`);
     });
 

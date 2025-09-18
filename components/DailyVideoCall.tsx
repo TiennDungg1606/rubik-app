@@ -6,6 +6,8 @@ interface DailyVideoCallProps {
   micOn: boolean;
   localVideoRef?: React.RefObject<HTMLVideoElement | null>;
   remoteVideoRef?: React.RefObject<HTMLVideoElement | null>;
+  otherPerson1VideoRef?: React.RefObject<HTMLVideoElement | null>; // Video người cùng đội
+  otherPerson2VideoRef?: React.RefObject<HTMLVideoElement | null>; // Video người đội đối thủ
   is2vs2?: boolean; // Thêm prop để hỗ trợ 2vs2
 }
 
@@ -15,11 +17,15 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
   micOn, 
   localVideoRef: propLocalVideoRef, 
   remoteVideoRef: propRemoteVideoRef,
+  otherPerson1VideoRef: propOtherPerson1VideoRef,
+  otherPerson2VideoRef: propOtherPerson2VideoRef,
   is2vs2 = false 
 }) => {
   const callObjectRef = useRef<any>(null);
   const localVideoRef = propLocalVideoRef || useRef<HTMLVideoElement>(null);
   const remoteVideoRef = propRemoteVideoRef || useRef<HTMLVideoElement>(null);
+  const otherPerson1VideoRef = propOtherPerson1VideoRef || useRef<HTMLVideoElement>(null);
+  const otherPerson2VideoRef = propOtherPerson2VideoRef || useRef<HTMLVideoElement>(null);
   const [isJoined, setIsJoined] = useState(false);
   const [participants, setParticipants] = useState<any[]>([]);
 
@@ -109,13 +115,43 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
         })
         .on('remote-video-track-started', (event: any) => {
           console.log('[DailyVideoCall] remote-video-track-started', event);
-          if (remoteVideoRef.current && event.track) {
+          if (event.track) {
             const videoElement = event.track.attach();
-            remoteVideoRef.current.srcObject = videoElement.srcObject;
-            remoteVideoRef.current.style.display = 'block';
-            // Ẩn placeholder text
-            const placeholder = remoteVideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
-            if (placeholder) placeholder.style.display = 'none';
+            
+            // Phân phối video cho các elements dựa trên số lượng participants
+            const currentParticipants = Object.values(callObjectRef.current.participants());
+            const participantIndex = currentParticipants.findIndex((p: any) => p.session_id === event.participant.session_id);
+            
+            if (is2vs2) {
+              // 2vs2 mode: phân phối cho 3 video elements (remote, other-person-1, other-person-2)
+              if (participantIndex === 1 && remoteVideoRef.current) {
+                // Participant thứ 2 -> remote video (đối thủ chính)
+                remoteVideoRef.current.srcObject = videoElement.srcObject;
+                remoteVideoRef.current.style.display = 'block';
+                const placeholder = remoteVideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
+                if (placeholder) placeholder.style.display = 'none';
+              } else if (participantIndex === 2 && otherPerson1VideoRef.current) {
+                // Participant thứ 3 -> other-person-1 (người cùng đội)
+                otherPerson1VideoRef.current.srcObject = videoElement.srcObject;
+                otherPerson1VideoRef.current.style.display = 'block';
+                const placeholder = otherPerson1VideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
+                if (placeholder) placeholder.style.display = 'none';
+              } else if (participantIndex === 3 && otherPerson2VideoRef.current) {
+                // Participant thứ 4 -> other-person-2 (người đội đối thủ)
+                otherPerson2VideoRef.current.srcObject = videoElement.srcObject;
+                otherPerson2VideoRef.current.style.display = 'block';
+                const placeholder = otherPerson2VideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
+                if (placeholder) placeholder.style.display = 'none';
+              }
+            } else {
+              // 1vs1 mode: chỉ remote video
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = videoElement.srcObject;
+                remoteVideoRef.current.style.display = 'block';
+                const placeholder = remoteVideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
+                if (placeholder) placeholder.style.display = 'none';
+              }
+            }
           }
         })
         .on('participant-updated', (event: any) => {
@@ -155,7 +191,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
   if (is2vs2) {
     return (
       <div className="w-full h-full relative">
-        {/* Custom video layout cho 2vs2 - chỉ 2 video */}
+        {/* Custom video layout cho 2vs2 - 4 video */}
         <div className="grid grid-cols-2 gap-2 h-full p-2">
           {/* Local video */}
           <div className="relative bg-gray-800 rounded-lg overflow-hidden">
@@ -175,7 +211,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
             </div>
           </div>
           
-          {/* Remote video */}
+          {/* Remote video (đối thủ chính) */}
           <div className="relative bg-gray-800 rounded-lg overflow-hidden">
             <video
               ref={remoteVideoRef}
@@ -185,10 +221,44 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
               style={{ display: 'none' }}
             />
             <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
-              {participants.length > 1 ? 'Remote Video' : 'Waiting for player...'}
+              {participants.length > 1 ? 'Remote Video' : 'Waiting for opponent...'}
             </div>
             <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
-              Player 2
+              Opponent
+            </div>
+          </div>
+          
+          {/* Other person 1 video (người cùng đội) */}
+          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
+            <video
+              ref={otherPerson1VideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+              style={{ display: 'none' }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
+              {participants.length > 2 ? 'Teammate Video' : 'Waiting for teammate...'}
+            </div>
+            <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
+              Teammate
+            </div>
+          </div>
+          
+          {/* Other person 2 video (người đội đối thủ) */}
+          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
+            <video
+              ref={otherPerson2VideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+              style={{ display: 'none' }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
+              {participants.length > 3 ? 'Opponent Team Video' : 'Waiting for opponent team...'}
+            </div>
+            <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
+              Opponent Team
             </div>
           </div>
         </div>
