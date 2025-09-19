@@ -628,8 +628,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   key={room}
                   onClick={() => {
                     const meta = roomMetas[room] || {};
-                    if (meta.gameMode === '2vs2' || meta.isWaitingRoom) {
-                      // Kiểm tra mật khẩu cho waiting room 2vs2
+                    if (meta.isWaitingRoom) {
+                      // Kiểm tra mật khẩu cho waiting room
                       if (meta.password) {
                         openPasswordModal(room);
                       } else {
@@ -647,7 +647,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   className="flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-xl"
                 >
                   <div className={`w-24 h-24 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative ${
-                    roomMetas[room]?.gameMode === '2vs2' || roomMetas[room]?.isWaitingRoom ? 'bg-yellow-800' : 'bg-blue-800'
+                    roomMetas[room]?.isWaitingRoom ? 'bg-yellow-800' : 'bg-blue-800'
                   }`}>
                     {/* Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx - áp dụng cho cả waiting room và phòng thường */}
                     {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (

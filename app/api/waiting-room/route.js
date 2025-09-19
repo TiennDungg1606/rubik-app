@@ -21,21 +21,11 @@ export async function POST(request) {
       const data = await response.json();
       return Response.json(data);
     } else {
-      // Fallback: Nếu server chưa hỗ trợ module 2vs2, trả về success để client có thể tiếp tục
-      console.warn('Server does not support 2vs2 module yet, using fallback');
-      return Response.json({ 
-        success: true, 
-        roomId,
-        message: 'Waiting room created (fallback mode)'
-      });
+      console.error('Failed to create waiting room on socket server');
+      return Response.json({ error: 'Failed to create waiting room' }, { status: 500 });
     }
   } catch (error) {
     console.error('Error creating waiting room:', error);
-    // Fallback: Trả về success để client có thể tiếp tục
-    return Response.json({ 
-      success: true, 
-      roomId: request.body?.roomId || 'FALLBACK',
-      message: 'Waiting room created (fallback mode)'
-    });
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
