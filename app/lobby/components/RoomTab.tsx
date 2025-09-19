@@ -7,8 +7,7 @@ declare global {
 }
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
-import { getSocket } from "@/lib/socket";
-import { getSocketUrl } from "@/lib/socketConfig";
+import { io } from "socket.io-client";
 
 type RoomTabProps = {
   roomInput: string;
@@ -53,6 +52,13 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [modalPasswordConfirm, setModalPasswordConfirm] = useState("");
   const [modalError, setModalError] = useState("");
   // Đã loại bỏ logic spectator
+  // Sử dụng localhost khi development, production server khi production
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const API_BASE = isDevelopment 
+    ? "http://localhost:3001" 
+    : "https://rubik-socket-server-production-3b21.up.railway.app";
+  
+
   // Lấy danh sách phòng và phân loại - đã gộp logic Skeleton loading vào đây
   useEffect(() => {
     let stopped = false;
@@ -60,22 +66,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     
     async function fetchRooms() {
       try {
-        // Fetch từ cả 2 server: 1vs1 và 2vs2
-        const [res1vs1, res2vs2] = await Promise.all([
-          fetch(`${getSocketUrl('1vs1')}/active-rooms`),
-          fetch(`${getSocketUrl('2vs2')}/active-rooms`)
-        ]);
-        
-        const [roomObjs1vs1, roomObjs2vs2] = await Promise.all([
-          res1vs1.json(),
-          res2vs2.json()
-        ]);
-        
-        // Gộp kết quả từ cả 2 server
-        const roomObjs = [
-          ...(Array.isArray(roomObjs1vs1) ? roomObjs1vs1 : []),
-          ...(Array.isArray(roomObjs2vs2) ? roomObjs2vs2 : [])
-        ];
+        const res = await fetch(`${API_BASE}/active-rooms`);
+        const roomObjs = await res.json();
         if (!Array.isArray(roomObjs)) {
           setActiveRooms([]);
           setCompetingRooms([]);
@@ -118,24 +110,18 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setLoadingRooms(false);
     }, 3000);
 
-    // Lắng nghe sự kiện update-active-rooms từ cả 2 server để reload danh sách phòng ngay lập tức
-    const socket1vs1 = getSocket('1vs1');
-    const socket2vs2 = getSocket('2vs2');
-    
-    const handleUpdate = () => {
+    // Lắng nghe sự kiện update-active-rooms từ server để reload danh sách phòng ngay lập tức
+    socket = io(API_BASE, { transports: ["websocket"] });
+    socket.on("update-active-rooms", () => {
       console.log('=== ROOMTAB RECEIVED UPDATE-ACTIVE-ROOMS ===');
       console.log('Refreshing rooms list...');
       fetchRooms();
-    };
-    
-    socket1vs1.on("update-active-rooms", handleUpdate);
-    socket2vs2.on("update-active-rooms", handleUpdate);
+    });
 
     return () => {
       stopped = true;
       clearTimeout(loadingTimer);
-      socket1vs1.off("update-active-rooms", handleUpdate);
-      socket2vs2.off("update-active-rooms", handleUpdate);
+      if (socket) socket.disconnect();
     };
   }, []);
 
