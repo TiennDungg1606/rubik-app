@@ -1771,6 +1771,15 @@ useEffect(() => {
     }
   }, []);
 
+  // Helper function để lấy socket đúng cho gameMode hiện tại
+  const getCurrentSocket = () => {
+    if (typeof window !== "undefined") {
+      const gameMode = sessionStorage.getItem(`gameMode_${roomId}`);
+      return getSocket(gameMode === '2vs2' ? '2vs2' : '1vs1');
+    }
+    return getSocket('1vs1');
+  };
+
   // Khi đã có roomId, join-room với password nếu có (hỗ trợ cả 1vs1 và 2vs2)
   useEffect(() => {
     if (!roomId || !userName || !userId) return;
@@ -1809,29 +1818,47 @@ useEffect(() => {
     }
     
     if (is2vs2Mode) {
-      // Join room cho 2vs2 mode - sử dụng join-room thường nhưng với roomId đặc biệt
+      // Join room cho 2vs2 mode - sử dụng socket 2vs2 riêng biệt
       console.log(`🎮 Joining 2vs2 game room: ${roomId}`);
-      socket.emit("join-room", { roomId, userId, userName, event, displayName, password, gameMode: '2vs2' });
+      const socket2vs2 = getSocket('2vs2');
+      socket2vs2.emit("join-room", { roomId, userId, userName, event, displayName, password });
+      
+      // Lắng nghe xác nhận đã join phòng từ server 2vs2
+      const handleRoomJoined = () => {
+        setJoinedRoom(true);
+      };
+      const handleWrongPassword = (data: { message?: string }) => {
+        alert(data?.message || "Sai mật khẩu phòng!");
+        window.location.href = "/lobby";
+      };
+      socket2vs2.on("room-joined", handleRoomJoined);
+      socket2vs2.on("wrong-password", handleWrongPassword);
+      
+      return () => {
+        socket2vs2.off("room-joined", handleRoomJoined);
+        socket2vs2.off("wrong-password", handleWrongPassword);
+      };
     } else {
       // Join room cho 1vs1 mode (logic cũ)
       console.log(`🎮 Joining 1vs1 game room: ${roomId}`);
       socket.emit("join-room", { roomId, userId, userName, event, displayName, password });
+      
+      // Lắng nghe xác nhận đã join phòng từ server 1vs1
+      const handleRoomJoined = () => {
+        setJoinedRoom(true);
+      };
+      const handleWrongPassword = (data: { message?: string }) => {
+        alert(data?.message || "Sai mật khẩu phòng!");
+        window.location.href = "/lobby";
+      };
+      socket.on("room-joined", handleRoomJoined);
+      socket.on("wrong-password", handleWrongPassword);
+      
+      return () => {
+        socket.off("room-joined", handleRoomJoined);
+        socket.off("wrong-password", handleWrongPassword);
+      };
     }
-    // Lắng nghe xác nhận đã join phòng
-    const handleRoomJoined = () => {
-      setJoinedRoom(true);
-    };
-    socket.on("room-joined", handleRoomJoined);
-    // Lắng nghe sai mật khẩu
-    const handleWrongPassword = (data: { message?: string }) => {
-      alert(data?.message || "Sai mật khẩu phòng!");
-      window.location.href = "/lobby";
-    };
-    socket.on("wrong-password", handleWrongPassword);
-    return () => {
-      socket.off("room-joined", handleRoomJoined);
-      socket.off("wrong-password", handleWrongPassword);
-    };
   }, [roomId, userName, userId]);
 
   // Luôn khôi phục kết quả từ localStorage khi roomId thay đổi

@@ -10,7 +10,7 @@ declare global {
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { io } from 'socket.io-client';
+import { getSocket } from '@/lib/socket';
 import dynamic from 'next/dynamic';
 
 // Dynamic import để tránh SSR issues
@@ -239,9 +239,8 @@ export default function WaitingRoom() {
       setRoomUrl(dailyRoomUrl);
     }
 
-    // Kết nối socket
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://rubik-socket-server-production-3b21.up.railway.app';
-    const newSocket = io(socketUrl);
+    // Kết nối socket 2vs2
+    const newSocket = getSocket('2vs2');
     setSocket(newSocket);
 
     newSocket.on('connect', () => {

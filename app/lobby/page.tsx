@@ -16,6 +16,7 @@ import AboutTab from "./components/AboutTab";
 import ShopTab from "./components/ShopTab";
 import PracticeTab from "./components/PracticeTab";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getSocketUrl } from "@/lib/socketConfig";
 
 
 
@@ -427,16 +428,17 @@ function LobbyContent() {
         console.error('Error creating Daily.co room:', error);
       }
       
-      // Tạo waiting room trên server
+      // Tạo waiting room trên server 2vs2
       try {
-        const waitingResponse = await fetch('/api/waiting-room', {
+        const serverUrl = getSocketUrl('2vs2');
+        const waitingResponse = await fetch(`${serverUrl}/create-waiting-room`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ roomId, gameMode, event, displayName, password })
         });
         
         if (waitingResponse.ok) {
-          console.log('Waiting room created successfully');
+          console.log('Waiting room created successfully on 2vs2 server');
         } else {
           console.error('Failed to create waiting room:', await waitingResponse.text());
         }
