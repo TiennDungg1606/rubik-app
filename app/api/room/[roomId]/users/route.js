@@ -4,7 +4,7 @@
 export async function GET(req, { params }) {
   const { roomId } = params;
   // Gọi socket server REST API (giả lập) để lấy danh sách user
-  // Giả sử socket server chạy ở http://localhost:3001
+  // Giả sử socket server chạy ở https://rubik-socket-server-production-3b21.up.railway.app
   // Lấy URL socket server từ biến môi trường, fallback về localhost nếu chưa cấu hình
   const SOCKET_SERVER_URL = process.env.SOCKET_SERVER_URL;
   try {

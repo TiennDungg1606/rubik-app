@@ -9,7 +9,7 @@ export function getSocket(): Socket {
     // Sử dụng localhost khi development, production server khi production
     const isDevelopment = process.env.NODE_ENV === 'development';
     const serverUrl = isDevelopment 
-      ? "http://localhost:3001" 
+      ? "https://rubik-socket-server-production-3b21.up.railway.app" 
       : "https://rubik-socket-server-production-3b21.up.railway.app";
     
     socket = io(serverUrl, {
