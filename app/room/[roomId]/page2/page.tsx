@@ -73,10 +73,10 @@ export default function RoomPage() {
       });
   }, [roomId, joinedRoom]);
   const [showCubeNet, setShowCubeNet] = useState(false);
-  // State cho chat
+  // State cho chat - Updated for 2vs2
   const [showChat, setShowChat] = useState(false);
   const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<{from: 'me'|'opponent', text: string}[]>([]);
+  const [chatMessages, setChatMessages] = useState<{from: string, text: string, team?: 'A'|'B', playerName: string}[]>([]);
   const [hasNewChat, setHasNewChat] = useState(false);
   const audioRef = useRef<HTMLAudioElement|null>(null);
 
@@ -136,7 +136,7 @@ export default function RoomPage() {
   const [waiting, setWaiting] = useState<boolean>(true);
   // turnUserId: userId của người được quyền giải (đồng bộ từ server)
   const [turnUserId, setTurnUserId] = useState<string>("");
-  const [myResults, setMyResults] = useState<(number|null)[]>([]);
+  const [myResults, setMyResultsOld] = useState<(number|null)[]>([]);
   const [opponentResults, setOpponentResults] = useState<(number|null)[]>([]);
   const [dnf, setDnf] = useState<boolean>(false);
   // Thêm state cho xác nhận kết quả
@@ -165,7 +165,26 @@ export default function RoomPage() {
   const [rematchJustAccepted, setRematchJustAccepted] = useState(false);
   const [isRematchMode, setIsRematchMode] = useState(false); // State để theo dõi xem có đang ở chế độ tái đấu không
 
-
+  // === TEAM MANAGEMENT STATES FOR 2VS2 ===
+  // Team structure: { teamId: string, players: { userId: string, userName: string }[] }
+  const [teamA, setTeamA] = useState<{ teamId: string, players: { userId: string, userName: string }[] }>({ teamId: 'A', players: [] });
+  const [teamB, setTeamB] = useState<{ teamId: string, players: { userId: string, userName: string }[] }>({ teamId: 'B', players: [] });
+  const [currentTeam, setCurrentTeam] = useState<'A' | 'B'>('A'); // Team đang có lượt chơi
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0); // Index của player trong team đang chơi
+  const [myTeam, setMyTeam] = useState<'A' | 'B' | null>(null); // Team của tôi
+  const [myTeamIndex, setMyTeamIndex] = useState<number>(-1); // Vị trí của tôi trong team
+  
+  // Team results: mỗi team có kết quả riêng
+  const [teamAResults, setTeamAResults] = useState<(number|null)[][]>([]); // [playerIndex][solveIndex]
+  const [teamBResults, setTeamBResults] = useState<(number|null)[][]>([]); // [playerIndex][solveIndex]
+  
+  // Team sets (số set thắng của mỗi team)
+  const [teamASets, setTeamASets] = useState<number>(0);
+  const [teamBSets, setTeamBSets] = useState<number>(0);
+  
+  // Current player info
+  const [currentPlayerId, setCurrentPlayerId] = useState<string>("");
+  const [currentPlayerName, setCurrentPlayerName] = useState<string>("");
 
   // --- Thêm logic lấy customBg và set background giống lobby ---
 type User = {
@@ -218,6 +237,63 @@ useEffect(() => {
     // Ref cho khối chat để auto-scroll
   const chatListRef = useRef<HTMLDivElement>(null);
 
+  // === HELPER FUNCTIONS FOR 2VS2 ===
+  const isMyTurn = () => {
+    if (!myTeam || !currentPlayerId) return false;
+    return currentPlayerId === userId;
+  };
+
+  const getCurrentTeam = () => {
+    return currentTeam === 'A' ? teamA : teamB;
+  };
+
+  const getMyTeam = () => {
+    return myTeam === 'A' ? teamA : teamB;
+  };
+
+  const getMyResults = () => {
+    if (!myTeam || myTeamIndex === -1) return [];
+    return myTeam === 'A' ? teamAResults[myTeamIndex] : teamBResults[myTeamIndex];
+  };
+
+  const setMyResults = (newResults: (number|null)[]) => {
+    if (!myTeam || myTeamIndex === -1) return;
+    if (myTeam === 'A') {
+      setTeamAResults(prev => {
+        const newTeamResults = [...prev];
+        newTeamResults[myTeamIndex] = newResults;
+        return newTeamResults;
+      });
+    } else {
+      setTeamBResults(prev => {
+        const newTeamResults = [...prev];
+        newTeamResults[myTeamIndex] = newResults;
+        return newTeamResults;
+      });
+    }
+  };
+
+  // Hàm chuyển lượt giữa các team
+  const switchToNextPlayer = () => {
+    const currentTeamData = getCurrentTeam();
+    const nextPlayerIndex = (currentPlayerIndex + 1) % currentTeamData.players.length;
+    
+    if (nextPlayerIndex === 0) {
+      // Chuyển sang team khác
+      const nextTeam = currentTeam === 'A' ? 'B' : 'A';
+      const nextTeamData = nextTeam === 'A' ? teamA : teamB;
+      setCurrentTeam(nextTeam);
+      setCurrentPlayerIndex(0);
+      setCurrentPlayerId(nextTeamData.players[0].userId);
+      setCurrentPlayerName(nextTeamData.players[0].userName);
+    } else {
+      // Chuyển sang player tiếp theo trong team hiện tại
+      setCurrentPlayerIndex(nextPlayerIndex);
+      setCurrentPlayerId(currentTeamData.players[nextPlayerIndex].userId);
+      setCurrentPlayerName(currentTeamData.players[nextPlayerIndex].userName);
+    }
+  };
+
   // Auto-scroll xuống cuối khi mở chat hoặc có tin nhắn mới
   useEffect(() => {
     if (showChat && chatListRef.current) {
@@ -265,6 +341,51 @@ useEffect(() => {
       socket.off('room-users', handleUsers);
     };
   }, [userId]);
+
+  // === TEAM ASSIGNMENT LOGIC FOR 2VS2 ===
+  useEffect(() => {
+    if (!pendingUsers || pendingUsers.length < 4) return;
+    
+    // Phân chia 4 người thành 2 team
+    const shuffled = [...pendingUsers].sort(() => Math.random() - 0.5);
+    const newTeamA = {
+      teamId: 'A',
+      players: shuffled.slice(0, 2)
+    };
+    const newTeamB = {
+      teamId: 'B', 
+      players: shuffled.slice(2, 4)
+    };
+    
+    setTeamA(newTeamA);
+    setTeamB(newTeamB);
+    
+    // Xác định team của tôi
+    const myPlayer = shuffled.find(p => p.userId === userId);
+    if (myPlayer) {
+      const myTeamId = newTeamA.players.some(p => p.userId === userId) ? 'A' : 'B';
+      const myTeam = myTeamId === 'A' ? newTeamA : newTeamB;
+      const myIndex = myTeam.players.findIndex(p => p.userId === userId);
+      
+      setMyTeam(myTeamId);
+      setMyTeamIndex(myIndex);
+    }
+    
+    // Khởi tạo kết quả cho mỗi team
+    setTeamAResults([[], []]); // 2 players, mỗi player có array kết quả
+    setTeamBResults([[], []]);
+    
+    // Reset sets
+    setTeamASets(0);
+    setTeamBSets(0);
+    
+    // Bắt đầu với team A, player đầu tiên
+    setCurrentTeam('A');
+    setCurrentPlayerIndex(0);
+    setCurrentPlayerId(newTeamA.players[0].userId);
+    setCurrentPlayerName(newTeamA.players[0].userName);
+    
+  }, [pendingUsers, userId]);
 
   // Lắng nghe sự kiện hủy tái đấu từ đối phương
   useEffect(() => {
@@ -1403,7 +1524,7 @@ useEffect(() => {
     const handleChat = (data: { userId: string, userName: string, message: string }) => {
       // Nếu là tin nhắn của mình thì bỏ qua (đã hiển thị local)
       if (data.userId === userId) return;
-      setChatMessages(msgs => [...msgs, { from: 'opponent', text: data.message }]);
+      setChatMessages(msgs => [...msgs, { from: 'opponent', text: data.message, playerName: data.userName }]);
       setHasNewChat(true);
       // Phát âm thanh ting
       if (audioRef.current) {
@@ -1550,10 +1671,12 @@ useEffect(() => {
     
     // Gửi kết quả lên server
     if (time !== null) {
-      setMyResults(r => [...r, time]);
+      const currentResults = getMyResults();
+      setMyResults([...currentResults, time]);
       socket.emit("solve", { roomId, userId, userName, time });
     } else {
-      setMyResults(r => [...r, null]);
+      const currentResults = getMyResults();
+      setMyResults([...currentResults, null]);
       socket.emit("solve", { roomId, userId, userName, time: null });
     }
     
@@ -1907,8 +2030,8 @@ useEffect(() => {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    // Chỉ cho phép nếu đến lượt mình (userId === turnUserId) và không bị khóa do 2 lần DNF
-    if (waiting || running || userId !== turnUserId || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
+    // Chỉ cho phép nếu đến lượt team mình và không bị khóa do 2 lần DNF
+    if (waiting || running || !isMyTurn() || getMyResults().length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -1965,11 +2088,11 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length, isLockedDue2DNF]);
+  }, [isMobile, waiting, running, prep, userId, getMyResults, isLockedDue2DNF, isMyTurn]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
-    if (!prep || waiting || isLockedDue2DNF || userId !== turnUserId) return;
+    if (!prep || waiting || isLockedDue2DNF || !isMyTurn()) return;
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
@@ -1993,12 +2116,10 @@ useEffect(() => {
           socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
           
           // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
-          setMyResults(r => {
-            const newR = [...r, null];
-            const socket = getSocket();
-            socket.emit("solve", { roomId, userId, userName, time: null });
-            return newR;
-          });
+          const currentResults = getMyResults();
+          const newR = [...currentResults, null];
+          setMyResults(newR);
+          socket.emit("solve", { roomId, userId, userName, time: null });
           // Không tự setTurn nữa
           setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
           return 0;
@@ -2012,12 +2133,12 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, isLockedDue2DNF]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF, isMyTurn]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
-    if (!canStart || waiting || isLockedDue2DNF || userId !== turnUserId) return;
+    if (!canStart || waiting || isLockedDue2DNF || !isMyTurn()) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -2132,22 +2253,27 @@ useEffect(() => {
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
-  // Lưu kết quả vào localStorage mỗi khi thay đổi
+  // Lưu kết quả vào localStorage mỗi khi thay đổi - Updated for 2vs2
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`myResults_${roomId}`, JSON.stringify(myResults));
-      localStorage.setItem(`opponentResults_${roomId}`, JSON.stringify(opponentResults));
+      localStorage.setItem(`teamAResults_${roomId}`, JSON.stringify(teamAResults));
+      localStorage.setItem(`teamBResults_${roomId}`, JSON.stringify(teamBResults));
     }
-  }, [myResults, opponentResults, roomId]);
+  }, [teamAResults, teamBResults, roomId]);
 
-  // Reset cho lần giải tiếp theo
+  // Reset cho lần giải tiếp theo - Updated for 2vs2
   useEffect(() => {
-  const totalSolves = myResults.length + opponentResults.length;
+  // Tính tổng số lượt giải của cả 2 team
+  const teamATotalSolves = teamAResults.reduce((sum, playerResults) => sum + playerResults.length, 0);
+  const teamBTotalSolves = teamBResults.reduce((sum, playerResults) => sum + playerResults.length, 0);
+  const totalSolves = teamATotalSolves + teamBTotalSolves;
+  
   if (totalSolves === 0) return;
   
   // Kiểm tra điều kiện kết thúc sớm khi có 2 lần DNF
-  const myDnfCount = myResults.filter(r => r === null).length;
-  const oppDnfCount = opponentResults.filter(r => r === null).length;
+  const myDnfCount = getMyResults().filter(r => r === null).length;
+  const oppDnfCount = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => 
+    sum + playerResults.filter(r => r === null).length, 0);
   
   // Chỉ kiểm tra khi cả 2 đều xong lượt giải đó (totalSolves chẵn)
   if (totalSolves % 2 === 0 && (myDnfCount >= 2 || oppDnfCount >= 2)) {
@@ -2169,13 +2295,21 @@ useEffect(() => {
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
       // Không tăng set cho ai cả
     } else if (myDnfCount >= 2) {
-      // Mình có 2 lần DNF -> Đối thủ thắng
-      setOpponentSets(s => s + 1);
+      // Team mình có 2 lần DNF -> Team đối thủ thắng
+      if (myTeam === 'A') {
+        setTeamBSets(s => s + 1);
+      } else {
+        setTeamASets(s => s + 1);
+      }
       // Hiển thị thông báo thua cho mình
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
     } else {
-      // Đối thủ có 2 lần DNF -> Mình thắng
-      setMySets(s => s + 1);
+      // Team đối thủ có 2 lần DNF -> Team mình thắng
+      if (myTeam === 'A') {
+        setTeamASets(s => s + 1);
+      } else {
+        setTeamBSets(s => s + 1);
+      }
       // Hiển thị thông báo thắng cho mình
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
     }
@@ -2199,17 +2333,35 @@ useEffect(() => {
     return; // Kết thúc sớm, không cần xử lý logic khác
   }
   
-  // Chỉ xử lý reset khi cả 2 đều xong lượt giải
-  if (myResults.length > 0 && myResults.length > opponentResults.length) return; // chờ đối thủ
+  // Chỉ xử lý reset khi cả 2 team đều xong lượt giải
+  const myTeamTotalSolves = getMyResults().length;
+  const oppTeamTotalSolves = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => sum + playerResults.length, 0);
+  if (myTeamTotalSolves > 0 && myTeamTotalSolves > oppTeamTotalSolves) return; // chờ team đối thủ
   
-  // Khi kết thúc trận đấu (đủ 5 lượt mỗi bên), xác định người thắng và tăng set
-  if (myResults.length === 5 && opponentResults.length === 5) {
-    const myAo5 = calcStats(myResults).ao5;
-    const oppAo5 = calcStats(opponentResults).ao5;
-    if (myAo5 !== null && (oppAo5 === null || myAo5 < oppAo5)) {
-      setMySets(s => s + 1);
-    } else if (oppAo5 !== null && (myAo5 === null || myAo5 > oppAo5)) {
-      setOpponentSets(s => s + 1);
+  // Khi kết thúc trận đấu (đủ 5 lượt mỗi team), xác định team thắng và tăng set
+  if (myTeamTotalSolves === 5 && oppTeamTotalSolves === 5) {
+    const myTeamResults = myTeam === 'A' ? teamAResults : teamBResults;
+    const oppTeamResults = myTeam === 'A' ? teamBResults : teamAResults;
+    
+    // Tính Ao5 cho mỗi team (tổng kết quả của 2 players)
+    const myTeamAllResults = myTeamResults.flat();
+    const oppTeamAllResults = oppTeamResults.flat();
+    
+    const myTeamAo5 = calcStats(myTeamAllResults).ao5;
+    const oppTeamAo5 = calcStats(oppTeamAllResults).ao5;
+    
+    if (myTeamAo5 !== null && (oppTeamAo5 === null || myTeamAo5 < oppTeamAo5)) {
+      if (myTeam === 'A') {
+        setTeamASets(s => s + 1);
+      } else {
+        setTeamBSets(s => s + 1);
+      }
+    } else if (oppTeamAo5 !== null && (myTeamAo5 === null || myTeamAo5 > oppTeamAo5)) {
+      if (myTeam === 'A') {
+        setTeamBSets(s => s + 1);
+      } else {
+        setTeamASets(s => s + 1);
+      }
     }
   }
   
@@ -2222,11 +2374,11 @@ useEffect(() => {
   if (totalSolves % 2 === 0 && totalSolves < 10) {
     // ...
   }
-}, [myResults, opponentResults, roomId]);
+}, [teamAResults, teamBResults, roomId, myTeam, getMyResults]);
 
-  // Tính toán thống kê
-  const myStats = calcStats(myResults);
-  const oppStats = calcStats(opponentResults);
+  // Tính toán thống kê - Updated for 2vs2
+  const myStats = calcStats(getMyResults());
+  const oppStats = calcStats((myTeam === 'A' ? teamBResults : teamAResults).flat());
 
 function formatTime(ms: number|null, showDNF: boolean = false) {
   if (ms === null) return showDNF ? 'DNF' : '';
@@ -2626,7 +2778,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 onSubmit={e => {
                   e.preventDefault();
                   if (chatInput.trim() === "") return;
-                  setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput }]);
+                  setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput, playerName: userName }]);
                   // Gửi chat qua socket cho đối thủ
                   const socket = getSocket();
                   socket.emit('chat', { roomId, userId, userName, message: chatInput });
@@ -2942,53 +3094,60 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 }
                 
                 // Hiển thị thông báo kết quả khi bị khóa do 2 lần DNF (nếu không có showEarlyEndMsg)
-                // Đảm bảo cả hai bên đều thấy thông báo về người thắng/thua/hòa
+                // Đảm bảo cả hai bên đều thấy thông báo về team thắng/thua/hòa
                 if (isLockedDue2DNF && !showEarlyEndMsg.show) {
-                  // Sử dụng kết quả local để tính toán chính xác
-                  const myDnfCount = myResults.filter(r => r === null).length;
-                  const oppDnfCount = opponentResults.filter(r => r === null).length;
+                  // Sử dụng kết quả team để tính toán chính xác
+                  const myDnfCount = getMyResults().filter(r => r === null).length;
+                  const oppDnfCount = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => 
+                    sum + playerResults.filter(r => r === null).length, 0);
                   
                   if (myDnfCount >= 2 && oppDnfCount >= 2) {
-                    // Cả hai đều có 2 lần DNF -> Hòa
+                    // Cả hai team đều có 2 lần DNF -> Hòa
                     return (
                       <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-yellow-400`}>
-                        {userName} và {opponentName} hòa - cả hai đều có 2 lần DNF.
+                        Team {myTeam} và Team {myTeam === 'A' ? 'B' : 'A'} hòa - cả hai team đều có 2 lần DNF.
                       </span>
                     );
                   } else if (myDnfCount >= 2) {
-                    // Mình có 2 lần DNF -> Đối thủ thắng
+                    // Team mình có 2 lần DNF -> Team đối thủ thắng
                     return (
                       <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-orange-400`}>
-                        {userName} thua - có 2 lần DNF. {opponentName} thắng.
+                        Team {myTeam} thua - có 2 lần DNF. Team {myTeam === 'A' ? 'B' : 'A'} thắng.
                       </span>
                     );
                   } else if (oppDnfCount >= 2) {
-                    // Đối thủ có 2 lần DNF -> Mình thắng
+                    // Team đối thủ có 2 lần DNF -> Team mình thắng
                     return (
                       <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-green-400`}>
-                        {userName} thắng - {opponentName} có 2 lần DNF.
+                        Team {myTeam} thắng - Team {myTeam === 'A' ? 'B' : 'A'} có 2 lần DNF.
                       </span>
                     );
                   }
                 }
                 
-                // Nếu cả 2 đã đủ 5 lượt thì thông báo kết quả
-                const bothDone = myResults.length >= 5 && opponentResults.length >= 5;
+                // Nếu cả 2 team đã đủ 5 lượt thì thông báo kết quả
+                const myTeamTotalSolves = getMyResults().length;
+                const oppTeamTotalSolves = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => sum + playerResults.length, 0);
+                const bothDone = myTeamTotalSolves >= 5 && oppTeamTotalSolves >= 5;
                 if (bothDone) {
                   // So sánh ao5, nếu đều DNF thì hòa
-                  const myAo5 = calcStats(myResults).ao5;
-                  const oppAo5 = calcStats(opponentResults).ao5;
+                  const myTeamResults = myTeam === 'A' ? teamAResults : teamBResults;
+                  const oppTeamResults = myTeam === 'A' ? teamBResults : teamAResults;
+                  const myTeamAllResults = myTeamResults.flat();
+                  const oppTeamAllResults = oppTeamResults.flat();
+                  const myAo5 = calcStats(myTeamAllResults).ao5;
+                  const oppAo5 = calcStats(oppTeamAllResults).ao5;
                   let winner = null;
                   if (myAo5 === null && oppAo5 === null) {
                     return <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-400" : "text-2xl font-semibold text-yellow-400"}>Trận đấu kết thúc, hòa</span>;
                   } else if (myAo5 === null) {
-                    winner = opponentName;
+                    winner = `Team ${myTeam === 'A' ? 'B' : 'A'}`;
                   } else if (oppAo5 === null) {
-                    winner = userName;
+                    winner = `Team ${myTeam}`;
                   } else if (myAo5 < oppAo5) {
-                    winner = userName;
+                    winner = `Team ${myTeam}`;
                   } else if (myAo5 > oppAo5) {
-                    winner = opponentName;
+                    winner = `Team ${myTeam === 'A' ? 'B' : 'A'}`;
                   } else {
                     return <span className="text-2xl font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
                   }
@@ -2998,13 +3157,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 // Đang trong trận - chỉ hiển thị khi không bị khóa do 2 lần DNF
                 if (!isLockedDue2DNF) {
                   let msg = "";
-                  let name = userId === turnUserId ? userName : opponentName;
+                  let name = isMyTurn() ? userName : currentPlayerName;
                   if (prep) {
-                    msg = `${name} đang chuẩn bị`;
+                    msg = `${name} (Team ${currentTeam}) đang chuẩn bị`;
                   } else if (running) {
-                    msg = `${name} đang giải`;
+                    msg = `${name} (Team ${currentTeam}) đang giải`;
                   } else {
-                    msg = `Đến lượt ${name} thi đấu`;
+                    msg = `Đến lượt ${name} (Team ${currentTeam}) thi đấu`;
                   }
                   
                   // Thêm thông báo rõ ràng về lượt chơi
@@ -3061,16 +3220,18 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             <thead className="bg-gray-800">
               <tr>
                 <th className="py-2 border border-gray-700">STT</th>
-                <th className="py-2 border border-gray-700" style={{ color: '#60a5fa' }}>{userName}</th>
-                <th className="py-2 border border-gray-700" style={{ color: '#f472b6' }}>{opponentName}</th>
+                <th className="py-2 border border-gray-700" style={{ color: '#60a5fa' }}>Team A - {teamA.players[0]?.userName || 'Player 1'}</th>
+                <th className="py-2 border border-gray-700" style={{ color: '#f472b6' }}>Team A - {teamA.players[1]?.userName || 'Player 2'}</th>
+                <th className="py-2 border border-gray-700" style={{ color: '#10b981' }}>Team B - {teamB.players[0]?.userName || 'Player 3'}</th>
+                <th className="py-2 border border-gray-700" style={{ color: '#f59e0b' }}>Team B - {teamB.players[1]?.userName || 'Player 4'}</th>
               </tr>
             </thead>
             <tbody>
               {[0,1,2,3,4].map(i => (
                 <tr key={i} className="border-b border-gray-700">
                   <td className="py-1 border border-gray-700">{i+1}</td>
-                  <td className="py-1 border border-gray-700">{myResults[i] === null ? 'DNF' : (typeof myResults[i] === 'number' ? (() => {
-                    const ms = myResults[i] as number;
+                  <td className="py-1 border border-gray-700">{teamAResults[0]?.[i] === null ? 'DNF' : (typeof teamAResults[0]?.[i] === 'number' ? (() => {
+                    const ms = teamAResults[0][i] as number;
                     const cs = Math.floor((ms % 1000) / 10);
                     const s = Math.floor((ms / 1000) % 60);
                     const m = Math.floor(ms / 60000);
@@ -3083,8 +3244,36 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                       return `0.${cs.toString().padStart(2, "0")}`;
                     }
                   })() : "")}</td>
-                  <td className="py-1 border border-gray-700">{opponentResults[i] === null ? 'DNF' : (typeof opponentResults[i] === 'number' ? (() => {
-                    const ms = opponentResults[i] as number;
+                  <td className="py-1 border border-gray-700">{teamAResults[1]?.[i] === null ? 'DNF' : (typeof teamAResults[1]?.[i] === 'number' ? (() => {
+                    const ms = teamAResults[1][i] as number;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : "")}</td>
+                  <td className="py-1 border border-gray-700">{teamBResults[0]?.[i] === null ? 'DNF' : (typeof teamBResults[0]?.[i] === 'number' ? (() => {
+                    const ms = teamBResults[0][i] as number;
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
+                    
+                    if (m > 0) {
+                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    } else if (s > 0) {
+                      return `${s}.${cs.toString().padStart(2, "0")}`;
+                    } else {
+                      return `0.${cs.toString().padStart(2, "0")}`;
+                    }
+                  })() : "")}</td>
+                  <td className="py-1 border border-gray-700">{teamBResults[1]?.[i] === null ? 'DNF' : (typeof teamBResults[1]?.[i] === 'number' ? (() => {
+                    const ms = teamBResults[1][i] as number;
                     const cs = Math.floor((ms % 1000) / 10);
                     const s = Math.floor((ms / 1000) % 60);
                     const m = Math.floor(ms / 60000);
@@ -3195,6 +3384,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
               <div style={{fontSize: (() => {
+                const myResults = getMyResults();
                 if (myResults.length > 0) {
                   const stats = calcStats(myResults);
                   if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
@@ -3220,6 +3410,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 }
                 return mobileShrink ? 11 : 18;
               })()}}>{(() => {
+                const myResults = getMyResults();
                 if (myResults.length > 0) {
                   const stats = calcStats(myResults);
                   if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
@@ -3327,7 +3518,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{userName}</div>
+            }}>{userName} (Team {myTeam})</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -3345,7 +3536,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{mySets}</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{myTeam === 'A' ? teamASets : teamBSets}</div>
             </div>
           </div>
         </div>
@@ -3420,7 +3611,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }
           } : {
             onClick: () => {
-              if (waiting || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
+              if (waiting || getMyResults().length >= 5 || pendingResult !== null || isLockedDue2DNF || !isMyTurn()) return;
               if (isTypingMode) return; // Chặn click khi đang ở chế độ typing
               if (!prep && !running) {
                 setPrep(true);
@@ -3481,15 +3672,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   const socket = getSocket();
                   socket.emit("timer-update", { roomId, userId, ms: result === null ? 0 : result, running: false, finished: true });
                   
-                  setMyResults(r => {
-                    const newR = [...r, result];
-                    const socket = getSocket();
-                    socket.emit("solve", { roomId, userId, userName, time: result === null ? null : result });
-                    return newR;
-                  });
+                  setMyResults([...getMyResults(), result]);
+                  socket.emit("solve", { roomId, userId, userName, time: result === null ? null : result });
                   setPendingResult(null);
                   setPendingType('normal');
-                  // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
+                  // Chuyển lượt sang player tiếp theo
+                  switchToNextPlayer();
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >Gửi</button>
@@ -3505,14 +3693,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   const socket = getSocket();
                   socket.emit("timer-update", { roomId, userId, ms: result, running: false, finished: true });
                   
-                  setMyResults(r => {
-                    const newR = [...r, result];
-                    const socket = getSocket();
-                    socket.emit("solve", { roomId, userId, userName, time: result });
-                    return newR;
-                  });
+                  setMyResults([...getMyResults(), result]);
+                  socket.emit("solve", { roomId, userId, userName, time: result });
                   setPendingResult(null);
                   setPendingType('normal');
+                  // Chuyển lượt sang player tiếp theo
+                  switchToNextPlayer();
                   // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
@@ -3527,15 +3713,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   const socket = getSocket();
                   socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
                   
-                  setMyResults(r => {
-                    const newR = [...r, null];
-                    const socket = getSocket();
-                    socket.emit("solve", { roomId, userId, userName, time: null });
-                    return newR;
-                  });
+                  setMyResults([...getMyResults(), null]);
+                  socket.emit("solve", { roomId, userId, userName, time: null });
                   setPendingResult(null);
                   setPendingType('normal');
-                  // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
+                  // Chuyển lượt sang player tiếp theo
+                  switchToNextPlayer();
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >DNF</button>
@@ -3980,8 +4163,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
               <div style={{fontSize: (() => {
-                if (opponentResults.length > 0) {
-                  const stats = calcStats(opponentResults);
+                const oppTeamResults = myTeam === 'A' ? teamBResults : teamAResults;
+                const allOppResults = oppTeamResults.flat();
+                if (allOppResults.length > 0) {
+                  const stats = calcStats(allOppResults);
                   if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
                     const ms = stats.mean;
                     const cs = Math.floor((ms % 1000) / 10);
@@ -4005,8 +4190,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 }
                 return mobileShrink ? 11 : 18;
               })()}}>{(() => {
-                if (opponentResults.length > 0) {
-                  const stats = calcStats(opponentResults);
+                const oppTeamResults = myTeam === 'A' ? teamBResults : teamAResults;
+                const allOppResults = oppTeamResults.flat();
+                if (allOppResults.length > 0) {
+                  const stats = calcStats(allOppResults);
                   if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
                     const ms = stats.mean;
                     const cs = Math.floor((ms % 1000) / 10);
@@ -4112,7 +4299,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{opponentName}</div>
+            }}>{currentPlayerName}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -4130,7 +4317,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{opponentSets}</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{myTeam === 'A' ? teamBSets : teamASets}</div>
             </div>
           </div>
         </div>
@@ -4229,7 +4416,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>Người khác 1</div>
+            }}>{teamA.players[0]?.userName || 'Player 1'}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -4247,7 +4434,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>0</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{teamASets}</div>
             </div>
           </div>
         </div>
@@ -4348,7 +4535,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>Người khác 2</div>
+            }}>{teamB.players[1]?.userName || 'Player 4'}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -4366,7 +4553,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>0</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{teamBSets}</div>
             </div>
           </div>
         </div>
