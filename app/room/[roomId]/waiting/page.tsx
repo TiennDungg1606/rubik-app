@@ -88,7 +88,7 @@ export default function WaitingRoom() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        console.log('=== FETCHING USER FROM API ===');
+        console.log('Fetching user from API...');
         console.log('Current cookies:', document.cookie);
         
         const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
@@ -247,13 +247,13 @@ export default function WaitingRoom() {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('=== SOCKET CONNECTED ===');
+      console.log('Socket connected');
       setIsConnected(true);
       
       // Lấy thông tin user từ API thay vì sessionStorage
       const fetchUserAndJoin = async () => {
         try {
-          console.log('=== FETCHING USER FOR SOCKET JOIN ===');
+          console.log('Fetching user for socket join...');
           const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
           const data = await res.json();
           console.log('Socket join API response:', data);
@@ -283,7 +283,7 @@ export default function WaitingRoom() {
             
             console.log('Emitted join-waiting-room event');
           } else {
-            console.log('=== DEBUG: No user data from API for socket join ===');
+            console.log('No user data from API for socket join');
           }
         } catch (error) {
           console.error('=== DEBUG: Error fetching user data for socket join ===', error);
@@ -294,7 +294,7 @@ export default function WaitingRoom() {
     });
 
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
-      console.log('=== RECEIVED WAITING-ROOM-UPDATED ===');
+      console.log('Received waiting-room-updated');
       console.log('Room data:', data);
       console.log('Players count:', data.players.length);
       console.log('Players:', data.players);
