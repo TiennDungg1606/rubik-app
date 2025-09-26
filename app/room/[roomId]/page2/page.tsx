@@ -385,6 +385,8 @@ useEffect(() => {
   useEffect(() => {
     const socket = getSocket();
     const handleUsers = (data: { users: { userId: string, userName: string }[], hostId: string }) => {
+      console.log('=== DEBUG: Received room-users event ===', data);
+      console.log('=== DEBUG: users count ===', data.users?.length);
       setUsers(data.users.map(u => u.userId));
       setWaiting(data.users.length < 2);
       setPendingUsers(data.users);
@@ -415,7 +417,16 @@ useEffect(() => {
 
   // === TEAM ASSIGNMENT LOGIC FOR 2VS2 ===
   useEffect(() => {
-    if (!pendingUsers || pendingUsers.length < 4) return;
+    console.log('=== DEBUG: Team assignment effect triggered ===');
+    console.log('=== DEBUG: pendingUsers ===', pendingUsers);
+    console.log('=== DEBUG: pendingUsers.length ===', pendingUsers?.length);
+    
+    if (!pendingUsers || pendingUsers.length < 4) {
+      console.log('=== DEBUG: Not enough players, waiting for more... ===');
+      return;
+    }
+    
+    console.log('=== DEBUG: Starting team assignment ===');
     
     // Phân chia 4 người thành 2 team
     const shuffled = [...pendingUsers].sort(() => Math.random() - 0.5);
@@ -1979,7 +1990,10 @@ useEffect(() => {
     if (typeof window !== "undefined") {
       // Check if this is from 2vs2 waiting room
       const gameMode = sessionStorage.getItem(`gameMode_${roomId}`);
+      console.log('=== DEBUG: gameMode from sessionStorage ===', gameMode);
+      console.log('=== DEBUG: roomId ===', roomId);
       is2vs2Mode = gameMode === '2vs2';
+      console.log('=== DEBUG: is2vs2Mode ===', is2vs2Mode);
       
       // Ưu tiên lấy meta nếu là người tạo phòng
       const metaStr = sessionStorage.getItem(`roomMeta_${roomId}`);
