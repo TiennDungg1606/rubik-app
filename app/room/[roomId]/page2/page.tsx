@@ -153,6 +153,11 @@ export default function RoomPage() {
 
 
   const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
+  
+  // State cho điểm của từng đội theo vòng (Team A, Team B)
+  const [teamAScores, setTeamAScores] = useState<number[]>([0, 0, 0, 0, 0]); // Điểm của Team A qua 5 vòng
+  const [teamBScores, setTeamBScores] = useState<number[]>([0, 0, 0, 0, 0]); // Điểm của Team B qua 5 vòng
+  
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
   // Thêm khai báo biến roomUrl đúng chuẩn
@@ -177,6 +182,72 @@ export default function RoomPage() {
   // Team results: mỗi team có kết quả riêng
   const [teamAResults, setTeamAResults] = useState<(number|null)[][]>([]); // [playerIndex][solveIndex]
   const [teamBResults, setTeamBResults] = useState<(number|null)[][]>([]); // [playerIndex][solveIndex]
+
+  // Hàm tính điểm theo thứ hạng trong một vòng
+  const calculateRoundScores = (roundIndex: number) => {
+    if (roundIndex < 0 || roundIndex >= 5) return;
+    
+    // Lấy kết quả của 4 người chơi trong vòng này
+    const results = [
+      { team: 'A', player: 0, time: teamAResults[0]?.[roundIndex] },
+      { team: 'A', player: 1, time: teamAResults[1]?.[roundIndex] },
+      { team: 'B', player: 0, time: teamBResults[0]?.[roundIndex] },
+      { team: 'B', player: 1, time: teamBResults[1]?.[roundIndex] }
+    ];
+    
+    // Tính điểm cho từng đội dựa trên thứ hạng cá nhân
+    let teamAScore = 0;
+    let teamBScore = 0;
+    
+    // Lọc ra những người có kết quả hợp lệ (không null và không DNF)
+    const validResults = results.filter(r => r.time !== null && typeof r.time === 'number');
+    
+    // Sắp xếp theo thời gian (nhanh nhất trước)
+    validResults.sort((a, b) => a.time! - b.time!);
+    
+    // Tính điểm cho những người có kết quả hợp lệ
+    validResults.forEach((result, index) => {
+      const points = validResults.length === 4 ? [3, 2, 1, 0][index] : 
+                     validResults.length === 3 ? [3, 2, 1][index] :
+                     validResults.length === 2 ? [3, 2][index] : 3;
+      
+      if (result.team === 'A') {
+        teamAScore += points;
+      } else {
+        teamBScore += points;
+      }
+    });
+    
+    // Những người có DNF (time = null) sẽ có điểm 0 (không cần làm gì thêm)
+    
+    // Cập nhật điểm cho vòng này
+    setTeamAScores(prev => {
+      const newScores = [...prev];
+      newScores[roundIndex] = teamAScore;
+      return newScores;
+    });
+    
+    setTeamBScores(prev => {
+      const newScores = [...prev];
+      newScores[roundIndex] = teamBScore;
+      return newScores;
+    });
+  };
+  
+  // useEffect để tự động tính điểm khi có kết quả mới
+  useEffect(() => {
+    // Tính điểm cho tất cả các vòng đã có kết quả
+    for (let i = 0; i < 5; i++) {
+      const hasResults = teamAResults[0]?.[i] !== undefined || 
+                        teamAResults[1]?.[i] !== undefined || 
+                        teamBResults[0]?.[i] !== undefined || 
+                        teamBResults[1]?.[i] !== undefined;
+      
+      if (hasResults) {
+        calculateRoundScores(i);
+      }
+    }
+  }, [teamAResults, teamBResults]);
   
   // Team sets (số set thắng của mỗi team)
   const [teamASets, setTeamASets] = useState<number>(0);
@@ -2931,130 +3002,32 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             <thead className="bg-gray-800">
               <tr>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">Tên</th>
-                <th className="px-1 py-0.5 border border-gray-700 font-bold">Best</th>
-                <th className="px-1 py-0.5 border border-gray-700 font-bold">Worst</th>
-                <th className="px-1 py-0.5 border border-gray-700 font-bold">Mean</th>
-                <th className="px-1 py-0.5 border border-gray-700 font-bold">Ao5</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">1</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">2</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">3</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">4</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">5</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Total</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>{userName}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{myStats.best !== null ? (() => {
-                  const ms = myStats.best;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{myStats.worst !== null ? (() => {
-                  const ms = myStats.worst;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{myStats.mean !== null ? (() => {
-                  const ms = myStats.mean;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{myStats.ao5 !== null ? (() => {
-                  const ms = myStats.ao5;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (myResults.length >= 5 ? 'DNF' : '')}</td>
+                <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#60a5fa' }}>Đội A</td>
+                <td className="px-1 py-0.5 border border-gray-700">{teamAScores[0]}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{teamAScores[1]}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{teamAScores[2]}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{teamAScores[3]}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{teamAScores[4]}</td>
+                <td className="px-1 py-0.5 border border-gray-700 font-bold text-green-300">{teamAScores.reduce((sum, score) => sum + score, 0)}</td>
               </tr>
               <tr>
-                <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#f472b6' }}>{opponentName}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-green-300">{oppStats.best !== null ? (() => {
-                  const ms = oppStats.best;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700 text-red-300">{oppStats.worst !== null ? (() => {
-                  const ms = oppStats.worst;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{oppStats.mean !== null ? (() => {
-                  const ms = oppStats.mean;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
-                <td className="px-1 py-0.5 border border-gray-700">{oppStats.ao5 !== null ? (() => {
-                  const ms = oppStats.ao5;
-                  const cs = Math.floor((ms % 1000) / 10);
-                  const s = Math.floor((ms / 1000) % 60);
-                  const m = Math.floor(ms / 60000);
-                  
-                  if (m > 0) {
-                    return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                  } else if (s > 0) {
-                    return `${s}.${cs.toString().padStart(2, "0")}`;
-                  } else {
-                    return `0.${cs.toString().padStart(2, "0")}`;
-                  }
-                })() : (opponentResults.length >= 5 ? 'DNF' : '')}</td>
+                <td className="px-1 py-0.5 border border-gray-700 font-bold" style={{ color: '#10b981' }}>Đội B</td>
+                <td className="px-1 py-0.5 border border-gray-700">{teamBScores[0]}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{teamBScores[1]}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{teamBScores[2]}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{teamBScores[3]}</td>
+                <td className="px-1 py-0.5 border border-gray-700">{teamBScores[4]}</td>
+                <td className="px-1 py-0.5 border border-gray-700 font-bold text-green-300">{teamBScores.reduce((sum, score) => sum + score, 0)}</td>
               </tr>
             </tbody>
           </table>
@@ -3220,72 +3193,130 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             <thead className="bg-gray-800">
               <tr>
                 <th className="py-2 border border-gray-700">STT</th>
-                <th className="py-2 border border-gray-700" style={{ color: '#60a5fa' }}>Team A - {teamA.players[0]?.userName || 'Player 1'}</th>
-                <th className="py-2 border border-gray-700" style={{ color: '#f472b6' }}>Team A - {teamA.players[1]?.userName || 'Player 2'}</th>
-                <th className="py-2 border border-gray-700" style={{ color: '#10b981' }}>Team B - {teamB.players[0]?.userName || 'Player 3'}</th>
-                <th className="py-2 border border-gray-700" style={{ color: '#f59e0b' }}>Team B - {teamB.players[1]?.userName || 'Player 4'}</th>
+                <th className="py-2 border border-gray-700" style={{ color: myTeam === 'A' ? '#60a5fa' : '#10b981' }}>
+                  {(() => {
+                    // Hiển thị tên user đang chơi (mình) ở cột đầu
+                    if (!myTeam) return 'Player 1';
+                    return `Team ${myTeam} - ${userName}`;
+                  })()}
+                </th>
+                <th className="py-2 border border-gray-700" style={{ color: myTeam === 'A' ? '#60a5fa' : '#10b981' }}>
+                  {(() => {
+                    // Hiển thị tên đồng đội ở cột thứ 2
+                    if (!myTeam || myTeamIndex === -1) return 'Player 2';
+                    const myTeamData = myTeam === 'A' ? teamA : teamB;
+                    const teammateIndex = myTeamIndex === 0 ? 1 : 0;
+                    const teammate = myTeamData.players[teammateIndex];
+                    return `Team ${myTeam} - ${teammate?.userName || `Player ${myTeam === 'A' ? (teammateIndex === 0 ? '1' : '2') : (teammateIndex === 0 ? '3' : '4')}`}`;
+                  })()}
+                </th>
+                <th className="py-2 border border-gray-700" style={{ color: myTeam === 'A' ? '#10b981' : '#60a5fa' }}>
+                  {(() => {
+                    // Hiển thị tên đối thủ 1 ở cột thứ 3
+                    if (!myTeam) return 'Player 3';
+                    const oppTeam = myTeam === 'A' ? teamB : teamA;
+                    const oppTeamName = myTeam === 'A' ? 'B' : 'A';
+                    const oppPlayer1 = oppTeam.players[0];
+                    return `Team ${oppTeamName} - ${oppPlayer1?.userName || `Player ${myTeam === 'A' ? '3' : '1'}`}`;
+                  })()}
+                </th>
+                <th className="py-2 border border-gray-700" style={{ color: myTeam === 'A' ? '#10b981' : '#60a5fa' }}>
+                  {(() => {
+                    // Hiển thị tên đối thủ 2 ở cột thứ 4
+                    if (!myTeam) return 'Player 4';
+                    const oppTeam = myTeam === 'A' ? teamB : teamA;
+                    const oppTeamName = myTeam === 'A' ? 'B' : 'A';
+                    const oppPlayer2 = oppTeam.players[1];
+                    return `Team ${oppTeamName} - ${oppPlayer2?.userName || `Player ${myTeam === 'A' ? '4' : '2'}`}`;
+                  })()}
+                </th>
               </tr>
             </thead>
             <tbody>
               {[0,1,2,3,4].map(i => (
                 <tr key={i} className="border-b border-gray-700">
                   <td className="py-1 border border-gray-700">{i+1}</td>
-                  <td className="py-1 border border-gray-700">{teamAResults[0]?.[i] === null ? 'DNF' : (typeof teamAResults[0]?.[i] === 'number' ? (() => {
-                    const ms = teamAResults[0][i] as number;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : "")}</td>
-                  <td className="py-1 border border-gray-700">{teamAResults[1]?.[i] === null ? 'DNF' : (typeof teamAResults[1]?.[i] === 'number' ? (() => {
-                    const ms = teamAResults[1][i] as number;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : "")}</td>
-                  <td className="py-1 border border-gray-700">{teamBResults[0]?.[i] === null ? 'DNF' : (typeof teamBResults[0]?.[i] === 'number' ? (() => {
-                    const ms = teamBResults[0][i] as number;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : "")}</td>
-                  <td className="py-1 border border-gray-700">{teamBResults[1]?.[i] === null ? 'DNF' : (typeof teamBResults[1]?.[i] === 'number' ? (() => {
-                    const ms = teamBResults[1][i] as number;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : "")}</td>
+                  {/* Cột 1: Kết quả của bản thân */}
+                  <td className="py-1 border border-gray-700">{(() => {
+                    if (!myTeam || myTeamIndex === -1) return '-';
+                    const myTeamData = myTeam === 'A' ? teamAResults : teamBResults;
+                    const myResult = myTeamData[myTeamIndex]?.[i];
+                    return myResult === null ? 'DNF' : (typeof myResult === 'number' ? (() => {
+                      const ms = myResult as number;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : "");
+                  })()}</td>
+                  {/* Cột 2: Kết quả của đồng đội */}
+                  <td className="py-1 border border-gray-700">{(() => {
+                    if (!myTeam || myTeamIndex === -1) return '-';
+                    const myTeamData = myTeam === 'A' ? teamAResults : teamBResults;
+                    const teammateIndex = myTeamIndex === 0 ? 1 : 0;
+                    const teammateResult = myTeamData[teammateIndex]?.[i];
+                    return teammateResult === null ? 'DNF' : (typeof teammateResult === 'number' ? (() => {
+                      const ms = teammateResult as number;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : "");
+                  })()}</td>
+                  {/* Cột 3: Kết quả của đối thủ 1 */}
+                  <td className="py-1 border border-gray-700">{(() => {
+                    if (!myTeam) return '-';
+                    const oppTeamData = myTeam === 'A' ? teamBResults : teamAResults;
+                    const oppResult = oppTeamData[0]?.[i];
+                    return oppResult === null ? 'DNF' : (typeof oppResult === 'number' ? (() => {
+                      const ms = oppResult as number;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : "");
+                  })()}</td>
+                  {/* Cột 4: Kết quả của đối thủ 2 */}
+                  <td className="py-1 border border-gray-700">{(() => {
+                    if (!myTeam) return '-';
+                    const oppTeamData = myTeam === 'A' ? teamBResults : teamAResults;
+                    const oppResult = oppTeamData[1]?.[i];
+                    return oppResult === null ? 'DNF' : (typeof oppResult === 'number' ? (() => {
+                      const ms = oppResult as number;
+                      const cs = Math.floor((ms % 1000) / 10);
+                      const s = Math.floor((ms / 1000) % 60);
+                      const m = Math.floor(ms / 60000);
+                      
+                      if (m > 0) {
+                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                      } else if (s > 0) {
+                        return `${s}.${cs.toString().padStart(2, "0")}`;
+                      } else {
+                        return `0.${cs.toString().padStart(2, "0")}`;
+                      }
+                    })() : "");
+                  })()}</td>
                 </tr>
               ))}
             </tbody>
@@ -3304,7 +3335,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
-            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-blue-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-blue-400"}
+            className={mobileShrink ? `rounded flex items-center justify-center mb-0.5 relative shadow border ${myTeam === 'A' ? 'border-blue-400' : 'border-green-400'}` : `rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 ${myTeam === 'A' ? 'border-blue-400' : 'border-green-400'}`}
             style={mobileShrink
               ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
@@ -4113,7 +4144,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
-            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-pink-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-pink-400"}
+            className={mobileShrink ? `rounded flex items-center justify-center mb-0.5 relative shadow border ${myTeam === 'A' ? 'border-green-400' : 'border-blue-400'}` : `rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 ${myTeam === 'A' ? 'border-green-400' : 'border-blue-400'}`}
             style={mobileShrink
               ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
@@ -4299,7 +4330,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{currentPlayerName}</div>
+            }}>{(() => {
+              // Trên phải: Hiển thị player thứ 1 của đội đối thủ
+              if (!myTeam) return 'Player 3';
+              const oppTeam = myTeam === 'A' ? teamB : teamA;
+              const oppPlayer1 = oppTeam.players[0];
+              return oppPlayer1?.userName || `Player ${myTeam === 'A' ? '3' : '1'}`;
+            })()}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -4334,7 +4371,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
-            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-green-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-green-400"}
+            className={mobileShrink ? `rounded flex items-center justify-center mb-0.5 relative shadow border ${myTeam === 'A' ? 'border-blue-400' : 'border-green-400'}` : `rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 ${myTeam === 'A' ? 'border-blue-400' : 'border-green-400'}`}
             style={mobileShrink
               ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
@@ -4416,7 +4453,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{teamA.players[0]?.userName || 'Player 1'}</div>
+            }}>{(() => {
+              // Dưới trái: Hiển thị đồng đội của mình
+              if (!myTeam || myTeamIndex === -1) return 'Player 1';
+              const myTeamData = myTeam === 'A' ? teamA : teamB;
+              const teammateIndex = myTeamIndex === 0 ? 1 : 0; // Lấy đồng đội (index còn lại)
+              return myTeamData.players[teammateIndex]?.userName || `Player ${myTeam === 'A' ? (teammateIndex === 0 ? '1' : '2') : (teammateIndex === 0 ? '3' : '4')}`;
+            })()}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -4453,7 +4496,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
-            className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-orange-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-orange-400"}
+            className={mobileShrink ? `rounded flex items-center justify-center mb-0.5 relative shadow border ${myTeam === 'A' ? 'border-green-400' : 'border-blue-400'}` : `rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 ${myTeam === 'A' ? 'border-green-400' : 'border-blue-400'}`}
             style={mobileShrink
               ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
@@ -4535,7 +4578,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{teamB.players[1]?.userName || 'Player 4'}</div>
+            }}>{(() => {
+              // Dưới phải: Hiển thị player thứ 2 của đội đối thủ
+              if (!myTeam) return 'Player 4';
+              const oppTeam = myTeam === 'A' ? teamB : teamA;
+              const oppPlayer2 = oppTeam.players[1];
+              return oppPlayer2?.userName || `Player ${myTeam === 'A' ? '4' : '2'}`;
+            })()}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',

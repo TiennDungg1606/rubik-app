@@ -31,6 +31,8 @@ interface WaitingRoomState {
   players: Player[];
   roomCreator: string;
   gameStarted: boolean;
+  displayName?: string; // Thêm displayName
+  password?: string; // Thêm password
 }
 
 export default function WaitingRoom() {
@@ -275,7 +277,7 @@ export default function WaitingRoom() {
               roomId,
               userId,
               userName,
-              displayName: window._roomDisplayName || roomId,
+              displayName: window._roomDisplayName || roomId, // Sẽ được cập nhật từ server
               password: window._roomPassword || null
             });
             
@@ -413,6 +415,16 @@ export default function WaitingRoom() {
       // Set sessionStorage để page2 biết đây là 2vs2 mode
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(`gameMode_${data.roomId}`, data.gameMode);
+        
+        // Set lại roomMeta với displayName từ roomState để page2 có thể sử dụng
+        if (roomState.displayName) {
+          sessionStorage.setItem(`roomMeta_${data.roomId}`, JSON.stringify({
+            event: '3x3', // default event
+            displayName: roomState.displayName,
+            password: roomState.password || '',
+            gameMode: '2vs2'
+          }));
+        }
       }
       router.push(`/room/${data.roomId}/page2`);
     });
