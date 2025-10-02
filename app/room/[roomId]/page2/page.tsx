@@ -171,9 +171,9 @@ export default function RoomPage() {
   const [isRematchMode, setIsRematchMode] = useState(false); // State để theo dõi xem có đang ở chế độ tái đấu không
 
   // === TEAM MANAGEMENT STATES FOR 2VS2 ===
-  // Team structure: { teamId: string, players: { userId: string, userName: string }[] }
-  const [teamA, setTeamA] = useState<{ teamId: string, players: { userId: string, userName: string }[] }>({ teamId: 'A', players: [] });
-  const [teamB, setTeamB] = useState<{ teamId: string, players: { userId: string, userName: string }[] }>({ teamId: 'B', players: [] });
+  // Team structure: { teamId: string, players: TeamPlayer[] }
+  const [teamA, setTeamA] = useState<{ teamId: string, players: TeamPlayer[] }>({ teamId: 'A', players: [] });
+  const [teamB, setTeamB] = useState<{ teamId: string, players: TeamPlayer[] }>({ teamId: 'B', players: [] });
   const [currentTeam, setCurrentTeam] = useState<'A' | 'B'>('A'); // Team đang có lượt chơi
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0); // Index của player trong team đang chơi
   const [myTeam, setMyTeam] = useState<'A' | 'B' | null>(null); // Team của tôi
@@ -266,6 +266,22 @@ type User = {
   customBg?: string;
 };
 
+type RoomUser = {
+  userId: string;
+  userName: string;
+  team?: 'team1' | 'team2' | null;
+  position?: number | null;
+  role?: 'creator' | 'player';
+  isObserver?: boolean;
+  isReady?: boolean;
+};
+
+type TeamPlayer = {
+  userId: string;
+  userName: string;
+  position?: number | null;
+};
+
 const [user, setUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
 const [customBg, setCustomBg] = typeof window !== 'undefined' ? useState<string | null>(null) : [null, () => {}];
 
@@ -301,7 +317,7 @@ useEffect(() => {
 }, [customBg]);
 // ... (các khai báo state khác)
 // Lưu usersArr cuối cùng để xử lý khi userId đến sau
-  const [pendingUsers, setPendingUsers] = useState<{ userId: string, userName: string }[] | null>(null);
+  const [pendingUsers, setPendingUsers] = useState<RoomUser[] | null>(null);
   // Thêm state để kiểm soát việc hiện nút xác nhận sau 1s
   const [showConfirmButtons, setShowConfirmButtons] = useState(false);
 
@@ -384,7 +400,7 @@ useEffect(() => {
   // Lắng nghe danh sách users và hostId từ server
   useEffect(() => {
     const socket = getSocket();
-    const handleUsers = (data: { users: { userId: string, userName: string }[], hostId: string }) => {
+  const handleUsers = (data: { users: RoomUser[], hostId: string }) => {
       setUsers(data.users.map(u => u.userId));
       setWaiting(data.users.length < 2);
       setPendingUsers(data.users);
@@ -418,46 +434,95 @@ useEffect(() => {
     if (!pendingUsers || pendingUsers.length < 4) {
       return;
     }
-    
-    // Phân chia 4 người thành 2 team
-    const shuffled = [...pendingUsers].sort(() => Math.random() - 0.5);
+
+    const activePlayers = pendingUsers.filter(player => !player.isObserver);
+    if (activePlayers.length < 4) {
+      return;
+    }
+    const hasTeamMetadata = activePlayers.every(player => player.team === 'team1' || player.team === 'team2');
+
+    if (hasTeamMetadata) {
+      const team1Players = activePlayers.filter(player => player.team === 'team1');
+      const team2Players = activePlayers.filter(player => player.team === 'team2');
+
+      if (team1Players.length === 2 && team2Players.length === 2) {
+        const mapToTeamPlayers = (players: RoomUser[]): TeamPlayer[] =>
+          [...players]
+            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+            .map(player => ({
+              userId: player.userId,
+              userName: player.userName,
+              position: player.position ?? undefined
+            }));
+
+        const formattedTeamA = mapToTeamPlayers(team1Players);
+        const formattedTeamB = mapToTeamPlayers(team2Players);
+
+        setTeamA({ teamId: 'A', players: formattedTeamA });
+        setTeamB({ teamId: 'B', players: formattedTeamB });
+
+  setTeamAResults(Array.from({ length: formattedTeamA.length }, () => [] as (number | null)[]));
+  setTeamBResults(Array.from({ length: formattedTeamB.length }, () => [] as (number | null)[]));
+
+        setTeamASets(0);
+        setTeamBSets(0);
+
+        const myPlayer = activePlayers.find(player => player.userId === userId);
+        if (myPlayer) {
+          const myTeamId = myPlayer.team === 'team1' ? 'A' : 'B';
+          const myTeamPlayers = myTeamId === 'A' ? formattedTeamA : formattedTeamB;
+          const myIndex = myTeamPlayers.findIndex(player => player.userId === userId);
+          setMyTeam(myTeamId);
+          setMyTeamIndex(myIndex);
+        }
+
+        setCurrentTeam('A');
+        setCurrentPlayerIndex(0);
+        if (formattedTeamA[0]) {
+          setCurrentPlayerId(formattedTeamA[0].userId);
+          setCurrentPlayerName(formattedTeamA[0].userName);
+        }
+        return;
+      }
+    }
+
+    // Fallback: nếu chưa có metadata team từ server, phân chia tạm thời
+    const shuffled = [...activePlayers].sort(() => Math.random() - 0.5);
     const newTeamA = {
       teamId: 'A',
       players: shuffled.slice(0, 2)
     };
     const newTeamB = {
-      teamId: 'B', 
+      teamId: 'B',
       players: shuffled.slice(2, 4)
     };
-    
-    setTeamA(newTeamA);
-    setTeamB(newTeamB);
-    
-    // Xác định team của tôi
-    const myPlayer = shuffled.find(p => p.userId === userId);
+
+    setTeamA({
+      teamId: 'A',
+      players: newTeamA.players.map(player => ({ userId: player.userId, userName: player.userName }))
+    });
+    setTeamB({
+      teamId: 'B',
+      players: newTeamB.players.map(player => ({ userId: player.userId, userName: player.userName }))
+    });
+
+    const myPlayer = shuffled.find(player => player.userId === userId);
     if (myPlayer) {
-      const myTeamId = newTeamA.players.some(p => p.userId === userId) ? 'A' : 'B';
-      const myTeam = myTeamId === 'A' ? newTeamA : newTeamB;
-      const myIndex = myTeam.players.findIndex(p => p.userId === userId);
-      
+      const myTeamId = newTeamA.players.some(player => player.userId === userId) ? 'A' : 'B';
+      const myTeamPlayers = myTeamId === 'A' ? newTeamA.players : newTeamB.players;
+      const myIndex = myTeamPlayers.findIndex(player => player.userId === userId);
       setMyTeam(myTeamId);
       setMyTeamIndex(myIndex);
     }
-    
-    // Khởi tạo kết quả cho mỗi team
-    setTeamAResults([[], []]); // 2 players, mỗi player có array kết quả
-    setTeamBResults([[], []]);
-    
-    // Reset sets
+
+  setTeamAResults([[] as (number | null)[], [] as (number | null)[]]);
+  setTeamBResults([[] as (number | null)[], [] as (number | null)[]]);
     setTeamASets(0);
     setTeamBSets(0);
-    
-    // Bắt đầu với team A, player đầu tiên
     setCurrentTeam('A');
     setCurrentPlayerIndex(0);
     setCurrentPlayerId(newTeamA.players[0].userId);
     setCurrentPlayerName(newTeamA.players[0].userName);
-    
   }, [pendingUsers, userId]);
 
   // Lắng nghe sự kiện hủy tái đấu từ đối phương
@@ -1965,6 +2030,22 @@ useEffect(() => {
     }
   }, []);
 
+  useEffect(() => {
+    if (!roomId) return;
+    if (typeof window === 'undefined') return;
+    const storedTeams = sessionStorage.getItem(`roomTeams_${roomId}`);
+    if (storedTeams) {
+      try {
+        const parsed: RoomUser[] = JSON.parse(storedTeams);
+        setPendingUsers(parsed);
+      } catch {
+        // Ignore malformed cache
+      } finally {
+        sessionStorage.removeItem(`roomTeams_${roomId}`);
+      }
+    }
+  }, [roomId]);
+
   // Khi đã có roomId, join-room với password nếu có (hỗ trợ cả 1vs1 và 2vs2)
   useEffect(() => {
     if (!roomId || !userName || !userId) return;
@@ -2458,6 +2539,34 @@ function formatStat(val: number|null, showDNF: boolean = false) {
   return (val/1000).toFixed(2);
 }
 
+function formatSolveCell(value: number | null | undefined) {
+  if (value === null) return 'DNF';
+  if (typeof value !== 'number') return '-';
+
+  const centiseconds = Math.floor((value % 1000) / 10);
+  const seconds = Math.floor((value / 1000) % 60);
+  const minutes = Math.floor(value / 60000);
+
+  if (minutes > 0) {
+    return `${minutes}:${seconds.toString().padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`;
+  }
+  if (seconds > 0) {
+    return `${seconds}.${centiseconds.toString().padStart(2, "0")}`;
+  }
+  return `0.${centiseconds.toString().padStart(2, "0")}`;
+}
+
+const clampPlayerIndex = (idx: number) => {
+  if (idx < 0) return 0;
+  if (idx > 1) return 1;
+  return idx;
+};
+
+const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
+  const base = team === 'A' ? 1 : 3;
+  return `Player ${base + index}`;
+};
+
   const [showLoading, setShowLoading] = useState(true);
   // Luôn hiển thị loading đủ 5s khi mount
   useEffect(() => {
@@ -2526,6 +2635,47 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       </div>
     );
   }
+
+  const displayMyTeamId: 'A' | 'B' = myTeam ?? 'A';
+  const displayOpponentTeamId: 'A' | 'B' = displayMyTeamId === 'A' ? 'B' : 'A';
+  const displayMyTeamData = displayMyTeamId === 'A' ? teamA : teamB;
+  const displayOpponentTeamData = displayOpponentTeamId === 'A' ? teamA : teamB;
+  const displayMyTeamResults = displayMyTeamId === 'A' ? teamAResults : teamBResults;
+  const displayOpponentResults = displayOpponentTeamId === 'A' ? teamAResults : teamBResults;
+  const effectiveMyIndex = myTeam !== null && myTeamIndex >= 0 ? clampPlayerIndex(myTeamIndex) : 0;
+  const teammateIndex = effectiveMyIndex === 0 ? 1 : 0;
+  const opponentIndexForMe = myTeam !== null && myTeamIndex >= 0 ? clampPlayerIndex(myTeamIndex) : 0;
+  const opponentIndexForTeammate = myTeam !== null && myTeamIndex >= 0 ? clampPlayerIndex(teammateIndex) : 1;
+  const myPlayerLabel = (() => {
+    const players = displayMyTeamData.players;
+    const player = players[effectiveMyIndex];
+    if (player?.userName) return player.userName;
+    if (myTeam !== null && userName) return userName;
+    return fallbackLabelForTeam(displayMyTeamId, effectiveMyIndex);
+  })();
+  const teammateLabel = (() => {
+    const players = displayMyTeamData.players;
+    const teammate = players[teammateIndex];
+    if (teammate?.userName) return teammate.userName;
+    return fallbackLabelForTeam(displayMyTeamId, teammateIndex);
+  })();
+  const opponentLabel1 = (() => {
+    const players = displayOpponentTeamData.players;
+    const player = players[opponentIndexForMe];
+    if (player?.userName) return player.userName;
+    return fallbackLabelForTeam(displayOpponentTeamId, opponentIndexForMe);
+  })();
+  const opponentLabel2 = (() => {
+    const players = displayOpponentTeamData.players;
+    const player = players[opponentIndexForTeammate];
+    if (player?.userName) return player.userName;
+    return fallbackLabelForTeam(displayOpponentTeamId, opponentIndexForTeammate);
+  })();
+  const myTeamColor = displayMyTeamId === 'A' ? '#60a5fa' : '#10b981';
+  const opponentTeamColor = displayOpponentTeamId === 'A' ? '#60a5fa' : '#10b981';
+  const teamSetsById = (teamId: 'A' | 'B') => teamId === 'A' ? teamASets : teamBSets;
+  const myTeamSetsValue = teamSetsById(displayMyTeamId);
+  const opponentTeamSetsValue = teamSetsById(displayOpponentTeamId);
 
   if (isPortrait) {
     return (
@@ -3186,42 +3336,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             <thead className="bg-gray-800">
               <tr>
                 <th className="py-2 border border-gray-700">STT</th>
-                <th className="py-2 border border-gray-700" style={{ color: myTeam === 'A' ? '#60a5fa' : '#10b981' }}>
-                  {(() => {
-                    // Hiển thị tên user đang chơi (mình) ở cột đầu
-                    if (!myTeam) return 'Player 1';
-                    return `Team ${myTeam} - ${userName}`;
-                  })()}
+                <th className="py-2 border border-gray-700" style={{ color: myTeamColor }}>
+                  {myPlayerLabel}
                 </th>
-                <th className="py-2 border border-gray-700" style={{ color: myTeam === 'A' ? '#60a5fa' : '#10b981' }}>
-                  {(() => {
-                    // Hiển thị tên đồng đội ở cột thứ 2
-                    if (!myTeam || myTeamIndex === -1) return 'Player 2';
-                    const myTeamData = myTeam === 'A' ? teamA : teamB;
-                    const teammateIndex = myTeamIndex === 0 ? 1 : 0;
-                    const teammate = myTeamData.players[teammateIndex];
-                    return `Team ${myTeam} - ${teammate?.userName || `Player ${myTeam === 'A' ? (teammateIndex === 0 ? '1' : '2') : (teammateIndex === 0 ? '3' : '4')}`}`;
-                  })()}
+                <th className="py-2 border border-gray-700" style={{ color: myTeamColor }}>
+                  {teammateLabel}
                 </th>
-                <th className="py-2 border border-gray-700" style={{ color: myTeam === 'A' ? '#10b981' : '#60a5fa' }}>
-                  {(() => {
-                    // Hiển thị tên đối thủ 1 ở cột thứ 3
-                    if (!myTeam) return 'Player 3';
-                    const oppTeam = myTeam === 'A' ? teamB : teamA;
-                    const oppTeamName = myTeam === 'A' ? 'B' : 'A';
-                    const oppPlayer1 = oppTeam.players[0];
-                    return `Team ${oppTeamName} - ${oppPlayer1?.userName || `Player ${myTeam === 'A' ? '3' : '1'}`}`;
-                  })()}
+                <th className="py-2 border border-gray-700" style={{ color: opponentTeamColor }}>
+                  {opponentLabel1}
                 </th>
-                <th className="py-2 border border-gray-700" style={{ color: myTeam === 'A' ? '#10b981' : '#60a5fa' }}>
-                  {(() => {
-                    // Hiển thị tên đối thủ 2 ở cột thứ 4
-                    if (!myTeam) return 'Player 4';
-                    const oppTeam = myTeam === 'A' ? teamB : teamA;
-                    const oppTeamName = myTeam === 'A' ? 'B' : 'A';
-                    const oppPlayer2 = oppTeam.players[1];
-                    return `Team ${oppTeamName} - ${oppPlayer2?.userName || `Player ${myTeam === 'A' ? '4' : '2'}`}`;
-                  })()}
+                <th className="py-2 border border-gray-700" style={{ color: opponentTeamColor }}>
+                  {opponentLabel2}
                 </th>
               </tr>
             </thead>
@@ -3230,86 +3355,21 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <tr key={i} className="border-b border-gray-700">
                   <td className="py-1 border border-gray-700">{i+1}</td>
                   {/* Cột 1: Kết quả của bản thân */}
-                  <td className="py-1 border border-gray-700">{(() => {
-                    if (!myTeam || myTeamIndex === -1) return '-';
-                    const myTeamData = myTeam === 'A' ? teamAResults : teamBResults;
-                    const myResult = myTeamData[myTeamIndex]?.[i];
-                    return myResult === null ? 'DNF' : (typeof myResult === 'number' ? (() => {
-                      const ms = myResult as number;
-                      const cs = Math.floor((ms % 1000) / 10);
-                      const s = Math.floor((ms / 1000) % 60);
-                      const m = Math.floor(ms / 60000);
-                      
-                      if (m > 0) {
-                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                      } else if (s > 0) {
-                        return `${s}.${cs.toString().padStart(2, "0")}`;
-                      } else {
-                        return `0.${cs.toString().padStart(2, "0")}`;
-                      }
-                    })() : "");
-                  })()}</td>
+                  <td className="py-1 border border-gray-700">
+                    {formatSolveCell(displayMyTeamResults[effectiveMyIndex]?.[i])}
+                  </td>
                   {/* Cột 2: Kết quả của đồng đội */}
-                  <td className="py-1 border border-gray-700">{(() => {
-                    if (!myTeam || myTeamIndex === -1) return '-';
-                    const myTeamData = myTeam === 'A' ? teamAResults : teamBResults;
-                    const teammateIndex = myTeamIndex === 0 ? 1 : 0;
-                    const teammateResult = myTeamData[teammateIndex]?.[i];
-                    return teammateResult === null ? 'DNF' : (typeof teammateResult === 'number' ? (() => {
-                      const ms = teammateResult as number;
-                      const cs = Math.floor((ms % 1000) / 10);
-                      const s = Math.floor((ms / 1000) % 60);
-                      const m = Math.floor(ms / 60000);
-                      
-                      if (m > 0) {
-                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                      } else if (s > 0) {
-                        return `${s}.${cs.toString().padStart(2, "0")}`;
-                      } else {
-                        return `0.${cs.toString().padStart(2, "0")}`;
-                      }
-                    })() : "");
-                  })()}</td>
+                  <td className="py-1 border border-gray-700">
+                    {formatSolveCell(displayMyTeamResults[teammateIndex]?.[i])}
+                  </td>
                   {/* Cột 3: Kết quả của đối thủ 1 */}
-                  <td className="py-1 border border-gray-700">{(() => {
-                    if (!myTeam) return '-';
-                    const oppTeamData = myTeam === 'A' ? teamBResults : teamAResults;
-                    const oppResult = oppTeamData[0]?.[i];
-                    return oppResult === null ? 'DNF' : (typeof oppResult === 'number' ? (() => {
-                      const ms = oppResult as number;
-                      const cs = Math.floor((ms % 1000) / 10);
-                      const s = Math.floor((ms / 1000) % 60);
-                      const m = Math.floor(ms / 60000);
-                      
-                      if (m > 0) {
-                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                      } else if (s > 0) {
-                        return `${s}.${cs.toString().padStart(2, "0")}`;
-                      } else {
-                        return `0.${cs.toString().padStart(2, "0")}`;
-                      }
-                    })() : "");
-                  })()}</td>
+                  <td className="py-1 border border-gray-700">
+                    {formatSolveCell(displayOpponentResults[opponentIndexForMe]?.[i])}
+                  </td>
                   {/* Cột 4: Kết quả của đối thủ 2 */}
-                  <td className="py-1 border border-gray-700">{(() => {
-                    if (!myTeam) return '-';
-                    const oppTeamData = myTeam === 'A' ? teamBResults : teamAResults;
-                    const oppResult = oppTeamData[1]?.[i];
-                    return oppResult === null ? 'DNF' : (typeof oppResult === 'number' ? (() => {
-                      const ms = oppResult as number;
-                      const cs = Math.floor((ms % 1000) / 10);
-                      const s = Math.floor((ms / 1000) % 60);
-                      const m = Math.floor(ms / 60000);
-                      
-                      if (m > 0) {
-                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                      } else if (s > 0) {
-                        return `${s}.${cs.toString().padStart(2, "0")}`;
-                      } else {
-                        return `0.${cs.toString().padStart(2, "0")}`;
-                      }
-                    })() : "");
-                  })()}</td>
+                  <td className="py-1 border border-gray-700">
+                    {formatSolveCell(displayOpponentResults[opponentIndexForTeammate]?.[i])}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -3542,7 +3602,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{userName} (Team {myTeam})</div>
+            }}>{myPlayerLabel}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -3560,7 +3620,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{myTeam === 'A' ? teamASets : teamBSets}</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{myTeamSetsValue}</div>
             </div>
           </div>
         </div>
@@ -4321,13 +4381,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{(() => {
-              // Trên phải: Hiển thị player thứ 1 của đội đối thủ
-              if (!myTeam) return 'Player 3';
-              const oppTeam = myTeam === 'A' ? teamB : teamA;
-              const oppPlayer1 = oppTeam.players[0];
-              return oppPlayer1?.userName || `Player ${myTeam === 'A' ? '3' : '1'}`;
-            })()}</div>
+            }}>{opponentLabel1}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -4345,7 +4399,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{myTeam === 'A' ? teamBSets : teamASets}</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{opponentTeamSetsValue}</div>
             </div>
           </div>
         </div>
@@ -4372,6 +4426,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             {/* Video element for other person 1 */}
             <video
               id="other-person-1-video"
+              ref={otherPerson1VideoRef}
               autoPlay
               muted
               playsInline
@@ -4444,13 +4499,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{(() => {
-              // Dưới trái: Hiển thị đồng đội của mình
-              if (!myTeam || myTeamIndex === -1) return 'Player 1';
-              const myTeamData = myTeam === 'A' ? teamA : teamB;
-              const teammateIndex = myTeamIndex === 0 ? 1 : 0; // Lấy đồng đội (index còn lại)
-              return myTeamData.players[teammateIndex]?.userName || `Player ${myTeam === 'A' ? (teammateIndex === 0 ? '1' : '2') : (teammateIndex === 0 ? '3' : '4')}`;
-            })()}</div>
+            }}>{teammateLabel}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -4468,7 +4517,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{teamASets}</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{myTeamSetsValue}</div>
             </div>
           </div>
         </div>
@@ -4497,6 +4546,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             {/* Video element for other person 2 */}
             <video
               id="other-person-2-video"
+              ref={otherPerson2VideoRef}
               autoPlay
               muted
               playsInline
@@ -4569,13 +4619,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               whiteSpace: 'nowrap',
               textOverflow: 'ellipsis',
               display: 'block'
-            }}>{(() => {
-              // Dưới phải: Hiển thị player thứ 2 của đội đối thủ
-              if (!myTeam) return 'Player 4';
-              const oppTeam = myTeam === 'A' ? teamB : teamA;
-              const oppPlayer2 = oppTeam.players[1];
-              return oppPlayer2?.userName || `Player ${myTeam === 'A' ? '4' : '2'}`;
-            })()}</div>
+            }}>{opponentLabel2}</div>
             {/* Số set thắng */}
             <div style={{
               background: '#7c3aed',
@@ -4593,7 +4637,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               overflow: 'hidden'
             }}>
               <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{teamBSets}</div>
+              <div style={{fontSize: mobileShrink ? 11 : 18}}>{opponentTeamSetsValue}</div>
             </div>
           </div>
         </div>

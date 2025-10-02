@@ -394,6 +394,20 @@ export default function WaitingRoom() {
             gameMode: '2vs2'
           }));
         }
+
+        // Lưu snapshot team/position để page2 khởi tạo chính xác
+        if (roomState.players && roomState.players.length > 0) {
+          const serializedPlayers = roomState.players.map(player => ({
+            userId: player.id,
+            userName: player.name,
+            team: player.team || null,
+            position: typeof player.position === 'number' ? player.position : null,
+            role: player.role,
+            isObserver: !!player.isObserver,
+            isReady: !!player.isReady
+          }));
+          sessionStorage.setItem(`roomTeams_${data.roomId}`, JSON.stringify(serializedPlayers));
+        }
       }
       router.push(`/room/${data.roomId}/page2`);
     });

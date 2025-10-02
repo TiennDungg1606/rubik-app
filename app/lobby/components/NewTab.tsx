@@ -56,11 +56,10 @@ export default function NewTab() {
         </ul>
       </div>
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-blue-400 drop-shadow mb-2">Dự kiến cập nhật tiếp theo (T9/2025)</h3>
+        <h3 className="text-lg font-bold text-blue-400 drop-shadow mb-2">Dự kiến cập nhật tiếp theo (T10/2025)</h3>
         <ul className="list-disc list-inside text-white text-base ml-4">
-          <li>Cho phép khán giả xem phòng đang thi đấu.</li>
-          <li>Tính năng đấu đội 2vs2 và 3vs3</li>    
-          <li>Hỗ trợ nhiều loại sự kiện Rubik chuẩn WCA.(tiếp theo là 4x4 và pyraminx)</li>
+          <li>Cho phép khán giả xem phòng đang thi đấu (nếu có thể).</li>
+          <li>Tính năng đấu đội 2vs2.</li>
           <li>Cập nhật giao diện đẹp hơn.</li>
         </ul>
       </div>
