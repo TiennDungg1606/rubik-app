@@ -1801,7 +1801,7 @@ useEffect(() => {
         sessionStorage.removeItem(`roomPassword_${roomId}`);
       }
     }
-    socket.emit("join-room", { roomId, userId, userName, event, displayName, password });
+    socket.emit("join-room", { roomId, userId, userName, event, displayName, password, gameMode: '1vs1' });
     // Lắng nghe xác nhận đã join phòng
     const handleRoomJoined = () => {
       setJoinedRoom(true);
