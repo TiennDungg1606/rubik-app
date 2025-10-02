@@ -1631,8 +1631,8 @@ useEffect(() => {
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data && data.user && data.user._id) {
-            // Chỉ lấy 6 ký tự cuối của ObjectId
-            setUserId(typeof data.user._id === 'string' && data.user._id.length >= 6 ? data.user._id.slice(-6) : data.user._id);
+            const resolvedId = typeof data.user._id === 'string' ? data.user._id : String(data.user._id);
+            setUserId(resolvedId);
             if (data.user.firstName && data.user.lastName) {
               setUserName(data.user.firstName + ' ' + data.user.lastName);
             } else {

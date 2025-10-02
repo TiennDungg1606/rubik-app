@@ -285,6 +285,58 @@ type TeamPlayer = {
 const [user, setUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
 const [customBg, setCustomBg] = typeof window !== 'undefined' ? useState<string | null>(null) : [null, () => {}];
 
+const mergeRoomUsers = (users: RoomUser[]): RoomUser[] => {
+  const merged = new Map<string, RoomUser>();
+
+  users.forEach(rawUser => {
+    if (!rawUser) return;
+    const normalizedId = typeof rawUser.userId === 'string'
+      ? rawUser.userId
+      : rawUser.userId != null
+        ? String(rawUser.userId)
+        : '';
+
+    const normalizedUser: RoomUser = {
+      ...rawUser,
+      userId: normalizedId,
+    };
+
+    const keySuffix = normalizedId.slice(-6) || normalizedId;
+    const key = `${normalizedUser.userName || ''}|${keySuffix}`;
+    const existing = merged.get(key);
+
+    if (!existing) {
+      merged.set(key, normalizedUser);
+      return;
+    }
+
+    const preferNormalized = (
+      (!!normalizedUser.team && !existing.team) ||
+      (typeof normalizedUser.position === 'number' && typeof existing.position !== 'number') ||
+      (normalizedId.length > (existing.userId?.length ?? 0))
+    );
+
+    const base = preferNormalized ? existing : normalizedUser;
+    const overlay = preferNormalized ? normalizedUser : existing;
+
+    const combined: RoomUser = {
+      ...base,
+      ...overlay,
+      team: overlay.team ?? base.team ?? null,
+      position: overlay.position ?? base.position ?? null,
+      role: overlay.role ?? base.role,
+      isObserver: overlay.isObserver ?? base.isObserver,
+      isReady: overlay.isReady ?? base.isReady,
+      userName: overlay.userName ?? base.userName,
+      userId: preferNormalized ? normalizedId : base.userId,
+    };
+
+    merged.set(key, combined);
+  });
+
+  return Array.from(merged.values());
+};
+
 useEffect(() => {
   if (typeof window === 'undefined') return;
   fetch("/api/user/me", { credentials: "include" })
@@ -401,9 +453,10 @@ useEffect(() => {
   useEffect(() => {
     const socket = getSocket();
   const handleUsers = (data: { users: RoomUser[], hostId: string }) => {
-      setUsers(data.users.map(u => u.userId));
-      setWaiting(data.users.length < 2);
-      setPendingUsers(data.users);
+    const normalizedUsers = mergeRoomUsers(data.users);
+    setUsers(normalizedUsers.map(u => u.userId));
+    setWaiting(normalizedUsers.length < 2);
+    setPendingUsers(normalizedUsers);
       // Đồng bộ chủ phòng từ server
       if (userId && data.hostId) {
         setIsCreator(userId === data.hostId);
@@ -412,12 +465,12 @@ useEffect(() => {
       }
       
       // Reset chế độ tái đấu khi có người mới vào phòng
-      if (data.users.length === 1) {
+      if (normalizedUsers.length === 1) {
         setIsRematchMode(false);
       }
       
       // Reset sự kiện 2 lần DNF khi có sự thay đổi người chơi
-      if (data.users.length !== users.length) {
+      if (normalizedUsers.length !== users.length) {
         setIsLockedDue2DNF(false);
         // setShowLockedDNFModal(false); // ĐÃ HỦY
         setLockDNFInfo(null);
@@ -1884,8 +1937,8 @@ useEffect(() => {
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data && data.user && data.user._id) {
-            // Chỉ lấy 6 ký tự cuối của ObjectId
-            setUserId(typeof data.user._id === 'string' && data.user._id.length >= 6 ? data.user._id.slice(-6) : data.user._id);
+            const resolvedId = typeof data.user._id === 'string' ? data.user._id : String(data.user._id);
+            setUserId(resolvedId);
             if (data.user.firstName && data.user.lastName) {
               setUserName(data.user.firstName + ' ' + data.user.lastName);
             } else {
@@ -2036,8 +2089,8 @@ useEffect(() => {
     const storedTeams = sessionStorage.getItem(`roomTeams_${roomId}`);
     if (storedTeams) {
       try {
-        const parsed: RoomUser[] = JSON.parse(storedTeams);
-        setPendingUsers(parsed);
+  const parsed: RoomUser[] = JSON.parse(storedTeams);
+  setPendingUsers(mergeRoomUsers(parsed));
       } catch {
         // Ignore malformed cache
       } finally {
