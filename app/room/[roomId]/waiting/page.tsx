@@ -88,25 +88,12 @@ export default function WaitingRoom() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        console.log('Fetching user from API...');
-        console.log('Current cookies:', document.cookie);
-        
         const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
-        console.log('API response status:', res.status);
-        console.log('API response headers:', res.headers);
-        
         const data = await res.json();
-        console.log('API response data:', data);
-        
         if (data && data.user) {
-          console.log('✅ User found:', data.user);
-          console.log('User ID:', data.user._id);
-          console.log('User name:', data.user.firstName, data.user.lastName);
           setUser(data.user);
           setCustomBg(data.user.customBg || '');
         } else {
-          console.log('❌ No user data received from API');
-          console.log('Error:', data.error);
         }
       } catch (err) {
         console.error("❌ Error fetching user:", err);
@@ -182,7 +169,6 @@ export default function WaitingRoom() {
             (document.documentElement as any).msRequestFullscreen();
           }
         } catch (error) {
-          console.log('Fullscreen request failed:', error);
         }
       };
 
@@ -247,23 +233,18 @@ export default function WaitingRoom() {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('Socket connected');
       setIsConnected(true);
       
       // Lấy thông tin user từ API thay vì sessionStorage
       const fetchUserAndJoin = async () => {
         try {
-          console.log('Fetching user for socket join...');
           const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
           const data = await res.json();
-          console.log('Socket join API response:', data);
           
           if (data && data.user) {
             const user = data.user;
             const userId = user._id || user.id || Date.now().toString();
             const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
-            
-            console.log('Joining room with:', { userId, userName, roomId });
             
             // Cập nhật currentUser state
             setCurrentUser({
@@ -280,10 +261,6 @@ export default function WaitingRoom() {
               displayName: window._roomDisplayName || roomId, // Sẽ được cập nhật từ server
               password: window._roomPassword || null
             });
-            
-            console.log('Emitted join-waiting-room event');
-          } else {
-            console.log('No user data from API for socket join');
           }
         } catch (error) {
           console.error('=== DEBUG: Error fetching user data for socket join ===', error);
@@ -294,11 +271,6 @@ export default function WaitingRoom() {
     });
 
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
-      console.log('Received waiting-room-updated');
-      console.log('Room data:', data);
-      console.log('Players count:', data.players.length);
-      console.log('Players:', data.players);
-      console.log('Current user before update:', currentUser);
       
       // Cập nhật currentUser role từ server data
       // Tìm player data dựa trên userId đã gửi lên server
@@ -306,11 +278,8 @@ export default function WaitingRoom() {
         // Tìm theo ID hiện tại hoặc theo tên nếu ID chưa match
         const matchById = p.id === currentUser?.id;
         const matchByName = currentUser?.name && p.name === currentUser.name;
-        console.log('Checking player:', p.name, 'vs currentUser:', currentUser?.name, 'matchById:', matchById, 'matchByName:', matchByName);
         return matchById || matchByName;
       });
-      
-      console.log('Found player data:', playerData);
       
       if (playerData) {
         setCurrentUser(prev => {
@@ -459,27 +428,15 @@ export default function WaitingRoom() {
       toPosition: number;
       targetUserId: string;
     }) => {
-      console.log('Received swap-seat-request:', data);
-      console.log('Current user:', currentUser);
-      console.log('User from API:', user);
-      console.log('Room state players:', roomState.players);
-      console.log('Target user ID:', data.targetUserId);
-      
       // Dùng cùng pattern như getCurrentPlayer() cho ready button
       const currentPlayer = getCurrentPlayer();
       const currentUserId = currentPlayer?.id;
       
-      console.log('Current player from getCurrentPlayer():', currentPlayer);
-      console.log('Current user ID:', currentUserId);
-      console.log('Should show modal:', data.targetUserId === currentUserId);
-      
       // Chỉ hiện modal cho người được yêu cầu đổi chỗ
       if (data.targetUserId === currentUserId) {
-        console.log('Showing swap modal for current user');
         setPendingSwapRequest(data);
         setShowSwapModal(true);
       } else {
-        console.log('Not the target user, ignoring request');
       }
     });
 
@@ -491,8 +448,6 @@ export default function WaitingRoom() {
       toPosition: number;
       targetUserId: string;
     }) => {
-      console.log('Received swap-seat-response:', data);
-      
       // Dùng cùng pattern như getCurrentPlayer() cho ready button
       const currentPlayer = getCurrentPlayer();
       const currentUserId = currentPlayer?.id;
@@ -500,10 +455,8 @@ export default function WaitingRoom() {
       // Chỉ xử lý phản hồi cho người yêu cầu
       if (data.targetUserId === currentUserId) {
         if (data.accepted) {
-          console.log('Seat swap accepted!');
           // Room state sẽ được cập nhật từ waiting-room-updated event
         } else {
-          console.log('Seat swap rejected');
         }
       }
       
@@ -601,14 +554,6 @@ export default function WaitingRoom() {
     
     const currentPlayer = roomState.players.find(p => p.id === currentUser.id);
     if (!currentPlayer) return;
-    
-    console.log('Swap request:', {
-      roomId,
-      fromUserId: currentUser.id,
-      toUserId: targetPlayer.id,
-      fromPosition: currentPlayer.position || 0,
-      toPosition: targetPosition
-    });
     
     setSwapRequest({
       fromPlayer: currentPlayer,

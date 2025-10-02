@@ -1613,7 +1613,6 @@ useEffect(() => {
       if (data.userId !== userId) {
         // Chỉ cập nhật state nếu không phải từ chính mình
         setOpponentMicOn(data.micOn);
-        console.log(`${data.userName} ${data.micOn ? 'bật' : 'tắt'} mic`);
       }
     };
 
@@ -1714,7 +1713,6 @@ useEffect(() => {
           }
         } catch (error) {
           // Không thể chuyển sang chế độ toàn màn hình
-          console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
         }
       };
 
@@ -1921,7 +1919,6 @@ useEffect(() => {
           setSpaceHeld(true);
         }
       } else if (!prep && !running) {
-        console.log('✅ Bắt đầu chuẩn bị - đến lượt của bạn');
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
@@ -2246,12 +2243,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     loginTimeoutRef.current = setTimeout(() => {
       // Kiểm tra userName tại thời điểm timeout (15s sau)
       const currentUserName = userNameRef.current;
-      console.log('15s timeout reached, userName:', currentUserName);
       if (!currentUserName) {
-        console.log('No userName found after 15s, redirecting to login');
         window.location.href = 'https://rubik-app-buhb.vercel.app/';
-      } else {
-        console.log('userName found after 15s, staying in room');
       }
     }, 15000);
 
@@ -3456,9 +3449,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   let result: number|null = pendingResult;
                   if (pendingType === '+2' && result !== null) result = result + 2000;
                   if (pendingType === 'dnf') result = null;
-                  
-                  console.log('📤 Gửi kết quả:', result, 'cho phòng:', roomId);
-                  
+
                   // Gửi timer-update event cuối cùng
                   const socket = getSocket();
                   socket.emit("timer-update", { roomId, userId, ms: result === null ? 0 : result, running: false, finished: true });
