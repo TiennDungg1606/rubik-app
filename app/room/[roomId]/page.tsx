@@ -1370,6 +1370,7 @@ useEffect(() => {
 
   // Hàm gửi yêu cầu tái đấu
   function handleRematch() {
+    if (controlsLockedByOpponent) return;
     const socket = getSocket();
     setRematchPending(true);
     socket.emit('rematch-request', { roomId, fromUserId: userId });
@@ -1504,6 +1505,7 @@ useEffect(() => {
 
   // Hàm rời phòng: emit leave-room trước khi chuyển hướng về lobby
   function handleLeaveRoom() {
+    if (controlsLockedByOpponent) return;
     // Chỉ hiện modal xác nhận
     setShowLeaveModal(true);
   }
@@ -2310,6 +2312,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
   
   // Helper: compact style for mobile landscape only
   const mobileShrink = isMobileLandscape;
+  const controlsLockedByOpponent = opponentRunning;
   return (
     <div 
       className={  
@@ -2367,16 +2370,18 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       >
         <button
           onClick={handleLeaveRoom}
+          disabled={controlsLockedByOpponent}
           className={
             (mobileShrink
               ? "bg-red-600 hover:bg-red-700 text-[9px] rounded-full font-bold shadow-lg flex items-center justify-center"
               : "bg-red-600 hover:bg-red-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center")
             + " transition-transform duration-200 hover:scale-110 active:scale-95"
+            + (controlsLockedByOpponent ? " opacity-60 cursor-not-allowed" : "")
           }
           style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
           type="button"
           aria-label="Rời phòng"
-          title="Rời phòng"
+          title={controlsLockedByOpponent ? "Đối thủ đang giải - vui lòng chờ" : "Rời phòng"}
         >
           {/* Icon logout/exit SVG */}
           <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>↩</span>
@@ -2429,17 +2434,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </button>
           <button
             onClick={handleRematch}
-            disabled={rematchPending || users.length < 2}
+            disabled={rematchPending || users.length < 2 || controlsLockedByOpponent}
             className={
               (mobileShrink
-                ? `px-1 py-0.5 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`)
+                ? `px-1 py-0.5 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${(rematchPending || users.length < 2 || controlsLockedByOpponent) ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${(rematchPending || users.length < 2 || controlsLockedByOpponent) ? 'opacity-60 cursor-not-allowed' : ''}`)
               + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
-            aria-label={isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu"}
-            title={isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu"}
+            aria-label={controlsLockedByOpponent ? "Đối thủ đang giải - không thể tái đấu" : (isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu")}
+            title={controlsLockedByOpponent ? "Đối thủ đang giải - không thể tái đấu" : (isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu")}
           >
             {/* Icon vòng lặp/refresh */}
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
@@ -2470,17 +2475,20 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             )}
           </button>
           <button
+            disabled={controlsLockedByOpponent}
             className={
               (mobileShrink
                 ? "bg-gray-500 hover:bg-gray-700 text-[13px] rounded-full font-bold shadow-lg flex items-center justify-center"
                 : "bg-gray-500 hover:bg-gray-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center")
               + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
+              + (controlsLockedByOpponent ? " opacity-60 cursor-not-allowed" : "")
             }
             style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
             aria-label="Lưới scramble"
-            title="Lưới scramble"
+            title={controlsLockedByOpponent ? "Đối thủ đang giải - không thể mở lưới" : "Lưới scramble"}
             onClick={() => {
+              if (controlsLockedByOpponent) return;
               setShowCubeNet(true);
             }}
           >
@@ -2645,17 +2653,22 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Nút luật thi đấu */}
         <div className="flex items-center">
           <button
-            onClick={() => setShowRules(true)}
+            onClick={() => {
+              if (controlsLockedByOpponent) return;
+              setShowRules(true);
+            }}
+            disabled={controlsLockedByOpponent}
             className={
               (mobileShrink
                 ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
                 : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center")
               + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
+              + (controlsLockedByOpponent ? " opacity-60 cursor-not-allowed" : "")
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
             aria-label="Luật thi đấu"
-            title="Luật thi đấu"
+            title={controlsLockedByOpponent ? "Đối thủ đang giải - không thể mở luật" : "Luật thi đấu"}
           >
             <span role="img" aria-label="Luật thi đấu">📜</span>
           </button>
@@ -3429,49 +3442,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 return;
               }
             }
-          } : {
-            onClick: () => {
-              if (waiting || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
-              if (isTypingMode) return; // Chặn click khi đang ở chế độ typing
-              if (!prep && !running) {
-                setPrep(true);
-                setPrepTime(15);
-                setDnf(false);
-                // Gửi timer-prep event
-                const socket = getSocket();
-                socket.emit("timer-prep", { roomId, userId, remaining: 15 });
-              } else if (prep && !running) {
-                setPrep(false);
-                setCanStart(true);
-                // Timer sẽ được start trong useEffect của canStart
-              } else if (canStart && !running) {
-                setRunning(true);
-                setTimer(0);
-                timerRef.current = 0;
-                startTimeRef.current = performance.now();
-                // Gửi timer-update event
-                const socket = getSocket();
-                socket.emit("timer-update", { roomId, userId, ms: 0, running: true, finished: false });
-                setCanStart(false);
-                setPrep(false);
-              } else if (running) {
-                setRunning(false);
-                if (intervalRef.current) clearInterval(intervalRef.current);
-                
-                // Lấy thời gian chính xác từ performance.now()
-                const currentTime = Math.round(performance.now() - startTimeRef.current);
-                setTimer(currentTime);
-                timerRef.current = currentTime;
-                
-                // Gửi timer-update event
-                const socket = getSocket();
-                socket.emit("timer-update", { roomId, userId, ms: currentTime, running: false, finished: false });
-                setPendingResult(currentTime);
-                setPendingType('normal');
-                setCanStart(false);
-              }
-            }
-          })}
+          } : {})}
         >
           
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận sau 1s */}
