@@ -51,6 +51,15 @@ export default function RoomPage() {
   const [opponentSets, setOpponentSets] = useState<number>(0);
   // Modal xác nhận rời phòng
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [insufficientModal, setInsufficientModal] = useState<{ show: boolean; remaining: number; required: number; deadline: number | null; message?: string; forceClose?: boolean }>({ show: false, remaining: 0, required: 4, deadline: null });
+  const [insufficientCountdown, setInsufficientCountdown] = useState<number | null>(null);
+  const formatCountdownLabel = (seconds: number | null) => {
+    if (seconds === null || Number.isNaN(seconds)) return '—';
+    const safe = Math.max(seconds, 0);
+    const minutes = Math.floor(safe / 60);
+    const secs = safe % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
 
 
   const [roomId, setRoomId] = useState<string>("");
@@ -79,6 +88,7 @@ export default function RoomPage() {
   const [chatMessages, setChatMessages] = useState<{from: string, text: string, team?: 'A'|'B', playerName: string}[]>([]);
   const [hasNewChat, setHasNewChat] = useState(false);
   const audioRef = useRef<HTMLAudioElement|null>(null);
+  const insufficientCountdownRef = useRef<NodeJS.Timeout | null>(null);
 
   // Ref cho video local và remote để truyền vào DailyVideoCall
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -481,6 +491,103 @@ useEffect(() => {
       socket.off('room-users', handleUsers);
     };
   }, [userId]);
+
+  useEffect(() => {
+    if (!roomId) return;
+    const socket = getSocket();
+    const normalizedRoom = roomId.toUpperCase();
+
+    const startCountdown = (deadline: number | null) => {
+      if (insufficientCountdownRef.current) {
+        clearInterval(insufficientCountdownRef.current);
+        insufficientCountdownRef.current = null;
+      }
+      if (!deadline) {
+        setInsufficientCountdown(null);
+        return;
+      }
+      const updateCountdown = () => {
+        const remainingMs = deadline - Date.now();
+        const secondsLeft = Math.max(Math.ceil(remainingMs / 1000), 0);
+        setInsufficientCountdown(secondsLeft);
+        if (secondsLeft <= 0 && insufficientCountdownRef.current) {
+          clearInterval(insufficientCountdownRef.current);
+          insufficientCountdownRef.current = null;
+        }
+      };
+      updateCountdown();
+      insufficientCountdownRef.current = setInterval(updateCountdown, 1000);
+    };
+
+    const handleInsufficient = (payload: { roomId?: string; remainingPlayers?: number; requiredPlayers?: number; deadline?: number }) => {
+      if (payload.roomId && payload.roomId.toUpperCase() !== normalizedRoom) return;
+      const remaining = typeof payload.remainingPlayers === 'number' ? payload.remainingPlayers : 0;
+      const required = typeof payload.requiredPlayers === 'number' ? payload.requiredPlayers : 4;
+      const deadline = typeof payload.deadline === 'number' ? payload.deadline : null;
+      setInsufficientModal({
+        show: true,
+        remaining,
+        required,
+        deadline,
+        message: 'Phòng 2vs2 cần đủ 4 người chơi. Hãy mời đồng đội quay lại hoặc rời phòng.',
+        forceClose: false
+      });
+      startCountdown(deadline);
+    };
+
+    const handleRestored = (payload: { roomId?: string }) => {
+      if (payload.roomId && payload.roomId.toUpperCase() !== normalizedRoom) return;
+      if (insufficientCountdownRef.current) {
+        clearInterval(insufficientCountdownRef.current);
+        insufficientCountdownRef.current = null;
+      }
+      setInsufficientModal(prev => ({ ...prev, show: false, deadline: null, forceClose: false, message: undefined }));
+      setInsufficientCountdown(null);
+    };
+
+    const handleForceClose = (payload: { roomId?: string; reason?: string }) => {
+      if (payload.roomId && payload.roomId.toUpperCase() !== normalizedRoom) return;
+      if (insufficientCountdownRef.current) {
+        clearInterval(insufficientCountdownRef.current);
+        insufficientCountdownRef.current = null;
+      }
+      setInsufficientCountdown(0);
+      setInsufficientModal({
+        show: true,
+        remaining: 0,
+        required: 4,
+        deadline: null,
+        message: payload.reason === 'empty'
+          ? 'Phòng đã bị đóng vì không còn người chơi. Bạn sẽ được chuyển về sảnh.'
+          : 'Phòng đã bị đóng do không đủ người chơi trong 5 phút. Bạn sẽ được chuyển về sảnh.',
+        forceClose: true
+      });
+
+      setTimeout(() => {
+        const socketRef = getSocket();
+        if (roomId && userId) {
+          socketRef.emit('leave-room', { roomId, userId });
+        }
+        router.push('/lobby');
+      }, 1500);
+    };
+
+    socket.on('room-insufficient-players', handleInsufficient);
+    socket.on('room-players-restored', handleRestored);
+    socket.on('room-force-close', handleForceClose);
+    socket.on('room-deleted', handleForceClose);
+
+    return () => {
+      socket.off('room-insufficient-players', handleInsufficient);
+      socket.off('room-players-restored', handleRestored);
+      socket.off('room-force-close', handleForceClose);
+      socket.off('room-deleted', handleForceClose);
+      if (insufficientCountdownRef.current) {
+        clearInterval(insufficientCountdownRef.current);
+        insufficientCountdownRef.current = null;
+      }
+    };
+  }, [roomId, userId, router]);
 
   // === TEAM ASSIGNMENT LOGIC FOR 2VS2 ===
   useEffect(() => {
@@ -1819,6 +1926,12 @@ useEffect(() => {
     if (roomId && userId) {
       socket.emit('leave-room', { roomId, userId });
     }
+    if (insufficientCountdownRef.current) {
+      clearInterval(insufficientCountdownRef.current);
+      insufficientCountdownRef.current = null;
+    }
+    setInsufficientModal(prev => ({ ...prev, show: false, deadline: null }));
+    setInsufficientCountdown(null);
     window.location.href = '/lobby';
     setTimeout(() => {
       window.location.reload();
@@ -4710,6 +4823,42 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
           is2vs2={true}
         />
       ) : null}
+
+      {insufficientModal.show && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 modal-backdrop">
+          <div className="modal-content bg-[#1f2430] text-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-md border border-[#343b4d]">
+            <h2 className="text-2xl font-bold mb-3">
+              {insufficientModal.forceClose ? 'Phòng đã bị đóng' : 'Phòng thiếu người chơi'}
+            </h2>
+            {insufficientModal.message && (
+              <p className="text-sm md:text-base text-gray-200 leading-relaxed mb-4">
+                {insufficientModal.message}
+              </p>
+            )}
+            {!insufficientModal.forceClose && (
+              <div className="bg-[#252b3a] border border-[#3a4254] rounded-xl p-4 mb-5 flex flex-col gap-2">
+                <div className="flex items-center justify-between text-sm md:text-base text-gray-200">
+                  <span>Người đang có mặt</span>
+                  <span className="font-semibold text-white">{insufficientModal.remaining}/{insufficientModal.required}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm md:text-base text-gray-200">
+                  <span>Thời gian còn lại</span>
+                  <span className="font-semibold text-emerald-300">{formatCountdownLabel(insufficientCountdown)}</span>
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={confirmLeaveRoom}
+                disabled={insufficientModal.forceClose}
+                className={`flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 ${insufficientModal.forceClose ? 'opacity-80 cursor-not-allowed hover:from-red-500 hover:to-red-600' : ''}`}
+              >
+                Rời phòng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CSS cho hiệu ứng modal và các nút */}
       <style jsx global>{`
