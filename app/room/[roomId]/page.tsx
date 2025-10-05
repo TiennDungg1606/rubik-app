@@ -2582,13 +2582,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               )}
               {chatMessages.map((msg, idx) => {
                 const displayName = msg.userName?.trim()
-                  ? msg.userName
+                  ? msg.userName.trim()
                   : (msg.from === 'me'
                       ? (userName?.trim() ? userName : 'Bạn')
                       : (opponentName?.trim() ? opponentName : 'Đối thủ'));
-                const nameClass = msg.from === 'me'
-                  ? (mobileShrink ? "text-[8px] text-blue-100 text-right" : "text-xs text-blue-100 text-right")
-                  : (mobileShrink ? "text-[8px] text-gray-300 text-left" : "text-xs text-gray-300 text-left");
+                const nameClass = [
+                  mobileShrink ? "text-[8px]" : "text-xs",
+                  msg.from === 'me' ? 'text-blue-100 text-right' : 'text-gray-300 text-left',
+                ].join(' ');
                 const bubbleClass = msg.from === 'me'
                   ? (mobileShrink ? "bg-blue-500 text-white px-2 py-1 rounded-lg text-[10px]" : "bg-blue-500 text-white px-3 py-2 rounded-lg text-base")
                   : (mobileShrink ? "bg-gray-700 text-white px-2 py-1 rounded-lg text-[10px]" : "bg-gray-700 text-white px-3 py-2 rounded-lg text-base");
@@ -2596,15 +2597,15 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 return (
                   <div
                     key={idx}
-                    className={`$
+                    className={`${
                       msg.from === 'me'
                         ? (mobileShrink ? "flex justify-end mb-1" : "flex justify-end mb-2")
                         : (mobileShrink ? "flex justify-start mb-1" : "flex justify-start mb-2")
                     } chat-message ${idx === chatMessages.length - 1 ? 'new-message' : ''}`}
                   >
                     <div className="flex flex-col max-w-[70%]" style={{ wordBreak: 'break-word' }}>
-                      <div className={`${nameClass} font-semibold mb-1`}>{displayName}</div>
-                      <div className={`${bubbleClass} chat-bubble`}>
+                      <div className={`${nameClass} font-semibold mb-1`} title={displayName}>{displayName}</div>
+                      <div className={`${bubbleClass} chat-bubble`} style={{ wordBreak: 'break-word' }}>
                         {msg.text}
                       </div>
                     </div>
@@ -3381,7 +3382,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Timer ở giữa - cột 2 */}
         <div
           className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
-          style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
+          style={mobileShrink
+            ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200, marginTop: 8 }
+            : { flex: '0 1 20%', minWidth: 180, maxWidth: 320, marginTop: isMobileLandscape ? 20 : 56 }}
         {...(isMobile ? {
             onTouchStart: (e) => {
               if (pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
