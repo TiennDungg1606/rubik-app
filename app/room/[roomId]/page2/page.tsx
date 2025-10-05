@@ -51,15 +51,7 @@ export default function RoomPage() {
   const [opponentSets, setOpponentSets] = useState<number>(0);
   // Modal xác nhận rời phòng
   const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [insufficientModal, setInsufficientModal] = useState<{ show: boolean; remaining: number; required: number; deadline: number | null; message?: string; forceClose?: boolean }>({ show: false, remaining: 0, required: 4, deadline: null });
-  const [insufficientCountdown, setInsufficientCountdown] = useState<number | null>(null);
-  const formatCountdownLabel = (seconds: number | null) => {
-    if (seconds === null || Number.isNaN(seconds)) return '—';
-    const safe = Math.max(seconds, 0);
-    const minutes = Math.floor(safe / 60);
-    const secs = safe % 60;
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
+  const [insufficientModal, setInsufficientModal] = useState<{ show: boolean; message: string; forceClose: boolean }>({ show: false, message: '', forceClose: false });
 
 
   const [roomId, setRoomId] = useState<string>("");
@@ -88,7 +80,6 @@ export default function RoomPage() {
   const [chatMessages, setChatMessages] = useState<{from: string, text: string, team?: 'A'|'B', playerName: string}[]>([]);
   const [hasNewChat, setHasNewChat] = useState(false);
   const audioRef = useRef<HTMLAudioElement|null>(null);
-  const insufficientCountdownRef = useRef<NodeJS.Timeout | null>(null);
 
   // Ref cho video local và remote để truyền vào DailyVideoCall
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -496,71 +487,28 @@ useEffect(() => {
     if (!roomId) return;
     const socket = getSocket();
     const normalizedRoom = roomId.toUpperCase();
-
-    const startCountdown = (deadline: number | null) => {
-      if (insufficientCountdownRef.current) {
-        clearInterval(insufficientCountdownRef.current);
-        insufficientCountdownRef.current = null;
-      }
-      if (!deadline) {
-        setInsufficientCountdown(null);
-        return;
-      }
-      const updateCountdown = () => {
-        const remainingMs = deadline - Date.now();
-        const secondsLeft = Math.max(Math.ceil(remainingMs / 1000), 0);
-        setInsufficientCountdown(secondsLeft);
-        if (secondsLeft <= 0 && insufficientCountdownRef.current) {
-          clearInterval(insufficientCountdownRef.current);
-          insufficientCountdownRef.current = null;
-        }
-      };
-      updateCountdown();
-      insufficientCountdownRef.current = setInterval(updateCountdown, 1000);
-    };
-
-    const handleInsufficient = (payload: { roomId?: string; remainingPlayers?: number; requiredPlayers?: number; deadline?: number }) => {
+    const handleInsufficient = (payload: { roomId?: string }) => {
       if (payload.roomId && payload.roomId.toUpperCase() !== normalizedRoom) return;
-      const remaining = typeof payload.remainingPlayers === 'number' ? payload.remainingPlayers : 0;
-      const required = typeof payload.requiredPlayers === 'number' ? payload.requiredPlayers : 4;
-      const deadline = typeof payload.deadline === 'number' ? payload.deadline : null;
       setInsufficientModal({
         show: true,
-        remaining,
-        required,
-        deadline,
-        message: 'Phòng 2vs2 cần đủ 4 người chơi. Hãy mời đồng đội quay lại hoặc rời phòng.',
-        forceClose: false
+        message: 'Phòng thiếu người nên trận đấu bị hủy. Vui lòng rời phòng để quay lại sảnh.',
+        forceClose: false,
       });
-      startCountdown(deadline);
     };
 
     const handleRestored = (payload: { roomId?: string }) => {
       if (payload.roomId && payload.roomId.toUpperCase() !== normalizedRoom) return;
-      if (insufficientCountdownRef.current) {
-        clearInterval(insufficientCountdownRef.current);
-        insufficientCountdownRef.current = null;
-      }
-      setInsufficientModal(prev => ({ ...prev, show: false, deadline: null, forceClose: false, message: undefined }));
-      setInsufficientCountdown(null);
+      setInsufficientModal({ show: false, message: '', forceClose: false });
     };
 
     const handleForceClose = (payload: { roomId?: string; reason?: string }) => {
       if (payload.roomId && payload.roomId.toUpperCase() !== normalizedRoom) return;
-      if (insufficientCountdownRef.current) {
-        clearInterval(insufficientCountdownRef.current);
-        insufficientCountdownRef.current = null;
-      }
-      setInsufficientCountdown(0);
       setInsufficientModal({
         show: true,
-        remaining: 0,
-        required: 4,
-        deadline: null,
         message: payload.reason === 'empty'
           ? 'Phòng đã bị đóng vì không còn người chơi. Bạn sẽ được chuyển về sảnh.'
           : 'Phòng đã bị đóng do không đủ người chơi trong 5 phút. Bạn sẽ được chuyển về sảnh.',
-        forceClose: true
+        forceClose: true,
       });
 
       setTimeout(() => {
@@ -582,10 +530,6 @@ useEffect(() => {
       socket.off('room-players-restored', handleRestored);
       socket.off('room-force-close', handleForceClose);
       socket.off('room-deleted', handleForceClose);
-      if (insufficientCountdownRef.current) {
-        clearInterval(insufficientCountdownRef.current);
-        insufficientCountdownRef.current = null;
-      }
     };
   }, [roomId, userId, router]);
 
@@ -1926,12 +1870,7 @@ useEffect(() => {
     if (roomId && userId) {
       socket.emit('leave-room', { roomId, userId });
     }
-    if (insufficientCountdownRef.current) {
-      clearInterval(insufficientCountdownRef.current);
-      insufficientCountdownRef.current = null;
-    }
-    setInsufficientModal(prev => ({ ...prev, show: false, deadline: null }));
-    setInsufficientCountdown(null);
+    setInsufficientModal({ show: false, message: '', forceClose: false });
     window.location.href = '/lobby';
     setTimeout(() => {
       window.location.reload();
@@ -3793,7 +3732,25 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
         {/* Timer ở giữa - cột 2 */}
         <div
           className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
-          style={mobileShrink ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200 } : { flex: '0 1 20%', minWidth: 180, maxWidth: 320 }}
+          style={
+            mobileShrink
+              ? {
+                  flex: '0 1 20%',
+                  minWidth: 120,
+                  maxWidth: 220,
+                  marginTop: 12,
+                  alignSelf: 'flex-start',
+                  ...(isMobile ? {} : { cursor: 'default' }),
+                }
+              : {
+                  flex: '0 1 20%',
+                  minWidth: 200,
+                  maxWidth: 360,
+                  marginTop: 40,
+                  alignSelf: 'flex-start',
+                  ...(isMobile ? {} : { cursor: 'default' }),
+                }
+          }
         {...(isMobile ? {
             onTouchStart: (e) => {
               if (pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
@@ -3859,49 +3816,7 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
                 return;
               }
             }
-          } : {
-            onClick: () => {
-              if (waiting || getMyResults().length >= 5 || pendingResult !== null || isLockedDue2DNF || !isMyTurn()) return;
-              if (isTypingMode) return; // Chặn click khi đang ở chế độ typing
-              if (!prep && !running) {
-                setPrep(true);
-                setPrepTime(15);
-                setDnf(false);
-                // Gửi timer-prep event
-                const socket = getSocket();
-                socket.emit("timer-prep", { roomId, userId, remaining: 15 });
-              } else if (prep && !running) {
-                setPrep(false);
-                setCanStart(true);
-                // Timer sẽ được start trong useEffect của canStart
-              } else if (canStart && !running) {
-                setRunning(true);
-                setTimer(0);
-                timerRef.current = 0;
-                startTimeRef.current = performance.now();
-                // Gửi timer-update event
-                const socket = getSocket();
-                socket.emit("timer-update", { roomId, userId, ms: 0, running: true, finished: false });
-                setCanStart(false);
-                setPrep(false);
-              } else if (running) {
-                setRunning(false);
-                if (intervalRef.current) clearInterval(intervalRef.current);
-                
-                // Lấy thời gian chính xác từ performance.now()
-                const currentTime = Math.round(performance.now() - startTimeRef.current);
-                setTimer(currentTime);
-                timerRef.current = currentTime;
-                
-                // Gửi timer-update event
-                const socket = getSocket();
-                socket.emit("timer-update", { roomId, userId, ms: currentTime, running: false, finished: false });
-                setPendingResult(currentTime);
-                setPendingType('normal');
-                setCanStart(false);
-              }
-            }
-          })}
+          } : {})}
         >
           
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận sau 1s */}
@@ -4830,28 +4745,13 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
             <h2 className="text-2xl font-bold mb-3">
               {insufficientModal.forceClose ? 'Phòng đã bị đóng' : 'Phòng thiếu người chơi'}
             </h2>
-            {insufficientModal.message && (
-              <p className="text-sm md:text-base text-gray-200 leading-relaxed mb-4">
-                {insufficientModal.message}
-              </p>
-            )}
-            {!insufficientModal.forceClose && (
-              <div className="bg-[#252b3a] border border-[#3a4254] rounded-xl p-4 mb-5 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-sm md:text-base text-gray-200">
-                  <span>Người đang có mặt</span>
-                  <span className="font-semibold text-white">{insufficientModal.remaining}/{insufficientModal.required}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm md:text-base text-gray-200">
-                  <span>Thời gian còn lại</span>
-                  <span className="font-semibold text-emerald-300">{formatCountdownLabel(insufficientCountdown)}</span>
-                </div>
-              </div>
-            )}
+            <p className="text-sm md:text-base text-gray-200 leading-relaxed mb-5">
+              {insufficientModal.message || 'Phòng thiếu người nên trận đấu bị hủy. Vui lòng rời phòng để quay lại sảnh.'}
+            </p>
             <div className="flex flex-col gap-3">
               <button
                 onClick={confirmLeaveRoom}
-                disabled={insufficientModal.forceClose}
-                className={`flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 ${insufficientModal.forceClose ? 'opacity-80 cursor-not-allowed hover:from-red-500 hover:to-red-600' : ''}`}
+                className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-all duration-200"
               >
                 Rời phòng
               </button>
