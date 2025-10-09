@@ -77,7 +77,7 @@ export default function RoomPage() {
   // State cho chat - Updated for 2vs2
   const [showChat, setShowChat] = useState(false);
   const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<{from: string, text: string, team?: 'A'|'B', playerName: string}[]>([]);
+  const [chatMessages, setChatMessages] = useState<{from: string, text: string, team?: 'A'|'B', playerName?: string}[]>([]);
   const [hasNewChat, setHasNewChat] = useState(false);
   const audioRef = useRef<HTMLAudioElement|null>(null);
 
@@ -1766,7 +1766,8 @@ useEffect(() => {
     const handleChat = (data: { userId: string, userName: string, message: string }) => {
       // Nếu là tin nhắn của mình thì bỏ qua (đã hiển thị local)
       if (data.userId === userId) return;
-      setChatMessages(msgs => [...msgs, { from: 'opponent', text: data.message, playerName: data.userName }]);
+      const opponentName = data.userName?.trim() ? data.userName : 'Đối thủ';
+      setChatMessages(msgs => [...msgs, { from: 'opponent', text: data.message, playerName: opponentName }]);
       setHasNewChat(true);
       // Phát âm thanh ting
       if (audioRef.current) {
@@ -3064,27 +3065,38 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
               {chatMessages.length === 0 && (
                 <div className="text-gray-400 text-center mt-4">Chưa có tin nhắn nào</div>
               )}
-              {chatMessages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`${
-                    msg.from === 'me'
-                      ? (mobileShrink ? "flex justify-end mb-1" : "flex justify-end mb-2")
-                      : (mobileShrink ? "flex justify-start mb-1" : "flex justify-start mb-2")
-                  } chat-message ${idx === chatMessages.length - 1 ? 'new-message' : ''}`}
-                >
+              {chatMessages.map((msg, idx) => {
+                const displayName = msg.playerName?.trim()
+                  ? msg.playerName.trim()
+                  : (msg.from === 'me'
+                      ? (userName?.trim() ? userName : 'Bạn')
+                      : 'Người chơi khác');
+                const nameClass = [
+                  mobileShrink ? 'text-[8px]' : 'text-xs',
+                  msg.from === 'me' ? 'text-blue-100 text-right' : 'text-gray-300 text-left',
+                ].join(' ');
+                const bubbleClass = msg.from === 'me'
+                  ? (mobileShrink ? "bg-blue-500 text-white px-2 py-1 rounded-lg text-[10px]" : "bg-blue-500 text-white px-3 py-2 rounded-lg text-base")
+                  : (mobileShrink ? "bg-gray-700 text-white px-2 py-1 rounded-lg text-[10px]" : "bg-gray-700 text-white px-3 py-2 rounded-lg text-base");
+
+                return (
                   <div
+                    key={idx}
                     className={`${
                       msg.from === 'me'
-                        ? (mobileShrink ? "bg-blue-500 text-white px-2 py-1 rounded-lg max-w-[70%] text-[10px]" : "bg-blue-500 text-white px-3 py-2 rounded-lg max-w-[70%] text-base")
-                        : (mobileShrink ? "bg-gray-700 text-white px-2 py-1 rounded-lg max-w-[70%] text-[10px]" : "bg-gray-700 text-white px-3 py-2 rounded-lg max-w-[70%] text-base")
-                    } chat-bubble`}
-                    style={{ wordBreak: 'break-word' }}
+                        ? (mobileShrink ? 'flex justify-end mb-1' : 'flex justify-end mb-2')
+                        : (mobileShrink ? 'flex justify-start mb-1' : 'flex justify-start mb-2')
+                    } chat-message ${idx === chatMessages.length - 1 ? 'new-message' : ''}`}
                   >
-                    {msg.text}
+                    <div className="flex flex-col max-w-[70%]" style={{ wordBreak: 'break-word' }}>
+                      <div className={`${nameClass} font-semibold mb-1`} title={displayName}>{displayName}</div>
+                      <div className={`${bubbleClass} chat-bubble`} style={{ wordBreak: 'break-word' }}>
+                        {msg.text}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
                           <form
                 className={mobileShrink ? "flex flex-row items-center gap-1" : "flex flex-row items-center gap-2"}
@@ -3097,7 +3109,8 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
                 onSubmit={e => {
                   e.preventDefault();
                   if (chatInput.trim() === "") return;
-                  setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput, playerName: userName }]);
+                  const senderName = userName?.trim() ? userName : 'Bạn';
+                  setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput, playerName: senderName }]);
                   // Gửi chat qua socket cho đối thủ
                   const socket = getSocket();
                   socket.emit('chat', { roomId, userId, userName, message: chatInput });
