@@ -3744,23 +3744,21 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
         </div>
         {/* Timer ở giữa - cột 2 */}
         <div
-          className={mobileShrink ? "flex flex-col items-center justify-center timer-area" : "flex flex-col items-center justify-center timer-area"}
+          className={mobileShrink ? "flex flex-col items-center justify-start timer-area" : "flex flex-col items-center justify-start timer-area"}
           style={
             mobileShrink
               ? {
                   flex: '0 1 20%',
                   minWidth: 120,
                   maxWidth: 220,
-                  marginTop: 12,
-                  alignSelf: 'flex-start',
+                  paddingTop: 24,
                   ...(isMobile ? {} : { cursor: 'default' }),
                 }
               : {
                   flex: '0 1 20%',
                   minWidth: 200,
                   maxWidth: 360,
-                  marginTop: 40,
-                  alignSelf: 'flex-start',
+                  paddingTop: isMobileLandscape ? 48 : 120,
                   ...(isMobile ? {} : { cursor: 'default' }),
                 }
           }
