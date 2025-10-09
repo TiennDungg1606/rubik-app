@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import React from "react";
 // import Peer from "simple-peer"; // REMOVED
@@ -403,49 +403,116 @@ useEffect(() => {
   };
 
   const getMyResults = () => {
-    if (!myTeam || myTeamIndex === -1) return [];
+    if (!myTeam || myTeamIndex === -1) {
+      return [...myResultsRef.current];
+    }
     return myTeam === 'A' ? teamAResults[myTeamIndex] : teamBResults[myTeamIndex];
   };
 
   const setMyResults = (newResults: (number|null)[]) => {
-    if (!myTeam || myTeamIndex === -1) return;
     myResultsRef.current = [...newResults];
+    setMyResultsOld(newResults);
+
+    if (!myTeam || myTeamIndex === -1) {
+      return;
+    }
+
     if (myTeam === 'A') {
       setTeamAResults(prev => {
-        const newTeamResults = [...prev];
-        newTeamResults[myTeamIndex] = newResults;
+        const newTeamResults = prev.map(results => Array.isArray(results) ? [...results] : []);
+        while (newTeamResults.length <= myTeamIndex) {
+          newTeamResults.push([]);
+        }
+        newTeamResults[myTeamIndex] = [...newResults];
         return newTeamResults;
       });
     } else {
       setTeamBResults(prev => {
-        const newTeamResults = [...prev];
-        newTeamResults[myTeamIndex] = newResults;
+        const newTeamResults = prev.map(results => Array.isArray(results) ? [...results] : []);
+        while (newTeamResults.length <= myTeamIndex) {
+          newTeamResults.push([]);
+        }
+        newTeamResults[myTeamIndex] = [...newResults];
         return newTeamResults;
       });
     }
   };
 
-  // Hàm chuyển lượt giữa các team
-  const switchToNextPlayer = () => {
-    const currentTeamData = getCurrentTeam();
-    const nextPlayerIndex = (currentPlayerIndex + 1) % currentTeamData.players.length;
-    
-    if (nextPlayerIndex === 0) {
-      // Chuyển sang team khác
-      const nextTeam = currentTeam === 'A' ? 'B' : 'A';
-      const nextTeamData = nextTeam === 'A' ? teamA : teamB;
-      setCurrentTeam(nextTeam);
-      setCurrentPlayerIndex(0);
-      setCurrentPlayerId(nextTeamData.players[0].userId);
-      setCurrentPlayerName(nextTeamData.players[0].userName);
-    } else {
-      // Chuyển sang player tiếp theo trong team hiện tại
-      setCurrentPlayerIndex(nextPlayerIndex);
-      setCurrentPlayerId(currentTeamData.players[nextPlayerIndex].userId);
-      setCurrentPlayerName(currentTeamData.players[nextPlayerIndex].userName);
-    }
+  const serverTeamToLocal = (team?: string | null): 'A' | 'B' | null => {
+    if (team === 'team1') return 'A';
+    if (team === 'team2') return 'B';
+    return null;
   };
 
+  const fallbackPlayerName = (teamId: 'A' | 'B', index: number) => {
+    const base = teamId === 'A' ? 1 : 3;
+    return `Player ${base + index}`;
+  };
+
+  const pushTeamResult = useCallback(
+    (teamId: 'A' | 'B', playerIndex: number, value: number | null) => {
+      if (playerIndex < 0) return;
+
+  const applyUpdate = (prev: (number | null)[][]) => {
+        const next = prev.map(results => Array.isArray(results) ? [...results] : []);
+        while (next.length <= playerIndex) {
+          next.push([]);
+        }
+        const playerResults = Array.isArray(next[playerIndex]) ? [...next[playerIndex]] : [];
+        if (playerResults.length >= 5) {
+          next[playerIndex] = playerResults;
+          return next;
+        }
+        playerResults.push(value);
+        next[playerIndex] = playerResults;
+        return next;
+      };
+
+      if (teamId === 'A') {
+        setTeamAResults(prev => applyUpdate(prev));
+      } else {
+        setTeamBResults(prev => applyUpdate(prev));
+      }
+    },
+    [setTeamAResults, setTeamBResults]
+  );
+
+  const ensureTeamPlayerSlot = useCallback(
+    (teamId: 'A' | 'B', playerIndex: number, resolvedUserId: string, playerName?: string | null, position?: number | null) => {
+      if (playerIndex < 0) return;
+
+      const updater = teamId === 'A' ? setTeamA : setTeamB;
+
+      updater(prev => {
+        const players = [...prev.players];
+        let changed = false;
+        while (players.length <= playerIndex) {
+          players.push({ userId: '', userName: '', position: undefined });
+          changed = true;
+        }
+
+        const existing = players[playerIndex];
+        const normalizedName = playerName && playerName.trim().length > 0
+          ? playerName.trim()
+          : existing?.userName || fallbackPlayerName(teamId, playerIndex);
+        const normalizedPosition = typeof position === 'number'
+          ? position
+          : (existing?.position ?? null);
+
+        if (!existing || existing.userId !== resolvedUserId || existing.userName !== normalizedName || existing.position !== normalizedPosition) {
+          players[playerIndex] = {
+            userId: resolvedUserId,
+            userName: normalizedName,
+            position: typeof normalizedPosition === 'number' ? normalizedPosition : undefined,
+          };
+          changed = true;
+        }
+
+        return changed ? { ...prev, players } : prev;
+      });
+    },
+    [setTeamA, setTeamB]
+  );
   useEffect(() => { waitingRef.current = waiting; }, [waiting]);
   useEffect(() => { runningRef.current = running; }, [running]);
   useEffect(() => { prepRef.current = prep; }, [prep]);
@@ -1681,24 +1748,57 @@ useEffect(() => {
   };
 }, [userId, roomId, isCreator]);
 
-// Lắng nghe sự kiện opponent-solve từ server để cập nhật kết quả đối thủ
+// Lắng nghe kết quả từ tất cả người chơi (bao gồm bản thân trong 2vs2)
 useEffect(() => {
   const socket = getSocket();
-  const handleOpponentSolve = (data: { userId: string, userName: string, time: number }) => {
+  const handlePlayerSolve = (data: { userId: string; userName?: string; time: number | null; team?: string | null; position?: number | null }) => {
+    const solvedUserId = data.userId;
+    const solvedUserName = data.userName;
+    const normalizedTime = typeof data.time === 'number' ? data.time : null;
+    const localTeam = serverTeamToLocal(data.team);
+
+    if (localTeam) {
+      const players = localTeam === 'A' ? teamA.players : teamB.players;
+      let playerIndex = players.findIndex(player => player.userId === solvedUserId);
+
+      if (playerIndex === -1 && typeof data.position === 'number') {
+        playerIndex = Math.max(0, data.position - 1);
+      }
+
+      if (playerIndex === -1) {
+        playerIndex = 0;
+      }
+
+      ensureTeamPlayerSlot(localTeam, playerIndex, solvedUserId, solvedUserName ?? null, data.position ?? null);
+
+      if (solvedUserId !== userId) {
+        pushTeamResult(localTeam, playerIndex, normalizedTime);
+      }
+
+      return;
+    }
+
+    if (solvedUserId === userId) {
+      return;
+    }
+
     setOpponentResults(prev => {
       const arr = [...prev];
-      const nextIdx = arr.length;
-      if (nextIdx < 5) arr[nextIdx] = data.time;
-      return arr.slice(0, 5);
+      if (arr.length >= 5) return arr;
+      arr.push(normalizedTime);
+      return arr;
     });
-    if (data.userName && data.userName !== opponentName) setOpponentName(data.userName);
-    // Không tự chuyển lượt nữa, lượt sẽ do server broadcast
+
+    if (solvedUserName && solvedUserName !== opponentName) {
+      setOpponentName(solvedUserName);
+    }
   };
-  socket.on('opponent-solve', handleOpponentSolve);
+
+  socket.on('player-solve', handlePlayerSolve);
   return () => {
-    socket.off('opponent-solve', handleOpponentSolve);
+    socket.off('player-solve', handlePlayerSolve);
   };
-}, [opponentName]);
+}, [ensureTeamPlayerSlot, opponentName, pushTeamResult, teamA, teamB, userId]);
 
   // Lắng nghe lượt chơi từ server (turnUserId)
   useEffect(() => {
@@ -1711,6 +1811,31 @@ useEffect(() => {
       socket.off('room-turn', handleTurn);
     };
   }, [roomId]);
+
+  useEffect(() => {
+    if (!turnUserId) return;
+
+    const teamAIndex = teamA.players.findIndex(player => player.userId === turnUserId);
+    if (teamAIndex !== -1) {
+      setCurrentTeam('A');
+      setCurrentPlayerIndex(teamAIndex);
+      setCurrentPlayerId(turnUserId);
+      setCurrentPlayerName(teamA.players[teamAIndex]?.userName || fallbackPlayerName('A', teamAIndex));
+      return;
+    }
+
+    const teamBIndex = teamB.players.findIndex(player => player.userId === turnUserId);
+    if (teamBIndex !== -1) {
+      setCurrentTeam('B');
+      setCurrentPlayerIndex(teamBIndex);
+      setCurrentPlayerId(turnUserId);
+      setCurrentPlayerName(teamB.players[teamBIndex]?.userName || fallbackPlayerName('B', teamBIndex));
+      return;
+    }
+
+    setCurrentPlayerId(turnUserId);
+    setCurrentPlayerName('');
+  }, [teamA, teamB, turnUserId]);
 
 // --- EFFECT LẮNG NGHE SCRAMBLE ---
 useEffect(() => {
@@ -2717,11 +2842,6 @@ const clampPlayerIndex = (idx: number) => {
   return idx;
 };
 
-const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
-  const base = team === 'A' ? 1 : 3;
-  return `Player ${base + index}`;
-};
-
   const [showLoading, setShowLoading] = useState(true);
   // Luôn hiển thị loading đủ 5s khi mount
   useEffect(() => {
@@ -2806,25 +2926,25 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
     const player = players[effectiveMyIndex];
     if (player?.userName) return player.userName;
     if (myTeam !== null && userName) return userName;
-    return fallbackLabelForTeam(displayMyTeamId, effectiveMyIndex);
+    return fallbackPlayerName(displayMyTeamId, effectiveMyIndex);
   })();
   const teammateLabel = (() => {
     const players = displayMyTeamData.players;
     const teammate = players[teammateIndex];
     if (teammate?.userName) return teammate.userName;
-    return fallbackLabelForTeam(displayMyTeamId, teammateIndex);
+    return fallbackPlayerName(displayMyTeamId, teammateIndex);
   })();
   const opponentLabel1 = (() => {
     const players = displayOpponentTeamData.players;
     const player = players[opponentIndexForMe];
     if (player?.userName) return player.userName;
-    return fallbackLabelForTeam(displayOpponentTeamId, opponentIndexForMe);
+    return fallbackPlayerName(displayOpponentTeamId, opponentIndexForMe);
   })();
   const opponentLabel2 = (() => {
     const players = displayOpponentTeamData.players;
     const player = players[opponentIndexForTeammate];
     if (player?.userName) return player.userName;
-    return fallbackLabelForTeam(displayOpponentTeamId, opponentIndexForTeammate);
+    return fallbackPlayerName(displayOpponentTeamId, opponentIndexForTeammate);
   })();
   const myTeamColor = displayMyTeamId === 'A' ? '#60a5fa' : '#10b981';
   const opponentTeamColor = displayOpponentTeamId === 'A' ? '#60a5fa' : '#10b981';
@@ -3384,6 +3504,27 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
                   const oppDnfCount = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => 
                     sum + playerResults.filter(r => r === null).length, 0);
                   
+                  if (!myTeam) {
+                    if (myDnfCount >= 2 && oppDnfCount >= 2) {
+                      return (
+                        <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-yellow-400`}>
+                          Cả hai người chơi đều có 2 lần DNF.
+                        </span>
+                      );
+                    } else if (myDnfCount >= 2) {
+                      return (
+                        <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-orange-400`}>
+                          Bạn đã có 2 lần DNF. Đối thủ thắng lượt này.
+                        </span>
+                      );
+                    }
+                    return (
+                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-green-400`}>
+                        Đối thủ đã có 2 lần DNF. Bạn thắng lượt này.
+                      </span>
+                    );
+                  }
+
                   if (myDnfCount >= 2 && oppDnfCount >= 2) {
                     // Cả hai team đều có 2 lần DNF -> Hòa
                     return (
@@ -3457,7 +3598,7 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
                       <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
                       {showScrambleMsg && (
                         <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>
-                          Hai cuber hãy tráo scramble
+                          Các cuber hãy tráo scramble
                         </span>
                       )}
                     </>
@@ -3470,8 +3611,10 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
                     ⚠️ KHÓA THAO TÁC DO 2 LẦN DNF! 
                     <br />
                     {(() => {
-                      const myDnfCount = myResults.filter(r => r === null).length;
-                      const oppDnfCount = opponentResults.filter(r => r === null).length;
+                      const myDnfCount = getMyResults().filter(r => r === null).length;
+                      const oppDnfCount = myTeam
+                        ? (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => sum + playerResults.filter(r => r === null).length, 0)
+                        : opponentResults.filter(r => r === null).length;
                       
                       if (myDnfCount >= 2 && oppDnfCount >= 2) {
                         return `Cả hai đều có 2 lần DNF. Tái đấu để mở khóa.`;
@@ -3901,8 +4044,6 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
                   socket.emit("solve", { roomId, userId, userName, time: result === null ? null : result });
                   setPendingResult(null);
                   setPendingType('normal');
-                  // Chuyển lượt sang player tiếp theo
-                  switchToNextPlayer();
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >Gửi</button>
@@ -3922,8 +4063,6 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
                   socket.emit("solve", { roomId, userId, userName, time: result });
                   setPendingResult(null);
                   setPendingType('normal');
-                  // Chuyển lượt sang player tiếp theo
-                  switchToNextPlayer();
                   // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
@@ -3942,8 +4081,6 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
                   socket.emit("solve", { roomId, userId, userName, time: null });
                   setPendingResult(null);
                   setPendingType('normal');
-                  // Chuyển lượt sang player tiếp theo
-                  switchToNextPlayer();
                 }}
                 style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
               >DNF</button>
@@ -3963,8 +4100,8 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
           ) : null}
 
 
-          {/* Nút Xuất kết quả và Tái đấu sau khi trận đấu kết thúc */}
-          {myResults.length >= 5 && opponentResults.length >= 5 && (
+          {/* Nút Xuất kết quả và Tái đấu sau khi trận đấu kết thúc (chỉ áp dụng cho 1vs1) */}
+          {!myTeam && myResults.length >= 5 && opponentResults.length >= 5 && (
             <div className="flex flex-row items-center justify-center gap-2 mb-2">
               <button
                 className={`${mobileShrink ? "px-2 py-1 text-[10px] rounded bg-blue-600 hover:bg-blue-700 font-bold text-white" : "px-4 py-2 text-base rounded-lg bg-blue-600 hover:bg-blue-700 font-bold text-white"} transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg result-button`}
