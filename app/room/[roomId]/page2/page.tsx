@@ -154,6 +154,14 @@ export default function RoomPage() {
 
 
   const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
+
+  const waitingRef = useRef(waiting);
+  const runningRef = useRef(running);
+  const prepRef = useRef(prep);
+  const pendingResultRef = useRef<number|null>(pendingResult);
+  const typingModeRef = useRef(isTypingMode);
+  const lockedDue2DNFRef = useRef(isLockedDue2DNF);
+  const myResultsRef = useRef<(number|null)[]>([]);
   
   // State cho điểm của từng đội theo vòng (Team A, Team B)
   const [teamAScores, setTeamAScores] = useState<number[]>([0, 0, 0, 0, 0]); // Điểm của Team A qua 5 vòng
@@ -379,9 +387,12 @@ useEffect(() => {
 
   // === HELPER FUNCTIONS FOR 2VS2 ===
   const isMyTurn = () => {
+    if (turnUserId) return turnUserId === userId;
     if (!myTeam || !currentPlayerId) return false;
     return currentPlayerId === userId;
   };
+
+  const isMyTurnRef = useRef(isMyTurn());
 
   const getCurrentTeam = () => {
     return currentTeam === 'A' ? teamA : teamB;
@@ -398,6 +409,7 @@ useEffect(() => {
 
   const setMyResults = (newResults: (number|null)[]) => {
     if (!myTeam || myTeamIndex === -1) return;
+    myResultsRef.current = [...newResults];
     if (myTeam === 'A') {
       setTeamAResults(prev => {
         const newTeamResults = [...prev];
@@ -433,6 +445,22 @@ useEffect(() => {
       setCurrentPlayerName(currentTeamData.players[nextPlayerIndex].userName);
     }
   };
+
+  useEffect(() => { waitingRef.current = waiting; }, [waiting]);
+  useEffect(() => { runningRef.current = running; }, [running]);
+  useEffect(() => { prepRef.current = prep; }, [prep]);
+  useEffect(() => { pendingResultRef.current = pendingResult; }, [pendingResult]);
+  useEffect(() => { typingModeRef.current = isTypingMode; }, [isTypingMode]);
+  useEffect(() => { lockedDue2DNFRef.current = isLockedDue2DNF; }, [isLockedDue2DNF]);
+  useEffect(() => { isMyTurnRef.current = isMyTurn(); }, [turnUserId, currentPlayerId, userId, myTeam]);
+  useEffect(() => {
+    if (!myTeam || myTeamIndex === -1) {
+      myResultsRef.current = [];
+      return;
+    }
+    const source = myTeam === 'A' ? teamAResults[myTeamIndex] : teamBResults[myTeamIndex];
+    myResultsRef.current = Array.isArray(source) ? [...source] : [];
+  }, [teamAResults, teamBResults, myTeam, myTeamIndex]);
 
   // Auto-scroll xuống cuối khi mở chat hoặc có tin nhắn mới
   useEffect(() => {
@@ -2286,33 +2314,41 @@ useEffect(() => {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    // Chỉ cho phép nếu đến lượt team mình và không bị khóa do 2 lần DNF
-    if (waiting || running || !isMyTurn() || getMyResults().length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
+
     let localSpaceHeld = false;
+
+    const shouldBlockInputs = () =>
+      waitingRef.current ||
+      runningRef.current ||
+      !isMyTurnRef.current ||
+      myResultsRef.current.length >= 5 ||
+      pendingResultRef.current !== null ||
+      lockedDue2DNFRef.current ||
+      typingModeRef.current;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (pendingResult !== null) return;
-      if (isTypingMode) return; // Chặn phím space khi đang ở chế độ typing
-      
-      // Kiểm tra xem có đang trong modal nào không
+      if (shouldBlockInputs()) return;
+
       const activeElement = document.activeElement;
       const isInModal = activeElement && (
-        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'INPUT' ||
         activeElement.tagName === 'TEXTAREA' ||
         activeElement.closest('.modal-content') ||
         activeElement.closest('[role="dialog"]') ||
         activeElement.closest('[data-modal]')
       );
-      
-      if (isInModal) return; // Không xử lý phím space nếu đang trong modal
-      
-      if (prep) {
+
+      if (isInModal) return;
+
+      if (prepRef.current) {
         if (!localSpaceHeld) {
           pressStartRef.current = Date.now();
           localSpaceHeld = true;
           setSpaceHeld(true);
         }
-      } else if (!prep && !running) {
+      } else if (!runningRef.current) {
+        prepRef.current = true;
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
@@ -2321,29 +2357,42 @@ useEffect(() => {
         setSpaceHeld(true);
       }
     };
+
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (prep && localSpaceHeld) {
+
+      if (shouldBlockInputs()) {
+        setSpaceHeld(false);
+        pressStartRef.current = null;
+        localSpaceHeld = false;
+        return;
+      }
+
+      if (prepRef.current && localSpaceHeld) {
         const now = Date.now();
         const start = pressStartRef.current;
         pressStartRef.current = null;
         localSpaceHeld = false;
         setSpaceHeld(false);
         if (start && now - start >= 300) {
+          prepRef.current = false;
           setPrep(false);
           setCanStart(true);
         }
       } else {
         setSpaceHeld(false);
+        pressStartRef.current = null;
+        localSpaceHeld = false;
       }
     };
+
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, userId, getMyResults, isLockedDue2DNF, isMyTurn]);
+  }, [isMobile]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
@@ -3751,40 +3800,42 @@ const fallbackLabelForTeam = (team: 'A' | 'B', index: number) => {
                   flex: '0 1 20%',
                   minWidth: 120,
                   maxWidth: 220,
-                  paddingTop: 24,
+                  paddingTop: 36,
                   ...(isMobile ? {} : { cursor: 'default' }),
                 }
               : {
                   flex: '0 1 20%',
                   minWidth: 200,
                   maxWidth: 360,
-                  paddingTop: isMobileLandscape ? 48 : 120,
+                  paddingTop: isMobileLandscape ? 72 : 160,
                   ...(isMobile ? {} : { cursor: 'default' }),
                 }
           }
         {...(isMobile ? {
             onTouchStart: (e) => {
-              if (pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
+              if (pendingResult !== null || isLockedDue2DNF || !isMyTurn()) return;
               if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
               // Nếu chạm vào webcam thì bỏ qua
               const webcamEls = document.querySelectorAll('.webcam-area');
               for (let i = 0; i < webcamEls.length; i++) {
                 if (webcamEls[i].contains(e.target as Node)) return;
               }
-              if (waiting || myResults.length >= 5) return;
+              const myCurrentResults = getMyResults();
+              if (waiting || myCurrentResults.length >= 5) return;
               // Đánh dấu touch bắt đầu
               pressStartRef.current = Date.now();
               setSpaceHeld(true); // Đang giữ tay
             },
                           onTouchEnd: (e) => {
-                if (pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
+                if (pendingResult !== null || isLockedDue2DNF || !isMyTurn()) return;
                 if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
                 // Nếu chạm vào webcam thì bỏ qua
                 const webcamEls = document.querySelectorAll('.webcam-area');
                 for (let i = 0; i < webcamEls.length; i++) {
                   if (webcamEls[i].contains(e.target as Node)) return;
                 }
-                if (waiting || myResults.length >= 5) return;
+                const myCurrentResults = getMyResults();
+                if (waiting || myCurrentResults.length >= 5) return;
               const now = Date.now();
               const start = pressStartRef.current;
               pressStartRef.current = null;
