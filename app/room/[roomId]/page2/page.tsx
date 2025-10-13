@@ -46,9 +46,6 @@ function calcStats(times: (number|null)[]) {
 
 
 export default function RoomPage() {
-  // State lưu số set thắng, không reset khi tái đấu
-  const [mySets, setMySets] = useState<number>(0);
-  const [opponentSets, setOpponentSets] = useState<number>(0);
   // Modal xác nhận rời phòng
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [insufficientModal, setInsufficientModal] = useState<{ show: boolean; message: string; forceClose: boolean }>({ show: false, message: '', forceClose: false });
@@ -258,10 +255,6 @@ export default function RoomPage() {
     }
   }, [teamAResults, teamBResults]);
   
-  // Team sets (số set thắng của mỗi team)
-  const [teamASets, setTeamASets] = useState<number>(0);
-  const [teamBSets, setTeamBSets] = useState<number>(0);
-  
   // Current player info
   const [currentPlayerId, setCurrentPlayerId] = useState<string>("");
   const [currentPlayerName, setCurrentPlayerName] = useState<string>("");
@@ -385,14 +378,19 @@ useEffect(() => {
     // Ref cho khối chat để auto-scroll
   const chatListRef = useRef<HTMLDivElement>(null);
 
+  const normalizeId = (value?: string | null) => (value ?? "").trim().toLowerCase();
+
   // === HELPER FUNCTIONS FOR 2VS2 ===
   const isMyTurn = () => {
-    if (turnUserId) return turnUserId === userId;
+    const normalizedTurn = normalizeId(turnUserId);
+    const normalizedUser = normalizeId(userId);
+    if (normalizedTurn) return normalizedTurn === normalizedUser;
     if (!myTeam || !currentPlayerId) return false;
-    return currentPlayerId === userId;
+    return normalizeId(currentPlayerId) === normalizedUser;
   };
 
   const isMyTurnRef = useRef(isMyTurn());
+  const myTurn = isMyTurn();
 
   const getCurrentTeam = () => {
     return currentTeam === 'A' ? teamA : teamB;
@@ -638,7 +636,8 @@ useEffect(() => {
     if (activePlayers.length < 4) {
       return;
     }
-    const hasTeamMetadata = activePlayers.every(player => player.team === 'team1' || player.team === 'team2');
+  const hasTeamMetadata = activePlayers.every(player => player.team === 'team1' || player.team === 'team2');
+  const normalizedUserId = normalizeId(userId);
 
     if (hasTeamMetadata) {
       const team1Players = activePlayers.filter(player => player.team === 'team1');
@@ -660,17 +659,14 @@ useEffect(() => {
         setTeamA({ teamId: 'A', players: formattedTeamA });
         setTeamB({ teamId: 'B', players: formattedTeamB });
 
-  setTeamAResults(Array.from({ length: formattedTeamA.length }, () => [] as (number | null)[]));
-  setTeamBResults(Array.from({ length: formattedTeamB.length }, () => [] as (number | null)[]));
+        setTeamAResults(Array.from({ length: formattedTeamA.length }, () => [] as (number | null)[]));
+        setTeamBResults(Array.from({ length: formattedTeamB.length }, () => [] as (number | null)[]));
 
-        setTeamASets(0);
-        setTeamBSets(0);
-
-        const myPlayer = activePlayers.find(player => player.userId === userId);
+        const myPlayer = activePlayers.find(player => normalizeId(player.userId) === normalizedUserId);
         if (myPlayer) {
           const myTeamId = myPlayer.team === 'team1' ? 'A' : 'B';
           const myTeamPlayers = myTeamId === 'A' ? formattedTeamA : formattedTeamB;
-          const myIndex = myTeamPlayers.findIndex(player => player.userId === userId);
+          const myIndex = myTeamPlayers.findIndex(player => normalizeId(player.userId) === normalizedUserId);
           setMyTeam(myTeamId);
           setMyTeamIndex(myIndex);
         }
@@ -705,19 +701,17 @@ useEffect(() => {
       players: newTeamB.players.map(player => ({ userId: player.userId, userName: player.userName }))
     });
 
-    const myPlayer = shuffled.find(player => player.userId === userId);
+    const myPlayer = shuffled.find(player => normalizeId(player.userId) === normalizedUserId);
     if (myPlayer) {
-      const myTeamId = newTeamA.players.some(player => player.userId === userId) ? 'A' : 'B';
+      const myTeamId = newTeamA.players.some(player => normalizeId(player.userId) === normalizedUserId) ? 'A' : 'B';
       const myTeamPlayers = myTeamId === 'A' ? newTeamA.players : newTeamB.players;
-      const myIndex = myTeamPlayers.findIndex(player => player.userId === userId);
+      const myIndex = myTeamPlayers.findIndex(player => normalizeId(player.userId) === normalizedUserId);
       setMyTeam(myTeamId);
       setMyTeamIndex(myIndex);
     }
 
-  setTeamAResults([[] as (number | null)[], [] as (number | null)[]]);
-  setTeamBResults([[] as (number | null)[], [] as (number | null)[]]);
-    setTeamASets(0);
-    setTeamBSets(0);
+    setTeamAResults([[] as (number | null)[], [] as (number | null)[]]);
+    setTeamBResults([[] as (number | null)[], [] as (number | null)[]]);
     setCurrentTeam('A');
     setCurrentPlayerIndex(0);
     setCurrentPlayerId(newTeamA.players[0].userId);
@@ -752,10 +746,6 @@ useEffect(() => {
     // Chỉ reset SETS khi thực sự có người mới vào phòng (không phải khi tái đấu)
     // Kiểm tra xem có phải đang tái đấu không
     if (!isRematchMode) {
-      // Reset số set thắng khi danh sách user thay đổi
-      setMySets(0);
-      setOpponentSets(0);
-      
       // Reset sự kiện 2 lần DNF khi có người mới vào phòng
       setIsLockedDue2DNF(false);
       // setShowLockedDNFModal(false); // ĐÃ HỦY
@@ -1815,7 +1805,9 @@ useEffect(() => {
   useEffect(() => {
     if (!turnUserId) return;
 
-    const teamAIndex = teamA.players.findIndex(player => player.userId === turnUserId);
+    const normalizedTurnUserId = normalizeId(turnUserId);
+
+    const teamAIndex = teamA.players.findIndex(player => normalizeId(player.userId) === normalizedTurnUserId);
     if (teamAIndex !== -1) {
       setCurrentTeam('A');
       setCurrentPlayerIndex(teamAIndex);
@@ -1824,7 +1816,7 @@ useEffect(() => {
       return;
     }
 
-    const teamBIndex = teamB.players.findIndex(player => player.userId === turnUserId);
+    const teamBIndex = teamB.players.findIndex(player => normalizeId(player.userId) === normalizedTurnUserId);
     if (teamBIndex !== -1) {
       setCurrentTeam('B');
       setCurrentPlayerIndex(teamBIndex);
@@ -2033,7 +2025,7 @@ useEffect(() => {
 
   // Hàm xử lý chế độ typing
   function handleTypingMode() {
-    if (users.length < 2 || isLockedDue2DNF || userId !== turnUserId) return; // Chỉ hoạt động khi đủ 2 người, không bị khóa và đến lượt mình
+    if (users.length < 2 || isLockedDue2DNF || !myTurn) return; // Chỉ hoạt động khi đủ 2 người, không bị khóa và đến lượt mình
     setIsTypingMode(!isTypingMode);
     setTypingInput("");
   }
@@ -2041,7 +2033,7 @@ useEffect(() => {
   // Hàm xử lý nhập thời gian
   function handleTypingSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (users.length < 2 || isLockedDue2DNF || userId !== turnUserId) return;
+    if (users.length < 2 || isLockedDue2DNF || !myTurn) return;
     
     const socket = getSocket();
     let time: number | null = null;
@@ -2523,7 +2515,9 @@ useEffect(() => {
   useEffect(() => {
     if (!prep || waiting || isLockedDue2DNF || !isMyTurn()) return;
     setCanStart(false);
-    setSpaceHeld(false);
+    if (!pressStartRef.current) {
+      setSpaceHeld(false);
+    }
     setDnf(false);
     
     // Gửi timer-prep event để đối thủ biết mình đang chuẩn bị
@@ -2722,24 +2716,12 @@ useEffect(() => {
     if (myDnfCount >= 2 && oppDnfCount >= 2) {
       // Cả hai đều có 2 lần DNF -> Hòa
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
-      // Không tăng set cho ai cả
+      // Không cần cập nhật điểm set trong chế độ 2vs2
     } else if (myDnfCount >= 2) {
       // Team mình có 2 lần DNF -> Team đối thủ thắng
-      if (myTeam === 'A') {
-        setTeamBSets(s => s + 1);
-      } else {
-        setTeamASets(s => s + 1);
-      }
-      // Hiển thị thông báo thua cho mình
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
     } else {
       // Team đối thủ có 2 lần DNF -> Team mình thắng
-      if (myTeam === 'A') {
-        setTeamASets(s => s + 1);
-      } else {
-        setTeamBSets(s => s + 1);
-      }
-      // Hiển thị thông báo thắng cho mình
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
     }
     
@@ -2767,31 +2749,10 @@ useEffect(() => {
   const oppTeamTotalSolves = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => sum + playerResults.length, 0);
   if (myTeamTotalSolves > 0 && myTeamTotalSolves > oppTeamTotalSolves) return; // chờ team đối thủ
   
-  // Khi kết thúc trận đấu (đủ 5 lượt mỗi team), xác định team thắng và tăng set
+  // Khi kết thúc trận đấu (đủ 5 lượt mỗi team), chỉ hiển thị thống kê - không cộng set trong chế độ 2vs2
   if (myTeamTotalSolves === 5 && oppTeamTotalSolves === 5) {
-    const myTeamResults = myTeam === 'A' ? teamAResults : teamBResults;
-    const oppTeamResults = myTeam === 'A' ? teamBResults : teamAResults;
-    
-    // Tính Ao5 cho mỗi team (tổng kết quả của 2 players)
-    const myTeamAllResults = myTeamResults.flat();
-    const oppTeamAllResults = oppTeamResults.flat();
-    
-    const myTeamAo5 = calcStats(myTeamAllResults).ao5;
-    const oppTeamAo5 = calcStats(oppTeamAllResults).ao5;
-    
-    if (myTeamAo5 !== null && (oppTeamAo5 === null || myTeamAo5 < oppTeamAo5)) {
-      if (myTeam === 'A') {
-        setTeamASets(s => s + 1);
-      } else {
-        setTeamBSets(s => s + 1);
-      }
-    } else if (oppTeamAo5 !== null && (myTeamAo5 === null || myTeamAo5 > oppTeamAo5)) {
-      if (myTeam === 'A') {
-        setTeamBSets(s => s + 1);
-      } else {
-        setTeamASets(s => s + 1);
-      }
-    }
+    // Có thể khai thác thống kê Ao5 ở khu vực hiển thị kết quả nếu cần
+    // nhưng không còn cộng điểm set trong chế độ 2vs2
   }
   
   setPrep(false);
@@ -2948,9 +2909,6 @@ const clampPlayerIndex = (idx: number) => {
   })();
   const myTeamColor = displayMyTeamId === 'A' ? '#60a5fa' : '#10b981';
   const opponentTeamColor = displayOpponentTeamId === 'A' ? '#60a5fa' : '#10b981';
-  const teamSetsById = (teamId: 'A' | 'B') => teamId === 'A' ? teamASets : teamBSets;
-  const myTeamSetsValue = teamSetsById(displayMyTeamId);
-  const opponentTeamSetsValue = teamSetsById(displayOpponentTeamId);
 
   if (isPortrait) {
     return (
@@ -3064,11 +3022,11 @@ const clampPlayerIndex = (idx: number) => {
           {/* Nút Typing */}
           <button
             onClick={handleTypingMode}
-            disabled={users.length < 2 || userId !== turnUserId || isLockedDue2DNF}
+            disabled={users.length < 2 || !myTurn || isLockedDue2DNF}
             className={
               (mobileShrink
-                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || userId !== turnUserId || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || userId !== turnUserId || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`)
+                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || !myTurn || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || !myTurn || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`)
               + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
@@ -3913,25 +3871,6 @@ const clampPlayerIndex = (idx: number) => {
               textOverflow: 'ellipsis',
               display: 'block'
             }}>{myPlayerLabel}</div>
-            {/* Số set thắng */}
-            <div style={{
-              background: '#7c3aed',
-              color: '#fff',
-              borderRadius: 4,
-              fontWeight: 700,
-              fontSize: mobileShrink ? 13 : 18,
-              padding: mobileShrink ? '2px 4px' : '4px 12px',
-              minWidth: mobileShrink ? 28 : 32,
-              maxWidth: mobileShrink ? 50 : 60,
-              textAlign: 'center',
-              border: '2px solid #5b21b6',
-              marginLeft: mobileShrink ? 2 : 6,
-              flexShrink: 0,
-              overflow: 'hidden'
-            }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{myTeamSetsValue}</div>
-            </div>
           </div>
         </div>
         {/* Timer ở giữa - cột 2 */}
@@ -3984,7 +3923,7 @@ const clampPlayerIndex = (idx: number) => {
               pressStartRef.current = null;
               setSpaceHeld(false); // Thả tay
               // 1. Tap and release to enter prep
-              if (!prep && !running && userId === turnUserId) {
+              if (!prep && !running && myTurn) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
@@ -4340,15 +4279,15 @@ const clampPlayerIndex = (idx: number) => {
                   onFocus={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
                     // Chặn phím Enter khi không phải lượt của mình
-                    if (e.key === 'Enter' && userId !== turnUserId) {
+                    if (e.key === 'Enter' && !myTurn) {
                       e.preventDefault();
                       return;
                     }
                   }}
-                  placeholder={userId === turnUserId && !isLockedDue2DNF ? " " : (isLockedDue2DNF ? "🚫 Bị KHÓA" : "No send")}
-                  disabled={userId !== turnUserId || isLockedDue2DNF}
+                  placeholder={myTurn && !isLockedDue2DNF ? " " : (isLockedDue2DNF ? "🚫 Bị KHÓA" : "No send")}
+                  disabled={!myTurn || isLockedDue2DNF}
                   className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 rounded-lg focus:outline-none text-center font-mono ${
-                    userId === turnUserId && !isLockedDue2DNF
+                    myTurn && !isLockedDue2DNF
                       ? 'border-blue-500 focus:border-blue-400' 
                       : 'border-gray-500 text-gray-400 cursor-not-allowed'
                   }`}
@@ -4357,23 +4296,23 @@ const clampPlayerIndex = (idx: number) => {
                     fontSize: mobileShrink ? '14px' : '24px'
                   }}
                   maxLength={5}
-                  autoFocus={userId === turnUserId}
+                  autoFocus={myTurn}
                 />
                 <button
                   type="submit"
                   onClick={(e) => e.stopPropagation()}
-                  disabled={userId !== turnUserId || isLockedDue2DNF}
+                  disabled={!myTurn || isLockedDue2DNF}
                   className={`${mobileShrink ? "px-3 py-1 text-xs" : "px-6 py-3 text-lg"} rounded-lg font-bold transition-all duration-200 ${
-                    userId === turnUserId && !isLockedDue2DNF
+                    myTurn && !isLockedDue2DNF
                       ? 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105 active:scale-95'
                       : 'bg-gray-500 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  {userId === turnUserId && !isLockedDue2DNF ? 'Gửi kết quả' : (isLockedDue2DNF ? '🚫 Bị KHÓA' : 'Không phải lượt của bạn')}
+                  {myTurn && !isLockedDue2DNF ? 'Gửi kết quả' : (isLockedDue2DNF ? '🚫 Bị KHÓA' : 'Không phải lượt của bạn')}
                 </button>
               </form>
               <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-gray-400 mt-1 text-center`}>
-                {userId === turnUserId && !isLockedDue2DNF ? 'Để trống = DNF, Enter để gửi' : (isLockedDue2DNF ? '🚫 KHÓA DO 2 LẦN DNF - CHỈ CÓ THỂ TÁI ĐẤU' : 'Chờ đến lượt của bạn')}
+                {myTurn && !isLockedDue2DNF ? 'Để trống = DNF, Enter để gửi' : (isLockedDue2DNF ? '🚫 KHÓA DO 2 LẦN DNF - CHỈ CÓ THỂ TÁI ĐẤU' : 'Chờ đến lượt của bạn')}
               </div>
             </div>
           ) : (
@@ -4662,25 +4601,6 @@ const clampPlayerIndex = (idx: number) => {
               textOverflow: 'ellipsis',
               display: 'block'
             }}>{opponentLabel1}</div>
-            {/* Số set thắng */}
-            <div style={{
-              background: '#7c3aed',
-              color: '#fff',
-              borderRadius: 4,
-              fontWeight: 700,
-              fontSize: mobileShrink ? 13 : 18,
-              padding: mobileShrink ? '2px 4px' : '4px 12px',
-              minWidth: mobileShrink ? 28 : 32,
-              maxWidth: mobileShrink ? 50 : 60,
-              textAlign: 'center',
-              border: '2px solid #5b21b6',
-              marginLeft: mobileShrink ? 2 : 6,
-              flexShrink: 0,
-              overflow: 'hidden'
-            }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{opponentTeamSetsValue}</div>
-            </div>
           </div>
         </div>
       </div>
@@ -4780,25 +4700,6 @@ const clampPlayerIndex = (idx: number) => {
               textOverflow: 'ellipsis',
               display: 'block'
             }}>{teammateLabel}</div>
-            {/* Số set thắng */}
-            <div style={{
-              background: '#7c3aed',
-              color: '#fff',
-              borderRadius: 4,
-              fontWeight: 700,
-              fontSize: mobileShrink ? 13 : 18,
-              padding: mobileShrink ? '2px 4px' : '4px 12px',
-              minWidth: mobileShrink ? 28 : 32,
-              maxWidth: mobileShrink ? 50 : 60,
-              textAlign: 'center',
-              border: '2px solid #5b21b6',
-              marginLeft: mobileShrink ? 2 : 6,
-              flexShrink: 0,
-              overflow: 'hidden'
-            }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{myTeamSetsValue}</div>
-            </div>
           </div>
         </div>
 
@@ -4900,25 +4801,6 @@ const clampPlayerIndex = (idx: number) => {
               textOverflow: 'ellipsis',
               display: 'block'
             }}>{opponentLabel2}</div>
-            {/* Số set thắng */}
-            <div style={{
-              background: '#7c3aed',
-              color: '#fff',
-              borderRadius: 4,
-              fontWeight: 700,
-              fontSize: mobileShrink ? 13 : 18,
-              padding: mobileShrink ? '2px 4px' : '4px 12px',
-              minWidth: mobileShrink ? 28 : 32,
-              maxWidth: mobileShrink ? 50 : 60,
-              textAlign: 'center',
-              border: '2px solid #5b21b6',
-              marginLeft: mobileShrink ? 2 : 6,
-              flexShrink: 0,
-              overflow: 'hidden'
-            }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>SETS</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>{opponentTeamSetsValue}</div>
-            </div>
           </div>
         </div>
       </div>
