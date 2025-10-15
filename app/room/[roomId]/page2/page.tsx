@@ -760,6 +760,7 @@ useEffect(() => {
   const [opponentPrepTime, setOpponentPrepTime] = useState(15);
   const [opponentRunning, setOpponentRunning] = useState(false);
   const [opponentTimer, setOpponentTimer] = useState(0);
+  const [activeRemoteUserId, setActiveRemoteUserId] = useState<string>("");
   const opponentTimerRef = useRef(0);
   const opponentPrepIntervalRef = useRef<NodeJS.Timeout|null>(null);
   const opponentIntervalRef = useRef<NodeJS.Timeout|null>(null);
@@ -773,6 +774,7 @@ useEffect(() => {
     type PrepPayload = { roomId: string; userId: string; remaining: number };
     const handleOpponentPrep = ({ roomId: rid, userId: uid, remaining }: PrepPayload) => {
       if (rid !== roomId || uid === userId) return;
+      setActiveRemoteUserId(uid);
       setOpponentPrep(true);
       setOpponentPrepTime(remaining);
       // Reset timer running khi bắt đầu chuẩn bị
@@ -796,6 +798,7 @@ useEffect(() => {
     let lastOpponentUpdate = Date.now();
     const handleOpponentTimer = ({ roomId: rid, userId: uid, ms, running, finished }: TimerPayload) => {
       if (rid !== roomId || uid === userId) return;
+      setActiveRemoteUserId(uid);
       
       if (running) {
         // Khi đối thủ bắt đầu timer, tắt chuẩn bị và bắt đầu timer
@@ -2620,21 +2623,30 @@ useEffect(() => {
     const handleAnyKey = (e: KeyboardEvent) => {
       if (waiting) return;
       if (isTypingMode) return; // Chặn phím bất kỳ khi đang ở chế độ typing
-      
+
       // Kiểm tra xem có đang trong modal nào không
       const activeElement = document.activeElement;
       const isInModal = activeElement && (
-        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'INPUT' ||
         activeElement.tagName === 'TEXTAREA' ||
         activeElement.closest('.modal-content') ||
         activeElement.closest('[role="dialog"]') ||
         activeElement.closest('[data-modal]')
       );
-      
+
       if (isInModal) return; // Không xử lý phím bất kỳ nếu đang trong modal
-      
+
+      // Tránh nhấp nháy do lặp lại phím khi giữ phím (key repeat)
       if (e.type === 'keydown') {
+        if ((e as KeyboardEvent).repeat) return;
+        // Không dừng timer ngay khi đang giữ Space; sẽ dừng ở keyup để tránh flicker
+        if (e.code === 'Space') return;
         stopTimer();
+      } else if (e.type === 'keyup') {
+        // Dừng timer khi thả Space
+        if (e.code === 'Space') {
+          stopTimer();
+        }
       }
     };
     const handleMouse = (e: MouseEvent) => {
@@ -2654,6 +2666,7 @@ useEffect(() => {
       window.addEventListener('touchstart', handleTouch);
     } else {
       window.addEventListener("keydown", handleAnyKey);
+      window.addEventListener("keyup", handleAnyKey);
       window.addEventListener("mousedown", handleMouse, true);
     }
     return () => {
@@ -2668,6 +2681,7 @@ useEffect(() => {
         window.removeEventListener('touchstart', handleTouch);
       } else {
         window.removeEventListener("keydown", handleAnyKey);
+        window.removeEventListener("keyup", handleAnyKey);
         window.removeEventListener("mousedown", handleMouse, true);
       }
     };
@@ -2803,6 +2817,13 @@ const clampPlayerIndex = (idx: number) => {
   return idx;
 };
 
+  const normalizedCurrentPlayerId = normalizeId(currentPlayerId || turnUserId || "");
+  const isCurrentPlayerId = (candidate?: string | null) => {
+    if (!candidate) return false;
+    if (!normalizedCurrentPlayerId) return false;
+    return normalizeId(candidate) === normalizedCurrentPlayerId;
+  };
+
   const [showLoading, setShowLoading] = useState(true);
   // Luôn hiển thị loading đủ 5s khi mount
   useEffect(() => {
@@ -2907,6 +2928,14 @@ const clampPlayerIndex = (idx: number) => {
     if (player?.userName) return player.userName;
     return fallbackPlayerName(displayOpponentTeamId, opponentIndexForTeammate);
   })();
+  const mySlotUserId = displayMyTeamData.players[effectiveMyIndex]?.userId || (myTeam ? userId : "");
+  const teammateUserId = displayMyTeamData.players[teammateIndex]?.userId;
+  const opponentUserId1 = displayOpponentTeamData.players[opponentIndexForMe]?.userId;
+  const opponentUserId2 = displayOpponentTeamData.players[opponentIndexForTeammate]?.userId;
+  const isMySlotActive = isCurrentPlayerId(mySlotUserId);
+  const isTeammateActive = isCurrentPlayerId(teammateUserId);
+  const isOpponent1Active = isCurrentPlayerId(opponentUserId1);
+  const isOpponent2Active = isCurrentPlayerId(opponentUserId2);
   const myTeamColor = displayMyTeamId === 'A' ? '#60a5fa' : '#10b981';
   const opponentTeamColor = displayOpponentTeamId === 'A' ? '#60a5fa' : '#10b981';
 
@@ -4534,53 +4563,32 @@ const clampPlayerIndex = (idx: number) => {
               gap: 4,
               fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
             }}>
-              {opponentPrep ? (
-                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>
-              ) : (
-                <>
-                  <span style={{ 
-                    fontFamily: 'inherit',
-                    fontSize: (() => {
-                      // Tự động điều chỉnh cỡ chữ dựa trên độ dài thời gian
-                      const cs = Math.floor((opponentTimer % 1000) / 10);
-                      const s = Math.floor((opponentTimer / 1000) % 60);
-                      const m = Math.floor(opponentTimer / 60000);
-                      let timeStr = '';
-                      
-                      if (m > 0) {
-                        timeStr = `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                      } else if (s > 0) {
-                        timeStr = `${s}.${cs.toString().padStart(2, "0")}`;
-                      } else {
-                        timeStr = `0.${cs.toString().padStart(2, "0")}`;
-                      }
-                      
-                      // Điều chỉnh cỡ chữ dựa trên độ dài
-                      if (timeStr.length <= 4) return mobileShrink ? 18 : 24; // 0.05, 1.23
-                      if (timeStr.length <= 6) return mobileShrink ? 16 : 20; // 12.34, 1:05.43
-                      return mobileShrink ? 14 : 18; // 1:23.45, 12:34.56
-                    })()
-                  }}>
-                    {(() => {
-                      const cs = Math.floor((opponentTimer % 1000) / 10);
-                      const s = Math.floor((opponentTimer / 1000) % 60);
-                      const m = Math.floor(opponentTimer / 60000);
-                      
-                      if (m > 0) {
-                        // Có phút: hiển thị m:ss.cs
-                        return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                      } else if (s > 0) {
-                        // Có giây: hiển thị s.cs (không có số 0 thừa)
-                        return `${s}.${cs.toString().padStart(2, "0")}`;
-                      } else {
-                        // Chỉ có centiseconds: hiển thị 0.cs
-                        return `0.${cs.toString().padStart(2, "0")}`;
-                      }
-                    })()}
-                  </span>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
-                </>
-              )}
+              {(() => {
+                const targetId = opponentUserId1;
+                const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
+                if (isTargetActive && opponentPrep) {
+                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>;
+                }
+                if (isTargetActive) {
+                  const cs = Math.floor((opponentTimer % 1000) / 10);
+                  const s = Math.floor((opponentTimer / 1000) % 60);
+                  const m = Math.floor(opponentTimer / 60000);
+                  const timeStr = m > 0 ? `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}` : (s > 0 ? `${s}.${cs.toString().padStart(2, "0")}` : `0.${cs.toString().padStart(2, "0")}`);
+                  const fontSize = timeStr.length <= 4 ? (mobileShrink ? 18 : 24) : (timeStr.length <= 6 ? (mobileShrink ? 16 : 20) : (mobileShrink ? 14 : 18));
+                  return (
+                    <>
+                      <span style={{ fontFamily: 'inherit', fontSize: fontSize }}>{timeStr}</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+                    </>
+                  );
+                }
+                return (
+                  <>
+                    <span style={{ fontFamily: 'inherit', fontSize: mobileShrink ? 18 : 24 }}>0.00</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+                  </>
+                );
+              })()}
             </div>
             {/* Tên đối thủ */}
             <div style={{
@@ -4678,8 +4686,32 @@ const clampPlayerIndex = (idx: number) => {
               gap: 4,
               fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
             }}>
-              <span style={{ fontFamily: 'inherit', fontSize: mobileShrink ? 18 : 24 }}>0.00</span>
-              <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+              {(() => {
+                const targetId = opponentUserId2;
+                const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
+                if (isTargetActive && opponentPrep) {
+                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>;
+                }
+                if (isTargetActive) {
+                  const cs = Math.floor((opponentTimer % 1000) / 10);
+                  const s = Math.floor((opponentTimer / 1000) % 60);
+                  const m = Math.floor(opponentTimer / 60000);
+                  const timeStr = m > 0 ? `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}` : (s > 0 ? `${s}.${cs.toString().padStart(2, "0")}` : `0.${cs.toString().padStart(2, "0")}`);
+                  const fontSize = timeStr.length <= 4 ? (mobileShrink ? 18 : 24) : (timeStr.length <= 6 ? (mobileShrink ? 16 : 20) : (mobileShrink ? 14 : 18));
+                  return (
+                    <>
+                      <span style={{ fontFamily: 'inherit', fontSize: fontSize }}>{timeStr}</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+                    </>
+                  );
+                }
+                return (
+                  <>
+                    <span style={{ fontFamily: 'inherit', fontSize: mobileShrink ? 18 : 24 }}>0.00</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+                  </>
+                );
+              })()}
             </div>
             {/* Tên người khác 1 */}
             <div style={{
@@ -4779,8 +4811,32 @@ const clampPlayerIndex = (idx: number) => {
               gap: 4,
               fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
             }}>
-              <span style={{ fontFamily: 'inherit', fontSize: mobileShrink ? 18 : 24 }}>0.00</span>
-              <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+              {(() => {
+                const targetId = teammateUserId;
+                const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
+                if (isTargetActive && opponentPrep) {
+                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>;
+                }
+                if (isTargetActive) {
+                  const cs = Math.floor((opponentTimer % 1000) / 10);
+                  const s = Math.floor((opponentTimer / 1000) % 60);
+                  const m = Math.floor(opponentTimer / 60000);
+                  const timeStr = m > 0 ? `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}` : (s > 0 ? `${s}.${cs.toString().padStart(2, "0")}` : `0.${cs.toString().padStart(2, "0")}`);
+                  const fontSize = timeStr.length <= 4 ? (mobileShrink ? 18 : 24) : (timeStr.length <= 6 ? (mobileShrink ? 16 : 20) : (mobileShrink ? 14 : 18));
+                  return (
+                    <>
+                      <span style={{ fontFamily: 'inherit', fontSize: fontSize }}>{timeStr}</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+                    </>
+                  );
+                }
+                return (
+                  <>
+                    <span style={{ fontFamily: 'inherit', fontSize: mobileShrink ? 18 : 24 }}>0.00</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 400, fontSize: mobileShrink ? 10 : 13, marginLeft: 2 }}>s</span>
+                  </>
+                );
+              })()}
             </div>
             {/* Tên người khác 2 */}
             <div style={{
