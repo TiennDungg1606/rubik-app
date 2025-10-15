@@ -2453,7 +2453,7 @@ useEffect(() => {
   useEffect(() => {
     if (isMobile) return;
     // Chỉ cho phép nếu đến lượt mình (userId === turnUserId) và không bị khóa do 2 lần DNF
-    if (waiting || running || !isMyTurn() || getMyResults().length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
+    if (waiting || running || userId !== turnUserId || getMyResults().length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -2509,15 +2509,13 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, isMyTurn, getMyResults, pendingResult, isLockedDue2DNF, isTypingMode]);
+  }, [isMobile, waiting, running, prep, userId, turnUserId, getMyResults, pendingResult, isLockedDue2DNF, isTypingMode]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
-    if (!prep || waiting || isLockedDue2DNF || !isMyTurn()) return;
+    if (!prep || waiting || isLockedDue2DNF || userId !== turnUserId) return;
     setCanStart(false);
-    if (!pressStartRef.current) {
-      setSpaceHeld(false);
-    }
+    setSpaceHeld(false);
     setDnf(false);
     
     // Gửi timer-prep event để đối thủ biết mình đang chuẩn bị
@@ -2556,12 +2554,12 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, isLockedDue2DNF, isMyTurn]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
-    if (!canStart || waiting || isLockedDue2DNF || !isMyTurn()) return;
+    if (!canStart || waiting || isLockedDue2DNF || userId !== turnUserId) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -2672,7 +2670,7 @@ useEffect(() => {
       }
     };
     // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF, isMyTurn]);
+  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
