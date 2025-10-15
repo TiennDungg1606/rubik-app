@@ -2686,7 +2686,7 @@ useEffect(() => {
       }
     };
     // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF]);
+  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF, turnUserId, currentPlayerId, myTeam]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
