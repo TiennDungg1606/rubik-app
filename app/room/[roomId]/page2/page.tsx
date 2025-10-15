@@ -2489,13 +2489,13 @@ useEffect(() => {
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (prep && localSpaceHeld) {
+      if (prep && localSpaceHeld && pressStartRef.current) {
         const now = Date.now();
         const start = pressStartRef.current;
         pressStartRef.current = null;
         localSpaceHeld = false;
         setSpaceHeld(false);
-        if (start && now - start >= 300) {
+        if (now - start >= 300) {
           setPrep(false);
           setCanStart(true);
         }
@@ -2515,7 +2515,9 @@ useEffect(() => {
   useEffect(() => {
     if (!prep || waiting || isLockedDue2DNF || !isMyTurn()) return;
     setCanStart(false);
-    setSpaceHeld(false);
+    if (!pressStartRef.current) {
+      setSpaceHeld(false);
+    }
     setDnf(false);
     
     // Gửi timer-prep event để đối thủ biết mình đang chuẩn bị
