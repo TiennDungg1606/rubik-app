@@ -763,7 +763,9 @@ useEffect(() => {
   const [activeRemoteUserId, setActiveRemoteUserId] = useState<string>("");
   const opponentTimerRef = useRef(0);
   const opponentPrepIntervalRef = useRef<NodeJS.Timeout|null>(null);
-  const opponentIntervalRef = useRef<NodeJS.Timeout|null>(null);
+  const opponentAnimIdRef = useRef<number| null>(null);
+  const opponentBaseMsRef = useRef<number>(0);
+  const opponentLastTsRef = useRef<number>(0);
 
   // Lắng nghe socket để đồng bộ timer-prep và timer-update từ đối thủ
   useEffect(() => {
@@ -795,7 +797,6 @@ useEffect(() => {
     };
     // Nhận sự kiện đối thủ bắt đầu hoặc đang chạy timer
     type TimerPayload = { roomId: string; userId: string; ms: number; running: boolean; finished: boolean };
-    let lastOpponentUpdate = Date.now();
     const handleOpponentTimer = ({ roomId: rid, userId: uid, ms, running, finished }: TimerPayload) => {
       if (rid !== roomId || uid === userId) return;
       setActiveRemoteUserId(uid);
@@ -807,23 +808,15 @@ useEffect(() => {
         if (opponentPrepIntervalRef.current) clearInterval(opponentPrepIntervalRef.current);
         
         setOpponentRunning(true);
+        opponentBaseMsRef.current = ms;
+        opponentLastTsRef.current = performance.now();
         setOpponentTimer(ms);
         opponentTimerRef.current = ms;
-        lastOpponentUpdate = performance.now();
-        
-        // Bắt đầu interval để tăng timer dựa trên thời gian thực tế
-        if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
-        opponentIntervalRef.current = setInterval(() => {
-          const now = performance.now();
-          const elapsed = now - lastOpponentUpdate;
-          setOpponentTimer(ms + Math.round(elapsed));
-        }, 30);
       } else {
         // Khi đối thủ dừng timer
         setOpponentRunning(false);
         setOpponentTimer(ms);
         opponentTimerRef.current = ms;
-        if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
       }
     };
     socket.on('timer-prep', handleOpponentPrep);
@@ -832,9 +825,34 @@ useEffect(() => {
       socket.off('timer-prep', handleOpponentPrep);
       socket.off('timer-update', handleOpponentTimer);
       if (opponentPrepIntervalRef.current) clearInterval(opponentPrepIntervalRef.current);
-      if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
     };
   }, [roomId, userId]);
+
+  // Smooth opponent timer UI with a single rAF loop
+  useEffect(() => {
+    if (!opponentRunning) {
+      if (opponentAnimIdRef.current != null) {
+        cancelAnimationFrame(opponentAnimIdRef.current);
+        opponentAnimIdRef.current = null;
+      }
+      return;
+    }
+    const tick = () => {
+      const now = performance.now();
+      const elapsed = now - opponentLastTsRef.current;
+      const ms = opponentBaseMsRef.current + Math.round(elapsed);
+      setOpponentTimer(ms);
+      opponentTimerRef.current = ms;
+      opponentAnimIdRef.current = requestAnimationFrame(tick);
+    };
+    opponentAnimIdRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (opponentAnimIdRef.current != null) {
+        cancelAnimationFrame(opponentAnimIdRef.current);
+        opponentAnimIdRef.current = null;
+      }
+    };
+  }, [opponentRunning]);
 
 
 
@@ -2434,41 +2452,33 @@ useEffect(() => {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-
+    // Chỉ cho phép nếu đến lượt mình (userId === turnUserId) và không bị khóa do 2 lần DNF
+    if (waiting || running || !isMyTurn() || getMyResults().length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
-
-    const shouldBlockInputs = () =>
-      waitingRef.current ||
-      runningRef.current ||
-      !isMyTurnRef.current ||
-      myResultsRef.current.length >= 5 ||
-      pendingResultRef.current !== null ||
-      lockedDue2DNFRef.current ||
-      typingModeRef.current;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (shouldBlockInputs()) return;
-
+      if (pendingResult !== null) return;
+      if (isTypingMode) return; // Chặn phím space khi đang ở chế độ typing
+      
+      // Kiểm tra xem có đang trong modal nào không
       const activeElement = document.activeElement;
       const isInModal = activeElement && (
-        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'INPUT' || 
         activeElement.tagName === 'TEXTAREA' ||
         activeElement.closest('.modal-content') ||
         activeElement.closest('[role="dialog"]') ||
         activeElement.closest('[data-modal]')
       );
-
-      if (isInModal) return;
-
-      if (prepRef.current) {
+      
+      if (isInModal) return; // Không xử lý phím space nếu đang trong modal
+      
+      if (prep) {
         if (!localSpaceHeld) {
           pressStartRef.current = Date.now();
           localSpaceHeld = true;
           setSpaceHeld(true);
         }
-      } else if (!runningRef.current) {
-        prepRef.current = true;
+      } else if (!prep && !running) {
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
@@ -2477,50 +2487,35 @@ useEffect(() => {
         setSpaceHeld(true);
       }
     };
-
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-
-      if (shouldBlockInputs()) {
-        setSpaceHeld(false);
-        pressStartRef.current = null;
-        localSpaceHeld = false;
-        return;
-      }
-
-      if (prepRef.current && localSpaceHeld) {
+      if (prep && localSpaceHeld) {
         const now = Date.now();
         const start = pressStartRef.current;
         pressStartRef.current = null;
         localSpaceHeld = false;
         setSpaceHeld(false);
         if (start && now - start >= 300) {
-          prepRef.current = false;
           setPrep(false);
           setCanStart(true);
         }
       } else {
         setSpaceHeld(false);
-        pressStartRef.current = null;
-        localSpaceHeld = false;
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile]);
+  }, [isMobile, waiting, running, prep, isMyTurn, getMyResults, pendingResult, isLockedDue2DNF, isTypingMode]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
     if (!prep || waiting || isLockedDue2DNF || !isMyTurn()) return;
     setCanStart(false);
-    if (!pressStartRef.current) {
-      setSpaceHeld(false);
-    }
+    setSpaceHeld(false);
     setDnf(false);
     
     // Gửi timer-prep event để đối thủ biết mình đang chuẩn bị
@@ -2623,30 +2618,21 @@ useEffect(() => {
     const handleAnyKey = (e: KeyboardEvent) => {
       if (waiting) return;
       if (isTypingMode) return; // Chặn phím bất kỳ khi đang ở chế độ typing
-
+      
       // Kiểm tra xem có đang trong modal nào không
       const activeElement = document.activeElement;
       const isInModal = activeElement && (
-        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'INPUT' || 
         activeElement.tagName === 'TEXTAREA' ||
         activeElement.closest('.modal-content') ||
         activeElement.closest('[role="dialog"]') ||
         activeElement.closest('[data-modal]')
       );
-
+      
       if (isInModal) return; // Không xử lý phím bất kỳ nếu đang trong modal
-
-      // Tránh nhấp nháy do lặp lại phím khi giữ phím (key repeat)
+      
       if (e.type === 'keydown') {
-        if ((e as KeyboardEvent).repeat) return;
-        // Không dừng timer ngay khi đang giữ Space; sẽ dừng ở keyup để tránh flicker
-        if (e.code === 'Space') return;
         stopTimer();
-      } else if (e.type === 'keyup') {
-        // Dừng timer khi thả Space
-        if (e.code === 'Space') {
-          stopTimer();
-        }
       }
     };
     const handleMouse = (e: MouseEvent) => {
@@ -2666,7 +2652,6 @@ useEffect(() => {
       window.addEventListener('touchstart', handleTouch);
     } else {
       window.addEventListener("keydown", handleAnyKey);
-      window.addEventListener("keyup", handleAnyKey);
       window.addEventListener("mousedown", handleMouse, true);
     }
     return () => {
@@ -2681,12 +2666,11 @@ useEffect(() => {
         window.removeEventListener('touchstart', handleTouch);
       } else {
         window.removeEventListener("keydown", handleAnyKey);
-        window.removeEventListener("keyup", handleAnyKey);
         window.removeEventListener("mousedown", handleMouse, true);
       }
     };
     // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF, turnUserId, currentPlayerId, myTeam]);
+  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF, isMyTurn]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
