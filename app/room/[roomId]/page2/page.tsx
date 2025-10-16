@@ -767,7 +767,7 @@ useEffect(() => {
   const opponentBaseMsRef = useRef<number>(0);
   const opponentLastTsRef = useRef<number>(0);
 
-  // Lắng nghe socket để đồng bộ timer-prep và timer-update từ đối thủ
+  // Lắng nghe socket để đồng bộ timer-prep và timer-update từ đối thủ (2vs2)
   useEffect(() => {
     // Đảm bảo roomId, userId đã được khai báo trước khi dùng
     if (!roomId || !userId) return;
@@ -819,11 +819,11 @@ useEffect(() => {
         opponentTimerRef.current = ms;
       }
     };
-    socket.on('timer-prep', handleOpponentPrep);
-    socket.on('timer-update', handleOpponentTimer);
+  socket.on('timer-prep-2vs2', handleOpponentPrep);
+  socket.on('timer-update-2vs2', handleOpponentTimer);
     return () => {
-      socket.off('timer-prep', handleOpponentPrep);
-      socket.off('timer-update', handleOpponentTimer);
+  socket.off('timer-prep-2vs2', handleOpponentPrep);
+  socket.off('timer-update-2vs2', handleOpponentTimer);
       if (opponentPrepIntervalRef.current) clearInterval(opponentPrepIntervalRef.current);
     };
   }, [roomId, userId]);
@@ -1841,51 +1841,7 @@ useEffect(() => {
   };
 }, [roomId]);
 
-      // Đếm ngược 15s chuẩn bị
-  useEffect(() => {
-    // Kiểm tra tất cả các điều kiện để chạy đếm ngược
-    if (!prep || waiting || isLockedDue2DNF) return;
-
-    setCanStart(false);
-    setSpaceHeld(false);
-    setDnf(false);
-
-    // Gửi timer-prep event để đối thủ biết mình đang chuẩn bị
-    const socket = getSocket();
-    socket.emit("timer-prep", { roomId, userId, remaining: 15 });
-
-    prepIntervalRef.current = setInterval(() => {
-      setPrepTime(t => {
-        if (t <= 1) {
-          clearInterval(prepIntervalRef.current!);
-          setPrep(false);
-          setCanStart(false);
-          setRunning(false);
-          setDnf(true);
-          pressStartRef.current = null;
-
-          // Gửi timer-update event để đối thủ biết mình DNF
-          const socket = getSocket();
-          socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
-
-          // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
-          const updatedResults = [...getMyResults(), null];
-          setMyResults(updatedResults);
-          socket.emit("solve", { roomId, userId, userName, time: null });
-          // Không tự setTurn nữa
-          setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
-          return 0;
-        }
-
-        // Gửi timer-prep update mỗi giây
-        socket.emit("timer-prep", { roomId, userId, remaining: t - 1 });
-        return t - 1;
-      });
-    }, 1000);
-    return () => {
-      if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
-    };
-  }, [prep, waiting, roomId, userId, isLockedDue2DNF]);
+      
   // Lắng nghe sự kiện khóa do 2 lần DNF từ server
   useEffect(() => {
     const socket = getSocket();
@@ -1943,48 +1899,6 @@ useEffect(() => {
       socket.off('user-cam-toggle', handleOpponentCamToggle);
     };
   }, [userId]);
-
-  // NEW: Listen for 2vs2 timer-prep events
-  useEffect(() => {
-    const socket = getSocket();
-    const handleTimerPrep2vs2 = (data: { userId: string, remaining: number }) => {
-      if (data.userId !== userId) {
-        setOpponentPrep(true);
-        setOpponentPrepTime(data.remaining);
-      }
-    };
-    socket.on('timer-prep-2vs2', handleTimerPrep2vs2);
-    return () => {
-      socket.off('timer-prep-2vs2', handleTimerPrep2vs2);
-    };
-  }, [userId]);
-
-  // NEW: Listen for 2vs2 timer-update events
-  useEffect(() => {
-    const socket = getSocket();
-    const handleTimerUpdate2vs2 = (data: { userId: string, ms: number, running: boolean, finished: boolean }) => {
-      if (data.userId !== userId) {
-        if (data.finished) {
-          setOpponentPrep(false);
-          setOpponentRunning(false);
-          setOpponentTimer(0);
-        } else if (data.running) {
-          setOpponentPrep(false);
-          setOpponentRunning(true);
-          setOpponentTimer(data.ms);
-        } else {
-          setOpponentPrep(false);
-          setOpponentRunning(false);
-          setOpponentTimer(data.ms);
-        }
-      }
-    };
-    socket.on('timer-update-2vs2', handleTimerUpdate2vs2);
-    return () => {
-      socket.off('timer-update-2vs2', handleTimerUpdate2vs2);
-    };
-  }, [userId]);
-
   // Lấy daily.co room URL khi vào phòng
   useEffect(() => {
     if (!roomId) return;
@@ -3863,9 +3777,9 @@ const clampPlayerIndex = (idx: number) => {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
-                // Gửi timer-prep event
+                // Gửi timer-prep event chỉ cho 2vs2
                 const socket = getSocket();
-                socket.emit("timer-prep", { roomId, userId, remaining: 15 });
+                socket.emit("timer-prep-2vs2", { roomId, userId, remaining: 15 });
                 return;
               }
               // 2. In prep, giữ >=0.5s rồi thả ra để start timer
@@ -3889,7 +3803,7 @@ const clampPlayerIndex = (idx: number) => {
                 
                 // Gửi timer-update event
                 const socket = getSocket();
-                socket.emit("timer-update", { roomId, userId, ms: currentTime, running: false, finished: false });
+                socket.emit("timer-update-2vs2", { roomId, userId, ms: currentTime, running: false, finished: false });
                 setPendingResult(currentTime);
                 setPendingType('normal');
                 setCanStart(false);
@@ -3913,7 +3827,7 @@ const clampPlayerIndex = (idx: number) => {
 
                   // Gửi timer-update event cuối cùng
                   const socket = getSocket();
-                  socket.emit("timer-update", { roomId, userId, ms: result === null ? 0 : result, running: false, finished: true });
+                  socket.emit("timer-update-2vs2", { roomId, userId, ms: result === null ? 0 : result, running: false, finished: true });
                   
                   setMyResults([...getMyResults(), result]);
                   socket.emit("solve", { roomId, userId, userName, time: result === null ? null : result });
@@ -3932,7 +3846,7 @@ const clampPlayerIndex = (idx: number) => {
                   
                   // Gửi timer-update event cuối cùng
                   const socket = getSocket();
-                  socket.emit("timer-update", { roomId, userId, ms: result, running: false, finished: true });
+                  socket.emit("timer-update-2vs2", { roomId, userId, ms: result, running: false, finished: true });
                   
                   setMyResults([...getMyResults(), result]);
                   socket.emit("solve", { roomId, userId, userName, time: result });
@@ -3950,7 +3864,7 @@ const clampPlayerIndex = (idx: number) => {
                   
                   // Gửi timer-update event cuối cùng
                   const socket = getSocket();
-                  socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
+                  socket.emit("timer-update-2vs2", { roomId, userId, ms: 0, running: false, finished: true });
                   
                   setMyResults([...getMyResults(), null]);
                   socket.emit("solve", { roomId, userId, userName, time: null });
