@@ -2511,6 +2511,23 @@ useEffect(() => {
     };
   }, [isMobile, waiting, running, prep, userId, turnUserId, getMyResults, pendingResult, isLockedDue2DNF, isTypingMode]);
 
+  // Reset timer state when turn changes
+  useEffect(() => {
+    if (userId !== turnUserId) {
+      setPrep(false);
+      setCanStart(false);
+      setRunning(false);
+      setSpaceHeld(false);
+      setTimer(0);
+      setDnf(false);
+      pressStartRef.current = null;
+      if (prepIntervalRef.current) {
+        clearInterval(prepIntervalRef.current);
+        prepIntervalRef.current = null;
+      }
+    }
+  }, [turnUserId, userId]);
+
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
     if (!prep || waiting || isLockedDue2DNF || userId !== turnUserId) return;
@@ -2554,7 +2571,7 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, isLockedDue2DNF]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF, turnUserId]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
@@ -2670,7 +2687,7 @@ useEffect(() => {
       }
     };
     // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF]);
+  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF, turnUserId]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
