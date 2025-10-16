@@ -2460,7 +2460,7 @@ useEffect(() => {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
   if (isMobile) return;
-  if (waiting || running || !myTurn || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
+  if (waiting || running || !isMyTurnRef.current || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -2518,7 +2518,7 @@ useEffect(() => {
 
   // Đảm bảo reset trạng thái chuẩn bị khi không còn lượt của mình
   useEffect(() => {
-    if (isMyTurn()) return;
+  if (isMyTurnRef.current) return;
 
     setPrep(false);
     setCanStart(false);
@@ -2537,10 +2537,10 @@ useEffect(() => {
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
     // Kiểm tra tất cả các điều kiện để chạy đếm ngược
-    if (!prep || waiting || isLockedDue2DNF) return;
+  if (!prep || waiting || isLockedDue2DNF) return;
     
-    // Kiểm tra xem có phải lượt của người dùng không
-    if (!isMyTurn()) return;
+  // Kiểm tra xem có phải lượt của người dùng không
+  if (!isMyTurnRef.current) return;
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
@@ -2586,11 +2586,7 @@ useEffect(() => {
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
     // Kiểm tra các điều kiện để bắt đầu timer
-    if (!canStart || waiting || isLockedDue2DNF) return;
-    
-    // Kiểm tra lượt chơi hiện tại
-    const isTurn = isMyTurn();
-    if (!isTurn) return;
+  if (!canStart || waiting || isLockedDue2DNF || !isMyTurnRef.current) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
