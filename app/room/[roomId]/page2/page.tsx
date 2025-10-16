@@ -2516,6 +2516,24 @@ useEffect(() => {
     };
   }, [isMobile, waiting, running, prep, myResults.length, pendingResult, isLockedDue2DNF, isTypingMode, myTurn]);
 
+  // Đảm bảo reset trạng thái chuẩn bị khi không còn lượt của mình
+  useEffect(() => {
+    if (isMyTurn()) return;
+
+    setPrep(false);
+    setCanStart(false);
+    setRunning(false);
+    setSpaceHeld(false);
+    setTimer(0);
+    setDnf(false);
+    setPrepTime(15);
+    pressStartRef.current = null;
+    if (prepIntervalRef.current) {
+      clearInterval(prepIntervalRef.current);
+      prepIntervalRef.current = null;
+    }
+  }, [turnUserId, myTurn]);
+
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
     // Kiểm tra tất cả các điều kiện để chạy đếm ngược
