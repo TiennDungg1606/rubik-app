@@ -385,6 +385,14 @@ useEffect(() => {
     return currentUser === normalizedTurn;
   };
 
+  // Enhanced IsMyTurn function for timer control
+  const IsMyTurn = () => {
+    const currentUser = getCurrentUserId();
+    const normalizedTurn = normalizeId(turnUserId);
+    if (!currentUser || !normalizedTurn) return false;
+    return currentUser === normalizedTurn;
+  };
+
   const isMyTurnRef = useRef<boolean>(false);
   const isMyTurnNow = isMyTurn();
   isMyTurnRef.current = isMyTurnNow;
@@ -1936,6 +1944,47 @@ useEffect(() => {
     };
   }, [userId]);
 
+  // NEW: Listen for 2vs2 timer-prep events
+  useEffect(() => {
+    const socket = getSocket();
+    const handleTimerPrep2vs2 = (data: { userId: string, remaining: number }) => {
+      if (data.userId !== userId) {
+        setOpponentPrep(true);
+        setOpponentPrepTime(data.remaining);
+      }
+    };
+    socket.on('timer-prep-2vs2', handleTimerPrep2vs2);
+    return () => {
+      socket.off('timer-prep-2vs2', handleTimerPrep2vs2);
+    };
+  }, [userId]);
+
+  // NEW: Listen for 2vs2 timer-update events
+  useEffect(() => {
+    const socket = getSocket();
+    const handleTimerUpdate2vs2 = (data: { userId: string, ms: number, running: boolean, finished: boolean }) => {
+      if (data.userId !== userId) {
+        if (data.finished) {
+          setOpponentPrep(false);
+          setOpponentRunning(false);
+          setOpponentTimer(0);
+        } else if (data.running) {
+          setOpponentPrep(false);
+          setOpponentRunning(true);
+          setOpponentTimer(data.ms);
+        } else {
+          setOpponentPrep(false);
+          setOpponentRunning(false);
+          setOpponentTimer(data.ms);
+        }
+      }
+    };
+    socket.on('timer-update-2vs2', handleTimerUpdate2vs2);
+    return () => {
+      socket.off('timer-update-2vs2', handleTimerUpdate2vs2);
+    };
+  }, [userId]);
+
   // Lấy daily.co room URL khi vào phòng
   useEffect(() => {
     if (!roomId) return;
@@ -2380,10 +2429,11 @@ useEffect(() => {
   }, [prep, running]);
 
 
-  // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
+  // Desktop: Nhấn Space để vào chuẩn bị, giữ >=300ms rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    if (waiting || running || !isMyTurnNow || mySolveCount >= 5 || pendingResult !== null || isLockedDue2DNF) return;
+    // Use IsMyTurn function to check if current user can use timer
+    if (waiting || running || !IsMyTurn() || mySolveCount >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -2399,6 +2449,9 @@ useEffect(() => {
         activeElement.closest('[data-modal]')
       );
       if (isInModal) return;
+
+      // Check if it's my turn before allowing timer operations
+      if (!IsMyTurn()) return;
 
       if (prep) {
         if (!localSpaceHeld) {
@@ -2423,6 +2476,7 @@ useEffect(() => {
         pressStartRef.current = null;
         localSpaceHeld = false;
         setSpaceHeld(false);
+        // Changed from 500ms to 300ms as requested
         if (start && now - start >= 300) {
           setPrep(false);
           setCanStart(true);
@@ -2437,7 +2491,7 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, isMyTurnNow, mySolveCount, pendingResult, isLockedDue2DNF, isTypingMode]);
+  }, [isMobile, waiting, running, prep, mySolveCount, pendingResult, isLockedDue2DNF, isTypingMode]);
 
   // Đảm bảo reset trạng thái chuẩn bị khi chắc chắn không còn lượt của mình
   useEffect(() => {
@@ -2461,14 +2515,15 @@ useEffect(() => {
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
     // Kiểm tra tất cả các điều kiện để chạy đếm ngược
-    if (!prep || waiting || isLockedDue2DNF || !isMyTurnNow) return;
+    if (!prep || waiting || isLockedDue2DNF || !IsMyTurn()) return;
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
     
     // Gửi timer-prep event để đối thủ biết mình đang chuẩn bị
     const socket = getSocket();
-    socket.emit("timer-prep", { roomId, userId, remaining: 15 });
+    // Use 2vs2 specific event for 2vs2 rooms
+    socket.emit("timer-prep-2vs2", { roomId, userId, remaining: 15 });
     
     prepIntervalRef.current = setInterval(() => {
       setPrepTime(t => {
@@ -2482,7 +2537,7 @@ useEffect(() => {
           
           // Gửi timer-update event để đối thủ biết mình DNF
           const socket = getSocket();
-          socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
+          socket.emit("timer-update-2vs2", { roomId, userId, ms: 0, running: false, finished: true });
           
           // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
           const updatedResults = [...getMyResults(), null];
@@ -2494,20 +2549,20 @@ useEffect(() => {
         }
         
         // Gửi timer-prep update mỗi giây
-        socket.emit("timer-prep", { roomId, userId, remaining: t - 1 });
+        socket.emit("timer-prep-2vs2", { roomId, userId, remaining: t - 1 });
         return t - 1;
       });
     }, 1000);
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, isLockedDue2DNF, isMyTurnNow]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
     // Kiểm tra các điều kiện để bắt đầu timer
-    if (!canStart || waiting || isLockedDue2DNF || !isMyTurnNow) return;
+    if (!canStart || waiting || isLockedDue2DNF || !IsMyTurn()) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -2515,7 +2570,7 @@ useEffect(() => {
     
     // Gửi timer-update event để đối thủ biết mình bắt đầu timer
     const socket = getSocket();
-    socket.emit("timer-update", { roomId, userId, ms: 0, running: true, finished: false });
+    socket.emit("timer-update-2vs2", { roomId, userId, ms: 0, running: true, finished: false });
     
     // Sử dụng hybrid approach: requestAnimationFrame cho UI + setTimeout cho độ chính xác
     let animationId: number;
@@ -2556,7 +2611,7 @@ useEffect(() => {
       timerRef.current = currentTime;
       
       // Gửi timer-update event để đối thủ biết mình dừng timer
-      socket.emit("timer-update", { roomId, userId, ms: currentTime, running: false, finished: false });
+      socket.emit("timer-update-2vs2", { roomId, userId, ms: currentTime, running: false, finished: false });
       
       setPendingResult(currentTime);
       setPendingType('normal');
@@ -2618,7 +2673,7 @@ useEffect(() => {
       }
     };
     // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF, isMyTurnNow]);
+  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
@@ -2630,7 +2685,7 @@ useEffect(() => {
     }
   }, [teamAResults, teamBResults, roomId]);
 
-  // Reset cho lần giải tiếp theo - Updated for 2vs2
+  // Reset cho lần giải tiếp theo - Updated for 2vs2 with new timer logic
   useEffect(() => {
   // Tính tổng số lượt giải của cả 2 team
   const teamATotalSolves = teamAResults.reduce((sum, playerResults) => sum + playerResults.length, 0);
@@ -2671,12 +2726,7 @@ useEffect(() => {
       setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
     }
     
-    // Reset trạng thái cho vòng mới
-    setPrep(false);
-    setCanStart(false);
-    setSpaceHeld(false);
-    setTimer(0);
-    setDnf(false);
+    // KHÔNG reset timer state khi có 2 lần DNF - giữ nguyên để hiển thị trạng thái cuối
     
     // KHÔNG cần yêu cầu scramble mới khi có 2 lần DNF
     // Lý do: 
@@ -2701,11 +2751,16 @@ useEffect(() => {
     // nhưng không còn cộng điểm set trong chế độ 2vs2
   }
   
-  setPrep(false);
-  setCanStart(false);
-  setSpaceHeld(false);
-  setTimer(0);
-  setDnf(false);
+  // NEW LOGIC: Only reset timer state when round ends (every 4 turns for 2vs2)
+  // Reset timer state only when totalSolves is divisible by 4 (end of round)
+  if (totalSolves > 0 && totalSolves % 4 === 0) {
+    setPrep(false);
+    setCanStart(false);
+    setSpaceHeld(false);
+    setTimer(0);
+    setDnf(false);
+  }
+  
   // Chỉ đổi scramble khi tổng số lượt giải là số chẵn (sau mỗi vòng)
   if (totalSolves % 2 === 0 && totalSolves < 10) {
     // ...
@@ -4160,15 +4215,15 @@ const clampPlayerIndex = (idx: number) => {
                   onFocus={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
                     // Chặn phím Enter khi không phải lượt của mình
-                    if (e.key === 'Enter' && !myTurn) {
+                    if (e.key === 'Enter' && !IsMyTurn()) {
                       e.preventDefault();
                       return;
                     }
                   }}
-                  placeholder={myTurn && !isLockedDue2DNF ? " " : (isLockedDue2DNF ? "🚫 Bị KHÓA" : "No send")}
-                  disabled={!myTurn || isLockedDue2DNF}
+                  placeholder={IsMyTurn() && !isLockedDue2DNF ? " " : (isLockedDue2DNF ? "🚫 Bị KHÓA" : "No send")}
+                  disabled={!IsMyTurn() || isLockedDue2DNF}
                   className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 rounded-lg focus:outline-none text-center font-mono ${
-                    myTurn && !isLockedDue2DNF
+                    IsMyTurn() && !isLockedDue2DNF
                       ? 'border-blue-500 focus:border-blue-400' 
                       : 'border-gray-500 text-gray-400 cursor-not-allowed'
                   }`}
@@ -4177,23 +4232,23 @@ const clampPlayerIndex = (idx: number) => {
                     fontSize: mobileShrink ? '14px' : '24px'
                   }}
                   maxLength={5}
-                  autoFocus={myTurn}
+                  autoFocus={IsMyTurn()}
                 />
                 <button
                   type="submit"
                   onClick={(e) => e.stopPropagation()}
-                  disabled={!myTurn || isLockedDue2DNF}
+                  disabled={!IsMyTurn() || isLockedDue2DNF}
                   className={`${mobileShrink ? "px-3 py-1 text-xs" : "px-6 py-3 text-lg"} rounded-lg font-bold transition-all duration-200 ${
-                    myTurn && !isLockedDue2DNF
+                    IsMyTurn() && !isLockedDue2DNF
                       ? 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105 active:scale-95'
                       : 'bg-gray-500 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  {myTurn && !isLockedDue2DNF ? 'Gửi kết quả' : (isLockedDue2DNF ? '🚫 Bị KHÓA' : 'Không phải lượt của bạn')}
+                  {IsMyTurn() && !isLockedDue2DNF ? 'Gửi kết quả' : (isLockedDue2DNF ? '🚫 Bị KHÓA' : 'Không phải lượt của bạn')}
                 </button>
               </form>
               <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-gray-400 mt-1 text-center`}>
-                {myTurn && !isLockedDue2DNF ? 'Để trống = DNF, Enter để gửi' : (isLockedDue2DNF ? '🚫 KHÓA DO 2 LẦN DNF - CHỈ CÓ THỂ TÁI ĐẤU' : 'Chờ đến lượt của bạn')}
+                {IsMyTurn() && !isLockedDue2DNF ? 'Để trống = DNF, Enter để gửi' : (isLockedDue2DNF ? '🚫 KHÓA DO 2 LẦN DNF - CHỈ CÓ THỂ TÁI ĐẤU' : 'Chờ đến lượt của bạn')}
               </div>
             </div>
           ) : (
@@ -4238,7 +4293,8 @@ const clampPlayerIndex = (idx: number) => {
                 )}
               </div>
               {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
-              {prep && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím Space để bắt đầu</div>}
+              {prep && !spaceHeld && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Bấm và giữ Space để chuẩn bị</div>}
+              {prep && spaceHeld && <div className={mobileShrink ? "text-[8px] text-green-400 mt-0.5" : "text-sm text-green-400 mt-1"}>Giữ Space &gt;=300ms rồi thả để bắt đầu</div>}
             </>
           )}
 
