@@ -385,8 +385,19 @@ useEffect(() => {
     return currentUser === normalizedTurn;
   };
 
-  const isMyTurnRef = useRef(isMyTurn());
-  const myTurn = isMyTurnRef.current || prep || running || canStart;
+  const isMyTurnRef = useRef<boolean>(false);
+  const isMyTurnNow = isMyTurn();
+  isMyTurnRef.current = isMyTurnNow;
+  const myTurn = isMyTurnNow || prep || running || canStart;
+
+  const mySolveCount = React.useMemo(() => {
+    if (myTeam && myTeamIndex !== -1) {
+      const teamResults = myTeam === 'A' ? teamAResults : teamBResults;
+      const playerResults = teamResults[myTeamIndex];
+      return Array.isArray(playerResults) ? playerResults.length : 0;
+    }
+    return myResults.length;
+  }, [myTeam, myTeamIndex, myResults, teamAResults, teamBResults]);
 
   const getCurrentTeam = () => {
     return currentTeam === 'A' ? teamA : teamB;
@@ -514,10 +525,10 @@ useEffect(() => {
   useEffect(() => { pendingResultRef.current = pendingResult; }, [pendingResult]);
   useEffect(() => { typingModeRef.current = isTypingMode; }, [isTypingMode]);
   useEffect(() => { lockedDue2DNFRef.current = isLockedDue2DNF; }, [isLockedDue2DNF]);
-  // Cập nhật isMyTurnRef ngay lập tức khi currentPlayerId hoặc turnUserId thay đổi
+  // Cập nhật isMyTurnRef ngay lập tức khi lượt chơi thay đổi
   useEffect(() => {
-    isMyTurnRef.current = isMyTurn();
-  }, [turnUserId, currentPlayerId, userId, myTeam]);
+    isMyTurnRef.current = isMyTurnNow;
+  }, [isMyTurnNow]);
   useEffect(() => {
     userIdNormalizedRef.current = normalizeId(userId);
   }, [userId]);
@@ -1966,7 +1977,7 @@ useEffect(() => {
 
   // Hàm xử lý chế độ typing
   function handleTypingMode() {
-    if (users.length < 2 || isLockedDue2DNF || !isMyTurnRef.current) return; // Chỉ hoạt động khi đủ 2 người, không bị khóa và đến lượt mình
+    if (users.length < 2 || isLockedDue2DNF || !isMyTurnNow) return; // Chỉ hoạt động khi đủ 2 người, không bị khóa và đến lượt mình
     setIsTypingMode(!isTypingMode);
     setTypingInput("");
   }
@@ -1974,7 +1985,7 @@ useEffect(() => {
   // Hàm xử lý nhập thời gian
   function handleTypingSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (users.length < 2 || isLockedDue2DNF || !isMyTurnRef.current) return;
+    if (users.length < 2 || isLockedDue2DNF || !isMyTurnNow) return;
     
     const socket = getSocket();
     let time: number | null = null;
@@ -2371,8 +2382,8 @@ useEffect(() => {
 
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
-  if (isMobile) return;
-  if (waiting || running || !isMyTurnRef.current || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
+    if (isMobile) return;
+    if (waiting || running || !isMyTurnNow || mySolveCount >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -2426,7 +2437,7 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, myResults.length, pendingResult, isLockedDue2DNF, isTypingMode, myTurn]);
+  }, [isMobile, waiting, running, prep, isMyTurnNow, mySolveCount, pendingResult, isLockedDue2DNF, isTypingMode]);
 
   // Đảm bảo reset trạng thái chuẩn bị khi chắc chắn không còn lượt của mình
   useEffect(() => {
@@ -2450,7 +2461,7 @@ useEffect(() => {
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
     // Kiểm tra tất cả các điều kiện để chạy đếm ngược
-  if (!prep || waiting || isLockedDue2DNF) return;
+    if (!prep || waiting || isLockedDue2DNF || !isMyTurnNow) return;
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
@@ -2490,13 +2501,13 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, isLockedDue2DNF]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF, isMyTurnNow]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
     // Kiểm tra các điều kiện để bắt đầu timer
-    if (!canStart || waiting || isLockedDue2DNF) return;
+    if (!canStart || waiting || isLockedDue2DNF || !isMyTurnNow) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -2607,7 +2618,7 @@ useEffect(() => {
       }
     };
     // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF]);
+  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF, isMyTurnNow]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
@@ -3779,7 +3790,7 @@ const clampPlayerIndex = (idx: number) => {
               setSpaceHeld(true); // Đang giữ tay
             },
                           onTouchEnd: (e) => {
-                if (pendingResult !== null || isLockedDue2DNF || !isMyTurnRef.current) return;
+                if (pendingResult !== null || isLockedDue2DNF || !isMyTurn()) return;
                 if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
                 // Nếu chạm vào webcam thì bỏ qua
                 const webcamEls = document.querySelectorAll('.webcam-area');
@@ -3793,7 +3804,7 @@ const clampPlayerIndex = (idx: number) => {
               pressStartRef.current = null;
               setSpaceHeld(false); // Thả tay
               // 1. Tap and release to enter prep
-              if (!prep && !running && isMyTurnRef.current) {
+              if (!prep && !running && isMyTurn()) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
