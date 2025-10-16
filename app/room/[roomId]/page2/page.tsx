@@ -160,6 +160,7 @@ export default function RoomPage() {
   const lockedDue2DNFRef = useRef(isLockedDue2DNF);
   const myResultsRef = useRef<(number|null)[]>([]);
   const userIdNormalizedRef = useRef<string>("");
+  const canStartRef = useRef(canStart);
   
   // State cho điểm của từng đội theo vòng (Team A, Team B)
   const [teamAScores, setTeamAScores] = useState<number[]>([0, 0, 0, 0, 0]); // Điểm của Team A qua 5 vòng
@@ -169,13 +170,6 @@ export default function RoomPage() {
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
-
-   // State cho tái đấu
-  const [rematchModal, setRematchModal] = useState<{show: boolean, from: 'me'|'opponent'|null}>({show: false, from: null});
-  const [rematchPending, setRematchPending] = useState(false); // Đang chờ đối phương đồng ý
-  const [rematchDeclined, setRematchDeclined] = useState(false); // Đối phương đã từ chối
-  const [rematchJustAccepted, setRematchJustAccepted] = useState(false);
-  const [isRematchMode, setIsRematchMode] = useState(false); // State để theo dõi xem có đang ở chế độ tái đấu không
 
   // === TEAM MANAGEMENT STATES FOR 2VS2 ===
   // Team structure: { teamId: string, players: TeamPlayer[] }
@@ -392,7 +386,7 @@ useEffect(() => {
   };
 
   const isMyTurnRef = useRef(isMyTurn());
-  const myTurn = isMyTurn(); // Khôi phục biến myTurn để giữ giá trị ổn định trong một render cycle
+  const myTurn = isMyTurnRef.current || prep || running || canStart;
 
   const getCurrentTeam = () => {
     return currentTeam === 'A' ? teamA : teamB;
@@ -516,6 +510,7 @@ useEffect(() => {
   useEffect(() => { waitingRef.current = waiting; }, [waiting]);
   useEffect(() => { runningRef.current = running; }, [running]);
   useEffect(() => { prepRef.current = prep; }, [prep]);
+  useEffect(() => { canStartRef.current = canStart; }, [canStart]);
   useEffect(() => { pendingResultRef.current = pendingResult; }, [pendingResult]);
   useEffect(() => { typingModeRef.current = isTypingMode; }, [isTypingMode]);
   useEffect(() => { lockedDue2DNFRef.current = isLockedDue2DNF; }, [isLockedDue2DNF]);
@@ -564,11 +559,6 @@ useEffect(() => {
         setIsCreator(userId === data.hostId);
       } else {
         setIsCreator(false);
-      }
-      
-      // Reset chế độ tái đấu khi có người mới vào phòng
-      if (normalizedUsers.length === 1) {
-        setIsRematchMode(false);
       }
       
       // Reset sự kiện 2 lần DNF khi có sự thay đổi người chơi
@@ -726,23 +716,10 @@ useEffect(() => {
     setCurrentPlayerName(newTeamA.players[0].userName);
   }, [pendingUsers, userId]);
 
-  // Lắng nghe sự kiện hủy tái đấu từ đối phương
-  useEffect(() => {
-    const socket = getSocket();
-    function handleRematchCancel() {
-      setRematchPending(false);
-      setRematchModal({ show: false, from: null });
-    }
-    socket.on('rematch-cancel', handleRematchCancel);
-    return () => {
-      socket.off('rematch-cancel', handleRematchCancel);
-    };
-  }, []);
-
 
 // Khi userId hoặc pendingUsers thay đổi, luôn cập nhật opponentId/opponentName
 
-  // Reset SETS khi có sự thay đổi người dùng (ra/vào phòng) - không reset khi tái đấu
+  // Reset trạng thái khi có sự thay đổi người dùng (ra/vào phòng)
   useEffect(() => {
     if (!userId || !pendingUsers) return;
     const opp = pendingUsers.find(u => u.userId !== userId);
@@ -750,16 +727,12 @@ useEffect(() => {
       setOpponentId(opp.userId);
       setOpponentName(opp.userName || 'Đối thủ');
     }
-    
-    // Chỉ reset SETS khi thực sự có người mới vào phòng (không phải khi tái đấu)
-    // Kiểm tra xem có phải đang tái đấu không
-    if (!isRematchMode) {
-      // Reset sự kiện 2 lần DNF khi có người mới vào phòng
-      setIsLockedDue2DNF(false);
-      // setShowLockedDNFModal(false); // ĐÃ HỦY
-      setLockDNFInfo(null);
-    }
-  }, [userId, pendingUsers, isRematchMode]);
+
+    // Luôn mở khóa khi có thay đổi người chơi
+    setIsLockedDue2DNF(false);
+    // setShowLockedDNFModal(false); // ĐÃ HỦY
+    setLockDNFInfo(null);
+  }, [userId, pendingUsers]);
 
 
 
@@ -1698,10 +1671,6 @@ useEffect(() => {
     setOpponentId("");
     setOpponentName("Đối thủ");
     setRoomUrl("");
-    setRematchPending(false);
-    setRematchModal({ show: false, from: null });
-    setRematchDeclined(false);
-    
     // Reset sự kiện 2 lần DNF khi reset phòng
     setIsLockedDue2DNF(false);
     // setShowLockedDNFModal(false); // ĐÃ HỦY
@@ -1713,59 +1682,6 @@ useEffect(() => {
     socket.off('room-reset', handleRoomReset);
   };
 }, [roomId]);
-
-// Đặt effect lắng nghe rematch ở cuối cùng, sau tất cả các state liên quan
-
-// --- EFFECT LẮNG NGHE REMATCH ---
-
-useEffect(() => {
-  const socket = getSocket();
-  if (!userId) return;
-  // Khi nhận được yêu cầu tái đấu
-  const handleRematchRequest = ({ fromUserId }: { fromUserId: string }) => {
-    if (fromUserId !== userId) {
-      setRematchModal({ show: true, from: 'opponent' });
-    }
-  };
-  // Khi đối phương đồng ý tái đấu
-  const handleRematchAccepted = () => {
-    setMyResults([]);
-    setOpponentResults([]);
-    setScramble("");
-    setScrambleIndex(0);
-    setPendingResult(null);
-    setPendingType('normal');
-  // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
-    setRematchPending(false);
-    setRematchJustAccepted(true); // Đánh dấu vừa tái đấu xong
-    setIsRematchMode(true); // Bật chế độ tái đấu
-    // Mở khóa thao tác khi tái đấu
-    setIsLockedDue2DNF(false);
-    // setShowLockedDNFModal(false); // ĐÃ HỦY
-    // setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY
-    // Reset thông tin khóa DNF
-    setLockDNFInfo(null);
-    
-    // GỬI SỰ KIỆN MỞ KHÓA LÊN SERVER để server broadcast cho cả hai bên
-    const socket = getSocket();
-    socket.emit('unlock-due-rematch', { roomId });
-  };
-  // Khi đối phương từ chối tái đấu
-  const handleRematchDeclined = () => {
-    setRematchPending(false);
-    setRematchModal({ show: false, from: null });
-    setRematchDeclined(true);
-    setTimeout(() => setRematchDeclined(false), 2500); // Ẩn sau 2.5s
-  };
-  socket.on('rematch-request', handleRematchRequest);
-  socket.on('rematch-accepted', handleRematchAccepted);
-  socket.on('rematch-declined', handleRematchDeclined);
-  return () => {
-    socket.off('rematch-request', handleRematchRequest);
-    socket.off('rematch-accepted', handleRematchAccepted);
-    socket.off('rematch-declined', handleRematchDeclined);
-  };
-}, [userId, roomId, isCreator]);
 
 // Lắng nghe kết quả từ tất cả người chơi (bao gồm bản thân trong 2vs2)
 useEffect(() => {
@@ -1883,8 +1799,6 @@ useEffect(() => {
     scrambleMsgTimeout = setTimeout(() => {
       setShowScrambleMsg(false);
     }, 10000);
-    // Nếu vừa tái đấu xong thì reset cờ
-    setRematchJustAccepted(false);
     // Reset thông báo kết thúc sớm khi có scramble mới - ĐÃ HỦY
     // setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
     
@@ -1908,57 +1822,55 @@ useEffect(() => {
   };
 }, [roomId]);
 
-  // Hàm gửi yêu cầu tái đấu
-  function handleRematch() {
-    const socket = getSocket();
-    setRematchPending(true);
-    socket.emit('rematch-request', { roomId, fromUserId: userId });
-  }
-
-  // Hàm đối phương đồng ý hoặc từ chối
-  function respondRematch(accept: boolean) {
-    const socket = getSocket();
-    setRematchModal({ show: false, from: null });
-    if (accept) {
-      socket.emit('rematch-accepted', { roomId });
-      // Reset toàn bộ kết quả, scramble, index, giữ quyền chủ phòng
-      setMyResults([]);
-      setOpponentResults([]);
-      setScramble("");
-      setScrambleIndex(0);
-      setPendingResult(null);
-      setPendingType('normal');
-    // Không cần setTurn, lượt sẽ do server broadcast qua turnUserId
-      // Không gửi next-scramble, chỉ chờ server gửi scramble đầu tiên
-    } else {
-      socket.emit('rematch-declined', { roomId });
-    }
-  }
-    // Lắng nghe tin nhắn chat từ đối thủ (đặt sau khi đã có userId, userName)
+      // Đếm ngược 15s chuẩn bị
   useEffect(() => {
+    // Kiểm tra tất cả các điều kiện để chạy đếm ngược
+    if (!prep || waiting || isLockedDue2DNF) return;
+
+    setCanStart(false);
+    setSpaceHeld(false);
+    setDnf(false);
+
+    // Gửi timer-prep event để đối thủ biết mình đang chuẩn bị
     const socket = getSocket();
-    const handleChat = (data: { userId: string, userName: string, message: string }) => {
-      // Nếu là tin nhắn của mình thì bỏ qua (đã hiển thị local)
-      if (data.userId === userId) return;
-      const opponentName = data.userName?.trim() ? data.userName : 'Đối thủ';
-      setChatMessages(msgs => [...msgs, { from: 'opponent', text: data.message, playerName: opponentName }]);
-      setHasNewChat(true);
-      // Phát âm thanh ting
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play();
-      }
-    };
-    socket.on('chat', handleChat);
+    socket.emit("timer-prep", { roomId, userId, remaining: 15 });
+
+    prepIntervalRef.current = setInterval(() => {
+      setPrepTime(t => {
+        if (t <= 1) {
+          clearInterval(prepIntervalRef.current!);
+          setPrep(false);
+          setCanStart(false);
+          setRunning(false);
+          setDnf(true);
+          pressStartRef.current = null;
+
+          // Gửi timer-update event để đối thủ biết mình DNF
+          const socket = getSocket();
+          socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
+
+          // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
+          const updatedResults = [...getMyResults(), null];
+          setMyResults(updatedResults);
+          socket.emit("solve", { roomId, userId, userName, time: null });
+          // Không tự setTurn nữa
+          setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
+          return 0;
+        }
+
+        // Gửi timer-prep update mỗi giây
+        socket.emit("timer-prep", { roomId, userId, remaining: t - 1 });
+        return t - 1;
+      });
+    }, 1000);
     return () => {
-      socket.off('chat', handleChat);
+      if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [userId]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF]);
   // Lắng nghe sự kiện khóa do 2 lần DNF từ server
   useEffect(() => {
     const socket = getSocket();
     const handleLockDue2DNF = (data: { 
-      roomId: string, 
       myDnfCount: number, 
       oppDnfCount: number,
       myResults: (number|null)[],
@@ -2516,9 +2428,10 @@ useEffect(() => {
     };
   }, [isMobile, waiting, running, prep, myResults.length, pendingResult, isLockedDue2DNF, isTypingMode, myTurn]);
 
-  // Đảm bảo reset trạng thái chuẩn bị khi không còn lượt của mình
+  // Đảm bảo reset trạng thái chuẩn bị khi chắc chắn không còn lượt của mình
   useEffect(() => {
-  if (isMyTurnRef.current) return;
+    const stillInControl = isMyTurnRef.current || prepRef.current || runningRef.current || canStartRef.current;
+    if (stillInControl) return;
 
     setPrep(false);
     setCanStart(false);
@@ -2532,15 +2445,12 @@ useEffect(() => {
       clearInterval(prepIntervalRef.current);
       prepIntervalRef.current = null;
     }
-  }, [turnUserId, myTurn]);
+  }, [turnUserId]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
     // Kiểm tra tất cả các điều kiện để chạy đếm ngược
   if (!prep || waiting || isLockedDue2DNF) return;
-    
-  // Kiểm tra xem có phải lượt của người dùng không
-  if (!isMyTurnRef.current) return;
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
@@ -2580,13 +2490,13 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, turnUserId, isLockedDue2DNF]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
     // Kiểm tra các điều kiện để bắt đầu timer
-  if (!canStart || waiting || isLockedDue2DNF || !isMyTurnRef.current) return;
+    if (!canStart || waiting || isLockedDue2DNF) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -3057,7 +2967,7 @@ const clampPlayerIndex = (idx: number) => {
         }
         style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
       >
-                {/* Nút typing, nút tái đấu và nút lưới scramble */}
+                {/* Nút typing và nút lưới scramble */}
         <div className="flex items-center gap-1">
           {/* Nút Typing */}
           <button
@@ -3082,48 +2992,6 @@ const clampPlayerIndex = (idx: number) => {
             )}
           </button>
           <button
-            onClick={handleRematch}
-            disabled={rematchPending || users.length < 2}
-            className={
-              (mobileShrink
-                ? `px-1 py-0.5 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 ${isLockedDue2DNF ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchPending ? 'opacity-60 cursor-not-allowed' : ''}`)
-              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
-            }
-            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
-            type="button"
-            aria-label={isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu"}
-            title={isLockedDue2DNF ? "Tái đấu để mở khóa" : "Tái đấu"}
-          >
-            {/* Icon vòng lặp/refresh */}
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width={mobileShrink ? 18 : 28} height={mobileShrink ? 18 : 28} style={{ display: 'block' }}>
-              <path d="M24 8a16 16 0 1 1-11.31 4.69" stroke="white" strokeWidth="3" fill="none"/>
-              <path d="M12 8v5a1 1 0 0 0 1 1h5" stroke="white" strokeWidth="3" fill="none"/>
-            </svg>
-            {/* Hiển thị icon khóa khi bị khóa do 2 lần DNF */}
-            {isLockedDue2DNF && (
-              <span style={{ 
-                position: 'absolute', 
-                top: -2, 
-                right: -2, 
-                width: mobileShrink ? 12 : 16, 
-                height: mobileShrink ? 12 : 16, 
-                background: '#f00', 
-                borderRadius: '50%', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                fontSize: mobileShrink ? 8 : 10,
-                color: 'white',
-                fontWeight: 'bold',
-                border: '1px solid white',
-                zIndex: 10 
-              }}>
-                🔒
-              </span>
-            )}
-          </button>
-          <button
             className={
               (mobileShrink
                 ? "bg-gray-500 hover:bg-gray-700 text-[13px] rounded-full font-bold shadow-lg flex items-center justify-center"
@@ -3143,45 +3011,7 @@ const clampPlayerIndex = (idx: number) => {
           {/* Modal lưới Rubik */}
           <CubeNetModal key={`${scramble}-${String(cubeSize)}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
         </div>
-                
 
-          {/* Modal xác nhận tái đấu khi nhận được yêu cầu từ đối phương */}
-      {rematchModal.show && rematchModal.from === 'opponent' && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(2px)' }}>
-          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[160px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[200px] border-4 border-green-400 flex flex-col items-center justify-center"} modal-content`}>
-            <div className="text-lg font-bold text-green-300 mb-4 text-center">Đối thủ muốn tái đấu. Bạn có đồng ý không?</div>
-            <div className="flex flex-row gap-4 mt-2">
-              <button onClick={() => respondRematch(true)} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Đồng ý</button>
-              <button onClick={() => respondRematch(false)} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Từ chối</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Modal đang chờ đối phương đồng ý tái đấu */}
-      {rematchPending && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(1px)' }}>
-          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[220px] h-[120px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[320px] max-w-[95vw] h-[140px] border-4 border-green-400 flex flex-col items-center justify-center"} modal-content`}>
-            <div className="text-base font-semibold text-green-200 text-center mb-4">Đang chờ đối phương xác nhận tái đấu...</div>
-            <button
-              onClick={() => {
-                setRematchPending(false);
-                const socket = getSocket();
-                socket.emit('rematch-cancel', { roomId });
-              }}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold mt-2 transition-all duration-200 hover:scale-105 active:scale-95"
-            >Hủy</button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal thông báo đối phương đã từ chối tái đấu */}
-      {rematchDeclined && (
-        <div className="fixed inset-0 z-[201] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(1px)' }}>
-          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[80vw] max-w-[200px] h-[80px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[300px] max-w-[90vw] h-[100px] border-4 border-red-400 flex flex-col items-center justify-center"} modal-content`}>
-            <div className="text-base font-semibold text-red-300 text-center">Đối thủ đã từ chối tái đấu</div>
-          </div>
-        </div>
-      )}
         <div className="flex items-center relative">
           <button
             onClick={() => { setShowChat(true); setHasNewChat(false); }}
