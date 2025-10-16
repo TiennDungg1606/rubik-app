@@ -126,6 +126,7 @@ export default function RoomPage() {
   const [prepTime, setPrepTime] = useState<number>(15);
   // Ref lưu thời điểm bắt đầu nhấn Space hoặc chạm (dùng cho cả desktop và mobile)
   const pressStartRef = useRef<number | null>(null);
+  const spaceHoldActiveRef = useRef(false);
   const [canStart, setCanStart] = useState<boolean>(false);
   const [spaceHeld, setSpaceHeld] = useState<boolean>(false);
   const [users, setUsers] = useState<string[]>([]); // userId array
@@ -2469,64 +2470,100 @@ useEffect(() => {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    // Chỉ cho phép nếu đến lượt mình và không bị khóa do 2 lần DNF
-    if (waiting || running || !myTurn || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
-    let localSpaceHeld = false;
+
+    const isInputFocused = () => {
+      const activeElement = document.activeElement;
+      if (!activeElement) return false;
+      return (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        !!activeElement.closest('.modal-content') ||
+        !!activeElement.closest('[role="dialog"]') ||
+        !!activeElement.closest('[data-modal]')
+      );
+    };
+
+    const shouldBlockInputs = () =>
+      waitingRef.current ||
+      runningRef.current ||
+      !isMyTurnRef.current ||
+      myResultsRef.current.length >= 5 ||
+      pendingResultRef.current !== null ||
+      lockedDue2DNFRef.current ||
+      typingModeRef.current;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (pendingResult !== null) return;
-      if (isTypingMode) return; // Chặn phím space khi đang ở chế độ typing
-      
-      // Kiểm tra xem có đang trong modal nào không
-      const activeElement = document.activeElement;
-      const isInModal = activeElement && (
-        activeElement.tagName === 'INPUT' || 
-        activeElement.tagName === 'TEXTAREA' ||
-        activeElement.closest('.modal-content') ||
-        activeElement.closest('[role="dialog"]') ||
-        activeElement.closest('[data-modal]')
-      );
-      
-      if (isInModal) return; // Không xử lý phím space nếu đang trong modal
-      
-      if (prep) {
-        if (!localSpaceHeld) {
+      if (isInputFocused()) return;
+      if (shouldBlockInputs()) {
+        console.log('space keydown blocked', {
+          waiting: waitingRef.current,
+          running: runningRef.current,
+          isMyTurn: isMyTurnRef.current,
+          myResultsCount: myResultsRef.current.length,
+          pendingResult: pendingResultRef.current,
+          lockedDue2DNF: lockedDue2DNFRef.current,
+          typingMode: typingModeRef.current,
+        });
+        spaceHoldActiveRef.current = false;
+        return;
+      }
+
+      if (prepRef.current) {
+        if (!spaceHoldActiveRef.current) {
           pressStartRef.current = Date.now();
-          localSpaceHeld = true;
+          spaceHoldActiveRef.current = true;
           setSpaceHeld(true);
         }
-      } else if (!prep && !running) {
+      } else if (!runningRef.current) {
+        prepRef.current = true;
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
         pressStartRef.current = Date.now();
-        localSpaceHeld = true;
+        spaceHoldActiveRef.current = true;
         setSpaceHeld(true);
       }
     };
+
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (prep && localSpaceHeld && pressStartRef.current) {
-        const now = Date.now();
-        const start = pressStartRef.current;
-        pressStartRef.current = null;
-        localSpaceHeld = false;
-        setSpaceHeld(false);
-        if (now - start >= 300) {
-          setPrep(false);
-          setCanStart(true);
-        }
-      } else {
-        setSpaceHeld(false);
+
+      const wasHolding = spaceHoldActiveRef.current;
+      const startedAt = pressStartRef.current;
+      spaceHoldActiveRef.current = false;
+      pressStartRef.current = null;
+      setSpaceHeld(false);
+
+      if (!wasHolding) return;
+
+      if (shouldBlockInputs()) {
+        console.log('space keyup blocked', {
+          waiting: waitingRef.current,
+          running: runningRef.current,
+          isMyTurn: isMyTurnRef.current,
+          myResultsCount: myResultsRef.current.length,
+          pendingResult: pendingResultRef.current,
+          lockedDue2DNF: lockedDue2DNFRef.current,
+          typingMode: typingModeRef.current,
+        });
+        return;
+      }
+
+      if (prepRef.current && startedAt && Date.now() - startedAt >= 300) {
+        prepRef.current = false;
+        setPrep(false);
+        setCanStart(true);
       }
     };
+
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length, pendingResult, isLockedDue2DNF, isMyTurn]);
+  }, [isMobile]);
 
   // Reset timer state when turn changes
   useEffect(() => {
