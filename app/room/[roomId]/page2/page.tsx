@@ -159,6 +159,7 @@ export default function RoomPage() {
   const typingModeRef = useRef(isTypingMode);
   const lockedDue2DNFRef = useRef(isLockedDue2DNF);
   const myResultsRef = useRef<(number|null)[]>([]);
+  const userIdNormalizedRef = useRef<string>("");
   
   // State cho điểm của từng đội theo vòng (Team A, Team B)
   const [teamAScores, setTeamAScores] = useState<number[]>([0, 0, 0, 0, 0]); // Điểm của Team A qua 5 vòng
@@ -380,7 +381,7 @@ useEffect(() => {
 
   const normalizeId = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
-  const getCurrentUserId = () => normalizeId(userId);
+  const getCurrentUserId = () => userIdNormalizedRef.current || normalizeId(userId);
 
   // === HELPER FUNCTIONS FOR 2VS2 ===
   const isMyTurn = () => {
@@ -522,6 +523,9 @@ useEffect(() => {
   useEffect(() => {
     isMyTurnRef.current = isMyTurn();
   }, [turnUserId, currentPlayerId, userId, myTeam]);
+  useEffect(() => {
+    userIdNormalizedRef.current = normalizeId(userId);
+  }, [userId]);
   useEffect(() => {
     if (!myTeam || myTeamIndex === -1) {
       myResultsRef.current = [];
@@ -1834,7 +1838,7 @@ useEffect(() => {
     return () => {
       socket.off('room-turn', handleTurn);
     };
-  }, [roomId]);
+  }, [roomId, userId]);
 
   useEffect(() => {
     if (!turnUserId) return;
