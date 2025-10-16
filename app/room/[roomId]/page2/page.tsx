@@ -380,25 +380,14 @@ useEffect(() => {
 
   const normalizeId = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
+  const getCurrentUserId = () => normalizeId(userId);
+
   // === HELPER FUNCTIONS FOR 2VS2 ===
   const isMyTurn = () => {
-    // Ưu tiên sử dụng currentPlayerId (người chơi hiện tại) trước khi xem xét turnUserId
-    const normalizedUser = normalizeId(userId);
-    const normalizedCurrent = normalizeId(currentPlayerId);
-    
-    // Nếu có currentPlayerId, so sánh với userId
-    if (normalizedCurrent) {
-      return normalizedCurrent === normalizedUser;
-    }
-    
-    // Nếu không có currentPlayerId, kiểm tra turnUserId
+    const currentUser = getCurrentUserId();
     const normalizedTurn = normalizeId(turnUserId);
-    if (normalizedTurn) {
-      return normalizedTurn === normalizedUser;
-    }
-    
-    // Nếu không có cả hai, trả về false
-    return false;
+    if (!currentUser || !normalizedTurn) return false;
+    return currentUser === normalizedTurn;
   };
 
   const isMyTurnRef = useRef(isMyTurn());
@@ -530,16 +519,8 @@ useEffect(() => {
   useEffect(() => { typingModeRef.current = isTypingMode; }, [isTypingMode]);
   useEffect(() => { lockedDue2DNFRef.current = isLockedDue2DNF; }, [isLockedDue2DNF]);
   // Cập nhật isMyTurnRef ngay lập tức khi currentPlayerId hoặc turnUserId thay đổi
-  useEffect(() => { 
-    console.log('Updating isMyTurnRef:', { 
-      currentPlayerId, 
-      turnUserId, 
-      userId,
-      isMyTurn: isMyTurn(),
-      currentMatch: normalizeId(currentPlayerId) === normalizeId(userId),
-      turnMatch: normalizeId(turnUserId) === normalizeId(userId)
-    });
-    isMyTurnRef.current = isMyTurn(); 
+  useEffect(() => {
+    isMyTurnRef.current = isMyTurn();
   }, [turnUserId, currentPlayerId, userId, myTeam]);
   useEffect(() => {
     if (!myTeam || myTeamIndex === -1) {
@@ -1838,6 +1819,15 @@ useEffect(() => {
   useEffect(() => {
     const socket = getSocket();
     const handleTurn = (data: { turnUserId: string }) => {
+      const normalizedTurn = normalizeId(data.turnUserId);
+      const clientId = getCurrentUserId();
+      const isClientTurn = !!clientId && !!normalizedTurn && clientId === normalizedTurn;
+      console.log('room-turn update', {
+        rawTurnUserId: data.turnUserId,
+        normalizedTurnUserId: normalizedTurn,
+        clientUserId: clientId,
+        isClientTurn,
+      });
       setTurnUserId(data.turnUserId || "");
     };
     socket.on('room-turn', handleTurn);
@@ -2534,10 +2524,9 @@ useEffect(() => {
     };
   }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length, pendingResult, isLockedDue2DNF, isMyTurn]);
 
-  // Debug: Reset timer state when turn changes
+  // Reset timer state when turn changes
   useEffect(() => {
     if (!myTurn) {
-      console.log('Turn changed, resetting timer state for user:', userId);
       setPrep(false);
       setCanStart(false);
       setRunning(false);
@@ -2554,31 +2543,12 @@ useEffect(() => {
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
-    // Debug để theo dõi khi effect này chạy và trạng thái của các điều kiện
-    console.log('Prep effect triggered:', { 
-      prep, 
-      waiting, 
-      isLockedDue2DNF, 
-      userId, 
-      turnUserId, 
-      currentPlayerId,
-      myTeam, 
-      isMyTurn: isMyTurn(),
-      isMyTurnRef: isMyTurnRef.current
-    });
-    
     // Kiểm tra tất cả các điều kiện để chạy đếm ngược
-    if (!prep || waiting || isLockedDue2DNF) {
-      console.log('Exiting prep effect due to basic conditions');
-      return;
-    }
+    if (!prep || waiting || isLockedDue2DNF) return;
     
     // Kiểm tra xem có phải lượt của người dùng không
     const isTurn = isMyTurn();
-    if (!isTurn) {
-      console.log('Exiting prep effect - not my turn:', { myId: userId, currentPlayerId, turnUserId });
-      return;
-    }
+    if (!isTurn) return;
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
@@ -2623,26 +2593,12 @@ useEffect(() => {
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
-    // Debug để theo dõi trạng thái của các điều kiện
-    console.log('Timer start effect:', { 
-      canStart, 
-      waiting, 
-      isLockedDue2DNF, 
-      userId, 
-      turnUserId, 
-      currentPlayerId,
-      isMyTurn: isMyTurn()
-    });
-    
     // Kiểm tra các điều kiện để bắt đầu timer
     if (!canStart || waiting || isLockedDue2DNF) return;
     
     // Kiểm tra lượt chơi hiện tại
     const isTurn = isMyTurn();
-    if (!isTurn) {
-      console.log('Not my turn, cannot start timer');
-      return;
-    }
+    if (!isTurn) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
