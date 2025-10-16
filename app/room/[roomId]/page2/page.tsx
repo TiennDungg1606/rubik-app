@@ -2405,7 +2405,7 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, mySolveCount, pendingResult, isLockedDue2DNF, isTypingMode]);
+  }, [isMobile, waiting, running, prep, mySolveCount, pendingResult, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId]);
 
   // Đảm bảo reset trạng thái chuẩn bị khi chắc chắn không còn lượt của mình
   useEffect(() => {
@@ -2470,7 +2470,7 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, isLockedDue2DNF]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF, isMyTurnNow, turnUserId]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
@@ -2586,8 +2586,7 @@ useEffect(() => {
         window.removeEventListener("mousedown", handleMouse, true);
       }
     };
-    // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF]);
+  }, [canStart, waiting, roomId, userId, userName, isMobile, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
