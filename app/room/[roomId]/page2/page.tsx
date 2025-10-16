@@ -126,7 +126,6 @@ export default function RoomPage() {
   const [prepTime, setPrepTime] = useState<number>(15);
   // Ref lưu thời điểm bắt đầu nhấn Space hoặc chạm (dùng cho cả desktop và mobile)
   const pressStartRef = useRef<number | null>(null);
-  const spaceHoldActiveRef = useRef(false);
   const [canStart, setCanStart] = useState<boolean>(false);
   const [spaceHeld, setSpaceHeld] = useState<boolean>(false);
   const [users, setUsers] = useState<string[]>([]); // userId array
@@ -1824,15 +1823,6 @@ useEffect(() => {
   useEffect(() => {
     const socket = getSocket();
     const handleTurn = (data: { turnUserId: string }) => {
-      const normalizedTurn = normalizeId(data.turnUserId);
-      const clientId = getCurrentUserId();
-      const isClientTurn = !!clientId && !!normalizedTurn && clientId === normalizedTurn;
-      console.log('room-turn update', {
-        rawTurnUserId: data.turnUserId,
-        normalizedTurnUserId: normalizedTurn,
-        clientUserId: clientId,
-        isClientTurn,
-      });
       setTurnUserId(data.turnUserId || "");
     };
     socket.on('room-turn', handleTurn);
@@ -2469,118 +2459,62 @@ useEffect(() => {
 
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
-    if (isMobile) return;
-
-    const isInputFocused = () => {
-      const activeElement = document.activeElement;
-      if (!activeElement) return false;
-      return (
-        activeElement.tagName === 'INPUT' ||
-        activeElement.tagName === 'TEXTAREA' ||
-        !!activeElement.closest('.modal-content') ||
-        !!activeElement.closest('[role="dialog"]') ||
-        !!activeElement.closest('[data-modal]')
-      );
-    };
-
-    const shouldBlockInputs = () =>
-      waitingRef.current ||
-      runningRef.current ||
-      !isMyTurnRef.current ||
-      myResultsRef.current.length >= 5 ||
-      pendingResultRef.current !== null ||
-      lockedDue2DNFRef.current ||
-      typingModeRef.current;
-
+  if (isMobile) return;
+  if (waiting || running || !myTurn || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
+    let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-      if (isInputFocused()) return;
-      if (shouldBlockInputs()) {
-        console.log('space keydown blocked', {
-          waiting: waitingRef.current,
-          running: runningRef.current,
-          isMyTurn: isMyTurnRef.current,
-          myResultsCount: myResultsRef.current.length,
-          pendingResult: pendingResultRef.current,
-          lockedDue2DNF: lockedDue2DNFRef.current,
-          typingMode: typingModeRef.current,
-        });
-        spaceHoldActiveRef.current = false;
-        return;
-      }
+      if (pendingResult !== null) return;
+      if (isTypingMode) return;
 
-      if (prepRef.current) {
-        if (!spaceHoldActiveRef.current) {
+      const activeElement = document.activeElement;
+      const isInModal = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.closest('.modal-content') ||
+        activeElement.closest('[role="dialog"]') ||
+        activeElement.closest('[data-modal]')
+      );
+      if (isInModal) return;
+
+      if (prep) {
+        if (!localSpaceHeld) {
           pressStartRef.current = Date.now();
-          spaceHoldActiveRef.current = true;
+          localSpaceHeld = true;
           setSpaceHeld(true);
         }
-      } else if (!runningRef.current) {
-        prepRef.current = true;
+      } else if (!prep && !running) {
         setPrep(true);
         setPrepTime(15);
         setDnf(false);
         pressStartRef.current = Date.now();
-        spaceHoldActiveRef.current = true;
+        localSpaceHeld = true;
         setSpaceHeld(true);
       }
     };
-
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
-
-      const wasHolding = spaceHoldActiveRef.current;
-      const startedAt = pressStartRef.current;
-      spaceHoldActiveRef.current = false;
-      pressStartRef.current = null;
-      setSpaceHeld(false);
-
-      if (!wasHolding) return;
-
-      if (shouldBlockInputs()) {
-        console.log('space keyup blocked', {
-          waiting: waitingRef.current,
-          running: runningRef.current,
-          isMyTurn: isMyTurnRef.current,
-          myResultsCount: myResultsRef.current.length,
-          pendingResult: pendingResultRef.current,
-          lockedDue2DNF: lockedDue2DNFRef.current,
-          typingMode: typingModeRef.current,
-        });
-        return;
-      }
-
-      if (prepRef.current && startedAt && Date.now() - startedAt >= 300) {
-        prepRef.current = false;
-        setPrep(false);
-        setCanStart(true);
+      if (prep && localSpaceHeld) {
+        const now = Date.now();
+        const start = pressStartRef.current;
+        pressStartRef.current = null;
+        localSpaceHeld = false;
+        setSpaceHeld(false);
+        if (start && now - start >= 300) {
+          setPrep(false);
+          setCanStart(true);
+        }
+      } else {
+        setSpaceHeld(false);
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile]);
-
-  // Reset timer state when turn changes
-  useEffect(() => {
-    if (!myTurn) {
-      setPrep(false);
-      setCanStart(false);
-      setRunning(false);
-      setSpaceHeld(false);
-      setTimer(0);
-      setDnf(false);
-      pressStartRef.current = null;
-      if (prepIntervalRef.current) {
-        clearInterval(prepIntervalRef.current);
-        prepIntervalRef.current = null;
-      }
-    }
-  }, [turnUserId, userId, myTurn]);
+  }, [isMobile, waiting, running, prep, myResults.length, pendingResult, isLockedDue2DNF, isTypingMode, myTurn]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
@@ -2588,8 +2522,7 @@ useEffect(() => {
     if (!prep || waiting || isLockedDue2DNF) return;
     
     // Kiểm tra xem có phải lượt của người dùng không
-    const isTurn = isMyTurn();
-    if (!isTurn) return;
+    if (!isMyTurn()) return;
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
@@ -2613,8 +2546,8 @@ useEffect(() => {
           socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
           
           // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
-          const newR = [...myResults, null];
-          setMyResults(newR);
+          const updatedResults = [...getMyResults(), null];
+          setMyResults(updatedResults);
           socket.emit("solve", { roomId, userId, userName, time: null });
           // Không tự setTurn nữa
           setTimeout(() => setOpponentTime(12345 + Math.floor(Math.random()*2000)), 1000);
@@ -2629,7 +2562,7 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, currentPlayerId, turnUserId, isLockedDue2DNF, myResults]);
+  }, [prep, waiting, roomId, userId, turnUserId, isLockedDue2DNF]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
