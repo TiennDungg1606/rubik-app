@@ -2664,16 +2664,6 @@ useEffect(() => {
     // nhưng không còn cộng điểm set trong chế độ 2vs2
   }
   
-  // NEW LOGIC: Only reset timer state when round ends (every 4 turns for 2vs2)
-  // Reset timer state only when totalSolves is divisible by 4 (end of round)
-  if (totalSolves > 0 && totalSolves % 4 === 0) {
-    setPrep(false);
-    setCanStart(false);
-    setSpaceHeld(false);
-    setTimer(0);
-    setDnf(false);
-  }
-  
   // Chỉ đổi scramble khi tổng số lượt giải là số chẵn (sau mỗi vòng)
   if (totalSolves % 2 === 0 && totalSolves < 10) {
     // ...
