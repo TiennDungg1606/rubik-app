@@ -390,7 +390,7 @@ useEffect(() => {
   };
 
   const isMyTurnRef = useRef(isMyTurn());
-  const myTurn = isMyTurn();
+  // Xóa biến myTurn và sử dụng isMyTurn() trực tiếp
 
   const getCurrentTeam = () => {
     return currentTeam === 'A' ? teamA : teamB;
@@ -2046,7 +2046,7 @@ useEffect(() => {
 
   // Hàm xử lý chế độ typing
   function handleTypingMode() {
-    if (users.length < 2 || isLockedDue2DNF || !myTurn) return; // Chỉ hoạt động khi đủ 2 người, không bị khóa và đến lượt mình
+    if (users.length < 2 || isLockedDue2DNF || !isMyTurn()) return; // Chỉ hoạt động khi đủ 2 người, không bị khóa và đến lượt mình
     setIsTypingMode(!isTypingMode);
     setTypingInput("");
   }
@@ -2054,7 +2054,7 @@ useEffect(() => {
   // Hàm xử lý nhập thời gian
   function handleTypingSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (users.length < 2 || isLockedDue2DNF || !myTurn) return;
+    if (users.length < 2 || isLockedDue2DNF || !isMyTurn()) return;
     
     const socket = getSocket();
     let time: number | null = null;
@@ -2452,8 +2452,8 @@ useEffect(() => {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
-    // Chỉ cho phép nếu đến lượt mình (userId === turnUserId) và không bị khóa do 2 lần DNF
-    if (waiting || running || userId !== turnUserId || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
+    // Chỉ cho phép nếu đến lượt mình và không bị khóa do 2 lần DNF
+    if (waiting || running || !isMyTurn() || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -2509,11 +2509,30 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, userId, turnUserId, myResults, pendingResult, isLockedDue2DNF, isTypingMode]);
+  }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length, pendingResult, isLockedDue2DNF, isMyTurn]);
+
+  // Debug: Reset timer state when turn changes
+  useEffect(() => {
+    if (!isMyTurn()) {
+      console.log('Turn changed, resetting timer state for user:', userId);
+      setPrep(false);
+      setCanStart(false);
+      setRunning(false);
+      setSpaceHeld(false);
+      setTimer(0);
+      setDnf(false);
+      pressStartRef.current = null;
+      if (prepIntervalRef.current) {
+        clearInterval(prepIntervalRef.current);
+        prepIntervalRef.current = null;
+      }
+    }
+  }, [turnUserId, userId, isMyTurn]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
-    if (!prep || waiting || isLockedDue2DNF || userId !== turnUserId) return;
+    console.log('Prep effect triggered:', { prep, waiting, isLockedDue2DNF, userId, turnUserId, isMyTurn: isMyTurn() });
+    if (!prep || waiting || isLockedDue2DNF || !isMyTurn()) return;
     setCanStart(false);
     setSpaceHeld(false);
     setDnf(false);
@@ -2553,12 +2572,12 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, isLockedDue2DNF, myResults]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF, myResults, isMyTurn]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
-    if (!canStart || waiting || isLockedDue2DNF || userId !== turnUserId) return;
+    if (!canStart || waiting || isLockedDue2DNF || !isMyTurn()) return;
     setRunning(true);
     setTimer(0);
     timerRef.current = 0;
@@ -3034,11 +3053,11 @@ const clampPlayerIndex = (idx: number) => {
           {/* Nút Typing */}
           <button
             onClick={handleTypingMode}
-            disabled={users.length < 2 || !myTurn || isLockedDue2DNF}
+            disabled={users.length < 2 || !isMyTurn() || isLockedDue2DNF}
             className={
               (mobileShrink
-                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || !myTurn || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || !myTurn || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`)
+                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || !isMyTurn() || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || !isMyTurn() || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`)
               + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
@@ -3935,7 +3954,7 @@ const clampPlayerIndex = (idx: number) => {
               pressStartRef.current = null;
               setSpaceHeld(false); // Thả tay
               // 1. Tap and release to enter prep
-              if (!prep && !running && myTurn) {
+              if (!prep && !running && isMyTurn()) {
                 setPrep(true);
                 setPrepTime(15);
                 setDnf(false);
@@ -4291,15 +4310,15 @@ const clampPlayerIndex = (idx: number) => {
                   onFocus={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
                     // Chặn phím Enter khi không phải lượt của mình
-                    if (e.key === 'Enter' && !myTurn) {
+                    if (e.key === 'Enter' && !isMyTurn()) {
                       e.preventDefault();
                       return;
                     }
                   }}
-                  placeholder={myTurn && !isLockedDue2DNF ? " " : (isLockedDue2DNF ? "🚫 Bị KHÓA" : "No send")}
-                  disabled={!myTurn || isLockedDue2DNF}
+                  placeholder={isMyTurn() && !isLockedDue2DNF ? " " : (isLockedDue2DNF ? "🚫 Bị KHÓA" : "No send")}
+                  disabled={!isMyTurn() || isLockedDue2DNF}
                   className={`${mobileShrink ? "px-2 py-1 text-sm" : "px-4 py-3 text-2xl"} bg-gray-800 text-white border-2 rounded-lg focus:outline-none text-center font-mono ${
-                    myTurn && !isLockedDue2DNF
+                    isMyTurn() && !isLockedDue2DNF
                       ? 'border-blue-500 focus:border-blue-400' 
                       : 'border-gray-500 text-gray-400 cursor-not-allowed'
                   }`}
@@ -4308,23 +4327,23 @@ const clampPlayerIndex = (idx: number) => {
                     fontSize: mobileShrink ? '14px' : '24px'
                   }}
                   maxLength={5}
-                  autoFocus={myTurn}
+                  autoFocus={isMyTurn()}
                 />
                 <button
                   type="submit"
                   onClick={(e) => e.stopPropagation()}
-                  disabled={!myTurn || isLockedDue2DNF}
+                  disabled={!isMyTurn() || isLockedDue2DNF}
                   className={`${mobileShrink ? "px-3 py-1 text-xs" : "px-6 py-3 text-lg"} rounded-lg font-bold transition-all duration-200 ${
-                    myTurn && !isLockedDue2DNF
+                    isMyTurn() && !isLockedDue2DNF
                       ? 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105 active:scale-95'
                       : 'bg-gray-500 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  {myTurn && !isLockedDue2DNF ? 'Gửi kết quả' : (isLockedDue2DNF ? '🚫 Bị KHÓA' : 'Không phải lượt của bạn')}
+                  {isMyTurn() && !isLockedDue2DNF ? 'Gửi kết quả' : (isLockedDue2DNF ? '🚫 Bị KHÓA' : 'Không phải lượt của bạn')}
                 </button>
               </form>
               <div className={`${mobileShrink ? "text-[10px]" : "text-sm"} text-gray-400 mt-1 text-center`}>
-                {myTurn && !isLockedDue2DNF ? 'Để trống = DNF, Enter để gửi' : (isLockedDue2DNF ? '🚫 KHÓA DO 2 LẦN DNF - CHỈ CÓ THỂ TÁI ĐẤU' : 'Chờ đến lượt của bạn')}
+                {isMyTurn() && !isLockedDue2DNF ? 'Để trống = DNF, Enter để gửi' : (isLockedDue2DNF ? '🚫 KHÓA DO 2 LẦN DNF - CHỈ CÓ THỂ TÁI ĐẤU' : 'Chờ đến lượt của bạn')}
               </div>
             </div>
           ) : (
