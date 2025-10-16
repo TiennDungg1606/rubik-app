@@ -2453,7 +2453,7 @@ useEffect(() => {
   useEffect(() => {
     if (isMobile) return;
     // Chỉ cho phép nếu đến lượt mình (userId === turnUserId) và không bị khóa do 2 lần DNF
-    if (waiting || running || userId !== turnUserId || getMyResults().length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
+    if (waiting || running || userId !== turnUserId || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
@@ -2509,24 +2509,7 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, userId, turnUserId, getMyResults, pendingResult, isLockedDue2DNF, isTypingMode]);
-
-  // Reset timer state when turn changes
-  useEffect(() => {
-    if (userId !== turnUserId) {
-      setPrep(false);
-      setCanStart(false);
-      setRunning(false);
-      setSpaceHeld(false);
-      setTimer(0);
-      setDnf(false);
-      pressStartRef.current = null;
-      if (prepIntervalRef.current) {
-        clearInterval(prepIntervalRef.current);
-        prepIntervalRef.current = null;
-      }
-    }
-  }, [turnUserId, userId]);
+  }, [isMobile, waiting, running, prep, userId, turnUserId, myResults, pendingResult, isLockedDue2DNF, isTypingMode]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
@@ -2554,8 +2537,7 @@ useEffect(() => {
           socket.emit("timer-update", { roomId, userId, ms: 0, running: false, finished: true });
           
           // Lưu kết quả DNF và gửi lên server, server sẽ tự chuyển lượt
-          const currentResults = getMyResults();
-          const newR = [...currentResults, null];
+          const newR = [...myResults, null];
           setMyResults(newR);
           socket.emit("solve", { roomId, userId, userName, time: null });
           // Không tự setTurn nữa
@@ -2571,7 +2553,7 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, isLockedDue2DNF, turnUserId]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF, myResults]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
@@ -2687,7 +2669,7 @@ useEffect(() => {
       }
     };
     // eslint-disable-next-line
-  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF, turnUserId]);
+  }, [canStart, waiting, roomId, userName, isMobile, isLockedDue2DNF]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
