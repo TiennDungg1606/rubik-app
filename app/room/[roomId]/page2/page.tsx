@@ -184,71 +184,85 @@ export default function RoomPage() {
   const [teamAResults, setTeamAResults] = useState<(number|null)[][]>([]); // [playerIndex][solveIndex]
   const [teamBResults, setTeamBResults] = useState<(number|null)[][]>([]); // [playerIndex][solveIndex]
 
-  // Hàm tính điểm theo thứ hạng trong một vòng
-  const calculateRoundScores = (roundIndex: number) => {
+  const teamADnfCounts = React.useMemo(() => (
+    teamAResults.map(results => Array.isArray(results) ? results.filter(time => time === null).length : 0)
+  ), [teamAResults]);
+
+  const teamBDnfCounts = React.useMemo(() => (
+    teamBResults.map(results => Array.isArray(results) ? results.filter(time => time === null).length : 0)
+  ), [teamBResults]);
+
+  const teamAHasDoubleDNF = React.useMemo(() => teamADnfCounts.some(count => count >= 2), [teamADnfCounts]);
+  const teamBHasDoubleDNF = React.useMemo(() => teamBDnfCounts.some(count => count >= 2), [teamBDnfCounts]);
+
+  const teamAMaxDnf = React.useMemo(() => teamADnfCounts.reduce((max, count) => Math.max(max, count), 0), [teamADnfCounts]);
+  const teamBMaxDnf = React.useMemo(() => teamBDnfCounts.reduce((max, count) => Math.max(max, count), 0), [teamBDnfCounts]);
+
+  // Hàm tính điểm theo thứ hạng trong một vòng, chỉ cập nhật khi đủ 4 kết quả
+  const calculateRoundScores = React.useCallback((roundIndex: number) => {
     if (roundIndex < 0 || roundIndex >= 5) return;
-    
-    // Lấy kết quả của 4 người chơi trong vòng này
-    const results = [
+
+    const entries = [
       { team: 'A', player: 0, time: teamAResults[0]?.[roundIndex] },
       { team: 'A', player: 1, time: teamAResults[1]?.[roundIndex] },
       { team: 'B', player: 0, time: teamBResults[0]?.[roundIndex] },
       { team: 'B', player: 1, time: teamBResults[1]?.[roundIndex] }
     ];
-    
-    // Tính điểm cho từng đội dựa trên thứ hạng cá nhân
+
+    // Nếu bất kỳ người chơi nào chưa có kết quả (undefined) thì không cập nhật điểm
+    const hasIncompleteResult = entries.some(entry => typeof entry.time === 'undefined');
+    if (hasIncompleteResult) {
+      return;
+    }
+
+    const sortedByTime = [...entries].sort((a, b) => {
+      const aTime = a.time === null || typeof a.time === 'undefined' ? Number.POSITIVE_INFINITY : a.time;
+      const bTime = b.time === null || typeof b.time === 'undefined' ? Number.POSITIVE_INFINITY : b.time;
+      return aTime - bTime;
+    });
+
+    const basePoints = [3, 2, 1, 0];
     let teamAScore = 0;
     let teamBScore = 0;
-    
-    // Lọc ra những người có kết quả hợp lệ (không null và không DNF)
-    const validResults = results.filter(r => r.time !== null && typeof r.time === 'number');
-    
-    // Sắp xếp theo thời gian (nhanh nhất trước)
-    validResults.sort((a, b) => a.time! - b.time!);
-    
-    // Tính điểm cho những người có kết quả hợp lệ
-    validResults.forEach((result, index) => {
-      const points = validResults.length === 4 ? [3, 2, 1, 0][index] : 
-                     validResults.length === 3 ? [3, 2, 1][index] :
-                     validResults.length === 2 ? [3, 2][index] : 3;
-      
-      if (result.team === 'A') {
-        teamAScore += points;
+
+    sortedByTime.forEach((entry, index) => {
+      const rawPoints = basePoints[index] ?? 0;
+      const awardedPoints = entry.time === null ? 0 : rawPoints;
+
+      if (entry.team === 'A') {
+        teamAScore += awardedPoints;
       } else {
-        teamBScore += points;
+        teamBScore += awardedPoints;
       }
     });
-    
-    // Những người có DNF (time = null) sẽ có điểm 0 (không cần làm gì thêm)
-    
-    // Cập nhật điểm cho vòng này
+
     setTeamAScores(prev => {
       const newScores = [...prev];
       newScores[roundIndex] = teamAScore;
       return newScores;
     });
-    
+
     setTeamBScores(prev => {
       const newScores = [...prev];
       newScores[roundIndex] = teamBScore;
       return newScores;
     });
-  };
-  
-  // useEffect để tự động tính điểm khi có kết quả mới
-  useEffect(() => {
-    // Tính điểm cho tất cả các vòng đã có kết quả
-    for (let i = 0; i < 5; i++) {
-      const hasResults = teamAResults[0]?.[i] !== undefined || 
-                        teamAResults[1]?.[i] !== undefined || 
-                        teamBResults[0]?.[i] !== undefined || 
-                        teamBResults[1]?.[i] !== undefined;
-      
-      if (hasResults) {
-        calculateRoundScores(i);
-      }
-    }
   }, [teamAResults, teamBResults]);
+  
+  // useEffect để tự động tính điểm khi có kết quả mới nhưng chỉ khi hoàn thành cả vòng
+  useEffect(() => {
+    for (let round = 0; round < 5; round++) {
+      calculateRoundScores(round);
+    }
+  }, [calculateRoundScores]);
+
+  const computeTeamAverage = React.useCallback((teamResults: (number|null)[][]) => {
+    const validTimes = teamResults
+      .flat()
+      .filter((time): time is number => typeof time === 'number' && time > 0);
+    if (validTimes.length === 0) return null;
+    return validTimes.reduce((sum, time) => sum + time, 0) / validTimes.length;
+  }, []);
   
   // Current player info
   const [currentPlayerId, setCurrentPlayerId] = useState<string>("");
@@ -277,6 +291,18 @@ type TeamPlayer = {
   userId: string;
   userName: string;
   position?: number | null;
+};
+
+type RematchParticipant = {
+  userId: string;
+  userName: string;
+};
+
+type RematchDialogState = {
+  show: boolean;
+  initiatorId: string | null;
+  participants: RematchParticipant[];
+  status: 'waiting' | 'confirmed';
 };
 
 const [user, setUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
@@ -370,10 +396,109 @@ useEffect(() => {
   // Thêm state để kiểm soát việc hiện nút xác nhận sau 1s
   const [showConfirmButtons, setShowConfirmButtons] = useState(false);
 
+  const [rematchDialog, setRematchDialog] = useState<RematchDialogState>({
+    show: false,
+    initiatorId: null,
+    participants: [],
+    status: 'waiting',
+  });
+  const [rematchAcceptedIds, setRematchAcceptedIds] = useState<string[]>([]);
+  const [rematchPending, setRematchPending] = useState(false);
+  const [rematchInfoMessage, setRematchInfoMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!rematchInfoMessage) return;
+    const timeout = setTimeout(() => setRematchInfoMessage(null), 8000);
+    return () => clearTimeout(timeout);
+  }, [rematchInfoMessage]);
+
     // Ref cho khối chat để auto-scroll
   const chatListRef = useRef<HTMLDivElement>(null);
 
   const normalizeId = (value?: string | null) => (value ?? "").trim().toLowerCase();
+
+  const normalizedUserId = React.useMemo(() => normalizeId(userId), [userId]);
+
+  const totalActivePlayers = React.useMemo(() => {
+    const collectIds = (team: { players: TeamPlayer[] }) =>
+      team.players
+        .map(player => normalizeId(player?.userId))
+        .filter(id => id.length > 0);
+    const unique = new Set<string>([...collectIds(teamA), ...collectIds(teamB)]);
+    return unique.size;
+  }, [teamA, teamB]);
+
+  const rematchAcceptedNormalized = React.useMemo(
+    () => rematchAcceptedIds.map(id => normalizeId(id)),
+    [rematchAcceptedIds]
+  );
+
+  const isRematchParticipant = React.useMemo(
+    () => rematchDialog.participants.some(participant => normalizeId(participant.userId) === normalizedUserId),
+    [rematchDialog.participants, normalizedUserId]
+  );
+
+  const hasAcceptedRematch = React.useMemo(
+    () => rematchAcceptedNormalized.includes(normalizedUserId),
+    [rematchAcceptedNormalized, normalizedUserId]
+  );
+
+  const rematchInitiatorIsMe = React.useMemo(
+    () => rematchDialog.initiatorId ? normalizeId(rematchDialog.initiatorId) === normalizedUserId : false,
+    [rematchDialog.initiatorId, normalizedUserId]
+  );
+
+  const rematchAllAccepted = React.useMemo(
+    () => rematchDialog.participants.length > 0 &&
+      rematchDialog.participants.every(participant => rematchAcceptedNormalized.includes(normalizeId(participant.userId))),
+    [rematchDialog.participants, rematchAcceptedNormalized]
+  );
+
+  const rematchParticipantsCount = rematchDialog.participants.length;
+  const rematchAcceptedCount = rematchAcceptedNormalized.length;
+  const rematchWaitingCount = Math.max(0, rematchParticipantsCount - rematchAcceptedCount);
+
+  const rematchInitiatorName = (() => {
+    if (!rematchDialog.initiatorId) return null;
+    const normalizedInitiator = normalizeId(rematchDialog.initiatorId);
+    const participantMatch = rematchDialog.participants.find(participant => normalizeId(participant.userId) === normalizedInitiator);
+    if (participantMatch?.userName?.trim()) return participantMatch.userName.trim();
+    const allPlayers = [...(teamA?.players ?? []), ...(teamB?.players ?? [])];
+    const playerMatch = allPlayers.find(player => normalizeId(player.userId) === normalizedInitiator);
+    if (playerMatch?.userName?.trim()) return playerMatch.userName.trim();
+    if (normalizedInitiator === normalizedUserId && userName?.trim()) return userName.trim();
+    return null;
+  })();
+
+  const rematchPrimaryMessage = (() => {
+    if (rematchDialog.status === 'confirmed' || rematchAllAccepted) {
+      return 'Tất cả thành viên đã đồng ý. Đang chuẩn bị trận đấu mới...';
+    }
+    if (rematchInitiatorIsMe) {
+      return 'Bạn đã mở yêu cầu tái đấu. Cần sự đồng ý của tất cả thành viên.';
+    }
+    const baseLabel = rematchInitiatorName ? `Chủ phòng ${rematchInitiatorName}` : 'Chủ phòng';
+    return `${baseLabel} muốn tái đấu. Vui lòng chọn "Đồng ý" để tham gia trận mới.`;
+  })();
+
+  const rematchProgressMessage = (() => {
+    if (rematchParticipantsCount === 0) {
+      return 'Đang tải danh sách thành viên...';
+    }
+    if (rematchDialog.status === 'confirmed' || rematchAllAccepted) {
+      return 'Đã đủ 4/4 thành viên đồng ý. Hệ thống sẽ reset ngay.';
+    }
+    if (hasAcceptedRematch) {
+      if (rematchWaitingCount > 0) {
+        return `Bạn đã đồng ý. Đang chờ ${rematchWaitingCount} người nữa.`;
+      }
+      return 'Bạn đã đồng ý. Đang chờ hệ thống xử lý.';
+    }
+    return `Hiện có ${rematchAcceptedCount}/${rematchParticipantsCount} người đã đồng ý.`;
+  })();
+
+  const shouldShowRematchAcceptButton = !hasAcceptedRematch && rematchDialog.status !== 'confirmed';
+  const shouldShowRematchCancelButton = rematchInitiatorIsMe && rematchDialog.status !== 'confirmed';
 
   const getCurrentUserId = () => userIdNormalizedRef.current || normalizeId(userId);
 
@@ -557,9 +682,15 @@ useEffect(() => {
   }, [showChat, chatMessages]);
 
   useEffect(() => {
+    if (!rematchInfoMessage) return;
+    const timeout = setTimeout(() => setRematchInfoMessage(null), 3000);
+    return () => clearTimeout(timeout);
+  }, [rematchInfoMessage]);
+
+  useEffect(() => {
     if (pendingResult !== null && !running && !prep) {
       setShowConfirmButtons(false);
-      const timer = setTimeout(() => setShowConfirmButtons(true), 500);
+  const timer = setTimeout(() => setShowConfirmButtons(true), 3000);
       return () => clearTimeout(timer);
     } else {
       setShowConfirmButtons(false);
@@ -766,6 +897,20 @@ useEffect(() => {
   const opponentAnimIdRef = useRef<number| null>(null);
   const opponentBaseMsRef = useRef<number>(0);
   const opponentLastTsRef = useRef<number>(0);
+
+  // Khóa các nút chức năng khi bất kỳ lượt giải nào đang chuẩn bị hoặc chạy
+  const isSolveLocked = prep || running || canStart || pendingResult !== null || opponentPrep || opponentRunning;
+
+  const rematchButtonDisabled = !isCreator || isSolveLocked || rematchPending || totalActivePlayers < 4;
+  const rematchButtonTooltip = !isCreator
+    ? "Chỉ chủ phòng mới có thể mở tái đấu"
+    : isSolveLocked
+      ? "Không thể tái đấu khi đang xử lý lượt hiện tại"
+      : rematchPending
+        ? "Đang chờ tất cả thành viên đồng ý tái đấu"
+        : totalActivePlayers < 4
+          ? "Cần đủ 4 người chơi để tái đấu"
+          : "Tái đấu";
 
   // Lắng nghe socket để đồng bộ timer-prep và timer-update từ đối thủ (2vs2)
   useEffect(() => {
@@ -1885,6 +2030,101 @@ useEffect(() => {
     };
   }, [roomId]);
 
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handleRematchOpen = (data: {
+      initiatorId?: string;
+      participants?: RematchParticipant[];
+      acceptedIds?: string[];
+    }) => {
+      const participants = Array.isArray(data.participants) ? data.participants : [];
+      const acceptedIds = Array.isArray(data.acceptedIds) ? data.acceptedIds : [];
+
+      const isParticipant = participants.some(participant => normalizeId(participant.userId) === normalizedUserId);
+
+      setRematchDialog({
+        show: isParticipant,
+        initiatorId: data.initiatorId || null,
+        participants,
+        status: 'waiting',
+      });
+      setRematchAcceptedIds(acceptedIds);
+      setRematchPending(true);
+      setRematchInfoMessage(null);
+
+      if (data.initiatorId && normalizeId(data.initiatorId) === normalizedUserId && roomId && userId) {
+        socket.emit('rematch2v2-respond', { roomId, userId });
+      }
+    };
+
+    const handleRematchUpdate = (data: { acceptedIds?: string[] }) => {
+      setRematchAcceptedIds(Array.isArray(data.acceptedIds) ? data.acceptedIds : []);
+    };
+
+    const handleRematchConfirmed = (data: { acceptedIds?: string[] }) => {
+      setRematchAcceptedIds(Array.isArray(data.acceptedIds) ? data.acceptedIds : []);
+      setRematchDialog(prev => ({ ...prev, status: 'confirmed' }));
+      setRematchInfoMessage('Tất cả thành viên đã đồng ý. Đang chuẩn bị trận đấu mới...');
+    };
+
+    const handleRematchCancelled = () => {
+      setRematchDialog({ show: false, initiatorId: null, participants: [], status: 'waiting' });
+      setRematchAcceptedIds([]);
+      setRematchPending(false);
+      setRematchInfoMessage('Yêu cầu tái đấu đã bị hủy.');
+    };
+
+    const handleRematchAccepted = () => {
+      setRematchPending(false);
+      setRematchDialog({ show: false, initiatorId: null, participants: [], status: 'waiting' });
+      setRematchAcceptedIds([]);
+      setRematchInfoMessage('Đã reset trận đấu. Chúc bạn may mắn!');
+
+  setTeamAResults(() => teamA.players.map(() => [] as (number | null)[]));
+  setTeamBResults(() => teamB.players.map(() => [] as (number | null)[]));
+      setTeamAScores([0, 0, 0, 0, 0]);
+      setTeamBScores([0, 0, 0, 0, 0]);
+      setMyResults([]);
+      setOpponentResults([]);
+      setPendingResult(null);
+      setPendingType('normal');
+      setTimer(0);
+      setDnf(false);
+      setPrep(false);
+      setCanStart(false);
+      setSpaceHeld(false);
+      setScramble('');
+      setScrambleIndex(0);
+      setScrambles([]);
+      setShowScrambleMsg(false);
+      setOpponentTime(null);
+      setOpponentPrep(false);
+      setOpponentRunning(false);
+      setOpponentTimer(0);
+      setOpponentPrepTime(15);
+      setShowConfirmButtons(false);
+      setTypingInput('');
+      setIsTypingMode(false);
+      setIsLockedDue2DNF(false);
+      setLockDNFInfo(null);
+    };
+
+    socket.on('rematch2v2-open', handleRematchOpen);
+    socket.on('rematch2v2-update', handleRematchUpdate);
+    socket.on('rematch2v2-confirmed', handleRematchConfirmed);
+    socket.on('rematch2v2-cancelled', handleRematchCancelled);
+    socket.on('rematch-accepted', handleRematchAccepted);
+
+    return () => {
+      socket.off('rematch2v2-open', handleRematchOpen);
+      socket.off('rematch2v2-update', handleRematchUpdate);
+      socket.off('rematch2v2-confirmed', handleRematchConfirmed);
+      socket.off('rematch2v2-cancelled', handleRematchCancelled);
+      socket.off('rematch-accepted', handleRematchAccepted);
+    };
+  }, [normalizedUserId, roomId, userId, setMyResults, teamA, teamB]);
+
   // Lắng nghe sự kiện đối thủ tắt/bật cam để hiện overlay đúng
   useEffect(() => {
     const socket = getSocket();
@@ -1922,7 +2162,7 @@ useEffect(() => {
 
   // Hàm rời phòng: emit leave-room trước khi chuyển hướng về lobby
   function handleLeaveRoom() {
-    // Chỉ hiện modal xác nhận
+    if (isSolveLocked) return;
     setShowLeaveModal(true);
   }
 
@@ -1938,9 +2178,29 @@ useEffect(() => {
     }, 1300);
   }
 
+  function handleRematch2v2Request() {
+    if (!isCreator || !roomId || !userId || rematchButtonDisabled) return;
+    const socket = getSocket();
+    setRematchPending(true);
+    setRematchInfoMessage('Đã gửi yêu cầu tái đấu tới tất cả thành viên...');
+    socket.emit('rematch2v2-request', { roomId, userId });
+  }
+
+  function handleRematch2v2Respond() {
+    if (!roomId || !userId || hasAcceptedRematch || rematchDialog.status === 'confirmed') return;
+    const socket = getSocket();
+    socket.emit('rematch2v2-respond', { roomId, userId });
+  }
+
+  function handleRematch2v2Cancel() {
+    if (!isCreator || !roomId || !userId) return;
+    const socket = getSocket();
+    socket.emit('rematch2v2-cancel', { roomId, userId });
+  }
+
   // Hàm xử lý chế độ typing
   function handleTypingMode() {
-    if (users.length < 2 || isLockedDue2DNF || !isMyTurnNow) return; // Chỉ hoạt động khi đủ 2 người, không bị khóa và đến lượt mình
+    if (users.length < 2 || isLockedDue2DNF || !isMyTurnNow || isSolveLocked) return; // Chỉ hoạt động khi đủ điều kiện và không có lượt giải đang chạy
     setIsTypingMode(!isTypingMode);
     setTypingInput("");
   }
@@ -2608,36 +2868,33 @@ useEffect(() => {
   if (totalSolves === 0) return;
   
   // Kiểm tra điều kiện kết thúc sớm khi có 2 lần DNF
-  const myDnfCount = getMyResults().filter(r => r === null).length;
-  const oppDnfCount = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => 
-    sum + playerResults.filter(r => r === null).length, 0);
+  const myTeamHasDoubleDNF = myTeam === 'A' ? teamAHasDoubleDNF : myTeam === 'B' ? teamBHasDoubleDNF : false;
+  const oppTeamHasDoubleDNF = myTeam === 'A' ? teamBHasDoubleDNF : myTeam === 'B' ? teamAHasDoubleDNF : false;
+  const anyTeamHasDoubleDNF = teamAHasDoubleDNF || teamBHasDoubleDNF;
   
   // Chỉ kiểm tra khi cả 2 đều xong lượt giải đó (totalSolves chẵn)
-  if (totalSolves % 2 === 0 && (myDnfCount >= 2 || oppDnfCount >= 2)) {
+  if (totalSolves % 2 === 0 && anyTeamHasDoubleDNF) {
     // KHÓA THAO TÁC CHO CẢ HAI BÊN khi có người bị 2 lần DNF
     // Lý do: Khi trận đấu kết thúc sớm, cả hai bên đều không thể tiếp tục
     setIsLockedDue2DNF(true);
     
     // GỬI SỰ KIỆN LÊN SERVER để server broadcast modal cho cả hai bên
     const socket = getSocket();
-    socket.emit('lock-due-2dnf', { 
-      roomId, 
-      myDnfCount, 
-      oppDnfCount
-      // KHÔNG GỬI myResults và opponentResults để tránh xáo trộn
-    });
+    const payload = myTeam
+      ? {
+          roomId,
+          myDnfCount: myTeam === 'A' ? teamAMaxDnf : teamBMaxDnf,
+          oppDnfCount: myTeam === 'A' ? teamBMaxDnf : teamAMaxDnf
+        }
+      : {
+          roomId,
+          myDnfCount: teamAMaxDnf,
+          oppDnfCount: teamBMaxDnf
+        };
+    socket.emit('lock-due-2dnf', payload);
     
-    if (myDnfCount >= 2 && oppDnfCount >= 2) {
-      // Cả hai đều có 2 lần DNF -> Hòa
-      setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
-      // Không cần cập nhật điểm set trong chế độ 2vs2
-    } else if (myDnfCount >= 2) {
-      // Team mình có 2 lần DNF -> Team đối thủ thắng
-      setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
-    } else {
-      // Team đối thủ có 2 lần DNF -> Team mình thắng
-      setShowEarlyEndMsg({ show: false, message: '', type: 'draw' }); // ĐÃ HỦY - KHÔNG HIỆN MODAL
-    }
+    // Cập nhật trạng thái hiển thị (modal kết thúc sớm đã bị hủy)
+    setShowEarlyEndMsg({ show: false, message: '', type: 'draw' });
     
     // KHÔNG reset timer state khi có 2 lần DNF - giữ nguyên để hiển thị trạng thái cuối
     
@@ -2668,7 +2925,7 @@ useEffect(() => {
   if (totalSolves % 2 === 0 && totalSolves < 10) {
     // ...
   }
-}, [teamAResults, teamBResults, roomId, myTeam, getMyResults]);
+}, [teamAResults, teamBResults, roomId, myTeam, getMyResults, teamAHasDoubleDNF, teamBHasDoubleDNF, teamAMaxDnf, teamBMaxDnf]);
 
   // Tính toán thống kê - Updated for 2vs2
   const myStats = calcStats(getMyResults());
@@ -2889,6 +3146,18 @@ const clampPlayerIndex = (idx: number) => {
           </div>
         )}
       </div>
+      {rematchInfoMessage && (
+        <div
+          className={
+            mobileShrink
+              ? "mt-1 px-2 py-1 bg-green-800/70 text-[11px] text-green-100 rounded-lg shadow"
+              : "mt-2 px-4 py-2 bg-green-800/70 text-sm text-green-100 rounded-lg shadow"
+          }
+          style={{ maxWidth: mobileShrink ? '90vw' : '420px', textAlign: 'center' }}
+        >
+          {rematchInfoMessage}
+        </div>
+      )}
       {/* Nút rời phòng */}
       <div
         className={
@@ -2900,11 +3169,12 @@ const clampPlayerIndex = (idx: number) => {
       >
         <button
           onClick={handleLeaveRoom}
+          disabled={isSolveLocked}
           className={
-            (mobileShrink
+            `${mobileShrink
               ? "bg-red-600 hover:bg-red-700 text-[9px] rounded-full font-bold shadow-lg flex items-center justify-center"
-              : "bg-red-600 hover:bg-red-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center")
-            + " transition-transform duration-200 hover:scale-110 active:scale-95"
+              : "bg-red-600 hover:bg-red-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+            } transition-transform duration-200 hover:scale-110 active:scale-95 ${isSolveLocked ? 'opacity-60 cursor-not-allowed' : ''}`
           }
           style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
           type="button"
@@ -2938,14 +3208,31 @@ const clampPlayerIndex = (idx: number) => {
       >
                 {/* Nút typing và nút lưới scramble */}
         <div className="flex items-center gap-1">
+          {/* Nút tái đấu 2v2 */}
+          <button
+            onClick={handleRematch2v2Request}
+            disabled={rematchButtonDisabled}
+            className={
+              (mobileShrink
+                ? `px-1 py-0.5 ${rematchPending ? 'bg-green-700' : 'bg-green-600 hover:bg-green-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${rematchButtonDisabled ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 ${rematchPending ? 'bg-green-700' : 'bg-green-600 hover:bg-green-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${rematchButtonDisabled ? 'opacity-60 cursor-not-allowed' : ''}`)
+              + ` transition-transform duration-200 ${rematchPending && !rematchButtonDisabled ? 'animate-pulse' : 'hover:scale-110'} active:scale-95 function-button`
+            }
+            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
+            type="button"
+            aria-label="Tái đấu 2v2"
+            title={rematchButtonTooltip}
+          >
+            <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>⟳</span>
+          </button>
           {/* Nút Typing */}
           <button
             onClick={handleTypingMode}
-            disabled={users.length < 2 || !myTurn || isLockedDue2DNF}
+            disabled={users.length < 2 || !myTurn || isLockedDue2DNF || isSolveLocked}
             className={
               (mobileShrink
-                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || !myTurn || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`
-                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || !myTurn || isLockedDue2DNF ? 'opacity-60 cursor-not-allowed' : ''}`)
+                ? `px-1 py-0.5 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center ${users.length < 2 || !myTurn || isLockedDue2DNF || isSolveLocked ? 'opacity-60 cursor-not-allowed' : ''}`
+                : `px-4 py-2 ${isTypingMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'} text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center ${users.length < 2 || !myTurn || isLockedDue2DNF || isSolveLocked ? 'opacity-60 cursor-not-allowed' : ''}`)
               + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
@@ -2961,17 +3248,19 @@ const clampPlayerIndex = (idx: number) => {
             )}
           </button>
           <button
+            disabled={isSolveLocked}
             className={
-              (mobileShrink
+              `${mobileShrink
                 ? "bg-gray-500 hover:bg-gray-700 text-[13px] rounded-full font-bold shadow-lg flex items-center justify-center"
-                : "bg-gray-500 hover:bg-gray-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center")
-              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
+                : "bg-gray-500 hover:bg-gray-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+              } transition-transform duration-200 hover:scale-110 active:scale-95 function-button ${isSolveLocked ? 'opacity-60 cursor-not-allowed' : ''}`
             }
             style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
             aria-label="Lưới scramble"
             title="Lưới scramble"
             onClick={() => {
+              if (isSolveLocked) return;
               setShowCubeNet(true);
             }}
           >
@@ -2983,12 +3272,17 @@ const clampPlayerIndex = (idx: number) => {
 
         <div className="flex items-center relative">
           <button
-            onClick={() => { setShowChat(true); setHasNewChat(false); }}
+            onClick={() => {
+              if (isSolveLocked) return;
+              setShowChat(true);
+              setHasNewChat(false);
+            }}
+            disabled={isSolveLocked}
             className={
-              (mobileShrink
+              `${mobileShrink
                 ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
-                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center")
-              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
+                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+              } transition-transform duration-200 hover:scale-110 active:scale-95 function-button ${isSolveLocked ? 'opacity-60 cursor-not-allowed' : ''}`
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
@@ -3107,15 +3401,94 @@ const clampPlayerIndex = (idx: number) => {
           </div>
         </div>
       )}
+      {/* Modal tái đấu 2v2 */}
+      {rematchDialog.show && (
+        <div
+          className="fixed inset-0 z-[240] flex items-center justify-center bg-transparent modal-backdrop"
+          style={{ backdropFilter: 'blur(2px)' }}
+        >
+          <div
+            className={`${mobileShrink ? "bg-gray-900 rounded p-3 w-[92vw] max-w-[300px] border-2 border-green-400 flex flex-col gap-2" : "bg-gray-900 rounded-2xl p-6 w-[440px] max-w-[95vw] border-4 border-green-400 flex flex-col gap-4"} modal-content`}
+            style={mobileShrink ? { maxHeight: '85vh', overflowY: 'auto' } : { maxHeight: '80vh', overflowY: 'auto' }}
+          >
+            <div className={mobileShrink ? "text-base font-bold text-green-300 text-center" : "text-2xl font-bold text-green-300 text-center"}>
+              Tái đấu 2v2
+            </div>
+            <div className={mobileShrink ? "text-[11px] text-gray-200 text-center leading-snug" : "text-sm text-gray-200 text-center leading-relaxed"}>
+              {rematchPrimaryMessage}
+            </div>
+            <div className={mobileShrink ? "mt-2 flex flex-col gap-1" : "mt-4 flex flex-col gap-2"}>
+              {rematchDialog.participants.map(participant => {
+                const normalizedParticipantId = normalizeId(participant.userId);
+                const accepted = rematchAcceptedNormalized.includes(normalizedParticipantId);
+                const isMe = normalizedParticipantId === normalizedUserId;
+                const playerMatch = [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(player => normalizeId(player.userId) === normalizedParticipantId);
+                const nameFromParticipant = participant.userName?.trim();
+                const nameFromPlayer = playerMatch?.userName?.trim();
+                const displayName = isMe
+                  ? (userName?.trim() || nameFromParticipant || nameFromPlayer || 'Bạn')
+                  : (nameFromParticipant || nameFromPlayer || 'Người chơi');
+                return (
+                  <div
+                    key={`${participant.userId}-${participant.userName ?? ''}`}
+                    className={mobileShrink ? "flex items-center justify-between px-2 py-1 rounded bg-gray-800/70" : "flex items-center justify-between px-3 py-2 rounded-lg bg-gray-800/70"}
+                  >
+                    <span className={mobileShrink ? "text-[11px] font-semibold text-gray-100" : "text-sm font-semibold text-gray-100"}>
+                      {accepted ? '✅' : '⏳'} {displayName}{isMe ? ' (Bạn)' : ''}
+                    </span>
+                    <span
+                      className={mobileShrink ? "text-[10px] font-medium" : "text-xs font-medium"}
+                      style={{ color: accepted ? '#86efac' : '#facc15' }}
+                    >
+                      {accepted ? 'Đã đồng ý' : 'Đang chờ'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className={mobileShrink ? "text-[11px] text-gray-300 text-center mt-2" : "text-sm text-gray-300 text-center mt-2"}>
+              {rematchProgressMessage}
+            </div>
+            <div className={mobileShrink ? "flex flex-col gap-2 mt-2" : "flex flex-col gap-3 mt-4"}>
+              {shouldShowRematchAcceptButton ? (
+                <button
+                  onClick={handleRematch2v2Respond}
+                  className={mobileShrink ? "px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-[12px] rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95" : "px-4 py-3 bg-green-600 hover:bg-green-700 text-white text-base rounded-xl font-bold transition-all duration-200 hover:scale-105 active:scale-95"}
+                  type="button"
+                >
+                  Đồng ý tái đấu
+                </button>
+              ) : (
+                <div className={mobileShrink ? "text-[11px] text-green-300 text-center font-semibold" : "text-sm text-green-300 text-center font-semibold"}>
+                  {hasAcceptedRematch ? 'Đã ghi nhận đồng ý của bạn.' : 'Đang chờ tất cả thành viên xác nhận.'}
+                </div>
+              )}
+              {shouldShowRematchCancelButton && (
+                <button
+                  onClick={handleRematch2v2Cancel}
+                  className={mobileShrink ? "px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-[12px] rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95" : "px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white text-base rounded-xl font-bold transition-all duration-200 hover:scale-105 active:scale-95"}
+                  type="button"
+                >
+                  Hủy yêu cầu
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
         {/* Nút luật thi đấu */}
         <div className="flex items-center">
           <button
-            onClick={() => setShowRules(true)}
+            onClick={() => {
+              if (isSolveLocked) return;
+              setShowRules(true);
+            }}
+            disabled={isSolveLocked}
             className={
-              (mobileShrink
+              `${mobileShrink
                 ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
-                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center")
-              + " transition-transform duration-200 hover:scale-110 active:scale-95 function-button"
+                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+              } transition-transform duration-200 hover:scale-110 active:scale-95 function-button ${isSolveLocked ? 'opacity-60 cursor-not-allowed' : ''}`
             }
             style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
             type="button"
@@ -3296,51 +3669,28 @@ const clampPlayerIndex = (idx: number) => {
                 // Hiển thị thông báo kết quả khi bị khóa do 2 lần DNF (nếu không có showEarlyEndMsg)
                 // Đảm bảo cả hai bên đều thấy thông báo về team thắng/thua/hòa
                 if (isLockedDue2DNF && !showEarlyEndMsg.show) {
-                  // Sử dụng kết quả team để tính toán chính xác
-                  const myDnfCount = getMyResults().filter(r => r === null).length;
-                  const oppDnfCount = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => 
-                    sum + playerResults.filter(r => r === null).length, 0);
-                  
-                  if (!myTeam) {
-                    if (myDnfCount >= 2 && oppDnfCount >= 2) {
-                      return (
-                        <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-yellow-400`}>
-                          Cả hai người chơi đều có 2 lần DNF.
-                        </span>
-                      );
-                    } else if (myDnfCount >= 2) {
-                      return (
-                        <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-orange-400`}>
-                          Bạn đã có 2 lần DNF. Đối thủ thắng lượt này.
-                        </span>
-                      );
-                    }
+                  const baseClass = mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold";
+                  if (teamAHasDoubleDNF && teamBHasDoubleDNF) {
                     return (
-                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-green-400`}>
-                        Đối thủ đã có 2 lần DNF. Bạn thắng lượt này.
+                      <span className={`${baseClass} text-yellow-400`}>
+                        Team A và Team B đều có người bị 2 lần DNF. Trận đấu hòa.
                       </span>
                     );
                   }
 
-                  if (myDnfCount >= 2 && oppDnfCount >= 2) {
-                    // Cả hai team đều có 2 lần DNF -> Hòa
+                  if (teamAHasDoubleDNF || teamBHasDoubleDNF) {
+                    const losingTeam = teamAHasDoubleDNF ? 'A' : 'B';
+                    const winningTeam = losingTeam === 'A' ? 'B' : 'A';
+                    const viewerPerspective = myTeam ?? null;
+                    const viewerLost = viewerPerspective === losingTeam;
+                    const viewerWon = viewerPerspective === winningTeam;
+                    const toneClass = viewerLost ? 'text-orange-400' : viewerWon ? 'text-green-400' : 'text-green-400';
+                    const message = viewerLost
+                      ? `Team ${losingTeam} thua - có người bị 2 lần DNF. Team ${winningTeam} thắng.`
+                      : `Team ${winningTeam} thắng - Team ${losingTeam} có người bị 2 lần DNF.`;
                     return (
-                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-yellow-400`}>
-                        Team {myTeam} và Team {myTeam === 'A' ? 'B' : 'A'} hòa - cả hai team đều có 2 lần DNF.
-                      </span>
-                    );
-                  } else if (myDnfCount >= 2) {
-                    // Team mình có 2 lần DNF -> Team đối thủ thắng
-                    return (
-                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-orange-400`}>
-                        Team {myTeam} thua - có 2 lần DNF. Team {myTeam === 'A' ? 'B' : 'A'} thắng.
-                      </span>
-                    );
-                  } else if (oppDnfCount >= 2) {
-                    // Team đối thủ có 2 lần DNF -> Team mình thắng
-                    return (
-                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-green-400`}>
-                        Team {myTeam} thắng - Team {myTeam === 'A' ? 'B' : 'A'} có 2 lần DNF.
+                      <span className={`${baseClass} ${toneClass}`}>
+                        {message}
                       </span>
                     );
                   }
@@ -3351,28 +3701,68 @@ const clampPlayerIndex = (idx: number) => {
                 const oppTeamTotalSolves = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => sum + playerResults.length, 0);
                 const bothDone = myTeamTotalSolves >= 5 && oppTeamTotalSolves >= 5;
                 if (bothDone) {
-                  // So sánh ao5, nếu đều DNF thì hòa
-                  const myTeamResults = myTeam === 'A' ? teamAResults : teamBResults;
-                  const oppTeamResults = myTeam === 'A' ? teamBResults : teamAResults;
-                  const myTeamAllResults = myTeamResults.flat();
-                  const oppTeamAllResults = oppTeamResults.flat();
-                  const myAo5 = calcStats(myTeamAllResults).ao5;
-                  const oppAo5 = calcStats(oppTeamAllResults).ao5;
-                  let winner = null;
-                  if (myAo5 === null && oppAo5 === null) {
-                    return <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-400" : "text-2xl font-semibold text-yellow-400"}>Trận đấu kết thúc, hòa</span>;
-                  } else if (myAo5 === null) {
-                    winner = `Team ${myTeam === 'A' ? 'B' : 'A'}`;
-                  } else if (oppAo5 === null) {
-                    winner = `Team ${myTeam}`;
-                  } else if (myAo5 < oppAo5) {
-                    winner = `Team ${myTeam}`;
-                  } else if (myAo5 > oppAo5) {
-                    winner = `Team ${myTeam === 'A' ? 'B' : 'A'}`;
+                  const baseClass = mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold";
+                  const totalScoreA = teamAScores.reduce((sum, score) => sum + (typeof score === 'number' ? score : 0), 0);
+                  const totalScoreB = teamBScores.reduce((sum, score) => sum + (typeof score === 'number' ? score : 0), 0);
+                  const averageA = computeTeamAverage(teamAResults);
+                  const averageB = computeTeamAverage(teamBResults);
+                  let winnerTeam: 'A' | 'B' | null = null;
+                  let decidedByAverage = false;
+
+                  if (totalScoreA > totalScoreB) {
+                    winnerTeam = 'A';
+                  } else if (totalScoreB > totalScoreA) {
+                    winnerTeam = 'B';
                   } else {
-                    return <span className="text-2xl font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
+                    if (averageA === null && averageB === null) {
+                      winnerTeam = null;
+                    } else if (averageA === null) {
+                      winnerTeam = 'B';
+                      decidedByAverage = true;
+                    } else if (averageB === null) {
+                      winnerTeam = 'A';
+                      decidedByAverage = true;
+                    } else if (averageA < averageB) {
+                      winnerTeam = 'A';
+                      decidedByAverage = true;
+                    } else if (averageB < averageA) {
+                      winnerTeam = 'B';
+                      decidedByAverage = true;
+                    } else {
+                      winnerTeam = null;
+                    }
                   }
-                    return <span className={mobileShrink ? "text-[10px] font-semibold text-green-400" : "text-2xl font-semibold text-green-400"}>Trận đấu kết thúc, {winner} thắng</span>;
+
+                  if (!winnerTeam) {
+                    return <span className={`${baseClass} text-yellow-400`}>Trận đấu kết thúc, hòa</span>;
+                  }
+
+                  const pointsSummary = `${totalScoreA} - ${totalScoreB}`;
+                  const isViewerWinner = myTeam === winnerTeam;
+                  const isViewerLoser = myTeam && myTeam !== winnerTeam;
+                  const toneClass = isViewerWinner ? 'text-green-400' : isViewerLoser ? 'text-orange-400' : 'text-green-400';
+                  const winnerLabel = `Team ${winnerTeam}`;
+
+                  if (decidedByAverage) {
+                    const winnerAvg = winnerTeam === 'A' ? averageA : averageB;
+                    const loserAvg = winnerTeam === 'A' ? averageB : averageA;
+                    const prettifyAverage = (value: number|null) => {
+                      if (value === null) return 'DNF';
+                      const formatted = (value / 1000).toFixed(2);
+                      return `${formatted}s`;
+                    };
+                    return (
+                      <span className={`${baseClass} ${toneClass}`}>
+                        Trận đấu kết thúc, {winnerLabel} thắng nhờ trung bình {prettifyAverage(winnerAvg)} tốt hơn {prettifyAverage(loserAvg)} (điểm {pointsSummary}).
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <span className={`${baseClass} ${toneClass}`}>
+                      Trận đấu kết thúc, {winnerLabel} thắng với tổng điểm {pointsSummary}.
+                    </span>
+                  );
                 }
                 
                 // Đang trong trận - chỉ hiển thị khi không bị khóa do 2 lần DNF

@@ -225,7 +225,7 @@ useEffect(() => {
   useEffect(() => {
     if (pendingResult !== null && !running && !prep) {
       setShowConfirmButtons(false);
-      const timer = setTimeout(() => setShowConfirmButtons(true), 500);
+      const timer = setTimeout(() => setShowConfirmButtons(true), 1000);
       return () => clearTimeout(timer);
     } else {
       setShowConfirmButtons(false);
