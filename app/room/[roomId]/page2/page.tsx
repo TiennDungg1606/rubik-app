@@ -170,6 +170,7 @@ export default function RoomPage() {
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
+  const [hostId, setHostId] = useState<string>('');
 
   // === TEAM MANAGEMENT STATES FOR 2VS2 ===
   // Team structure: { teamId: string, players: TeamPlayer[] }
@@ -412,6 +413,15 @@ useEffect(() => {
   const normalizeId = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
   const normalizedUserId = React.useMemo(() => normalizeId(userId), [userId]);
+  const normalizedHostId = React.useMemo(() => normalizeId(hostId), [hostId]);
+
+  useEffect(() => {
+    if (!normalizedUserId || !normalizedHostId) {
+      setIsCreator(false);
+      return;
+    }
+    setIsCreator(normalizedUserId === normalizedHostId);
+  }, [normalizedUserId, normalizedHostId]);
 
   const totalActivePlayers = React.useMemo(() => {
     const collectIds = (team: { players: TeamPlayer[] }) =>
@@ -743,11 +753,7 @@ useEffect(() => {
     setWaiting(normalizedUsers.length < 2);
     setPendingUsers(normalizedUsers);
       // Đồng bộ chủ phòng từ server
-      if (userId && data.hostId) {
-        setIsCreator(userId === data.hostId);
-      } else {
-        setIsCreator(false);
-      }
+      setHostId(data.hostId || '');
       
       // Reset sự kiện 2 lần DNF khi có sự thay đổi người chơi
       if (normalizedUsers.length !== users.length) {
@@ -3697,13 +3703,13 @@ const clampPlayerIndex = (idx: number) => {
           <table className={mobileShrink ? "text-center bg-gray-900 rounded overflow-hidden text-[8px] shadow border-collapse w-full" : "text-center bg-gray-900 rounded-xl overflow-hidden text-sm shadow-lg border-collapse w-full"} style={mobileShrink ? { border: '1px solid #374151', margin: 0 } : { border: '1px solid #374151', margin: 0 }}>
             <thead className="bg-gray-800">
               <tr>
-                <th className="px-1 py-0.5 border border-gray-700 font-bold">Tên</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Team</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">1</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">2</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">3</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">4</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">5</th>
-                <th className="px-1 py-0.5 border border-gray-700 font-bold">Total</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Tổng</th>
               </tr>
             </thead>
             <tbody>
@@ -4652,7 +4658,7 @@ const clampPlayerIndex = (idx: number) => {
                 style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 40, textAlign: 'center', fontSize: 40, padding: 6 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '220px', textAlign: 'center', fontSize: 110, padding: 18 }}
               >
                 {prep ? (
-                  <span className={mobileShrink ? "text-[20px]" : undefined}>
+                  <span className={mobileShrink ? "text-[20px]" : "text-[56px] leading-tight"}>
                     Chuẩn bị: {prepTime}s
                   </span>
                 ) : dnf ? (
