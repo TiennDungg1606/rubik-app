@@ -406,12 +406,6 @@ useEffect(() => {
   const [rematchPending, setRematchPending] = useState(false);
   const [rematchInfoMessage, setRematchInfoMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!rematchInfoMessage) return;
-    const timeout = setTimeout(() => setRematchInfoMessage(null), 8000);
-    return () => clearTimeout(timeout);
-  }, [rematchInfoMessage]);
-
     // Ref cho khối chat để auto-scroll
   const chatListRef = useRef<HTMLDivElement>(null);
 
@@ -682,8 +676,52 @@ useEffect(() => {
   }, [showChat, chatMessages]);
 
   useEffect(() => {
+    if (!roomId) return;
+    const socket = getSocket();
+    const handleChat = (payload: { roomId?: string; userId?: string; userName?: string; message?: string }) => {
+      if (!payload || !payload.message) return;
+      const senderIdNormalized = normalizeId(payload.userId);
+      if (senderIdNormalized && senderIdNormalized === normalizedUserId) return;
+
+      const roomUpper = roomId.toUpperCase();
+      if (payload.roomId && payload.roomId.toUpperCase() !== roomUpper) return;
+
+      const withTeam = () => {
+        const enriched = [
+          ...(Array.isArray(teamA?.players) ? teamA.players.map(player => ({ ...player, teamId: 'A' as const })) : []),
+          ...(Array.isArray(teamB?.players) ? teamB.players.map(player => ({ ...player, teamId: 'B' as const })) : []),
+        ];
+        const found = enriched.find(player => normalizeId(player.userId) === senderIdNormalized);
+        if (!found) return { team: undefined, name: undefined } as { team: 'A' | 'B' | undefined; name: string | undefined };
+        return { team: found.teamId, name: found.userName };
+      };
+
+      const { team, name } = withTeam();
+      const resolvedName = payload.userName?.trim() || name?.trim() || 'Người chơi khác';
+
+      setChatMessages(prev => [...prev, { from: 'opponent', text: payload.message!, team, playerName: resolvedName }]);
+      if (!showChat) {
+        setHasNewChat(true);
+      }
+      if (audioRef.current) {
+        try {
+          audioRef.current.currentTime = 0;
+          void audioRef.current.play();
+        } catch (err) {
+          // ignore autoplay restrictions
+        }
+      }
+    };
+
+    socket.on('chat', handleChat);
+    return () => {
+      socket.off('chat', handleChat);
+    };
+  }, [roomId, normalizedUserId, teamA, teamB, showChat]);
+
+  useEffect(() => {
     if (!rematchInfoMessage) return;
-    const timeout = setTimeout(() => setRematchInfoMessage(null), 3000);
+    const timeout = setTimeout(() => setRematchInfoMessage(null), 8000);
     return () => clearTimeout(timeout);
   }, [rematchInfoMessage]);
 
@@ -2602,6 +2640,31 @@ useEffect(() => {
     }
   }, [prep, running]);
 
+  // Chặn hành vi cuộn trang bằng phím Space trên toàn bộ trang khi không nhập liệu
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleSpacePrevent = (event: KeyboardEvent) => {
+      if (event.code !== 'Space') return;
+
+      const target = event.target as HTMLElement | null;
+      const isEditableTarget = target && (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      );
+
+      if (isEditableTarget) return;
+
+      event.preventDefault();
+    };
+
+    window.addEventListener('keydown', handleSpacePrevent, { passive: false });
+    return () => {
+      window.removeEventListener('keydown', handleSpacePrevent);
+    };
+  }, []);
+
 
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=300ms rồi thả ra để bắt đầu chạy
   useEffect(() => {
@@ -3100,6 +3163,39 @@ const clampPlayerIndex = (idx: number) => {
   
   // Helper: compact style for mobile landscape only
   const mobileShrink = isMobileLandscape;
+
+  const buildMedianDisplay = (results?: (number|null)[]) => {
+    const thresholds = mobileShrink
+      ? { base: 11, medium: 10, small: 9 }
+      : { base: 18, medium: 16, small: 14 };
+
+    if (!Array.isArray(results) || results.length === 0) {
+      return { text: '-', fontSize: thresholds.base };
+    }
+
+    const stats = calcStats(results);
+    const meanMs = stats?.mean;
+
+    if (typeof meanMs !== 'number' || Number.isNaN(meanMs)) {
+      return { text: '-', fontSize: thresholds.base };
+    }
+
+    const formatted = formatSolveCell(Math.round(meanMs));
+    const length = formatted.length;
+
+    let fontSize = thresholds.small;
+    if (length <= 4) {
+      fontSize = thresholds.base;
+    } else if (length <= 6) {
+      fontSize = thresholds.medium;
+    }
+
+    return { text: formatted, fontSize };
+  };
+
+  const teammateMedianDisplay = buildMedianDisplay(displayMyTeamResults[teammateIndex]);
+  const opponentSecondaryMedianDisplay = buildMedianDisplay(displayOpponentResults[opponentIndexForTeammate]);
+
   return (
     <div 
       className={  
@@ -3890,7 +3986,7 @@ const clampPlayerIndex = (idx: number) => {
               ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
-                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 360, height: 270 }}
           >
             {/* Video element for local webcam */}
             <video
@@ -4649,7 +4745,7 @@ const clampPlayerIndex = (idx: number) => {
               ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
-                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 360, height: 270 }}
           >
             {/* Video element for remote webcam */}
             <video
@@ -4830,7 +4926,7 @@ const clampPlayerIndex = (idx: number) => {
               ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
-                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 360, height: 270 }}
           >
             {/* Video element for other person 1 */}
             <video
@@ -4844,27 +4940,24 @@ const clampPlayerIndex = (idx: number) => {
           </div>
           {/* Thông tin người khác 1 */}
           <div className="flex flex-row items-center gap-1 mb-1">
-            {/* MEDIAN */}
+            {/* Median */}
             <div style={{
-              background: '#181c22',
-              borderRadius: 4,
-              border: '2px solid #222',
-              minWidth: 60,
-              maxWidth: 120,
+              background: '#23272b',
+              color: '#ccc',
+              borderRadius: 6,
+              fontWeight: 600,
+              fontSize: mobileShrink ? 13 : 18,
+              padding: mobileShrink ? '2px 4px' : '4px 12px',
+              minWidth: mobileShrink ? 40 : 48,
+              maxWidth: mobileShrink ? 55 : 70,
               textAlign: 'center',
-              fontSize: mobileShrink ? 11 : 18,
-              color: '#ff3b1d',
-              fontWeight: 700,
-              letterSpacing: 1,
-              boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
-              padding: '2px 10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 4
+              border: '2px solid #222',
+              marginRight: mobileShrink ? 2 : 6,
+              flexShrink: 0,
+              overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>-</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: teammateMedianDisplay.fontSize}}>{teammateMedianDisplay.text}</div>
             </div>
             {/* Timer */}
             <div style={{
@@ -4888,7 +4981,7 @@ const clampPlayerIndex = (idx: number) => {
               fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
             }}>
               {(() => {
-                const targetId = opponentUserId2;
+                const targetId = teammateUserId;
                 const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
                 if (isTargetActive && opponentPrep) {
                   return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>;
@@ -4955,7 +5048,7 @@ const clampPlayerIndex = (idx: number) => {
               ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
-                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
+                : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 360, height: 270 }}
           >
             {/* Video element for other person 2 */}
             <video
@@ -4969,27 +5062,24 @@ const clampPlayerIndex = (idx: number) => {
           </div>
           {/* Thông tin người khác 2 */}
           <div className="flex flex-row items-center gap-1 mb-1">
-            {/* MEDIAN */}
+            {/* Median */}
             <div style={{
-              background: '#181c22',
-              borderRadius: 4,
-              border: '2px solid #222',
-              minWidth: 60,
-              maxWidth: 120,
+              background: '#23272b',
+              color: '#ccc',
+              borderRadius: 6,
+              fontWeight: 600,
+              fontSize: mobileShrink ? 13 : 18,
+              padding: mobileShrink ? '2px 4px' : '4px 12px',
+              minWidth: mobileShrink ? 40 : 48,
+              maxWidth: mobileShrink ? 55 : 70,
               textAlign: 'center',
-              fontSize: mobileShrink ? 11 : 18,
-              color: '#ff3b1d',
-              fontWeight: 700,
-              letterSpacing: 1,
-              boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
-              padding: '2px 10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 4
+              border: '2px solid #222',
+              marginRight: mobileShrink ? 2 : 6,
+              flexShrink: 0,
+              overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#e0e7ff', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
-              <div style={{fontSize: mobileShrink ? 11 : 18}}>-</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: opponentSecondaryMedianDisplay.fontSize}}>{opponentSecondaryMedianDisplay.text}</div>
             </div>
             {/* Timer */}
             <div style={{
@@ -5013,7 +5103,7 @@ const clampPlayerIndex = (idx: number) => {
               fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
             }}>
               {(() => {
-                const targetId = teammateUserId;
+                const targetId = opponentUserId2;
                 const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
                 if (isTargetActive && opponentPrep) {
                   return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>;
