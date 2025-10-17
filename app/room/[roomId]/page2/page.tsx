@@ -747,15 +747,21 @@ useEffect(() => {
   // Lắng nghe danh sách users và hostId từ server
   useEffect(() => {
     const socket = getSocket();
-  const handleUsers = (data: { users: RoomUser[], hostId: string }) => {
-    const normalizedUsers = mergeRoomUsers(data.users);
-    setUsers(normalizedUsers.map(u => u.userId));
-    setWaiting(normalizedUsers.length < 2);
-    setPendingUsers(normalizedUsers);
-      // Đồng bộ chủ phòng từ server
-      setHostId(data.hostId || '');
-      
-      // Reset sự kiện 2 lần DNF khi có sự thay đổi người chơi
+    const handleUsers = (data: { users: RoomUser[]; hostId?: string }) => {
+      const normalizedUsers = mergeRoomUsers(data.users);
+      setUsers(normalizedUsers.map(u => u.userId));
+      setWaiting(normalizedUsers.length < 2);
+      setPendingUsers(normalizedUsers);
+
+      const creatorUser = normalizedUsers.find(user => user.role === 'creator');
+      if (creatorUser?.userId) {
+        setHostId(creatorUser.userId);
+      } else if (data.hostId) {
+        setHostId(data.hostId);
+      } else {
+        setHostId('');
+      }
+
       if (normalizedUsers.length !== users.length) {
         setIsLockedDue2DNF(false);
         // setShowLockedDNFModal(false); // ĐÃ HỦY
