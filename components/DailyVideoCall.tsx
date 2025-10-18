@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import DailyIframe from '@daily-co/daily-js';
 import {
   DailyProvider,
@@ -9,6 +9,12 @@ import {
   useParticipantIds,
   useMediaTrack,
 } from '@daily-co/daily-react';
+
+// React 19 renamed the experimental internals object; Daily React still reads the legacy key.
+if (typeof (React as unknown as { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: unknown; __SECRET_INTERNALS_EXPERIMENTAL_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: unknown; }).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED === 'undefined') {
+  (React as unknown as { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: unknown; __SECRET_INTERNALS_EXPERIMENTAL_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: unknown; }).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED =
+    (React as unknown as { __SECRET_INTERNALS_EXPERIMENTAL_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: unknown }).__SECRET_INTERNALS_EXPERIMENTAL_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+}
 
 interface DailyVideoCallProps {
   roomUrl: string;
@@ -49,20 +55,36 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
   const otherPerson1VideoRef = propOtherPerson1VideoRef ?? useRef<HTMLVideoElement>(null);
   const otherPerson2VideoRef = propOtherPerson2VideoRef ?? useRef<HTMLVideoElement>(null);
 
-  const callObject = useMemo(() => {
-    try {
-      return DailyIframe.createCallObject();
-    } catch (error) {
-      console.error('[DailyVideoCall] Failed to create call object', error);
-      return null;
-    }
-  }, []);
+  const callObjectRef = useRef<ReturnType<typeof DailyIframe.createCallObject> | null>(null);
+  const [, forceRender] = useState(0);
 
   useEffect(() => {
+    let disposed = false;
+
+    if (!callObjectRef.current) {
+      try {
+        const instance = DailyIframe.createCallObject();
+        callObjectRef.current = instance;
+        if (!disposed) {
+          forceRender((tick) => tick + 1);
+        } else {
+          instance.destroy();
+          callObjectRef.current = null;
+        }
+      } catch (error) {
+        console.error('[DailyVideoCall] Failed to create call object', error);
+      }
+    }
+
     return () => {
-      callObject?.destroy();
+      disposed = true;
+      const existing = callObjectRef.current;
+      callObjectRef.current = null;
+      existing?.destroy();
     };
-  }, [callObject]);
+  }, []);
+
+  const callObject = callObjectRef.current;
 
   if (!callObject) {
     return null;
