@@ -836,32 +836,8 @@ export default function WaitingRoom() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-between items-center">
-          {/* Observer Button - sát bên trái */}
-          {(() => {
-            const currentPlayer = getCurrentPlayer();
-            
-            if (currentPlayer?.isObserver) {
-              return (
-                <button
-                  onClick={handleToggleObserver}
-                  className="px-6 py-3 rounded-lg font-medium transition-all bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Hủy quan sát
-                </button>
-              );
-            } else {
-              return (
-                <button
-                  onClick={handleToggleObserver}
-                  className="px-6 py-3 rounded-lg font-medium transition-all bg-gray-200 text-gray-700 hover:bg-gray-300"
-                >
-                  Quan sát
-                </button>
-              );
-            }
-          })()}
-
+        <div className="flex justify-end items-center">
+          {/* Observer controls temporarily hidden until server capacity is upgraded */}
           {/* Ready/Start Button - sát bên phải */}
           {(() => {
             // Kiểm tra xem có phải creator không (theo role, roomCreator, hoặc thứ tự join)

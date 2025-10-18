@@ -5,7 +5,7 @@ declare global {
     _roomDisplayName?: string;
   }
 }
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 import { io } from "socket.io-client";
 
@@ -26,6 +26,11 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [competingRooms, setCompetingRooms] = useState<string[]>([]);
   // Lưu meta phòng để kiểm tra mật khẩu
   const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string; event?: string; displayName?: string; gameMode?: string; isWaitingRoom?: boolean }>>({});
+  const roomMetasRef = useRef(roomMetas);
+
+  useEffect(() => {
+    roomMetasRef.current = roomMetas;
+  }, [roomMetas]);
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -82,7 +87,20 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           const usersCount = typeof roomObj === 'object' && typeof roomObj.usersCount === 'number' ? roomObj.usersCount : undefined;
           const isWaitingRoom = typeof roomObj === 'object' && (roomObj.isWaitingRoom === true || meta.isWaitingRoom === true);
           if (!roomId) continue;
-          metaMap[roomId] = { ...meta, isWaitingRoom };
+          const previousMeta = roomMetasRef.current[roomId] || {};
+          const mergedMeta = { ...previousMeta, ...meta, isWaitingRoom };
+          if (!mergedMeta.displayName) {
+            const fallbackName = typeof meta.displayName === 'string'
+              ? meta.displayName
+              : typeof roomObj?.displayName === 'string'
+                ? roomObj.displayName
+                : previousMeta.displayName;
+            if (fallbackName) mergedMeta.displayName = fallbackName;
+          }
+          if (mergedMeta.gameMode === '2vs2' && !isWaitingRoom) {
+            delete mergedMeta.password;
+          }
+          metaMap[roomId] = mergedMeta;
           
           if (isWaitingRoom) {
             // Waiting rooms luôn hiển thị trong active rooms
@@ -93,7 +111,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             competing.push(roomId);
           }
         }
-        setRoomMetas(metaMap);
+  setRoomMetas(metaMap);
+  roomMetasRef.current = metaMap;
         setActiveRooms(active);
         setCompetingRooms(competing);
       } catch {
