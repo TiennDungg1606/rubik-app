@@ -8,13 +8,7 @@ import {
   useLocalSessionId,
   useParticipantIds,
   useMediaTrack,
-} from '@daily-co/daily-react';
-
-// React 19 renamed the experimental internals object; Daily React still reads the legacy key.
-if (typeof (React as unknown as { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: unknown; __SECRET_INTERNALS_EXPERIMENTAL_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: unknown; }).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED === 'undefined') {
-  (React as unknown as { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: unknown; __SECRET_INTERNALS_EXPERIMENTAL_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: unknown; }).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED =
-    (React as unknown as { __SECRET_INTERNALS_EXPERIMENTAL_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: unknown }).__SECRET_INTERNALS_EXPERIMENTAL_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
-}
+} from '@/lib/dailyReactCompat';
 
 interface DailyVideoCallProps {
   roomUrl: string;
