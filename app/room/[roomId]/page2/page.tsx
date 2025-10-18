@@ -503,6 +503,7 @@ useEffect(() => {
 
   const shouldShowRematchAcceptButton = !hasAcceptedRematch && rematchDialog.status !== 'confirmed';
   const shouldShowRematchCancelButton = rematchInitiatorIsMe && rematchDialog.status !== 'confirmed';
+  const shouldShowRematchDeclineButton = !rematchInitiatorIsMe && rematchDialog.status !== 'confirmed';
 
   const getCurrentUserId = () => userIdNormalizedRef.current || normalizeId(userId);
 
@@ -2118,11 +2119,29 @@ useEffect(() => {
       setRematchInfoMessage('Tất cả thành viên đã đồng ý. Đang chuẩn bị trận đấu mới...');
     };
 
-    const handleRematchCancelled = () => {
+    const handleRematchCancelled = (payload?: { cancelledBy?: string; reason?: string }) => {
       setRematchDialog({ show: false, initiatorId: null, participants: [], status: 'waiting' });
       setRematchAcceptedIds([]);
       setRematchPending(false);
-      setRematchInfoMessage('Yêu cầu tái đấu đã bị hủy.');
+
+      const cancelledByNormalized = normalizeId(payload?.cancelledBy);
+      let infoMessage = 'Yêu cầu tái đấu đã bị hủy.';
+
+      if (payload?.reason === 'declined') {
+        infoMessage = cancelledByNormalized && cancelledByNormalized === normalizedUserId
+          ? 'Bạn đã từ chối tái đấu.'
+          : 'Một thành viên đã từ chối tái đấu.';
+      } else if (payload?.reason === 'host-cancelled') {
+        infoMessage = cancelledByNormalized && cancelledByNormalized === normalizedUserId
+          ? 'Bạn đã hủy yêu cầu tái đấu.'
+          : 'Chủ phòng đã hủy yêu cầu tái đấu.';
+      } else if (!payload?.reason && cancelledByNormalized && cancelledByNormalized === normalizedHostId) {
+        infoMessage = cancelledByNormalized === normalizedUserId
+          ? 'Bạn đã hủy yêu cầu tái đấu.'
+          : 'Chủ phòng đã hủy yêu cầu tái đấu.';
+      }
+
+      setRematchInfoMessage(infoMessage);
     };
 
     const handleRematchAccepted = () => {
@@ -2163,17 +2182,17 @@ useEffect(() => {
     socket.on('rematch2v2-open', handleRematchOpen);
     socket.on('rematch2v2-update', handleRematchUpdate);
     socket.on('rematch2v2-confirmed', handleRematchConfirmed);
-    socket.on('rematch2v2-cancelled', handleRematchCancelled);
+  socket.on('rematch2v2-cancelled', handleRematchCancelled);
     socket.on('rematch-accepted', handleRematchAccepted);
 
     return () => {
       socket.off('rematch2v2-open', handleRematchOpen);
       socket.off('rematch2v2-update', handleRematchUpdate);
       socket.off('rematch2v2-confirmed', handleRematchConfirmed);
-      socket.off('rematch2v2-cancelled', handleRematchCancelled);
+  socket.off('rematch2v2-cancelled', handleRematchCancelled);
       socket.off('rematch-accepted', handleRematchAccepted);
     };
-  }, [normalizedUserId, roomId, userId, setMyResults, teamA, teamB]);
+  }, [normalizedUserId, normalizedHostId, roomId, userId, setMyResults, teamA, teamB]);
 
   // Lắng nghe sự kiện đối thủ tắt/bật cam để hiện overlay đúng
   useEffect(() => {
@@ -2240,6 +2259,16 @@ useEffect(() => {
     if (!roomId || !userId || hasAcceptedRematch || rematchDialog.status === 'confirmed') return;
     const socket = getSocket();
     socket.emit('rematch2v2-respond', { roomId, userId });
+  }
+
+  function handleRematch2v2Decline() {
+    if (!roomId || !userId || rematchDialog.status === 'confirmed') return;
+    const socket = getSocket();
+    socket.emit('rematch2v2-decline', { roomId, userId });
+    setRematchDialog({ show: false, initiatorId: null, participants: [], status: 'waiting' });
+    setRematchAcceptedIds([]);
+    setRematchPending(false);
+    setRematchInfoMessage('Bạn đã từ chối tái đấu.');
   }
 
   function handleRematch2v2Cancel() {
@@ -2545,12 +2574,13 @@ useEffect(() => {
           const meta = JSON.parse(metaStr);
           event = meta.event;
           displayName = meta.displayName;
-          password = meta.password || "";
+          // Do NOT carry over waiting-room passwords into active room joins from page2.
+          // password is intentionally left empty here so active matches are not gated client-side.
         } catch {}
         sessionStorage.removeItem(`roomMeta_${roomId}`);
       } else {
-        password = sessionStorage.getItem(`roomPassword_${roomId}`) || "";
-        sessionStorage.removeItem(`roomPassword_${roomId}`);
+        // Intentionally ignore roomPassword session entry here to avoid client-side password checks.
+        password = "";
       }
       
       // Clean up sessionStorage for game mode
@@ -3570,6 +3600,15 @@ const clampPlayerIndex = (idx: number) => {
                 <div className={mobileShrink ? "text-[11px] text-green-300 text-center font-semibold" : "text-sm text-green-300 text-center font-semibold"}>
                   {hasAcceptedRematch ? 'Đã ghi nhận đồng ý của bạn.' : 'Đang chờ tất cả thành viên xác nhận.'}
                 </div>
+              )}
+              {shouldShowRematchDeclineButton && (
+                <button
+                  onClick={handleRematch2v2Decline}
+                  className={mobileShrink ? "px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-[12px] rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95" : "px-4 py-3 bg-red-600 hover:bg-red-700 text-white text-base rounded-xl font-bold transition-all duration-200 hover:scale-105 active:scale-95"}
+                  type="button"
+                >
+                  Không đồng ý
+                </button>
               )}
               {shouldShowRematchCancelButton && (
                 <button
