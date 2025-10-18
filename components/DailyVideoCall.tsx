@@ -1,4 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+'use client';
+
+import React, { useEffect, useMemo, useRef } from 'react';
+import DailyIframe from '@daily-co/daily-js';
+import {
+  DailyProvider,
+  useDaily,
+  useLocalSessionId,
+  useParticipantIds,
+  useMediaTrack,
+} from '@daily-co/daily-react';
 
 interface DailyVideoCallProps {
   roomUrl: string;
@@ -6,308 +16,282 @@ interface DailyVideoCallProps {
   micOn: boolean;
   localVideoRef?: React.RefObject<HTMLVideoElement | null>;
   remoteVideoRef?: React.RefObject<HTMLVideoElement | null>;
-  otherPerson1VideoRef?: React.RefObject<HTMLVideoElement | null>; // Video người cùng đội
-  otherPerson2VideoRef?: React.RefObject<HTMLVideoElement | null>; // Video người đội đối thủ
-  is2vs2?: boolean; // Thêm prop để hỗ trợ 2vs2
+  otherPerson1VideoRef?: React.RefObject<HTMLVideoElement | null>;
+  otherPerson2VideoRef?: React.RefObject<HTMLVideoElement | null>;
+  is2vs2?: boolean;
 }
 
-const DailyVideoCall: React.FC<DailyVideoCallProps> = ({ 
-  roomUrl, 
-  camOn, 
-  micOn, 
-  localVideoRef: propLocalVideoRef, 
+interface DailyVideoCallInnerProps extends Required<Omit<DailyVideoCallProps, 'roomUrl' | 'camOn' | 'micOn'>> {
+  roomUrl: string;
+  camOn: boolean;
+  micOn: boolean;
+}
+
+interface TrackSinkProps {
+  sessionId?: string | null;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  includeAudio?: boolean;
+  forceMuted?: boolean;
+}
+
+const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
+  roomUrl,
+  camOn,
+  micOn,
+  localVideoRef: propLocalVideoRef,
   remoteVideoRef: propRemoteVideoRef,
   otherPerson1VideoRef: propOtherPerson1VideoRef,
   otherPerson2VideoRef: propOtherPerson2VideoRef,
-  is2vs2 = false 
+  is2vs2 = false,
 }) => {
-  const callObjectRef = useRef<any>(null);
-  const localVideoRef = propLocalVideoRef || useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = propRemoteVideoRef || useRef<HTMLVideoElement>(null);
-  const otherPerson1VideoRef = propOtherPerson1VideoRef || useRef<HTMLVideoElement>(null);
-  const otherPerson2VideoRef = propOtherPerson2VideoRef || useRef<HTMLVideoElement>(null);
-  const [isJoined, setIsJoined] = useState(false);
-  const [participants, setParticipants] = useState<any[]>([]);
+  const localVideoRef = propLocalVideoRef ?? useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = propRemoteVideoRef ?? useRef<HTMLVideoElement>(null);
+  const otherPerson1VideoRef = propOtherPerson1VideoRef ?? useRef<HTMLVideoElement>(null);
+  const otherPerson2VideoRef = propOtherPerson2VideoRef ?? useRef<HTMLVideoElement>(null);
 
-  // Khởi tạo Daily.co call object
+  const callObject = useMemo(() => {
+    try {
+      return DailyIframe.createCallObject();
+    } catch (error) {
+      console.error('[DailyVideoCall] Failed to create call object', error);
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
-    if (!roomUrl) return;
+    return () => {
+      callObject?.destroy();
+    };
+  }, [callObject]);
 
-    // Load Daily.co script nếu chưa có
-    if (!(window as any).DailyIframe) {
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/@daily-co/daily-js@latest/dist/daily-iframe.js';
-      script.async = true;
-      script.onload = () => {
-        // Kiểm tra lại sau khi load
-        if ((window as any).DailyIframe) {
-          initializeCallObject();
-        } else {
-          console.error('[DailyVideoCall] DailyIframe not available after script load');
+  if (!callObject) {
+    return null;
+  }
+
+  return (
+    <DailyProvider callObject={callObject}>
+      <DailyVideoCallInner
+        roomUrl={roomUrl}
+        camOn={camOn}
+        micOn={micOn}
+        localVideoRef={localVideoRef}
+        remoteVideoRef={remoteVideoRef}
+        otherPerson1VideoRef={otherPerson1VideoRef}
+        otherPerson2VideoRef={otherPerson2VideoRef}
+        is2vs2={is2vs2}
+      />
+    </DailyProvider>
+  );
+};
+
+const DailyVideoCallInner: React.FC<DailyVideoCallInnerProps> = ({
+  roomUrl,
+  camOn,
+  micOn,
+  localVideoRef,
+  remoteVideoRef,
+  otherPerson1VideoRef,
+  otherPerson2VideoRef,
+  is2vs2,
+}) => {
+  const daily = useDaily();
+  const joinedMeetingUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!daily || !roomUrl) {
+      return;
+    }
+
+    let disposed = false;
+
+    const joinCall = async () => {
+      const meetingState = daily.meetingState();
+      const alreadyJoining = meetingState === 'joining-meeting';
+      const alreadyJoinedForUrl =
+        meetingState === 'joined-meeting' && joinedMeetingUrlRef.current === roomUrl;
+
+      if (alreadyJoining || alreadyJoinedForUrl) {
+        return;
+      }
+
+      joinedMeetingUrlRef.current = roomUrl;
+
+      try {
+        await daily.join({ url: roomUrl });
+      } catch (error: unknown) {
+        console.error('[DailyVideoCall] Failed to join room', error);
+        if (!disposed) {
+          joinedMeetingUrlRef.current = null;
+        }
+      }
+    };
+
+    void joinCall();
+
+    return () => {
+      disposed = true;
+      joinedMeetingUrlRef.current = null;
+
+      const leaveCall = async () => {
+        try {
+          if (daily.meetingState() !== 'left-meeting') {
+            await daily.leave();
+          }
+        } catch (error: unknown) {
+          console.error('[DailyVideoCall] Failed to leave room', error);
         }
       };
-      script.onerror = () => {
-        console.error('[DailyVideoCall] Failed to load Daily.co script');
-      };
-      document.head.appendChild(script);
+
+      void leaveCall();
+    };
+  }, [daily, roomUrl]);
+
+  useEffect(() => {
+    if (!daily) {
+      return;
+    }
+    try {
+      if (daily.localVideo() !== camOn) {
+        daily.setLocalVideo(camOn);
+      }
+    } catch (error: unknown) {
+      console.error('[DailyVideoCall] Failed to set local video state', error);
+    }
+  }, [daily, camOn]);
+
+  useEffect(() => {
+    if (!daily) {
+      return;
+    }
+    try {
+      if (daily.localAudio() !== micOn) {
+        daily.setLocalAudio(micOn);
+      }
+    } catch (error: unknown) {
+      console.error('[DailyVideoCall] Failed to set local audio state', error);
+    }
+  }, [daily, micOn]);
+
+  const localSessionId = useLocalSessionId();
+  const remoteParticipantIds = useParticipantIds({ filter: 'remote', sort: 'joined_at' });
+
+  const primaryOpponentId = remoteParticipantIds[0] ?? null;
+  const teammateId = is2vs2 ? remoteParticipantIds[1] ?? null : null;
+  const secondaryOpponentId = is2vs2 ? remoteParticipantIds[2] ?? null : null;
+
+  return (
+    <>
+      <TrackSink sessionId={localSessionId} videoRef={localVideoRef} includeAudio={false} forceMuted />
+      <TrackSink sessionId={primaryOpponentId} videoRef={remoteVideoRef} includeAudio />
+      {is2vs2 && (
+        <>
+          <TrackSink sessionId={teammateId} videoRef={otherPerson1VideoRef} includeAudio />
+          <TrackSink sessionId={secondaryOpponentId} videoRef={otherPerson2VideoRef} includeAudio />
+        </>
+      )}
+    </>
+  );
+};
+
+const TrackSink: React.FC<TrackSinkProps> = ({
+  sessionId,
+  videoRef,
+  includeAudio = false,
+  forceMuted = false,
+}) => {
+  const resolvedSessionId = sessionId ?? '';
+  const videoTrackState = useMediaTrack(resolvedSessionId, 'video');
+  const audioTrackState = useMediaTrack(resolvedSessionId, 'audio');
+
+  useEffect(() => {
+    const videoElement = videoRef?.current;
+    if (!videoElement) {
+      return;
+    }
+
+    if (forceMuted && !videoElement.muted) {
+      videoElement.muted = true;
+    }
+
+    const videoTrack = videoTrackState?.persistentTrack ?? null;
+    const audioTrack = includeAudio ? audioTrackState?.persistentTrack ?? null : null;
+    const videoPlayable = Boolean(videoTrack) && videoTrackState?.state === 'playable';
+    const audioPlayable = includeAudio && Boolean(audioTrack) && audioTrackState?.state === 'playable';
+
+    if (videoPlayable) {
+      const currentStream = videoElement.srcObject as MediaStream | null;
+      let needsUpdate = true;
+
+      if (currentStream) {
+        const currentVideoTrack = currentStream.getVideoTracks()[0] ?? null;
+        const currentAudioTrack = currentStream.getAudioTracks()[0] ?? null;
+        const videoMatches = currentVideoTrack === videoTrack;
+        const audioMatches = (!includeAudio && !currentAudioTrack) || currentAudioTrack === audioTrack;
+
+        needsUpdate = !(videoMatches && audioMatches);
+      }
+
+      if (needsUpdate) {
+        const stream = new MediaStream();
+        stream.addTrack(videoTrack as MediaStreamTrack);
+        if (audioPlayable && audioTrack) {
+          stream.addTrack(audioTrack as MediaStreamTrack);
+        }
+        videoElement.srcObject = stream;
+      } else if (audioPlayable && audioTrack && currentStream && !currentStream.getAudioTracks().includes(audioTrack as MediaStreamTrack)) {
+        currentStream.addTrack(audioTrack as MediaStreamTrack);
+      }
+
+      setPlaceholderVisibility(videoElement, true);
+      videoElement.style.display = 'block';
+
+      const playPromise = videoElement.play();
+      if (playPromise?.catch) {
+        playPromise.catch(() => {
+          // Ignore autoplay restrictions; playback will retry on interaction
+        });
+      }
     } else {
-      initializeCallObject();
-    }
-
-    function initializeCallObject() {
-      const DailyIframe = (window as any).DailyIframe;
-      if (!DailyIframe) {
-        console.error('[DailyVideoCall] DailyIframe not available');
-        return;
+      if (videoElement.srcObject) {
+        videoElement.pause();
       }
-
-      // Tạo call object
-      let callObject;
-      try {
-        callObject = DailyIframe.createCallObject({
-          url: roomUrl,
-          userName: 'Player', // Có thể lấy từ props hoặc state
-          startAudioOff: false,
-          startVideoOff: false,
-        });
-      } catch (error) {
-        console.error('[DailyVideoCall] Error creating call object:', error);
-        return;
-      }
-
-      callObjectRef.current = callObject;
-
-      // Event listeners
-      callObject
-        .on('joined-meeting', (event: any) => {
-          console.log('[DailyVideoCall] joined-meeting', event);
-          setIsJoined(true);
-          updateParticipants();
-        })
-        .on('left-meeting', (event: any) => {
-          console.log('[DailyVideoCall] left-meeting', event);
-          setIsJoined(false);
-        })
-        .on('participant-joined', (event: any) => {
-          console.log('[DailyVideoCall] participant-joined', event);
-          updateParticipants();
-        })
-        .on('participant-left', (event: any) => {
-          console.log('[DailyVideoCall] participant-left', event);
-          updateParticipants();
-        })
-        .on('camera-error', (event: any) => {
-          console.error('[DailyVideoCall] camera-error', event);
-        })
-        .on('microphone-error', (event: any) => {
-          console.error('[DailyVideoCall] microphone-error', event);
-        })
-        .on('local-video-track-started', (event: any) => {
-          console.log('[DailyVideoCall] local-video-track-started', event);
-          if (localVideoRef.current && event.track) {
-            const videoElement = event.track.attach();
-            localVideoRef.current.srcObject = videoElement.srcObject;
-            localVideoRef.current.style.display = 'block';
-            // Ẩn placeholder text
-            const placeholder = localVideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
-            if (placeholder) placeholder.style.display = 'none';
-          }
-        })
-        .on('remote-video-track-started', (event: any) => {
-          console.log('[DailyVideoCall] remote-video-track-started', event);
-          if (event.track) {
-            const videoElement = event.track.attach();
-            
-            // Phân phối video cho các elements dựa trên số lượng participants
-            const currentParticipants = Object.values(callObjectRef.current.participants());
-            const participantIndex = currentParticipants.findIndex((p: any) => p.session_id === event.participant.session_id);
-            
-            if (is2vs2) {
-              // 2vs2 mode: phân phối cho 3 video elements (remote, other-person-1, other-person-2)
-              if (participantIndex === 1 && remoteVideoRef.current) {
-                // Participant thứ 2 -> remote video (đối thủ chính)
-                remoteVideoRef.current.srcObject = videoElement.srcObject;
-                remoteVideoRef.current.style.display = 'block';
-                const placeholder = remoteVideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
-                if (placeholder) placeholder.style.display = 'none';
-              } else if (participantIndex === 2 && otherPerson1VideoRef.current) {
-                // Participant thứ 3 -> other-person-1 (người cùng đội)
-                otherPerson1VideoRef.current.srcObject = videoElement.srcObject;
-                otherPerson1VideoRef.current.style.display = 'block';
-                const placeholder = otherPerson1VideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
-                if (placeholder) placeholder.style.display = 'none';
-              } else if (participantIndex === 3 && otherPerson2VideoRef.current) {
-                // Participant thứ 4 -> other-person-2 (người đội đối thủ)
-                otherPerson2VideoRef.current.srcObject = videoElement.srcObject;
-                otherPerson2VideoRef.current.style.display = 'block';
-                const placeholder = otherPerson2VideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
-                if (placeholder) placeholder.style.display = 'none';
-              }
-            } else {
-              // 1vs1 mode: chỉ remote video
-              if (remoteVideoRef.current) {
-                remoteVideoRef.current.srcObject = videoElement.srcObject;
-                remoteVideoRef.current.style.display = 'block';
-                const placeholder = remoteVideoRef.current.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement;
-                if (placeholder) placeholder.style.display = 'none';
-              }
-            }
-          }
-        })
-        .on('participant-updated', (event: any) => {
-          console.log('[DailyVideoCall] participant-updated', event);
-          updateParticipants();
-        });
-
-      // Join room
-      callObject.join();
-    }
-
-    function updateParticipants() {
-      if (callObjectRef.current) {
-        const participants = callObjectRef.current.participants();
-        console.log('[DailyVideoCall] participants:', participants);
-        setParticipants(Object.values(participants));
-      }
+      videoElement.srcObject = null;
+      videoElement.style.display = 'none';
+      setPlaceholderVisibility(videoElement, false);
     }
 
     return () => {
-      if (callObjectRef.current) {
-        callObjectRef.current.destroy();
-        callObjectRef.current = null;
+      const element = videoRef?.current;
+      if (!element) {
+        return;
+      }
+
+      if (!videoPlayable) {
+        element.srcObject = null;
+        element.style.display = 'none';
+        setPlaceholderVisibility(element, false);
       }
     };
-  }, [roomUrl]);
+  }, [
+    audioTrackState?.persistentTrack,
+    audioTrackState?.state,
+    includeAudio,
+    forceMuted,
+    sessionId,
+    videoRef,
+    videoTrackState?.persistentTrack,
+    videoTrackState?.state,
+  ]);
 
-  // Xử lý cam/mic toggle
-  useEffect(() => {
-    if (!callObjectRef.current || !isJoined) return;
-
-    callObjectRef.current.setLocalVideo(camOn);
-    callObjectRef.current.setLocalAudio(micOn);
-  }, [camOn, micOn, isJoined]);
-
-  // Render cho 2vs2 mode - hiển thị 4 video
-  if (is2vs2) {
-    return (
-      <div className="w-full h-full relative">
-        {/* Custom video layout cho 2vs2 - 4 video */}
-        <div className="grid grid-cols-2 gap-2 h-full p-2">
-          {/* Local video */}
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-              style={{ display: 'none' }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
-              {isJoined ? 'Local Video' : 'Connecting...'}
-            </div>
-            <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
-              You
-            </div>
-          </div>
-          
-          {/* Remote video (đối thủ chính) */}
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-              style={{ display: 'none' }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
-              {participants.length > 1 ? 'Remote Video' : 'Waiting for opponent...'}
-            </div>
-            <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
-              Opponent
-            </div>
-          </div>
-          
-          {/* Other person 1 video (người cùng đội) */}
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
-            <video
-              ref={otherPerson1VideoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-              style={{ display: 'none' }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
-              {participants.length > 2 ? 'Teammate Video' : 'Waiting for teammate...'}
-            </div>
-            <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
-              Teammate
-            </div>
-          </div>
-          
-          {/* Other person 2 video (người đội đối thủ) */}
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
-            <video
-              ref={otherPerson2VideoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-              style={{ display: 'none' }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
-              {participants.length > 3 ? 'Opponent Team Video' : 'Waiting for opponent team...'}
-            </div>
-            <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
-              Opponent Team
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Render cho 1vs1 mode - hiển thị 2 video
-  return (
-    <div className="w-full h-full relative">
-      {/* Custom video layout cho 1vs1 */}
-      <div className="grid grid-cols-2 gap-2 h-full p-2">
-        {/* Local video */}
-        <div className="relative bg-gray-800 rounded-lg overflow-hidden">
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-            style={{ display: 'none' }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
-            {isJoined ? 'Local Video' : 'Connecting...'}
-          </div>
-          <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
-            You
-          </div>
-        </div>
-        
-        {/* Remote video */}
-        <div className="relative bg-gray-800 rounded-lg overflow-hidden">
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover"
-            style={{ display: 'none' }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
-            {participants.length > 1 ? 'Remote Video' : 'Waiting for opponent...'}
-          </div>
-          <div className="absolute bottom-2 left-2 text-white text-sm bg-black/50 px-2 py-1 rounded">
-            Opponent
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 };
+
+function setPlaceholderVisibility(videoEl: HTMLVideoElement, showVideo: boolean) {
+  const placeholder = videoEl.parentElement?.querySelector('.absolute.inset-0.flex') as HTMLElement | null;
+  if (!placeholder) {
+    return;
+  }
+  placeholder.style.display = showVideo ? 'none' : '';
+}
 
 export default DailyVideoCall;
