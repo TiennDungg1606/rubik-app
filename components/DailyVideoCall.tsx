@@ -38,6 +38,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
   const otherPerson2VideoRef = propOtherPerson2VideoRef ?? useRef<HTMLVideoElement>(null);
 
   const callObjectRef = useRef<DailyCall | null>(null);
+  const remoteSlotAssignmentsRef = useRef<Map<string, number>>(new Map());
   const [, forceRender] = useState(0);
 
   const detachVideo = useCallback((videoElement: HTMLVideoElement | null) => {
@@ -73,10 +74,32 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
       const audioPlayable = includeAudio && participant?.tracks?.audio?.state === 'playable' && Boolean(audioTrack);
 
       if (videoPlayable && videoTrack) {
+        const currentVideoTrack = videoTrack as MediaStreamTrack;
+        const currentAudioTrack = audioPlayable && audioTrack ? (audioTrack as MediaStreamTrack) : null;
+        const existingStream = videoElement.srcObject instanceof MediaStream ? videoElement.srcObject : null;
+        const existingVideoTrack = existingStream?.getVideoTracks()[0] ?? null;
+        const existingAudioTrack = existingStream?.getAudioTracks()[0] ?? null;
+
+        if (
+          existingStream &&
+          existingVideoTrack === currentVideoTrack &&
+          (!currentAudioTrack || existingAudioTrack === currentAudioTrack)
+        ) {
+          videoElement.style.display = 'block';
+          setPlaceholderVisibility(videoElement, true);
+          if (videoElement.paused) {
+            const resumePromise = videoElement.play();
+            resumePromise?.catch(() => {
+              // Autoplay restrictions – playback will resume after user interaction.
+            });
+          }
+          return;
+        }
+
         const stream = new MediaStream();
-        stream.addTrack(videoTrack as MediaStreamTrack);
-        if (audioPlayable && audioTrack) {
-          stream.addTrack(audioTrack as MediaStreamTrack);
+        stream.addTrack(currentVideoTrack);
+        if (currentAudioTrack) {
+          stream.addTrack(currentAudioTrack);
         }
         videoElement.srcObject = stream;
         videoElement.style.display = 'block';
@@ -106,14 +129,33 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
     attachTracks(localVideoRef.current, localParticipant, false, true);
 
     const localSessionId = localParticipant?.session_id;
+    const parseJoinedAt = (value: DailyParticipant['joined_at']) => {
+      if (typeof value === 'number') {
+        return value;
+      }
+      if (typeof value === 'string') {
+        const parsed = Date.parse(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
+      if (value instanceof Date) {
+        return value.getTime();
+      }
+      return 0;
+    };
+
     const remoteParticipants = Object.values(participants)
       .filter(
         (participant): participant is DailyParticipant =>
-          Boolean(participant && participant.session_id && participant.session_id !== localSessionId),
+          Boolean(
+            participant &&
+              participant.session_id &&
+              participant.session_id !== localSessionId &&
+              ((participant as unknown as { owner?: string }).owner ?? 'participant') !== 'screen',
+          ),
       )
       .sort((a, b) => {
-  const joinedA = Number(a.joined_at ?? 0);
-  const joinedB = Number(b.joined_at ?? 0);
+        const joinedA = parseJoinedAt(a.joined_at);
+        const joinedB = parseJoinedAt(b.joined_at);
         if (joinedA !== joinedB) {
           return joinedA - joinedB;
         }
@@ -124,8 +166,46 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
       ? [remoteVideoRef, otherPerson1VideoRef, otherPerson2VideoRef]
       : [remoteVideoRef];
 
+    const slotAssignments = remoteSlotAssignmentsRef.current;
+    const slotCount = targetRefs.length;
+
+    for (const [sessionId, slotIndex] of Array.from(slotAssignments.entries())) {
+      const stillPresent = remoteParticipants.some((participant) => participant.session_id === sessionId);
+      if (!stillPresent || slotIndex >= slotCount) {
+        slotAssignments.delete(sessionId);
+      }
+    }
+
+    const usedSlots = new Set<number>(slotAssignments.values());
+
+    remoteParticipants.forEach((participant) => {
+      const sessionId = participant.session_id;
+      if (!sessionId) {
+        return;
+      }
+      if (!slotAssignments.has(sessionId)) {
+        const availableSlot = targetRefs.findIndex((_, index) => !usedSlots.has(index));
+        if (availableSlot !== -1) {
+          slotAssignments.set(sessionId, availableSlot);
+          usedSlots.add(availableSlot);
+        }
+      }
+    });
+
+    const participantsBySlot: Array<DailyParticipant | undefined> = Array(slotCount).fill(undefined);
+    remoteParticipants.forEach((participant) => {
+      const sessionId = participant.session_id;
+      if (!sessionId) {
+        return;
+      }
+      const assignedSlot = slotAssignments.get(sessionId);
+      if (typeof assignedSlot === 'number' && assignedSlot >= 0 && assignedSlot < slotCount) {
+        participantsBySlot[assignedSlot] = participant;
+      }
+    });
+
     targetRefs.forEach((ref, index) => {
-      const participant = remoteParticipants[index];
+      const participant = participantsBySlot[index];
       if (participant) {
         attachTracks(ref.current, participant, true, false);
       } else {
@@ -161,6 +241,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
       disposed = true;
       const existing = callObjectRef.current;
       callObjectRef.current = null;
+      remoteSlotAssignmentsRef.current.clear();
       detachVideo(localVideoRef.current);
       detachVideo(remoteVideoRef.current);
       detachVideo(otherPerson1VideoRef.current);
