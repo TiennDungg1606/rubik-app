@@ -20,6 +20,9 @@ interface DailyVideoCallProps {
   otherPerson1VideoRef?: React.RefObject<HTMLVideoElement | null>;
   otherPerson2VideoRef?: React.RefObject<HTMLVideoElement | null>;
   is2vs2?: boolean;
+  participantSlotResolver?: (participant: DailyParticipant) => number | null | undefined;
+  selfUserData?: Record<string, unknown> | null;
+  selfUserName?: string | null;
 }
 
 const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
@@ -31,6 +34,9 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
   otherPerson1VideoRef: propOtherPerson1VideoRef,
   otherPerson2VideoRef: propOtherPerson2VideoRef,
   is2vs2 = false,
+  participantSlotResolver,
+  selfUserData,
+  selfUserName,
 }) => {
   const localVideoRef = propLocalVideoRef ?? useRef<HTMLVideoElement>(null);
   const remoteVideoRef = propRemoteVideoRef ?? useRef<HTMLVideoElement>(null);
@@ -166,41 +172,65 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
       ? [remoteVideoRef, otherPerson1VideoRef, otherPerson2VideoRef]
       : [remoteVideoRef];
 
-    const slotAssignments = remoteSlotAssignmentsRef.current;
-    const slotCount = targetRefs.length;
+    const previousAssignments = remoteSlotAssignmentsRef.current;
+    const slotTotal = targetRefs.length;
+    const availableSlots = new Set<number>(Array.from({ length: slotTotal }, (_, index) => index));
+    const newAssignments = new Map<string, number>();
 
-    for (const [sessionId, slotIndex] of Array.from(slotAssignments.entries())) {
-      const stillPresent = remoteParticipants.some((participant) => participant.session_id === sessionId);
-      if (!stillPresent || slotIndex >= slotCount) {
-        slotAssignments.delete(sessionId);
-      }
-    }
-
-    const usedSlots = new Set<number>(slotAssignments.values());
-
+    const desiredPairs: Array<{ sessionId: string; slot: number }> = [];
     remoteParticipants.forEach((participant) => {
       const sessionId = participant.session_id;
       if (!sessionId) {
         return;
       }
-      if (!slotAssignments.has(sessionId)) {
-        const availableSlot = targetRefs.findIndex((_, index) => !usedSlots.has(index));
-        if (availableSlot !== -1) {
-          slotAssignments.set(sessionId, availableSlot);
-          usedSlots.add(availableSlot);
-        }
+      const desiredSlot = participantSlotResolver?.(participant);
+      if (typeof desiredSlot === 'number' && desiredSlot >= 0 && desiredSlot < slotTotal) {
+        desiredPairs.push({ sessionId, slot: desiredSlot });
       }
     });
 
-    const participantsBySlot: Array<DailyParticipant | undefined> = Array(slotCount).fill(undefined);
-    remoteParticipants.forEach((participant) => {
-      const sessionId = participant.session_id;
-      if (!sessionId) {
+    desiredPairs.forEach(({ sessionId, slot }) => {
+      if (!availableSlots.has(slot)) {
         return;
       }
-      const assignedSlot = slotAssignments.get(sessionId);
-      if (typeof assignedSlot === 'number' && assignedSlot >= 0 && assignedSlot < slotCount) {
-        participantsBySlot[assignedSlot] = participant;
+      newAssignments.set(sessionId, slot);
+      availableSlots.delete(slot);
+    });
+
+    remoteParticipants.forEach((participant) => {
+      const sessionId = participant.session_id;
+      if (!sessionId || newAssignments.has(sessionId)) {
+        return;
+      }
+      const previousSlot = previousAssignments.get(sessionId);
+      if (typeof previousSlot === 'number' && availableSlots.has(previousSlot)) {
+        newAssignments.set(sessionId, previousSlot);
+        availableSlots.delete(previousSlot);
+        return;
+      }
+      const iterator = availableSlots.values().next();
+      if (!iterator.done) {
+        const slot = iterator.value;
+        newAssignments.set(sessionId, slot);
+        availableSlots.delete(slot);
+      }
+    });
+
+    remoteSlotAssignmentsRef.current = newAssignments;
+
+    const participantsBySlot: Array<DailyParticipant | undefined> = Array(slotTotal).fill(undefined);
+    const participantBySession = new Map<string, DailyParticipant>();
+    remoteParticipants.forEach((participant) => {
+      const sessionId = participant.session_id;
+      if (sessionId) {
+        participantBySession.set(sessionId, participant);
+      }
+    });
+
+    newAssignments.forEach((slot, sessionId) => {
+      const participant = participantBySession.get(sessionId);
+      if (participant) {
+        participantsBySlot[slot] = participant;
       }
     });
 
@@ -217,7 +247,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
       detachVideo(otherPerson1VideoRef.current);
       detachVideo(otherPerson2VideoRef.current);
     }
-  }, [attachTracks, detachVideo, is2vs2, localVideoRef, otherPerson1VideoRef, otherPerson2VideoRef, remoteVideoRef]);
+  }, [attachTracks, detachVideo, is2vs2, localVideoRef, otherPerson1VideoRef, otherPerson2VideoRef, participantSlotResolver, remoteVideoRef]);
 
   useEffect(() => {
     let disposed = false;
@@ -249,6 +279,37 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
       existing?.destroy();
     };
   }, [detachVideo, localVideoRef, otherPerson1VideoRef, otherPerson2VideoRef, remoteVideoRef]);
+
+  useEffect(() => {
+    const instance = callObjectRef.current;
+    if (!instance) {
+      return;
+    }
+
+    let cancelled = false;
+    const applyMetadata = async () => {
+      try {
+        if (selfUserName && selfUserName.length > 0) {
+          await instance.setUserName(selfUserName);
+        }
+        if (selfUserData) {
+          await instance.setUserData(selfUserData);
+        }
+      } catch (error) {
+        console.error('[DailyVideoCall] Failed to apply user metadata', error);
+      }
+
+      if (!cancelled) {
+        syncParticipants();
+      }
+    };
+
+    void applyMetadata();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selfUserData, selfUserName, syncParticipants]);
 
   useEffect(() => {
     const instance = callObjectRef.current;
