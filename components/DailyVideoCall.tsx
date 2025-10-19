@@ -46,7 +46,6 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
     }
     if (videoElement.srcObject instanceof MediaStream) {
       videoElement.pause();
-      videoElement.srcObject.getTracks().forEach((track) => track.stop());
     }
     videoElement.srcObject = null;
     videoElement.style.display = 'none';
