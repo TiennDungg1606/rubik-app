@@ -170,12 +170,6 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
     };
   }, [detachVideo, localVideoRef, otherPerson1VideoRef, otherPerson2VideoRef, remoteVideoRef]);
 
-  const callObject = callObjectRef.current;
-
-  if (!callObject) {
-    return null;
-  }
-
   useEffect(() => {
     const instance = callObjectRef.current;
     if (!instance || !roomUrl) {
