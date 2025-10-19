@@ -3188,6 +3188,9 @@ const clampPlayerIndex = (idx: number) => {
   const normalizedTeammateUserId = normalizeId(teammateUserId);
   const normalizedOpponentUserId1 = normalizeId(opponentUserId1);
   const normalizedOpponentUserId2 = normalizeId(opponentUserId2);
+  const normalizedTeammateName = normalizeId(teammateLabel);
+  const normalizedOpponentLabel1 = normalizeId(opponentLabel1);
+  const normalizedOpponentLabel2 = normalizeId(opponentLabel2);
   const dailySelfUserData = userId
     ? {
         userId,
@@ -3196,7 +3199,11 @@ const clampPlayerIndex = (idx: number) => {
       }
     : null;
   const resolveDailyParticipantSlot = (participant: DailyParticipant) => {
-    const userData = (participant.userData ?? {}) as { userId?: string | null };
+    const userData = (participant.userData ?? {}) as {
+      userId?: string | null;
+      teamId?: string | null;
+      teamIndex?: number | null;
+    };
     const candidateRaw =
       typeof userData.userId === 'string'
         ? userData.userId
@@ -3204,6 +3211,24 @@ const clampPlayerIndex = (idx: number) => {
           ? participant.user_id
           : null;
     const candidateNormalized = normalizeId(candidateRaw);
+    const candidateTeam = typeof userData.teamId === 'string' ? userData.teamId : null;
+    const candidateIndex = typeof userData.teamIndex === 'number' ? userData.teamIndex : null;
+
+    if (candidateTeam && candidateIndex !== null) {
+      if (candidateTeam === displayMyTeamId) {
+        if (candidateIndex === teammateIndex) {
+          return 1;
+        }
+      } else if (candidateTeam === displayOpponentTeamId) {
+        if (candidateIndex === opponentIndexForMe) {
+          return 0;
+        }
+        if (candidateIndex === opponentIndexForTeammate) {
+          return 2;
+        }
+      }
+    }
+
     if (candidateNormalized && normalizedOpponentUserId1 && candidateNormalized === normalizedOpponentUserId1) {
       return 0;
     }
@@ -3211,6 +3236,17 @@ const clampPlayerIndex = (idx: number) => {
       return 1;
     }
     if (candidateNormalized && normalizedOpponentUserId2 && candidateNormalized === normalizedOpponentUserId2) {
+      return 2;
+    }
+
+    const candidateNameNormalized = normalizeId(participant.user_name);
+    if (candidateNameNormalized && normalizedOpponentLabel1 && candidateNameNormalized === normalizedOpponentLabel1) {
+      return 0;
+    }
+    if (candidateNameNormalized && normalizedTeammateName && candidateNameNormalized === normalizedTeammateName) {
+      return 1;
+    }
+    if (candidateNameNormalized && normalizedOpponentLabel2 && candidateNameNormalized === normalizedOpponentLabel2) {
       return 2;
     }
     return null;

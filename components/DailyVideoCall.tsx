@@ -285,7 +285,8 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
 
   useEffect(() => {
     participantSlotResolverRef.current = participantSlotResolver;
-  }, [participantSlotResolver]);
+    syncParticipants();
+  }, [participantSlotResolver, syncParticipants]);
 
   useEffect(() => {
     const instance = callObjectRef.current;
