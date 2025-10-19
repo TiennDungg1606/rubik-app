@@ -45,6 +45,8 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
 
   const callObjectRef = useRef<DailyCall | null>(null);
   const remoteSlotAssignmentsRef = useRef<Map<string, number>>(new Map());
+  const participantSlotResolverRef = useRef<DailyVideoCallProps['participantSlotResolver']>(undefined);
+  const metadataSignatureRef = useRef<string>('');
   const [, forceRender] = useState(0);
 
   const detachVideo = useCallback((videoElement: HTMLVideoElement | null) => {
@@ -172,6 +174,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
       ? [remoteVideoRef, otherPerson1VideoRef, otherPerson2VideoRef]
       : [remoteVideoRef];
 
+    const resolver = participantSlotResolverRef.current;
     const previousAssignments = remoteSlotAssignmentsRef.current;
     const slotTotal = targetRefs.length;
     const availableSlots = new Set<number>(Array.from({ length: slotTotal }, (_, index) => index));
@@ -183,7 +186,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
       if (!sessionId) {
         return;
       }
-      const desiredSlot = participantSlotResolver?.(participant);
+  const desiredSlot = resolver ? resolver(participant) : null;
       if (typeof desiredSlot === 'number' && desiredSlot >= 0 && desiredSlot < slotTotal) {
         desiredPairs.push({ sessionId, slot: desiredSlot });
       }
@@ -247,7 +250,7 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
       detachVideo(otherPerson1VideoRef.current);
       detachVideo(otherPerson2VideoRef.current);
     }
-  }, [attachTracks, detachVideo, is2vs2, localVideoRef, otherPerson1VideoRef, otherPerson2VideoRef, participantSlotResolver, remoteVideoRef]);
+  }, [attachTracks, detachVideo, is2vs2, localVideoRef, otherPerson1VideoRef, otherPerson2VideoRef, remoteVideoRef]);
 
   useEffect(() => {
     let disposed = false;
@@ -281,10 +284,20 @@ const DailyVideoCall: React.FC<DailyVideoCallProps> = ({
   }, [detachVideo, localVideoRef, otherPerson1VideoRef, otherPerson2VideoRef, remoteVideoRef]);
 
   useEffect(() => {
+    participantSlotResolverRef.current = participantSlotResolver;
+  }, [participantSlotResolver]);
+
+  useEffect(() => {
     const instance = callObjectRef.current;
     if (!instance) {
       return;
     }
+
+    const signature = JSON.stringify({ name: selfUserName ?? null, data: selfUserData ?? null });
+    if (metadataSignatureRef.current === signature) {
+      return;
+    }
+    metadataSignatureRef.current = signature;
 
     let cancelled = false;
     const applyMetadata = async () => {

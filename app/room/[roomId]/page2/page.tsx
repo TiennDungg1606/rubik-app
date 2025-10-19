@@ -3185,42 +3185,36 @@ const clampPlayerIndex = (idx: number) => {
   const teammateUserId = displayMyTeamData.players[teammateIndex]?.userId;
   const opponentUserId1 = displayOpponentTeamData.players[opponentIndexForMe]?.userId;
   const opponentUserId2 = displayOpponentTeamData.players[opponentIndexForTeammate]?.userId;
-  const normalizedTeammateUserId = React.useMemo(() => normalizeId(teammateUserId), [teammateUserId]);
-  const normalizedOpponentUserId1 = React.useMemo(() => normalizeId(opponentUserId1), [opponentUserId1]);
-  const normalizedOpponentUserId2 = React.useMemo(() => normalizeId(opponentUserId2), [opponentUserId2]);
-  const dailySelfUserData = React.useMemo(() => {
-    if (!userId) {
-      return null;
+  const normalizedTeammateUserId = normalizeId(teammateUserId);
+  const normalizedOpponentUserId1 = normalizeId(opponentUserId1);
+  const normalizedOpponentUserId2 = normalizeId(opponentUserId2);
+  const dailySelfUserData = userId
+    ? {
+        userId,
+        teamId: myTeam ?? null,
+        teamIndex: myTeamIndex,
+      }
+    : null;
+  const resolveDailyParticipantSlot = (participant: DailyParticipant) => {
+    const userData = (participant.userData ?? {}) as { userId?: string | null };
+    const candidateRaw =
+      typeof userData.userId === 'string'
+        ? userData.userId
+        : typeof participant.user_id === 'string'
+          ? participant.user_id
+          : null;
+    const candidateNormalized = normalizeId(candidateRaw);
+    if (candidateNormalized && normalizedOpponentUserId1 && candidateNormalized === normalizedOpponentUserId1) {
+      return 0;
     }
-    return {
-      userId,
-      teamId: myTeam ?? null,
-      teamIndex: myTeamIndex,
-    };
-  }, [myTeam, myTeamIndex, userId]);
-  const dailyParticipantSlotResolver = React.useCallback(
-    (participant: DailyParticipant) => {
-      const userData = (participant.userData ?? {}) as { userId?: string | null };
-      const candidateRaw =
-        typeof userData.userId === 'string'
-          ? userData.userId
-          : typeof participant.user_id === 'string'
-            ? participant.user_id
-            : null;
-      const candidateNormalized = (candidateRaw ?? '').trim().toLowerCase();
-      if (candidateNormalized && normalizedOpponentUserId1 && candidateNormalized === normalizedOpponentUserId1) {
-        return 0;
-      }
-      if (candidateNormalized && normalizedTeammateUserId && candidateNormalized === normalizedTeammateUserId) {
-        return 1;
-      }
-      if (candidateNormalized && normalizedOpponentUserId2 && candidateNormalized === normalizedOpponentUserId2) {
-        return 2;
-      }
-      return null;
-    },
-    [normalizedOpponentUserId1, normalizedOpponentUserId2, normalizedTeammateUserId],
-  );
+    if (candidateNormalized && normalizedTeammateUserId && candidateNormalized === normalizedTeammateUserId) {
+      return 1;
+    }
+    if (candidateNormalized && normalizedOpponentUserId2 && candidateNormalized === normalizedOpponentUserId2) {
+      return 2;
+    }
+    return null;
+  };
   const isMySlotActive = isCurrentPlayerId(mySlotUserId);
   const isTeammateActive = isCurrentPlayerId(teammateUserId);
   const isOpponent1Active = isCurrentPlayerId(opponentUserId1);
@@ -5252,7 +5246,7 @@ const clampPlayerIndex = (idx: number) => {
           otherPerson1VideoRef={otherPerson1VideoRef}
           otherPerson2VideoRef={otherPerson2VideoRef}
           is2vs2={true}
-          participantSlotResolver={dailyParticipantSlotResolver}
+          participantSlotResolver={resolveDailyParticipantSlot}
           selfUserData={dailySelfUserData}
           selfUserName={userName}
         />
