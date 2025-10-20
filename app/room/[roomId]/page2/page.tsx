@@ -3270,9 +3270,6 @@ const clampPlayerIndex = (idx: number) => {
       </div>
     );
   }
-
-
-
   
   // Helper: compact style for mobile landscape only
   const mobileShrink = isMobileLandscape;
