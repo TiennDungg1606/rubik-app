@@ -3257,6 +3257,10 @@ const clampPlayerIndex = (idx: number) => {
   const isOpponent2Active = isCurrentPlayerId(opponentUserId2);
   const myTeamColor = displayMyTeamId === 'A' ? '#60a5fa' : '#10b981';
   const opponentTeamColor = displayOpponentTeamId === 'A' ? '#60a5fa' : '#10b981';
+  const teamCompletedAllRounds = (results: (number|null)[][]) => results.length > 0 && results.every(playerResults => Array.isArray(playerResults) && playerResults.length >= 5);
+  const hasCompleted1v1Match = !myTeam && myResults.length >= 5 && opponentResults.length >= 5;
+  const hasCompleted2v2Match = !!myTeam && teamCompletedAllRounds(teamAResults) && teamCompletedAllRounds(teamBResults);
+  const canExportResults = hasCompleted1v1Match || hasCompleted2v2Match;
 
   if (isPortrait) {
     return (
@@ -4482,8 +4486,8 @@ const clampPlayerIndex = (idx: number) => {
           ) : null}
 
 
-          {/* Nút Xuất kết quả và Tái đấu sau khi trận đấu kết thúc (chỉ áp dụng cho 1vs1) */}
-          {!myTeam && myResults.length >= 5 && opponentResults.length >= 5 && (
+          {/* Nút Xuất kết quả sau khi trận đấu kết thúc */}
+          {canExportResults && (
             <div className="flex flex-row items-center justify-center gap-2 mb-2">
               <button
                 className={`${mobileShrink ? "px-2 py-1 text-[10px] rounded bg-blue-600 hover:bg-blue-700 font-bold text-white" : "px-4 py-2 text-base rounded-lg bg-blue-600 hover:bg-blue-700 font-bold text-white"} transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg result-button`}
@@ -4494,19 +4498,104 @@ const clampPlayerIndex = (idx: number) => {
                   const dateStr = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
                   const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
-                  // Tính toán thống kê
-                  const myStats = calcStats(myResults);
-                  const oppStats = calcStats(opponentResults);
+                  const formatMs = (ms: number) => {
+                    const cs = Math.floor((ms % 1000) / 10);
+                    const s = Math.floor((ms / 1000) % 60);
+                    const m = Math.floor(ms / 60000);
 
-                  // Xác định người thắng
-                  let winner = '';
-                  if (myStats.ao5 !== null && oppStats.ao5 !== null) {
-                    if (myStats.ao5 < oppStats.ao5) winner = userName;
-                    else if (myStats.ao5 > oppStats.ao5) winner = opponentName;
-                    else winner = 'Hòa';
-                  } else if (myStats.ao5 !== null) winner = userName;
-                  else if (oppStats.ao5 !== null) winner = opponentName;
-                  else winner = 'Không xác định';
+                    if (m > 0) return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
+                    if (s > 0) return `${s}.${cs.toString().padStart(2, "0")}`;
+                    return `0.${cs.toString().padStart(2, "0")}`;
+                  };
+
+                  const formatResult = (value: number | null | undefined) => {
+                    if (value === null) return 'DNF';
+                    if (typeof value === 'number') return formatMs(value);
+                    return '';
+                  };
+
+                  const formatStats = (stats: ReturnType<typeof calcStats>) => ({
+                    best: stats.best !== null ? formatMs(stats.best) : 'DNF',
+                    worst: stats.worst !== null ? formatMs(stats.worst) : 'DNF',
+                    mean: stats.mean !== null ? formatMs(stats.mean) : 'DNF',
+                    ao5: stats.ao5 !== null ? formatMs(stats.ao5) : 'DNF',
+                  });
+
+                  const summarizePlayer = (playerName: string, results: (number|null)[]) => {
+                    let section = `NGƯỜI CHƠI: ${playerName}\n`;
+                    section += `Kết quả từng lượt:\n`;
+                    for (let i = 0; i < 5; i++) {
+                      section += `  Lượt ${i+1}: ${formatResult(results?.[i])}\n`;
+                    }
+                    const stats = formatStats(calcStats(results));
+                    section += `Thống kê:\n`;
+                    section += `  Best: ${stats.best}\n`;
+                    section += `  Worst: ${stats.worst}\n`;
+                    section += `  Mean: ${stats.mean}\n`;
+                    section += `  Ao5: ${stats.ao5}\n`;
+                    section += `\n`;
+                    return section;
+                  };
+
+                  const computeTeamScore = (scores: number[]) => scores.reduce((sum, score) => sum + (typeof score === 'number' ? score : 0), 0);
+                  const totalScoreA = computeTeamScore(teamAScores);
+                  const totalScoreB = computeTeamScore(teamBScores);
+                  const averageA = computeTeamAverage(teamAResults);
+                  const averageB = computeTeamAverage(teamBResults);
+
+                  const determineWinnerLabel = () => {
+                    if (hasCompleted1v1Match) {
+                      const myStats = calcStats(myResults);
+                      const oppStats = calcStats(opponentResults);
+
+                      if (myStats.ao5 !== null && oppStats.ao5 !== null) {
+                        if (myStats.ao5 < oppStats.ao5) return userName;
+                        if (myStats.ao5 > oppStats.ao5) return opponentName;
+                        return 'Hòa';
+                      }
+                      if (myStats.ao5 !== null) return userName;
+                      if (oppStats.ao5 !== null) return opponentName;
+                      return 'Không xác định';
+                    }
+
+                    if (hasCompleted2v2Match) {
+                      if (totalScoreA > totalScoreB) return 'Team A';
+                      if (totalScoreB > totalScoreA) return 'Team B';
+                      if (averageA === null && averageB === null) return 'Hòa';
+                      if (averageA === null) return 'Team B (hệ số trung bình)';
+                      if (averageB === null) return 'Team A (hệ số trung bình)';
+                      if (averageA < averageB) return 'Team A (hệ số trung bình)';
+                      if (averageB < averageA) return 'Team B (hệ số trung bình)';
+                      return 'Hòa';
+                    }
+
+                    return 'Không xác định';
+                  };
+
+                  const getTeamSummary = (teamLabel: 'Team A' | 'Team B', teamData: { teamId: string; players: TeamPlayer[] }, teamResults: (number|null)[][], roundScores: number[]) => {
+                    const playerDisplay = teamData.players.map(player => player?.userName || '').filter(name => name && name.trim().length > 0).join(' & ');
+                    const participantLine = playerDisplay.length > 0 ? playerDisplay : 'Chưa xác định';
+                    let section = `${teamLabel.toUpperCase()}: ${participantLine}\n`;
+                    section += `Thành viên: ${teamData.players.map((player, idx) => {
+                      const name = player?.userName || `Player ${idx + 1}`;
+                      const idSuffix = typeof player?.userId === 'string' && player.userId.length >= 4
+                        ? player.userId.slice(-4)
+                        : '';
+                      return idSuffix ? `${name} (#${idSuffix})` : name;
+                    }).join(', ')}\n`;
+                    section += `Điểm từng vòng: ${roundScores.map((score, index) => `V${index+1}:${score}`).join(', ')}\n`;
+                    section += `Tổng điểm: ${computeTeamScore(roundScores)}\n`;
+                    const avg = computeTeamAverage(teamResults);
+                    section += `Hệ số trung bình toàn đội: ${avg !== null ? formatMs(avg) : 'DNF'}\n`;
+                    section += `\n`;
+
+                    teamResults.forEach((playerResults, idx) => {
+                      const playerName = teamData.players[idx]?.userName || `Player ${idx + 1}`;
+                      section += summarizePlayer(`${teamLabel} - ${playerName}`, playerResults ?? []);
+                    });
+
+                    return section;
+                  };
 
                   // Tạo nội dung file txt theo mẫu
                   let txt = '';
@@ -4519,7 +4608,6 @@ const clampPlayerIndex = (idx: number) => {
                   txt += `Thời gian: ${timeStr}\n`;
                   txt += `\n`;
 
-                  // Thêm scramble đã dùng cho 5 lượt
                   if (Array.isArray(scrambles) && scrambles.length >= 5) {
                     txt += `SCRAMBLE ĐÃ SỬ DỤNG:\n`;
                     for (let i = 0; i < 5; i++) {
@@ -4528,169 +4616,18 @@ const clampPlayerIndex = (idx: number) => {
                     txt += `\n`;
                   }
 
-                  // Người chơi 1
-                  txt += `NGƯỜI CHƠI 1: ${userName}\n`;
-                  txt += `Kết quả từng lượt:\n`;
-                  for (let i = 0; i < 5; i++) {
-                    const val = (myResults && myResults[i] !== undefined) ? myResults[i] : null;
-                    if (val === null) {
-                      txt += `  Lượt ${i+1}: DNF\n`;
-                    } else if (typeof val === 'number') {
-                      const cs = Math.floor((val % 1000) / 10);
-                      const s = Math.floor((val / 1000) % 60);
-                      const m = Math.floor(val / 60000);
-                      
-                      if (m > 0) {
-                        txt += `  Lượt ${i+1}: ${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}\n`;
-                      } else if (s > 0) {
-                        txt += `  Lượt ${i+1}: ${s}.${cs.toString().padStart(2, "0")}\n`;
-                      } else {
-                        txt += `  Lượt ${i+1}: 0.${cs.toString().padStart(2, "0")}\n`;
-                      }
-                    }
+                  if (hasCompleted1v1Match) {
+                    txt += summarizePlayer(userName, myResults);
+                    txt += summarizePlayer(opponentName, opponentResults);
                   }
-                  txt += `Thống kê:\n`;
-                  txt += `  Best: ${myStats.best !== null ? (() => {
-                    const ms = myStats.best;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : 'DNF'}\n`;
-                  txt += `  Worst: ${myStats.worst !== null ? (() => {
-                    const ms = myStats.worst;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : 'DNF'}\n`;
-                  txt += `  Mean: ${myStats.mean !== null ? (() => {
-                    const ms = myStats.mean;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : 'DNF'}\n`;
-                  txt += `  Ao5: ${myStats.ao5 !== null ? (() => {
-                    const ms = myStats.ao5;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : 'DNF'}\n`;
-                  txt += `\n`;
 
-                  // Người chơi 2
-                  txt += `NGƯỜI CHƠI 2: ${opponentName}\n`;
-                  txt += `Kết quả từng lượt:\n`;
-                  for (let i = 0; i < 5; i++) {
-                    const val = (opponentResults && opponentResults[i] !== undefined) ? opponentResults[i] : null;
-                    if (val === null) {
-                      txt += `  Lượt ${i+1}: DNF\n`;
-                    } else if (typeof val === 'number') {
-                      const cs = Math.floor((val % 1000) / 10);
-                      const s = Math.floor((val / 1000) % 60);
-                      const m = Math.floor(val / 60000);
-                      
-                      if (m > 0) {
-                        txt += `  Lượt ${i+1}: ${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}\n`;
-                      } else if (s > 0) {
-                        txt += `  Lượt ${i+1}: ${s}.${cs.toString().padStart(2, "0")}\n`;
-                      } else {
-                        txt += `  Lượt ${i+1}: 0.${cs.toString().padStart(2, "0")}\n`;
-                      }
-                    }
+                  if (hasCompleted2v2Match) {
+                    txt += getTeamSummary('Team A', teamA, teamAResults, teamAScores);
+                    txt += getTeamSummary('Team B', teamB, teamBResults, teamBScores);
                   }
-                  txt += `Thống kê:\n`;
-                  txt += `  Best: ${oppStats.best !== null ? (() => {
-                    const ms = oppStats.best;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : 'DNF'}\n`;
-                  txt += `  Worst: ${oppStats.worst !== null ? (() => {
-                    const ms = oppStats.worst;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : 'DNF'}\n`;
-                  txt += `  Mean: ${oppStats.mean !== null ? (() => {
-                    const ms = oppStats.mean;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : 'DNF'}\n`;
-                  txt += `  Ao5: ${oppStats.ao5 !== null ? (() => {
-                    const ms = oppStats.ao5;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  })() : 'DNF'}\n`;
-                  txt += `\n`;
 
-                  // Kết quả cuối cùng
                   txt += `KẾT QUẢ CUỐI CÙNG:\n`;
-                  txt += `Người thắng: ${winner}\n`;
+                  txt += `Đội/người thắng: ${determineWinnerLabel()}\n`;
 
                   // Tạo file và tải về
                   const blob = new Blob([txt], { type: 'text/plain' });
