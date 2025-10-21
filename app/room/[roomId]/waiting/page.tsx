@@ -53,6 +53,7 @@ export default function WaitingRoom() {
   const [isPortrait, setIsPortrait] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
+  const currentUserIdRef = useRef<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [roomUrl, setRoomUrl] = useState('');
   const [customBg, setCustomBg] = useState<string>('');
@@ -72,10 +73,11 @@ export default function WaitingRoom() {
   // Swap seat states
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [swapRequest, setSwapRequest] = useState<{
-    fromPlayer: Player | null;
-    toPlayer: Player | null;
+    fromPlayer: Player;
+    toPlayer: Player;
     fromPosition: number;
     toPosition: number;
+    status: 'pending' | 'accepted' | 'rejected';
   } | null>(null);
   const [pendingSwapRequest, setPendingSwapRequest] = useState<{
     fromPlayer: Player;
@@ -83,6 +85,26 @@ export default function WaitingRoom() {
     fromPosition: number;
     toPosition: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      currentUserIdRef.current = currentUser.id;
+      return;
+    }
+
+    if (user?.firstName || user?.lastName) {
+      const candidateName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+      if (candidateName.length > 0) {
+        const found = roomState.players.find(p => p.name === candidateName);
+        if (found) {
+          currentUserIdRef.current = found.id;
+          return;
+        }
+      }
+    }
+
+    currentUserIdRef.current = null;
+  }, [currentUser, roomState.players, user?.firstName, user?.lastName]);
 
   // Load user từ API giống như lobby
   useEffect(() => {
@@ -442,10 +464,8 @@ export default function WaitingRoom() {
       toPosition: number;
       targetUserId: string;
     }) => {
-      // Dùng cùng pattern như getCurrentPlayer() cho ready button
-      const currentPlayer = getCurrentPlayer();
-      const currentUserId = currentPlayer?.id;
-      
+      const currentUserId = currentUserIdRef.current;
+
       // Chỉ hiện modal cho người được yêu cầu đổi chỗ
       if (data.targetUserId === currentUserId) {
         setPendingSwapRequest(data);
@@ -462,24 +482,19 @@ export default function WaitingRoom() {
       toPosition: number;
       targetUserId: string;
     }) => {
-      // Dùng cùng pattern như getCurrentPlayer() cho ready button
-      const currentPlayer = getCurrentPlayer();
-      const currentUserId = currentPlayer?.id;
-      
+      const currentUserId = currentUserIdRef.current;
+
       // Chỉ xử lý phản hồi cho người yêu cầu
       if (data.targetUserId === currentUserId) {
-        if (data.accepted) {
-          // Room state sẽ được cập nhật từ waiting-room-updated event
-        } else {
-        }
+        setSwapRequest(prev => {
+          if (!prev) return prev;
+          if (prev.toPlayer.id !== data.toUserId) return prev;
+          return { ...prev, status: data.accepted ? 'accepted' : 'rejected' };
+        });
       }
-      
-      // Đóng modal nếu đang mở
-      if (showSwapModal) {
-        setShowSwapModal(false);
-        setSwapRequest(null);
-        setPendingSwapRequest(null);
-      }
+
+      setShowSwapModal(false);
+      setPendingSwapRequest(null);
     });
 
     return () => {
@@ -564,23 +579,28 @@ export default function WaitingRoom() {
 
   // Swap seat handlers
   const handleSwapSeatRequest = (targetPlayer: Player, targetPosition: number) => {
-    if (!socket || !currentUser) return;
-    
-    const currentPlayer = roomState.players.find(p => p.id === currentUser.id);
+    if (!socket) return;
+
+    const currentPlayer = getCurrentPlayer();
     if (!currentPlayer) return;
-    
+
+    currentUserIdRef.current = currentPlayer.id;
+
+    const fromPosition = typeof currentPlayer.position === 'number' ? currentPlayer.position : targetPosition;
+
     setSwapRequest({
       fromPlayer: currentPlayer,
       toPlayer: targetPlayer,
-      fromPosition: currentPlayer.position || 0,
-      toPosition: targetPosition
+      fromPosition,
+      toPosition: targetPosition,
+      status: 'pending'
     });
     
     socket.emit('swap-seat-request', {
       roomId,
-      fromUserId: currentUser.id,
+      fromUserId: currentPlayer.id,
       toUserId: targetPlayer.id,
-      fromPosition: currentPlayer.position || 0,
+      fromPosition,
       toPosition: targetPosition
     });
   };
@@ -596,6 +616,9 @@ export default function WaitingRoom() {
       fromPosition: pendingSwapRequest.fromPosition,
       toPosition: pendingSwapRequest.toPosition
     });
+
+    setShowSwapModal(false);
+    setPendingSwapRequest(null);
   };
 
   const handleSwapSeatReject = () => {
@@ -609,7 +632,21 @@ export default function WaitingRoom() {
       fromPosition: pendingSwapRequest.fromPosition,
       toPosition: pendingSwapRequest.toPosition
     });
+
+    setShowSwapModal(false);
+    setPendingSwapRequest(null);
   };
+
+  useEffect(() => {
+    if (!swapRequest) return;
+    if (swapRequest.status === 'pending') return;
+
+    const timeoutId = setTimeout(() => {
+      setSwapRequest(null);
+    }, 3000);
+
+    return () => clearTimeout(timeoutId);
+  }, [swapRequest]);
 
   // Kiểm tra điều kiện bắt đầu game
   const canStartGame = () => {
@@ -647,9 +684,25 @@ export default function WaitingRoom() {
 
   // Helper function để tìm player hiện tại từ roomState
   const getCurrentPlayer = () => {
-    if (!user?.firstName || !user?.lastName) return null;
-    const currentUserName = `${user.firstName} ${user.lastName}`.trim();
-    return roomState.players.find(p => p.name === currentUserName);
+    if (currentUser?.id) {
+      const byId = roomState.players.find(p => p.id === currentUser.id);
+      if (byId) return byId;
+    }
+
+    if (currentUser?.name) {
+      const byName = roomState.players.find(p => p.name === currentUser.name);
+      if (byName) return byName;
+    }
+
+    if (user?.firstName || user?.lastName) {
+      const currentUserName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+      if (currentUserName.length > 0) {
+        const byDisplayName = roomState.players.find(p => p.name === currentUserName);
+        if (byDisplayName) return byDisplayName;
+      }
+    }
+
+    return null;
   };
 
   // Handler để yêu cầu fullscreen khi chạm vào màn hình
@@ -722,6 +775,30 @@ export default function WaitingRoom() {
           </button>
         </div>
       </div>
+
+        {swapRequest && (
+          <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2">
+            <div
+              className={`px-4 py-2 rounded-lg shadow-lg text-sm font-semibold transition-colors duration-200 ${
+                swapRequest.status === 'pending'
+                  ? 'bg-blue-600/90 text-white'
+                  : swapRequest.status === 'accepted'
+                    ? 'bg-green-600/90 text-white'
+                    : 'bg-red-600/90 text-white'
+              }`}
+            >
+              {swapRequest.status === 'pending' && (
+                <span>Đã gửi yêu cầu đổi chỗ cho {swapRequest.toPlayer.name}. Đang chờ phản hồi...</span>
+              )}
+              {swapRequest.status === 'accepted' && (
+                <span>{swapRequest.toPlayer.name} đã chấp nhận yêu cầu đổi chỗ của bạn.</span>
+              )}
+              {swapRequest.status === 'rejected' && (
+                <span>{swapRequest.toPlayer.name} đã từ chối yêu cầu đổi chỗ của bạn.</span>
+              )}
+            </div>
+          </div>
+        )}
 
       {/* Overlay để text dễ đọc hơn */}
       <div className="w-full max-w-7xl p-15 mt-2 mb-4 rounded-xl bg-neutral-900/30 shadow-xl border border-neutral-700 mx-auto relative z-10">
