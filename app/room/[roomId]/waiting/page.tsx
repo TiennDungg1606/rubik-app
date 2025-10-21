@@ -705,6 +705,22 @@ export default function WaitingRoom() {
     return null;
   };
 
+  const formatSeatLabel = (player: Player | null | undefined) => {
+    if (!player) return 'Chưa xác định';
+
+    const teamLabel = player.team === 'team1'
+      ? 'Đội 1'
+      : player.team === 'team2'
+        ? 'Đội 2'
+        : 'Chưa phân đội';
+
+    const positionLabel = typeof player.position === 'number' && player.position > 0
+      ? `Vị trí ${player.position}`
+      : 'Chưa có vị trí';
+
+    return `${teamLabel} · ${positionLabel}`;
+  };
+
   // Handler để yêu cầu fullscreen khi chạm vào màn hình
   const handleScreenTap = () => {
     if (isMobile && !isFullscreen) {
@@ -1012,8 +1028,8 @@ export default function WaitingRoom() {
               <span className="font-semibold text-yellow-400">{pendingSwapRequest.fromPlayer.name}</span> muốn đổi chỗ với bạn
             </div>
             <div className="text-gray-300 text-sm mb-6 text-center">
-              Chỗ hiện tại: <span className="font-semibold">{pendingSwapRequest.fromPlayer.name}</span><br/>
-              Chỗ muốn đổi: <span className="font-semibold">{pendingSwapRequest.toPlayer.name}</span>
+              Chỗ hiện tại: <span className="font-semibold">{formatSeatLabel(pendingSwapRequest.fromPlayer)}</span><br/>
+              Chỗ muốn đổi: <span className="font-semibold">{formatSeatLabel(pendingSwapRequest.toPlayer)}</span>
             </div>
             <div className="flex gap-3">
               <button
