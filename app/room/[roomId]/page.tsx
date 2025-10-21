@@ -2785,7 +2785,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">Tên</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">Best</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">Worst</th>
-                <th className="px-1 py-0.5 border border-gray-700 font-bold">Mean</th>
+                <th className="px-1 py-0.5 border border-gray-700 font-bold">Average</th>
                 <th className="px-1 py-0.5 border border-gray-700 font-bold">Ao5</th>
               </tr>
             </thead>
@@ -3223,7 +3223,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVERAGE</div>
               <div style={{fontSize: (() => {
                 if (myResults.length > 0) {
                   const stats = calcStats(myResults);
@@ -3966,7 +3966,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVERAGE</div>
               <div style={{fontSize: (() => {
                 if (opponentResults.length > 0) {
                   const stats = calcStats(opponentResults);

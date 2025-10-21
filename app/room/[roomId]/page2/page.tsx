@@ -4178,7 +4178,7 @@ const clampPlayerIndex = (idx: number) => {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVERAGE</div>
               <div style={{fontSize: (() => {
                 const myResults = getMyResults();
                 if (myResults.length > 0) {
@@ -4834,7 +4834,7 @@ const clampPlayerIndex = (idx: number) => {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVERAGE</div>
               <div style={{fontSize: (() => {
                 const oppTeamResults = myTeam === 'A' ? teamBResults : teamAResults;
                 const allOppResults = oppTeamResults.flat();
@@ -5002,7 +5002,7 @@ const clampPlayerIndex = (idx: number) => {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVERAGE</div>
               <div style={{fontSize: teammateMedianDisplay.fontSize}}>{teammateMedianDisplay.text}</div>
             </div>
             {/* Timer */}
@@ -5124,7 +5124,7 @@ const clampPlayerIndex = (idx: number) => {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>MEDIAN</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVERAGE</div>
               <div style={{fontSize: opponentSecondaryMedianDisplay.fontSize}}>{opponentSecondaryMedianDisplay.text}</div>
             </div>
             {/* Timer */}
