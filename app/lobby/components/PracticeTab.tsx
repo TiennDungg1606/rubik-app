@@ -86,7 +86,7 @@ export default function PracticeTab() {
     },
     {
       id: 2,
-      name: "2",
+      name: "2. Dot",
       alg: "r U r' U2 r U2 R' U2 R U' r'",
       img: "/practice/oll2.png"
     },
@@ -111,7 +111,7 @@ export default function PracticeTab() {
     {
       id: 23,
       name: "23. EO",
-      alg: "↑ R2 D' R U2 R' D R U2 R",
+      alg: "↑ R2 D' R 2U' R' D R 2U' R",
       img: "/practice/oll23.png"
     },
     {
@@ -122,44 +122,44 @@ export default function PracticeTab() {
     },
     {
       id: 25,
-      name: "25",
+      name: "25. EO",
       alg: "F' r U R' U' r' F R",
       img: "/practice/oll25.png"
     },
     {
       id: 26,
-      name: "26",
-      alg: "(R U2 R') U' R U' R'",
+      name: "26. EO",
+      alg: "(R 2U' R') U' R U' R'",
       img: "/practice/oll26.png"
     },
     {
       id: 27,
-      name: "27",
-      alg: "R U R' U R U2 R'",
+      name: "27. EO",
+      alg: "R U R' U R 2U' R'",
       img: "/practice/oll27.png"
     },
     {
       id: 28,
-      name: "28",
+      name: "28. CO",
       alg: "r U R' U' r' R U R U' R'",
       img: "/practice/oll28.png"
     },
     {
       id: 29,
-      name: "29",
-      alg: "R U R' U' R U' R' F' U' F R U R'",
+      name: "29. Awkward",
+      alg: "R U R' U' R U' ↓ R' F' U' F R U R'",
       img: "/practice/oll29.png"
     },
     {
       id: 3,
-      name: "3",
-      alg: "r' R2 U R' U r U2 r' U M'",
+      name: "3. Dot",
+      alg: "r' R2 U R' U r 2U' r' U M'",
       img: "/practice/oll3.png"
     },
     {
       id: 30,
-      name: "30",
-      alg: "F R' F R2 U' R' U' R U R' F2",
+      name: "30. Awkward",
+      alg: "↓ F U R 2U' R' U' R 2U' R' U' F'",
       img: "/practice/oll30.png"
     },
     {
@@ -320,13 +320,13 @@ export default function PracticeTab() {
     },
     {
       id: 55,
-      name: "55",
+      name: "55. Line",
       alg: "R' F R U R U' R2 F' R2 U' R' U R U R'",
       img: "/practice/oll55.png"
     },
     {
       id: 56,
-      name: "56",
+      name: "56. Line",
       alg: "(r' U' r) U' R' U R U' R' U R r' U r",
       img: "/practice/oll56.png"
     },

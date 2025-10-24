@@ -3223,7 +3223,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVERAGE</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>Avg</div>
               <div style={{fontSize: (() => {
                 if (myResults.length > 0) {
                   const stats = calcStats(myResults);
@@ -3966,7 +3966,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVERAGE</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>Avg</div>
               <div style={{fontSize: (() => {
                 if (opponentResults.length > 0) {
                   const stats = calcStats(opponentResults);
