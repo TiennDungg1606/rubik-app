@@ -53,6 +53,7 @@ export default function NewTab() {
           <li>Tính năng đấu đội 2vs2 đã ra mắt (thử nghiệm).</li>
           <li>Cập nhật lại tính năng đổi hình nền. Hãy vào hồ sơ để đổi hình nền của mình nào (lưu ý: hình nền ngang)</li>   
           <li>Giao diện tối ưu cho cả desktop và mobile, trải nghiệm tốt hơn.</li>
+          <li>Thêm tính năng kết bạn trên server của Rubik App, thêm tin nhắn, thông báo.</li>
         </ul>
       </div>
       <div className="mb-6">

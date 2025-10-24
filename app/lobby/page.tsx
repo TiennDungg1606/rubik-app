@@ -117,6 +117,7 @@ function LobbyContent() {
   const [user, setUser] = useState<User | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
+  const [mobileShrink, setMobileShrink] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [customBg, setCustomBg] = useState<string | null>(null);
   const [bgError, setBgError] = useState<string>("");
@@ -257,6 +258,8 @@ function LobbyContent() {
       setIsMobile(mobile);
       const portrait = window.innerHeight > window.innerWidth;
       setIsPortrait(portrait);
+      const shouldShrink = mobile && window.innerWidth < 768;
+      setMobileShrink(shouldShrink);
     }
     if (typeof window !== 'undefined') {
       checkDevice();
@@ -467,7 +470,6 @@ function LobbyContent() {
       delete window._roomPassword;
     }
     
-    // Kiểm tra gameMode từ meta phòng để quyết định chuyển hướng
     try {
       const res = await fetch(`/api/room-meta/${code}`);
       if (res.ok) {
@@ -506,6 +508,10 @@ function LobbyContent() {
     router.push(`/room/${code}`);
   };
 
+  const navPaddingClass = mobileShrink ? "px-4" : "px-8";
+  const navGapClass = mobileShrink ? "gap-0.5" : "gap-1";
+  const navButtonSizeClass = mobileShrink ? "text-sm px-3 py-1.5" : "text-base px-5 py-2";
+
   if (isMobile && isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
@@ -527,8 +533,8 @@ function LobbyContent() {
         </div>
       )}
       {/* Tab Navigation Bar */}
-      <nav className="tab-navbar w-full max-w-7xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg px-8 py-3 mx-auto fixed top-0 left-1/2 -translate-x-1/2 z-[100]" style={{width: '100vw', maxWidth: '100vw'}}>
-        <div className="flex items-center gap-1  ">
+      <nav className={`tab-navbar w-full max-w-7xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg ${navPaddingClass} py-3 mx-auto fixed top-0 left-1/2 -translate-x-1/2 z-[100]`} style={{width: '100vw', maxWidth: '100vw'}}>
+        <div className={`flex items-center ${navGapClass}   `}>
           <svg width="32" height="32" viewBox="0 0 64 64" fill="none" className="mr-2 drop-shadow-lg" style={{marginLeft: -8}} xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
             <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
@@ -541,7 +547,7 @@ function LobbyContent() {
             <rect x="44" y="44" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
           </svg>
           <button
-            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
               ${tab === "new"
                 ? "bg-blue-100 text-blue-700 shadow-md"
                 : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
@@ -549,7 +555,7 @@ function LobbyContent() {
             onClick={() => setTab("new")}
           >New</button>
           <button
-            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
               ${tab === "timer"
                 ? "bg-blue-100 text-blue-700 shadow-md"
                 : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
@@ -557,7 +563,7 @@ function LobbyContent() {
             onClick={() => setTab("timer")}
           >Timer</button>
           <button
-            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
               ${tab === "room"
                 ? "bg-blue-100 text-blue-700 shadow-md"
                 : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
@@ -565,7 +571,7 @@ function LobbyContent() {
             onClick={() => setTab("room")}
           >Room</button>
           <button
-            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
               ${tab === "practice"
                 ? "bg-blue-100 text-blue-700 shadow-md"
                 : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
@@ -573,7 +579,7 @@ function LobbyContent() {
             onClick={() => setTab("practice")}
           >Practice</button>
           <button
-            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
               ${tab === "shop"
                 ? "bg-blue-100 text-blue-700 shadow-md"
                 : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
@@ -581,7 +587,7 @@ function LobbyContent() {
             onClick={() => setTab("shop")}
           >Shop</button>
           <button
-            className={`text-base font-semibold px-5 py-2 rounded-lg transition-all shadow-sm
+            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
               ${tab === "about"
                 ? "bg-blue-100 text-blue-700 shadow-md"
                 : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}

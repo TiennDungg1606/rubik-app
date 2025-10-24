@@ -20,68 +20,68 @@ export default function PracticeTab() {
   const ollAlgs = [
     {
       id: 1,
-      name: "1",
-      alg: "R U2 R' R' F R F' U2 R' F R F'",
+      name: "1. Dot",
+      alg: "R 2U' 2R' F R F' U2 R' F R F'",
       img: "/practice/oll1.png"
     },
     {
       id: 10,
-      name: "10",
+      name: "10. Fish",
       alg: "R U R' U R' F R F' R U2 R'",
       img: "/practice/oll10.png"
     },
     {
       id: 11,
-      name: "11",
+      name: "11. Lightning",
       alg: "r U R' U R' F R F' R U2 r'",
       img: "/practice/oll11.png"
     },
     {
       id: 12,
-      name: "12",
+      name: "12. Lightning",
       alg: "M' R' U' R U' R' U2 R U' R r'",
       img: "/practice/oll12.png"
     },
     {
       id: 13,
-      name: "13",
-      alg: "F U R U' R2 F' R U R U' R'",
+      name: "13. Knight",
+      alg: "F U R 2U' R' U' R U R' F'",
       img: "/practice/oll13.png"
     },
     {
       id: 14,
-      name: "14",
+      name: "14.Knight",
       alg: "R' F R U R' F' R F U' F'",
       img: "/practice/oll14.png"
     },
     {
       id: 15,
-      name: "15",
+      name: "15. Knight",
       alg: "l' U' l L' U' L U l' U l",
       img: "/practice/oll15.png"
     },
     {
       id: 16,
-      name: "16",
+      name: "16. Knight",
       alg: "r U r' R U R' U' r U' r'",
       img: "/practice/oll16.png"
     },
     {
       id: 17,
-      name: "17",
-      alg: "F R' F' R2 r' U R U' R' U' M'",
+      name: "17. Dot",
+      alg: "y2 R U R' U R' F U2 R' F",
       img: "/practice/oll17.png"
     },
     {
       id: 18,
-      name: "18",
+      name: "18. Dot",
       alg: "r U R' U R U2 r' r' U' R U' R' U2 r",
       img: "/practice/oll18.png"
     },
     {
       id: 19,
-      name: "19",
-      alg: "r' R U R U R' U' M' R' F R F'",
+      name: "19. Dot",
+      alg: "r' R U (R U R' U') r 2R' F R F'",
       img: "/practice/oll19.png"
     },
     {
@@ -92,31 +92,31 @@ export default function PracticeTab() {
     },
     {
       id: 20,
-      name: "20",
+      name: "20. Dot",
       alg: "r U R' U' M2 U R U' R' U' M'",
       img: "/practice/oll20.png"
     },
     {
       id: 21,
-      name: "21",
-      alg: "R U2 R' U' R U R' U' R U' R'",
+      name: "21. EO",
+      alg: "R 2U' R' U' R U R' U' R U' R'",
       img: "/practice/oll21.png"
     },
     {
       id: 22,
-      name: "22",
-      alg: "R U2 (R2 U' R2 U' R2) U2 R",
+      name: "22. EO",
+      alg: "R 2U' (2R' U' R2 U' 2R') U2 R",
       img: "/practice/oll22.png"
     },
     {
       id: 23,
-      name: "23",
-      alg: "R2 D' R U2 R' D R U2 R",
+      name: "23. EO",
+      alg: "↑ R2 D' R U2 R' D R U2 R",
       img: "/practice/oll23.png"
     },
     {
       id: 24,
-      name: "24",
+      name: "24. EO",
       alg: "r U R' U' r' F R F'",
       img: "/practice/oll24.png"
     },
@@ -248,20 +248,20 @@ export default function PracticeTab() {
     },
     {
       id: 44,
-      name: "44",
-      alg: "F U R U' R' F'",
+      name: "44. P",
+      alg: "↓ F U R U' R' F'",
       img: "/practice/oll44.png"
     },
     {
       id: 45,
-      name: "45",
-      alg: "F R U R' U' F'",
+      name: "45. T",
+      alg: "↓ F R U R' U' F'",
       img: "/practice/oll45.png"
     },
     {
       id: 46,
-      name: "46",
-      alg: "R' U' R' F R F' U R",
+      name: "46. C Shape",
+      alg: "R' U' ↑ R' F R F' U R",
       img: "/practice/oll46.png"
     },
     {
@@ -332,7 +332,7 @@ export default function PracticeTab() {
     },
     {
       id: 57,
-      name: "57",
+      name: "57. H Shape",
       alg: "R U R' U' M' U R U' r'",
       img: "/practice/oll57.png"
     },
@@ -344,19 +344,19 @@ export default function PracticeTab() {
     },
     {
       id: 7,
-      name: "7",
+      name: "7. Lightning",
       alg: "r U R' U R U2 r'",
       img: "/practice/oll7.png"
     },
     {
       id: 8,
-      name: "8",
+      name: "8. Lightning",
       alg: "l' U' L U' L' U2 l",
       img: "/practice/oll8.png"
     },
     {
       id: 9,
-      name: "9",
+      name: "9. Fish",
       alg: "R U R' U' R' F R2 U R' U' F'",
       img: "/practice/oll9.png"
     },
