@@ -582,6 +582,35 @@ useEffect(() => {
     }
   };
 
+  const teamAInfo = React.useMemo(() => {
+    const declaredCount = Array.isArray(teamA?.players) ? teamA.players.length : 0;
+    const slotCount = declaredCount > 0 ? declaredCount : teamAResults.length;
+    const normalizedResults = Array.from({ length: slotCount }, (_, index) => {
+      const results = teamAResults[index];
+      return Array.isArray(results) ? results : [];
+    });
+    const solveCount = normalizedResults.reduce((sum, arr) => sum + arr.length, 0);
+    const completedAll = slotCount > 0 && normalizedResults.every(arr => arr.length >= 5);
+    return { playerCount: slotCount, solveCount, completedAll };
+  }, [teamA, teamAResults]);
+
+  const teamBInfo = React.useMemo(() => {
+    const declaredCount = Array.isArray(teamB?.players) ? teamB.players.length : 0;
+    const slotCount = declaredCount > 0 ? declaredCount : teamBResults.length;
+    const normalizedResults = Array.from({ length: slotCount }, (_, index) => {
+      const results = teamBResults[index];
+      return Array.isArray(results) ? results : [];
+    });
+    const solveCount = normalizedResults.reduce((sum, arr) => sum + arr.length, 0);
+    const completedAll = slotCount > 0 && normalizedResults.every(arr => arr.length >= 5);
+    return { playerCount: slotCount, solveCount, completedAll };
+  }, [teamB, teamBResults]);
+
+  const teamASolveCount = teamAInfo.solveCount;
+  const teamBSolveCount = teamBInfo.solveCount;
+  const teamACompletedAll = teamAInfo.completedAll;
+  const teamBCompletedAll = teamBInfo.completedAll;
+
   const serverTeamToLocal = (team?: string | null): 'A' | 'B' | null => {
     if (team === 'team1') return 'A';
     if (team === 'team2') return 'B';
@@ -2967,8 +2996,8 @@ useEffect(() => {
   // Reset cho lần giải tiếp theo - Updated for 2vs2 with new timer logic
   useEffect(() => {
   // Tính tổng số lượt giải của cả 2 team
-  const teamATotalSolves = teamAResults.reduce((sum, playerResults) => sum + playerResults.length, 0);
-  const teamBTotalSolves = teamBResults.reduce((sum, playerResults) => sum + playerResults.length, 0);
+  const teamATotalSolves = teamASolveCount;
+  const teamBTotalSolves = teamBSolveCount;
   const totalSolves = teamATotalSolves + teamBTotalSolves;
   
   if (totalSolves === 0) return;
@@ -2978,8 +3007,7 @@ useEffect(() => {
   const oppTeamHasDoubleDNF = myTeam === 'A' ? teamBHasDoubleDNF : myTeam === 'B' ? teamAHasDoubleDNF : false;
   const anyTeamHasDoubleDNF = teamAHasDoubleDNF || teamBHasDoubleDNF;
   
-  // Chỉ kiểm tra khi cả 2 đều xong lượt giải đó (totalSolves chẵn)
-  if (totalSolves % 2 === 0 && anyTeamHasDoubleDNF) {
+  if (anyTeamHasDoubleDNF && !isLockedDue2DNF) {
     // KHÓA THAO TÁC CHO CẢ HAI BÊN khi có người bị 2 lần DNF
     // Lý do: Khi trận đấu kết thúc sớm, cả hai bên đều không thể tiếp tục
     setIsLockedDue2DNF(true);
@@ -3017,12 +3045,20 @@ useEffect(() => {
   }
   
   // Chỉ xử lý reset khi cả 2 team đều xong lượt giải
-  const myTeamTotalSolves = getMyResults().length;
-  const oppTeamTotalSolves = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => sum + playerResults.length, 0);
-  if (myTeamTotalSolves > 0 && myTeamTotalSolves > oppTeamTotalSolves) return; // chờ team đối thủ
+  const myTeamTotalSolves = myTeam === 'A'
+    ? teamATotalSolves
+    : myTeam === 'B'
+      ? teamBTotalSolves
+      : getMyResults().length;
+  const oppTeamTotalSolves = myTeam === 'A'
+    ? teamBTotalSolves
+    : myTeam === 'B'
+      ? teamATotalSolves
+      : Math.max(teamATotalSolves, teamBTotalSolves);
+  if (myTeam && myTeamTotalSolves > 0 && myTeamTotalSolves > oppTeamTotalSolves) return; // chờ team đối thủ
   
   // Khi kết thúc trận đấu (đủ 5 lượt mỗi team), chỉ hiển thị thống kê - không cộng set trong chế độ 2vs2
-  if (myTeamTotalSolves === 5 && oppTeamTotalSolves === 5) {
+  if (teamACompletedAll && teamBCompletedAll) {
     // Có thể khai thác thống kê Ao5 ở khu vực hiển thị kết quả nếu cần
     // nhưng không còn cộng điểm set trong chế độ 2vs2
   }
@@ -3031,7 +3067,7 @@ useEffect(() => {
   if (totalSolves % 2 === 0 && totalSolves < 10) {
     // ...
   }
-}, [teamAResults, teamBResults, roomId, myTeam, getMyResults, teamAHasDoubleDNF, teamBHasDoubleDNF, teamAMaxDnf, teamBMaxDnf]);
+}, [teamAResults, teamBResults, roomId, myTeam, getMyResults, teamAHasDoubleDNF, teamBHasDoubleDNF, teamAMaxDnf, teamBMaxDnf, teamASolveCount, teamBSolveCount, teamACompletedAll, teamBCompletedAll, isLockedDue2DNF]);
 
   // Tính toán thống kê - Updated for 2vs2
   const myStats = calcStats(getMyResults());
@@ -3257,9 +3293,8 @@ const clampPlayerIndex = (idx: number) => {
   const isOpponent2Active = isCurrentPlayerId(opponentUserId2);
   const myTeamColor = displayMyTeamId === 'A' ? '#60a5fa' : '#10b981';
   const opponentTeamColor = displayOpponentTeamId === 'A' ? '#60a5fa' : '#10b981';
-  const teamCompletedAllRounds = (results: (number|null)[][]) => results.length > 0 && results.every(playerResults => Array.isArray(playerResults) && playerResults.length >= 5);
   const hasCompleted1v1Match = !myTeam && myResults.length >= 5 && opponentResults.length >= 5;
-  const hasCompleted2v2Match = !!myTeam && teamCompletedAllRounds(teamAResults) && teamCompletedAllRounds(teamBResults);
+  const hasCompleted2v2Match = !!myTeam && teamACompletedAll && teamBCompletedAll;
   const canExportResults = hasCompleted1v1Match || hasCompleted2v2Match;
 
   if (isPortrait) {
@@ -3912,9 +3947,7 @@ const clampPlayerIndex = (idx: number) => {
                 }
                 
                 // Nếu cả 2 team đã đủ 5 lượt thì thông báo kết quả
-                const myTeamTotalSolves = getMyResults().length;
-                const oppTeamTotalSolves = (myTeam === 'A' ? teamBResults : teamAResults).reduce((sum, playerResults) => sum + playerResults.length, 0);
-                const bothDone = myTeamTotalSolves >= 5 && oppTeamTotalSolves >= 5;
+                const bothDone = teamACompletedAll && teamBCompletedAll;
                 if (bothDone) {
                   const baseClass = mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold";
                   const totalScoreA = teamAScores.reduce((sum, score) => sum + (typeof score === 'number' ? score : 0), 0);
