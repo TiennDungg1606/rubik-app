@@ -44,6 +44,9 @@ function calcStats(times: (number|null)[]) {
   return { best, worst, mean, ao5 };
 }
 
+const SCRAMBLE_LOCK_DURATION_MS = 20000;
+const EXCLUDED_TOUCH_SELECTOR = '.webcam-area, .scroll-handle';
+
 
 
 export default function RoomPage() {
@@ -410,6 +413,9 @@ useEffect(() => {
 
     // Ref cho khối chat để auto-scroll
   const chatListRef = useRef<HTMLDivElement>(null);
+  const scrollHandleRef = useRef<HTMLDivElement | null>(null);
+  const scrollTouchStartYRef = useRef<number | null>(null);
+  const scrollStartOffsetRef = useRef<number>(0);
 
   const normalizeId = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
@@ -582,6 +588,16 @@ useEffect(() => {
     }
   };
 
+  const isInExcludedTouchArea = React.useCallback((target: EventTarget | null) => {
+    if (typeof document === 'undefined') return false;
+    if (!(target instanceof Node)) return false;
+    const nodes = document.querySelectorAll(EXCLUDED_TOUCH_SELECTOR);
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].contains(target)) return true;
+    }
+    return false;
+  }, []);
+
   const teamAInfo = React.useMemo(() => {
     const declaredCount = Array.isArray(teamA?.players) ? teamA.players.length : 0;
     const slotCount = declaredCount > 0 ? declaredCount : teamAResults.length;
@@ -715,6 +731,52 @@ useEffect(() => {
       chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
     }
   }, [showChat, chatMessages]);
+
+  useEffect(() => {
+    const handle = scrollHandleRef.current;
+    if (!isMobile || !handle) return;
+
+    const baseColor = 'rgba(148, 163, 184, 0.35)';
+    const activeColor = 'rgba(96, 165, 250, 0.75)';
+    handle.style.background = baseColor;
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length === 0) return;
+      const touch = event.touches[0];
+      scrollTouchStartYRef.current = touch.clientY;
+      scrollStartOffsetRef.current = window.scrollY;
+      handle.style.background = activeColor;
+    };
+
+    const onTouchMove: EventListener = event => {
+      const touchEvent = event as TouchEvent;
+      if (scrollTouchStartYRef.current === null) return;
+      if (touchEvent.touches.length === 0) return;
+      const touch = touchEvent.touches[0];
+      const delta = scrollTouchStartYRef.current - touch.clientY;
+      window.scrollTo({ top: scrollStartOffsetRef.current + delta, behavior: 'auto' });
+      touchEvent.preventDefault();
+    };
+
+    const reset = () => {
+      scrollTouchStartYRef.current = null;
+      handle.style.background = baseColor;
+    };
+
+    handle.addEventListener('touchstart', onTouchStart);
+    handle.addEventListener('touchmove', onTouchMove, { passive: false });
+    handle.addEventListener('touchend', reset);
+    handle.addEventListener('touchcancel', reset);
+
+    return () => {
+      scrollTouchStartYRef.current = null;
+      handle.style.background = baseColor;
+      handle.removeEventListener('touchstart', onTouchStart);
+  handle.removeEventListener('touchmove', onTouchMove);
+      handle.removeEventListener('touchend', reset);
+      handle.removeEventListener('touchcancel', reset);
+    };
+  }, [isMobile]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -2695,7 +2757,7 @@ useEffect(() => {
       if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
       scrambleMsgTimeout = setTimeout(() => {
         setShowScrambleMsg(false);
-      }, 10000);
+      }, SCRAMBLE_LOCK_DURATION_MS);
     };
     socket.on("scramble", handleScramble);
     return () => {
@@ -2741,6 +2803,7 @@ useEffect(() => {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=300ms rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
+    if (showScrambleMsg) return;
     // Use IsMyTurn function to check if current user can use timer
     if (waiting || running || !IsMyTurn() || mySolveCount >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
@@ -2748,6 +2811,7 @@ useEffect(() => {
       if (e.code !== "Space") return;
       if (pendingResult !== null) return;
       if (isTypingMode) return;
+      if (showScrambleMsg) return;
 
       const activeElement = document.activeElement;
       const isInModal = activeElement && (
@@ -2786,7 +2850,7 @@ useEffect(() => {
         localSpaceHeld = false;
         setSpaceHeld(false);
         // Changed from 500ms to 300ms as requested
-        if (start && now - start >= 200) {
+        if (start && now - start >= 300) {
           setPrep(false);
           setCanStart(true);
         }
@@ -2800,21 +2864,13 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, mySolveCount, pendingResult, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId]);
+  }, [isMobile, waiting, running, prep, mySolveCount, pendingResult, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId, showScrambleMsg]);
 
-  // Mobile: Tap anywhere (except webcam areas) to prep, hold >=200ms during prep to arm the start
+  // Mobile: Tap anywhere (except excluded touch zones) to prep, hold >=200ms during prep to arm the start
   useEffect(() => {
     if (!isMobile) return;
     if (running) return;
-
-    const isInWebcamArea = (target: EventTarget | null) => {
-      if (!(target instanceof Node)) return false;
-      const webcamEls = document.querySelectorAll('.webcam-area');
-      for (let i = 0; i < webcamEls.length; i++) {
-        if (webcamEls[i].contains(target)) return true;
-      }
-      return false;
-    };
+    if (showScrambleMsg) return;
 
     const resetHoldState = () => {
       pressStartRef.current = null;
@@ -2825,10 +2881,11 @@ useEffect(() => {
       if (running) return;
       if (pendingResult !== null || isLockedDue2DNF) return;
       if (isTypingMode) return;
+      if (showScrambleMsg) return;
       if (!IsMyTurn()) return;
       if (waiting) return;
       if (e.touches.length > 1) return;
-      if (isInWebcamArea(e.target)) return;
+      if (isInExcludedTouchArea(e.target)) return;
       if (myResultsRef.current.length >= 5) return;
       pressStartRef.current = Date.now();
       setSpaceHeld(true);
@@ -2840,7 +2897,11 @@ useEffect(() => {
         resetHoldState();
         return;
       }
-      if (isInWebcamArea(e.target)) {
+      if (showScrambleMsg) {
+        resetHoldState();
+        return;
+      }
+      if (isInExcludedTouchArea(e.target)) {
         resetHoldState();
         return;
       }
@@ -2872,7 +2933,7 @@ useEffect(() => {
         return;
       }
 
-      if (prep && holdDuration >= 200) {
+      if (prep && holdDuration >= 300) {
         setPrep(false);
         setCanStart(true);
       }
@@ -2892,7 +2953,7 @@ useEffect(() => {
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('touchcancel', handleTouchCancel);
     };
-  }, [isMobile, running, waiting, prep, pendingResult, isLockedDue2DNF, isTypingMode, roomId, userId, turnUserId, isMyTurnNow]);
+  }, [isMobile, running, waiting, prep, pendingResult, isLockedDue2DNF, isTypingMode, roomId, userId, turnUserId, isMyTurnNow, showScrambleMsg, isInExcludedTouchArea]);
 
   // Đảm bảo reset trạng thái chuẩn bị khi chắc chắn không còn lượt của mình
   useEffect(() => {
@@ -3046,10 +3107,7 @@ useEffect(() => {
     };
     const handleTouch = (e: TouchEvent) => {
       if (!isMobile) return;
-      const webcamEls = document.querySelectorAll('.webcam-area');
-      for (let i = 0; i < webcamEls.length; i++) {
-        if (webcamEls[i].contains(e.target as Node)) return;
-      }
+      if (isInExcludedTouchArea(e.target)) return;
       stopTimer();
     };
     if (isMobile) {
@@ -3073,7 +3131,7 @@ useEffect(() => {
         window.removeEventListener("mousedown", handleMouse, true);
       }
     };
-  }, [canStart, waiting, roomId, userId, userName, isMobile, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId]);
+  }, [canStart, waiting, roomId, userId, userName, isMobile, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId, isInExcludedTouchArea]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
@@ -4125,7 +4183,7 @@ const clampPlayerIndex = (idx: number) => {
                       <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
                       {showScrambleMsg && (
                         <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>
-                          Các cuber hãy tráo scramble
+                          Các cuber hãy tráo scramble trong {SCRAMBLE_LOCK_DURATION_MS / 1000}s
                         </span>
                       )}
                     </>
@@ -5293,6 +5351,27 @@ const clampPlayerIndex = (idx: number) => {
             </div>
           </div>
         </div>
+      )}
+
+      {isMobile && (
+        <div
+          ref={scrollHandleRef}
+          className="scroll-handle"
+          style={{
+            position: 'fixed',
+            right: mobileShrink ? 4 : 10,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: mobileShrink ? 14 : 16,
+            height: mobileShrink ? 120 : 160,
+            borderRadius: 9999,
+            background: 'rgba(148, 163, 184, 0.35)',
+            backdropFilter: 'blur(2px)',
+            zIndex: 1200,
+            touchAction: 'none',
+            pointerEvents: 'auto',
+          }}
+        />
       )}
 
       {/* CSS cho hiệu ứng modal và các nút */}

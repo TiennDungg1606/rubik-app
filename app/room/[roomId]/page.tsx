@@ -134,6 +134,7 @@ export default function RoomPage() {
   // turnUserId: userId của người được quyền giải (đồng bộ từ server)
   const [turnUserId, setTurnUserId] = useState<string>("");
   const [myResults, setMyResults] = useState<(number|null)[]>([]);
+  const myResultsRef = useRef<(number|null)[]>([]);
   const [opponentResults, setOpponentResults] = useState<(number|null)[]>([]);
   const [dnf, setDnf] = useState<boolean>(false);
   // Thêm state cho xác nhận kết quả
@@ -214,6 +215,10 @@ useEffect(() => {
 
     // Ref cho khối chat để auto-scroll
   const chatListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    myResultsRef.current = myResults;
+  }, [myResults]);
 
   // Auto-scroll xuống cuối khi mở chat hoặc có tin nhắn mới
   useEffect(() => {
@@ -1890,7 +1895,7 @@ useEffect(() => {
   }, [prep, running]);
 
 
-  // Desktop: Nhấn Space để vào chuẩn bị, giữ >=0.5s rồi thả ra để bắt đầu chạy
+  // Desktop: Nhấn Space để vào chuẩn bị, giữ >=200ms rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
     // Chỉ cho phép nếu đến lượt mình (userId === turnUserId) và không bị khóa do 2 lần DNF
@@ -1936,7 +1941,7 @@ useEffect(() => {
         pressStartRef.current = null;
         localSpaceHeld = false;
         setSpaceHeld(false);
-        if (start && now - start >= 200) {
+  if (start && now - start >= 200) {
           setPrep(false);
           setCanStart(true);
         }
@@ -1951,6 +1956,98 @@ useEffect(() => {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length, isLockedDue2DNF]);
+
+  // Mobile: Tap anywhere (trừ vùng webcam) để vào chuẩn bị, giữ >=200ms trong prep để bắt đầu
+  useEffect(() => {
+    if (!isMobile) return;
+    if (running) return;
+
+    const isInWebcamArea = (target: EventTarget | null) => {
+      if (!(target instanceof Node)) return false;
+      const webcamEls = document.querySelectorAll('.webcam-area');
+      for (let i = 0; i < webcamEls.length; i++) {
+        if (webcamEls[i].contains(target)) return true;
+      }
+      return false;
+    };
+
+    const resetHoldState = () => {
+      pressStartRef.current = null;
+      setSpaceHeld(false);
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (running) return;
+      if (pendingResult !== null || isLockedDue2DNF) return;
+      if (isTypingMode) return;
+      if (userId !== turnUserId) return;
+      if (waiting) return;
+      if (e.touches.length > 1) return;
+      if (isInWebcamArea(e.target)) return;
+      if (myResultsRef.current.length >= 5) return;
+      pressStartRef.current = Date.now();
+      setSpaceHeld(true);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (running) return;
+      if (e.touches.length > 0) {
+        resetHoldState();
+        return;
+      }
+      if (isInWebcamArea(e.target)) {
+        resetHoldState();
+        return;
+      }
+      if (isTypingMode) {
+        resetHoldState();
+        return;
+      }
+      if (pendingResult !== null || isLockedDue2DNF) {
+        resetHoldState();
+        return;
+      }
+      if (waiting || myResultsRef.current.length >= 5) {
+        resetHoldState();
+        return;
+      }
+
+      const start = pressStartRef.current;
+      const holdDuration = start ? Date.now() - start : 0;
+      resetHoldState();
+
+      if (userId !== turnUserId) return;
+
+      if (!prep) {
+        setPrep(true);
+        setPrepTime(15);
+        setDnf(false);
+        const socket = getSocket();
+        socket.emit("timer-prep", { roomId, userId, remaining: 15 });
+        return;
+      }
+
+      if (prep && holdDuration >= 200) {
+        setPrep(false);
+        setCanStart(true);
+      }
+    };
+
+    const handleTouchCancel = () => {
+      resetHoldState();
+    };
+
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchCancel);
+
+    return () => {
+      resetHoldState();
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchCancel);
+    };
+  }, [isMobile, running, waiting, prep, pendingResult, isLockedDue2DNF, isTypingMode, roomId, userId, turnUserId]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
@@ -3385,73 +3482,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           style={mobileShrink
             ? { flex: '0 1 20%', minWidth: 120, maxWidth: 200, marginTop: 8 }
             : { flex: '0 1 20%', minWidth: 180, maxWidth: 320, marginTop: isMobileLandscape ? 20 : 56 }}
-        {...(isMobile ? {
-            onTouchStart: (e) => {
-              if (pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
-              if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
-              // Nếu chạm vào webcam thì bỏ qua
-              const webcamEls = document.querySelectorAll('.webcam-area');
-              for (let i = 0; i < webcamEls.length; i++) {
-                if (webcamEls[i].contains(e.target as Node)) return;
-              }
-              if (waiting || myResults.length >= 5) return;
-              // Đánh dấu touch bắt đầu
-              pressStartRef.current = Date.now();
-              setSpaceHeld(true); // Đang giữ tay
-            },
-                          onTouchEnd: (e) => {
-                if (pendingResult !== null || isLockedDue2DNF || userId !== turnUserId) return;
-                if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
-                // Nếu chạm vào webcam thì bỏ qua
-                const webcamEls = document.querySelectorAll('.webcam-area');
-                for (let i = 0; i < webcamEls.length; i++) {
-                  if (webcamEls[i].contains(e.target as Node)) return;
-                }
-                if (waiting || myResults.length >= 5) return;
-              const now = Date.now();
-              const start = pressStartRef.current;
-              pressStartRef.current = null;
-              setSpaceHeld(false); // Thả tay
-              // 1. Tap and release to enter prep
-              if (!prep && !running && userId === turnUserId) {
-                setPrep(true);
-                setPrepTime(15);
-                setDnf(false);
-                // Gửi timer-prep event
-                const socket = getSocket();
-                socket.emit("timer-prep", { roomId, userId, remaining: 15 });
-                return;
-              }
-              // 2. In prep, giữ >=0.5s rồi thả ra để start timer
-              if (prep && !running) {
-                if (start && now - start >= 200) {
-                  setPrep(false);
-                  setCanStart(true);
-                  // Timer sẽ được start trong useEffect của canStart
-                }
-                return;
-              }
-              // 3. When running, tap and release to stop timer
-              if (running) {
-                setRunning(false);
-                if (intervalRef.current) clearInterval(intervalRef.current);
-                
-                // Lấy thời gian chính xác từ performance.now()
-                const currentTime = Math.round(performance.now() - startTimeRef.current);
-                setTimer(currentTime);
-                timerRef.current = currentTime;
-                
-                // Gửi timer-update event
-                const socket = getSocket();
-                socket.emit("timer-update", { roomId, userId, ms: currentTime, running: false, finished: false });
-                setPendingResult(currentTime);
-                setPendingType('normal');
-                setCanStart(false);
-                return;
-              }
-            }
-          } : {})}
-        >
+  >
           
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận sau 1s */}
           {pendingResult !== null && !running && !prep && showConfirmButtons && !isLockedDue2DNF ? (
