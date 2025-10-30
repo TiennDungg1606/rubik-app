@@ -204,10 +204,12 @@ export default function AuthForm({ onLogin }) {
           <a href="/forgot-password" className="text-blue-600 hover:underline">Forgot password?</a>
         </div>
         {/* Footer app links */}
-        <div className="flex justify-center gap-4 mt-8 w-full flex-wrap">
+        <div className="flex justify-center gap-8 mt-6 w-full flex-wrap">
           <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/vercel.svg" alt="file" width={16} height={16}/> Vercel</span>
           <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/railway.png" alt="globe" width={16} height={16}/> Railway</span>
           <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/mongodb.png" alt="window" width={16} height={16}/> MongoDB</span>
+          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/stringee.png" alt="nextjs" width={16} height={16}/> Stringee</span>
+          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/dailyco.png" alt="nextjs" width={16} height={16}/> Daily.co</span>
 
         </div>
       </div>

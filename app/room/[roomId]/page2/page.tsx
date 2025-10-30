@@ -2786,7 +2786,7 @@ useEffect(() => {
         localSpaceHeld = false;
         setSpaceHeld(false);
         // Changed from 500ms to 300ms as requested
-        if (start && now - start >= 300) {
+        if (start && now - start >= 200) {
           setPrep(false);
           setCanStart(true);
         }
@@ -2801,6 +2801,98 @@ useEffect(() => {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [isMobile, waiting, running, prep, mySolveCount, pendingResult, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId]);
+
+  // Mobile: Tap anywhere (except webcam areas) to prep, hold >=200ms during prep to arm the start
+  useEffect(() => {
+    if (!isMobile) return;
+    if (running) return;
+
+    const isInWebcamArea = (target: EventTarget | null) => {
+      if (!(target instanceof Node)) return false;
+      const webcamEls = document.querySelectorAll('.webcam-area');
+      for (let i = 0; i < webcamEls.length; i++) {
+        if (webcamEls[i].contains(target)) return true;
+      }
+      return false;
+    };
+
+    const resetHoldState = () => {
+      pressStartRef.current = null;
+      setSpaceHeld(false);
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (running) return;
+      if (pendingResult !== null || isLockedDue2DNF) return;
+      if (isTypingMode) return;
+      if (!IsMyTurn()) return;
+      if (waiting) return;
+      if (e.touches.length > 1) return;
+      if (isInWebcamArea(e.target)) return;
+      if (myResultsRef.current.length >= 5) return;
+      pressStartRef.current = Date.now();
+      setSpaceHeld(true);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (running) return;
+      if (e.touches.length > 0) {
+        resetHoldState();
+        return;
+      }
+      if (isInWebcamArea(e.target)) {
+        resetHoldState();
+        return;
+      }
+      if (isTypingMode) {
+        resetHoldState();
+        return;
+      }
+      if (pendingResult !== null || isLockedDue2DNF) {
+        resetHoldState();
+        return;
+      }
+      if (waiting || myResultsRef.current.length >= 5) {
+        resetHoldState();
+        return;
+      }
+
+      const start = pressStartRef.current;
+      const holdDuration = start ? Date.now() - start : 0;
+      resetHoldState();
+
+      if (!IsMyTurn()) return;
+
+      if (!prep) {
+        setPrep(true);
+        setPrepTime(15);
+        setDnf(false);
+        const socket = getSocket();
+        socket.emit("timer-prep-2vs2", { roomId, userId, remaining: 15 });
+        return;
+      }
+
+      if (prep && holdDuration >= 200) {
+        setPrep(false);
+        setCanStart(true);
+      }
+    };
+
+    const handleTouchCancel = () => {
+      resetHoldState();
+    };
+
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchCancel);
+
+    return () => {
+      resetHoldState();
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchCancel);
+    };
+  }, [isMobile, running, waiting, prep, pendingResult, isLockedDue2DNF, isTypingMode, roomId, userId, turnUserId, isMyTurnNow]);
 
   // Đảm bảo reset trạng thái chuẩn bị khi chắc chắn không còn lượt của mình
   useEffect(() => {
@@ -4370,74 +4462,7 @@ const clampPlayerIndex = (idx: number) => {
                   ...(isMobile ? {} : { cursor: 'default' }),
                 }
           }
-        {...(isMobile ? {
-            onTouchStart: (e) => {
-              if (pendingResult !== null || isLockedDue2DNF || !isMyTurn()) return;
-              if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
-              // Nếu chạm vào webcam thì bỏ qua
-              const webcamEls = document.querySelectorAll('.webcam-area');
-              for (let i = 0; i < webcamEls.length; i++) {
-                if (webcamEls[i].contains(e.target as Node)) return;
-              }
-              const myCurrentResults = getMyResults();
-              if (waiting || myCurrentResults.length >= 5) return;
-              // Đánh dấu touch bắt đầu
-              pressStartRef.current = Date.now();
-              setSpaceHeld(true); // Đang giữ tay
-            },
-                          onTouchEnd: (e) => {
-                if (pendingResult !== null || isLockedDue2DNF || !isMyTurn()) return;
-                if (isTypingMode) return; // Chặn touch khi đang ở chế độ typing
-                // Nếu chạm vào webcam thì bỏ qua
-                const webcamEls = document.querySelectorAll('.webcam-area');
-                for (let i = 0; i < webcamEls.length; i++) {
-                  if (webcamEls[i].contains(e.target as Node)) return;
-                }
-                const myCurrentResults = getMyResults();
-                if (waiting || myCurrentResults.length >= 5) return;
-              const now = Date.now();
-              const start = pressStartRef.current;
-              pressStartRef.current = null;
-              setSpaceHeld(false); // Thả tay
-              // 1. Tap and release to enter prep
-              if (!prep && !running && isMyTurn()) {
-                setPrep(true);
-                setPrepTime(15);
-                setDnf(false);
-                // Gửi timer-prep event chỉ cho 2vs2
-                const socket = getSocket();
-                socket.emit("timer-prep-2vs2", { roomId, userId, remaining: 15 });
-                return;
-              }
-              // 2. In prep, giữ >=0.5s rồi thả ra để start timer
-              if (prep && !running) {
-                if (start && now - start >= 300) {
-                  setPrep(false);
-                  setCanStart(true);
-                  // Timer sẽ được start trong useEffect của canStart
-                }
-                return;
-              }
-              // 3. When running, tap and release to stop timer
-              if (running) {
-                setRunning(false);
-                if (intervalRef.current) clearInterval(intervalRef.current);
-                
-                // Lấy thời gian chính xác từ performance.now()
-                const currentTime = Math.round(performance.now() - startTimeRef.current);
-                setTimer(currentTime);
-                timerRef.current = currentTime;
-                
-                // Gửi timer-update event
-                const socket = getSocket();
-                socket.emit("timer-update-2vs2", { roomId, userId, ms: currentTime, running: false, finished: false });
-                setPendingResult(currentTime);
-                setPendingType('normal');
-                setCanStart(false);
-                return;
-              }
-            }
-          } : {})}
+        
         >
           
           {/* Nếu có pendingResult thì hiện 3 nút xác nhận sau 1s */}

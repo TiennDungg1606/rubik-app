@@ -1936,7 +1936,7 @@ useEffect(() => {
         pressStartRef.current = null;
         localSpaceHeld = false;
         setSpaceHeld(false);
-        if (start && now - start >= 300) {
+        if (start && now - start >= 200) {
           setPrep(false);
           setCanStart(true);
         }
@@ -3424,7 +3424,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               }
               // 2. In prep, giữ >=0.5s rồi thả ra để start timer
               if (prep && !running) {
-                if (start && now - start >= 300) {
+                if (start && now - start >= 200) {
                   setPrep(false);
                   setCanStart(true);
                   // Timer sẽ được start trong useEffect của canStart

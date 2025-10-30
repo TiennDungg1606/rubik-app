@@ -107,8 +107,8 @@ export default function HomePage() {
             <rect x="44" y="44" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
           </svg>
         </span>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-center tracking-tight text-gray-200 drop-shadow mb-1">Rubik 1v1 Online</h1>
-        <div className="text-gray-300 text-xs sm:text-sm text-center mb-2">Giải đấu Rubik 3x3 trực tuyến, solo 1v1, giao diện hiện đại</div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-center tracking-tight text-gray-200 drop-shadow mb-1">Rubik App Online</h1>
+        <div className="text-gray-300 text-xs sm:text-sm text-center mb-2">Giải đấu Rubik trực tuyến, giao lưu rubik, hiện đại</div>
         <div className="w-full flex flex-col gap-2">
           <AuthForm onLogin={() => {
             // Đăng nhập thành công thì chuyển hướng sang /lobby
