@@ -45,7 +45,7 @@ function calcStats(times: (number|null)[]) {
 }
 
 const SCRAMBLE_LOCK_DURATION_MS = 20000;
-const EXCLUDED_TOUCH_SELECTOR = '.webcam-area, .scroll-handle';
+const EXCLUDED_TOUCH_SELECTOR = '.webcam-area';
 
 
 
@@ -413,9 +413,6 @@ useEffect(() => {
 
     // Ref cho khối chat để auto-scroll
   const chatListRef = useRef<HTMLDivElement>(null);
-  const scrollHandleRef = useRef<HTMLDivElement | null>(null);
-  const scrollTouchStartYRef = useRef<number | null>(null);
-  const scrollStartOffsetRef = useRef<number>(0);
 
   const normalizeId = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
@@ -731,52 +728,6 @@ useEffect(() => {
       chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
     }
   }, [showChat, chatMessages]);
-
-  useEffect(() => {
-    const handle = scrollHandleRef.current;
-    if (!isMobile || !handle) return;
-
-    const baseColor = 'rgba(148, 163, 184, 0.35)';
-    const activeColor = 'rgba(96, 165, 250, 0.75)';
-    handle.style.background = baseColor;
-
-    const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length === 0) return;
-      const touch = event.touches[0];
-      scrollTouchStartYRef.current = touch.clientY;
-      scrollStartOffsetRef.current = window.scrollY;
-      handle.style.background = activeColor;
-    };
-
-    const onTouchMove: EventListener = event => {
-      const touchEvent = event as TouchEvent;
-      if (scrollTouchStartYRef.current === null) return;
-      if (touchEvent.touches.length === 0) return;
-      const touch = touchEvent.touches[0];
-      const delta = scrollTouchStartYRef.current - touch.clientY;
-      window.scrollTo({ top: scrollStartOffsetRef.current + delta, behavior: 'auto' });
-      touchEvent.preventDefault();
-    };
-
-    const reset = () => {
-      scrollTouchStartYRef.current = null;
-      handle.style.background = baseColor;
-    };
-
-    handle.addEventListener('touchstart', onTouchStart);
-    handle.addEventListener('touchmove', onTouchMove, { passive: false });
-    handle.addEventListener('touchend', reset);
-    handle.addEventListener('touchcancel', reset);
-
-    return () => {
-      scrollTouchStartYRef.current = null;
-      handle.style.background = baseColor;
-      handle.removeEventListener('touchstart', onTouchStart);
-  handle.removeEventListener('touchmove', onTouchMove);
-      handle.removeEventListener('touchend', reset);
-      handle.removeEventListener('touchcancel', reset);
-    };
-  }, [isMobile]);
 
   useEffect(() => {
     if (!roomId) return;
@@ -3458,6 +3409,18 @@ const clampPlayerIndex = (idx: number) => {
   
   // Helper: compact style for mobile landscape only
   const mobileShrink = isMobileLandscape;
+  const timerColorClass = (() => {
+    if (dnf) return 'text-red-400';
+    if (running || canStart) return 'text-green-400';
+    if (spaceHeld) return 'text-yellow-400';
+    return 'text-white';
+  })();
+  const timerInlineColor = (() => {
+    if (dnf) return '#f87171';
+    if (running || canStart) return '#34d399';
+    if (spaceHeld) return '#facc15';
+    return '#ffffff';
+  })();
 
   const buildMedianDisplay = (results?: (number|null)[]) => {
     const thresholds = mobileShrink
@@ -4420,7 +4383,7 @@ const clampPlayerIndex = (idx: number) => {
               maxWidth: 120,
               textAlign: 'center',
               fontSize: mobileShrink ? 18 : 24,
-              color: dnf ? '#e53935' : '#ff3b1d',
+              color: timerInlineColor,
               fontWeight: 700,
               letterSpacing: 1,
               boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
@@ -4814,8 +4777,8 @@ const clampPlayerIndex = (idx: number) => {
               <div
                 className={
                   mobileShrink
-                    ? `text-3xl font-bold drop-shadow select-none px-3 py-3 rounded-xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
-                    : `text-9xl font-['Digital-7'] font-bold drop-shadow-2xl select-none px-12 py-8 rounded-3xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
+                    ? `text-3xl font-bold drop-shadow select-none px-3 py-3 rounded-xl ${timerColorClass}`
+                    : `text-9xl font-['Digital-7'] font-bold drop-shadow-2xl select-none px-12 py-8 rounded-3xl ${timerColorClass}`
                 }
                 style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 40, textAlign: 'center', fontSize: 40, padding: 6 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '220px', textAlign: 'center', fontSize: 110, padding: 18 }}
               >
@@ -5351,27 +5314,6 @@ const clampPlayerIndex = (idx: number) => {
             </div>
           </div>
         </div>
-      )}
-
-      {isMobile && (
-        <div
-          ref={scrollHandleRef}
-          className="scroll-handle"
-          style={{
-            position: 'fixed',
-            right: mobileShrink ? 4 : 10,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: mobileShrink ? 14 : 16,
-            height: mobileShrink ? 120 : 160,
-            borderRadius: 9999,
-            background: 'rgba(148, 163, 184, 0.35)',
-            backdropFilter: 'blur(2px)',
-            zIndex: 1200,
-            touchAction: 'none',
-            pointerEvents: 'auto',
-          }}
-        />
       )}
 
       {/* CSS cho hiệu ứng modal và các nút */}

@@ -44,6 +44,9 @@ function calcStats(times: (number|null)[]) {
 }
 
 
+const SCRAMBLE_LOCK_DURATION_MS = 20000;
+
+
 
 export default function RoomPage() {
   // State lưu số set thắng, không reset khi tái đấu
@@ -1347,7 +1350,7 @@ useEffect(() => {
     if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
     scrambleMsgTimeout = setTimeout(() => {
       setShowScrambleMsg(false);
-    }, 10000);
+    }, SCRAMBLE_LOCK_DURATION_MS);
     // Nếu vừa tái đấu xong thì reset cờ
     setRematchJustAccepted(false);
     // Reset thông báo kết thúc sớm khi có scramble mới - ĐÃ HỦY
@@ -1853,7 +1856,7 @@ useEffect(() => {
 
   // Đã loại bỏ logic tự set turn, turn sẽ được đồng bộ từ server qua turnUserId
 
-  // Nhận scramble từ server qua socket, hiện thông báo tráo scramble đúng 5s
+  // Nhận scramble từ server qua socket, hiện thông báo tráo scramble trong thời gian khóa
   useEffect(() => {
     const socket = getSocket();
     let scrambleMsgTimeout: NodeJS.Timeout | null = null;
@@ -1877,7 +1880,7 @@ useEffect(() => {
       if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
       scrambleMsgTimeout = setTimeout(() => {
         setShowScrambleMsg(false);
-      }, 10000);
+      }, SCRAMBLE_LOCK_DURATION_MS);
     };
     socket.on("scramble", handleScramble);
     return () => {
@@ -1898,6 +1901,7 @@ useEffect(() => {
   // Desktop: Nhấn Space để vào chuẩn bị, giữ >=200ms rồi thả ra để bắt đầu chạy
   useEffect(() => {
     if (isMobile) return;
+    if (showScrambleMsg) return; // Tạm khóa timer trong thời gian tráo scramble
     // Chỉ cho phép nếu đến lượt mình (userId === turnUserId) và không bị khóa do 2 lần DNF
     if (waiting || running || userId !== turnUserId || myResults.length >= 5 || pendingResult !== null || isLockedDue2DNF) return;
     let localSpaceHeld = false;
@@ -1905,6 +1909,7 @@ useEffect(() => {
       if (e.code !== "Space") return;
       if (pendingResult !== null) return;
       if (isTypingMode) return; // Chặn phím space khi đang ở chế độ typing
+      if (showScrambleMsg) return; // Chờ hết thời gian tráo scramble
       
       // Kiểm tra xem có đang trong modal nào không
       const activeElement = document.activeElement;
@@ -1935,6 +1940,7 @@ useEffect(() => {
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
+      if (showScrambleMsg) return;
       if (prep && localSpaceHeld) {
         const now = Date.now();
         const start = pressStartRef.current;
@@ -1955,12 +1961,13 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length, isLockedDue2DNF]);
+  }, [isMobile, waiting, running, prep, userId, turnUserId, myResults.length, isLockedDue2DNF, pendingResult, isTypingMode, showScrambleMsg]);
 
   // Mobile: Tap anywhere (trừ vùng webcam) để vào chuẩn bị, giữ >=200ms trong prep để bắt đầu
   useEffect(() => {
     if (!isMobile) return;
     if (running) return;
+    if (showScrambleMsg) return; // Tạm khóa thao tác cảm ứng trong thời gian tráo scramble
 
     const isInWebcamArea = (target: EventTarget | null) => {
       if (!(target instanceof Node)) return false;
@@ -1980,6 +1987,7 @@ useEffect(() => {
       if (running) return;
       if (pendingResult !== null || isLockedDue2DNF) return;
       if (isTypingMode) return;
+      if (showScrambleMsg) return;
       if (userId !== turnUserId) return;
       if (waiting) return;
       if (e.touches.length > 1) return;
@@ -1992,6 +2000,10 @@ useEffect(() => {
     const handleTouchEnd = (e: TouchEvent) => {
       if (running) return;
       if (e.touches.length > 0) {
+        resetHoldState();
+        return;
+      }
+      if (showScrambleMsg) {
         resetHoldState();
         return;
       }
@@ -2047,7 +2059,7 @@ useEffect(() => {
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('touchcancel', handleTouchCancel);
     };
-  }, [isMobile, running, waiting, prep, pendingResult, isLockedDue2DNF, isTypingMode, roomId, userId, turnUserId]);
+  }, [isMobile, running, waiting, prep, pendingResult, isLockedDue2DNF, isTypingMode, roomId, userId, turnUserId, showScrambleMsg]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
@@ -2404,6 +2416,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
   // Helper: compact style for mobile landscape only
   const mobileShrink = isMobileLandscape;
   const controlsLockedByOpponent = opponentRunning;
+  const timerColorClass = (() => {
+    if (dnf) return 'text-red-400';
+    if (running || canStart) return 'text-green-400';
+    if (spaceHeld) return 'text-yellow-400';
+    return 'text-white';
+  })(); // Màu timer đồng bộ với TimerTab: trắng -> vàng -> xanh
   return (
     <div 
       className={  
@@ -3136,7 +3154,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                       <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
                       {showScrambleMsg && (
                         <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>
-                          Hai cuber hãy tráo scramble
+                          Hai cuber hãy tráo scramble trong {SCRAMBLE_LOCK_DURATION_MS / 1000}s
                         </span>
                       )}
                     </>
@@ -3856,8 +3874,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               <div
                 className={
                   mobileShrink
-                    ? `text-3xl font-bold drop-shadow select-none px-3 py-3 rounded-xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
-                    : `text-9xl font-['Digital-7'] font-bold drop-shadow-2xl select-none px-12 py-8 rounded-3xl ${prep ? (spaceHeld ? 'text-green-400' : 'text-red-400') : running ? 'text-yellow-300' : dnf ? 'text-red-400' : 'text-yellow-300'}`
+                    ? `text-3xl font-bold drop-shadow select-none px-3 py-3 rounded-xl ${timerColorClass}`
+                    : `text-9xl font-['Digital-7'] font-bold drop-shadow-2xl select-none px-12 py-8 rounded-3xl ${timerColorClass}`
                 }
                 style={mobileShrink ? { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: 40, textAlign: 'center', fontSize: 40, padding: 6 } : { fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace", minWidth: '220px', textAlign: 'center', fontSize: 110, padding: 18 }}
               >
