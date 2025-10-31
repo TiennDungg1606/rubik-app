@@ -2297,7 +2297,6 @@ useEffect(() => {
 
   // Hàm rời phòng: emit leave-room trước khi chuyển hướng về lobby
   function handleLeaveRoom() {
-    if (isSolveLocked) return;
     setShowLeaveModal(true);
   }
 
@@ -3578,17 +3577,16 @@ const clampPlayerIndex = (idx: number) => {
       >
         <button
           onClick={handleLeaveRoom}
-          disabled={isSolveLocked}
           className={
             `${mobileShrink
               ? "bg-red-600 hover:bg-red-700 text-[9px] rounded-full font-bold shadow-lg flex items-center justify-center"
               : "bg-red-600 hover:bg-red-700 text-white rounded-full font-bold shadow-lg flex items-center justify-center"
-            } transition-transform duration-200 hover:scale-110 active:scale-95 ${isSolveLocked ? 'opacity-60 cursor-not-allowed' : ''}`
+            } transition-transform duration-200 hover:scale-110 active:scale-95`
           }
           style={mobileShrink ? { fontSize: 18, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
           type="button"
           aria-label="Rời phòng"
-          title="Rời phòng"
+          title={isSolveLocked ? "Đang có lượt giải - bạn vẫn có thể rời phòng" : "Rời phòng"}
         >
           {/* Icon logout/exit SVG */}
           <span style={{fontSize: mobileShrink ? 18 : 28, display: 'block', lineHeight: 1}}>↩</span>
@@ -4379,7 +4377,7 @@ const clampPlayerIndex = (idx: number) => {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVERAGE</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVG</div>
               <div style={{fontSize: (() => {
                 const myResults = getMyResults();
                 if (myResults.length > 0) {
