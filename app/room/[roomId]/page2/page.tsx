@@ -3421,6 +3421,16 @@ const clampPlayerIndex = (idx: number) => {
     if (spaceHeld) return '#facc15';
     return '#ffffff';
   })();
+  const normalizedActiveRemoteUserId = normalizeId(activeRemoteUserId);
+  const getRemoteTimerColor = (targetId?: string | null) => {
+    const normalizedTargetId = targetId ? normalizeId(targetId) : "";
+    if (!normalizedTargetId || normalizedTargetId !== normalizedActiveRemoteUserId) {
+      return '#ffffff';
+    }
+    if (opponentPrep) return '#facc15';
+    if (opponentRunning) return '#34d399';
+    return '#ffffff';
+  };
 
   const buildMedianDisplay = (results?: (number|null)[]) => {
     const thresholds = mobileShrink
@@ -4974,7 +4984,7 @@ const clampPlayerIndex = (idx: number) => {
               maxWidth: 120,
               textAlign: 'center',
               fontSize: mobileShrink ? 18 : 24,
-              color: '#ff3b1d',
+              color: getRemoteTimerColor(opponentUserId1),
               fontWeight: 700,
               letterSpacing: 1,
               boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
@@ -5094,7 +5104,7 @@ const clampPlayerIndex = (idx: number) => {
               maxWidth: 120,
               textAlign: 'center',
               fontSize: mobileShrink ? 18 : 24,
-              color: '#ff3b1d',
+              color: getRemoteTimerColor(teammateUserId),
               fontWeight: 700,
               letterSpacing: 1,
               boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
@@ -5216,7 +5226,7 @@ const clampPlayerIndex = (idx: number) => {
               maxWidth: 120,
               textAlign: 'center',
               fontSize: mobileShrink ? 18 : 24,
-              color: '#ff3b1d',
+              color: getRemoteTimerColor(opponentUserId2),
               fontWeight: 700,
               letterSpacing: 1,
               boxShadow: '0 1px 6px rgba(0,0,0,0.25)',
