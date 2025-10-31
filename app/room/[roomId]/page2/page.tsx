@@ -132,6 +132,7 @@ export default function RoomPage() {
   const pressStartRef = useRef<number | null>(null);
   const [canStart, setCanStart] = useState<boolean>(false);
   const [spaceHeld, setSpaceHeld] = useState<boolean>(false);
+  const [ready, setReady] = useState<boolean>(false);
   const [users, setUsers] = useState<string[]>([]); // userId array
   const [userId, setUserId] = useState<string>("");
   const [opponentId, setOpponentId] = useState<string>("");
@@ -165,6 +166,28 @@ export default function RoomPage() {
   const myResultsRef = useRef<(number|null)[]>([]);
   const userIdNormalizedRef = useRef<string>("");
   const canStartRef = useRef(canStart);
+  const readyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clearReadyTimeout = React.useCallback(() => {
+    if (readyTimeoutRef.current) {
+      clearTimeout(readyTimeoutRef.current);
+      readyTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scheduleReadyState = React.useCallback(() => {
+    clearReadyTimeout();
+    setReady(false);
+    readyTimeoutRef.current = setTimeout(() => {
+      setReady(true);
+    }, 300);
+  }, [clearReadyTimeout]);
+
+  useEffect(() => {
+    return () => {
+      clearReadyTimeout();
+    };
+  }, [clearReadyTimeout]);
   
   // State cho điểm của từng đội theo vòng (Team A, Team B)
   const [teamAScores, setTeamAScores] = useState<number[]>([0, 0, 0, 0, 0]); // Điểm của Team A qua 5 vòng
@@ -2122,7 +2145,7 @@ useEffect(() => {
       socket.off('lock-due-2dnf', handleLockDue2DNF);
       socket.off('unlock-due-rematch', handleUnlockDueRematch);
     };
-  }, [roomId]);
+  }, [roomId, clearReadyTimeout]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -2704,6 +2727,8 @@ useEffect(() => {
       setDnf(false);
       setPendingResult(null);
       setPendingType('normal');
+  setReady(false);
+  clearReadyTimeout();
       setShowScrambleMsg(true); // Hiện thông báo tráo scramble
       if (scrambleMsgTimeout) clearTimeout(scrambleMsgTimeout);
       scrambleMsgTimeout = setTimeout(() => {
@@ -2782,6 +2807,7 @@ useEffect(() => {
           pressStartRef.current = Date.now();
           localSpaceHeld = true;
           setSpaceHeld(true);
+          scheduleReadyState();
         }
       } else if (!prep && !running) {
         setPrep(true);
@@ -2790,10 +2816,13 @@ useEffect(() => {
         pressStartRef.current = Date.now();
         localSpaceHeld = true;
         setSpaceHeld(true);
+        scheduleReadyState();
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
+      clearReadyTimeout();
+      setReady(false);
       if (prep && localSpaceHeld) {
         const now = Date.now();
         const start = pressStartRef.current;
@@ -2815,7 +2844,7 @@ useEffect(() => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isMobile, waiting, running, prep, mySolveCount, pendingResult, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId, showScrambleMsg]);
+  }, [isMobile, waiting, running, prep, mySolveCount, pendingResult, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId, showScrambleMsg, scheduleReadyState, clearReadyTimeout]);
 
   // Mobile: Tap anywhere (except excluded touch zones) to prep, hold >=200ms during prep to arm the start
   useEffect(() => {
@@ -2825,6 +2854,8 @@ useEffect(() => {
 
     const resetHoldState = () => {
       pressStartRef.current = null;
+      clearReadyTimeout();
+      setReady(false);
       setSpaceHeld(false);
     };
 
@@ -2838,8 +2869,9 @@ useEffect(() => {
       if (e.touches.length > 1) return;
       if (isInExcludedTouchArea(e.target)) return;
       if (myResultsRef.current.length >= 5) return;
-      pressStartRef.current = Date.now();
-      setSpaceHeld(true);
+  pressStartRef.current = Date.now();
+  setSpaceHeld(true);
+  scheduleReadyState();
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -2869,9 +2901,9 @@ useEffect(() => {
         return;
       }
 
-      const start = pressStartRef.current;
-      const holdDuration = start ? Date.now() - start : 0;
-      resetHoldState();
+  const start = pressStartRef.current;
+  const holdDuration = start ? Date.now() - start : 0;
+  resetHoldState();
 
       if (!IsMyTurn()) return;
 
@@ -2904,7 +2936,7 @@ useEffect(() => {
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('touchcancel', handleTouchCancel);
     };
-  }, [isMobile, running, waiting, prep, pendingResult, isLockedDue2DNF, isTypingMode, roomId, userId, turnUserId, isMyTurnNow, showScrambleMsg, isInExcludedTouchArea]);
+  }, [isMobile, running, waiting, prep, pendingResult, isLockedDue2DNF, isTypingMode, roomId, userId, turnUserId, isMyTurnNow, showScrambleMsg, isInExcludedTouchArea, scheduleReadyState, clearReadyTimeout]);
 
   // Đảm bảo reset trạng thái chuẩn bị khi chắc chắn không còn lượt của mình
   useEffect(() => {
@@ -2918,12 +2950,21 @@ useEffect(() => {
     setTimer(0);
     setDnf(false);
     setPrepTime(15);
+  setReady(false);
+  clearReadyTimeout();
     pressStartRef.current = null;
     if (prepIntervalRef.current) {
       clearInterval(prepIntervalRef.current);
       prepIntervalRef.current = null;
     }
-  }, [turnUserId]);
+  }, [turnUserId, clearReadyTimeout]);
+
+  useEffect(() => {
+    if (!prep) {
+      clearReadyTimeout();
+      setReady(false);
+    }
+  }, [prep, clearReadyTimeout]);
 
       // Đếm ngược 15s chuẩn bị
   useEffect(() => {
@@ -2946,6 +2987,8 @@ useEffect(() => {
           setCanStart(false);
           setRunning(false);
           setDnf(true);
+          setReady(false);
+          clearReadyTimeout();
           pressStartRef.current = null;
           
           // Gửi timer-update event để đối thủ biết mình DNF
@@ -2969,14 +3012,16 @@ useEffect(() => {
     return () => {
       if (prepIntervalRef.current) clearInterval(prepIntervalRef.current);
     };
-  }, [prep, waiting, roomId, userId, isLockedDue2DNF, isMyTurnNow, turnUserId]);
+  }, [prep, waiting, roomId, userId, isLockedDue2DNF, isMyTurnNow, turnUserId, clearReadyTimeout]);
 
 
   // Khi canStart=true, bắt đầu timer, dừng khi bấm phím bất kỳ (desktop, không nhận chuột) hoặc chạm (mobile)
   useEffect(() => {
     // Kiểm tra các điều kiện để bắt đầu timer
     if (!canStart || waiting || isLockedDue2DNF || !IsMyTurn()) return;
-    setRunning(true);
+  clearReadyTimeout();
+  setReady(false);
+  setRunning(true);
     setTimer(0);
     timerRef.current = 0;
     startTimeRef.current = performance.now(); // Lưu thời gian bắt đầu chính xác
@@ -3082,7 +3127,7 @@ useEffect(() => {
         window.removeEventListener("mousedown", handleMouse, true);
       }
     };
-  }, [canStart, waiting, roomId, userId, userName, isMobile, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId, isInExcludedTouchArea]);
+  }, [canStart, waiting, roomId, userId, userName, isMobile, isLockedDue2DNF, isTypingMode, isMyTurnNow, turnUserId, isInExcludedTouchArea, clearReadyTimeout]);
 
   // Không còn random bot, chỉ nhận kết quả đối thủ qua socket
 
@@ -3411,14 +3456,14 @@ const clampPlayerIndex = (idx: number) => {
   const mobileShrink = isMobileLandscape;
   const timerColorClass = (() => {
     if (dnf) return 'text-red-400';
-    if (running || canStart) return 'text-green-400';
-    if (spaceHeld) return 'text-yellow-400';
+    if ((ready && !running) || running || canStart) return 'text-green-400';
+    if (spaceHeld && !running) return 'text-yellow-400';
     return 'text-white';
   })();
   const timerInlineColor = (() => {
     if (dnf) return '#f87171';
-    if (running || canStart) return '#34d399';
-    if (spaceHeld) return '#facc15';
+    if ((ready && !running) || running || canStart) return '#34d399';
+    if (spaceHeld && !running) return '#facc15';
     return '#ffffff';
   })();
   const normalizedActiveRemoteUserId = normalizeId(activeRemoteUserId);
@@ -4823,8 +4868,9 @@ const clampPlayerIndex = (idx: number) => {
                 )}
               </div>
               {running && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Chạm hoặc bấm phím bất kỳ để dừng</div>}
+              {!running && ready && <div className={mobileShrink ? "text-[8px] text-green-400 mt-0.5" : "text-sm text-green-400 mt-1"}>Thả Space để bắt đầu</div>}
               {prep && !spaceHeld && <div className={mobileShrink ? "text-[8px] text-gray-400 mt-0.5" : "text-sm text-gray-400 mt-1"}>Bấm và giữ Space để chuẩn bị</div>}
-              {prep && spaceHeld && <div className={mobileShrink ? "text-[8px] text-green-400 mt-0.5" : "text-sm text-green-400 mt-1"}>Giữ Space &gt;=300ms rồi thả để bắt đầu</div>}
+              {prep && spaceHeld && !ready && <div className={mobileShrink ? "text-[8px] text-yellow-400 mt-0.5" : "text-sm text-yellow-400 mt-1"}>Giữ Space &gt;=300ms để sẵn sàng</div>}
             </>
           )}
 
