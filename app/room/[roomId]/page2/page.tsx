@@ -1058,8 +1058,8 @@ useEffect(() => {
       }, 1000);
     };
     // Nhận sự kiện đối thủ bắt đầu hoặc đang chạy timer
-    type TimerPayload = { roomId: string; userId: string; ms: number; running: boolean; finished: boolean };
-    const handleOpponentTimer = ({ roomId: rid, userId: uid, ms, running, finished }: TimerPayload) => {
+    type TimerPayload = { roomId: string; userId: string; ms: number; running: boolean; finished: boolean; forceReset?: boolean };
+    const handleOpponentTimer = ({ roomId: rid, userId: uid, ms, running, finished, forceReset }: TimerPayload) => {
       if (rid !== roomId || uid === userId) return;
       setActiveRemoteUserId(uid);
       
@@ -1079,6 +1079,18 @@ useEffect(() => {
         setOpponentRunning(false);
         setOpponentTimer(ms);
         opponentTimerRef.current = ms;
+        if (forceReset) {
+          if (opponentPrepIntervalRef.current) {
+            clearInterval(opponentPrepIntervalRef.current);
+            opponentPrepIntervalRef.current = null;
+          }
+          setOpponentPrep(false);
+          setOpponentPrepTime(15);
+          opponentBaseMsRef.current = 0;
+          opponentLastTsRef.current = performance.now();
+          setOpponentTimer(0);
+          opponentTimerRef.current = 0;
+        }
       }
     };
   socket.on('timer-prep-2vs2', handleOpponentPrep);

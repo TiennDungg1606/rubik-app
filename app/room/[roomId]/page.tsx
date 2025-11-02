@@ -132,6 +132,7 @@ export default function RoomPage() {
   const [spaceHeld, setSpaceHeld] = useState<boolean>(false);
   const [ready, setReady] = useState<boolean>(false);
   const [users, setUsers] = useState<string[]>([]); // userId array
+  const usersRef = useRef<string[]>([]);
   const [userId, setUserId] = useState<string>("");
   const [opponentId, setOpponentId] = useState<string>("");
   const [waiting, setWaiting] = useState<boolean>(true);
@@ -160,6 +161,12 @@ export default function RoomPage() {
   const readyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
+
+  const runningStateRef = useRef(running);
+  const prepStateRef = useRef(prep);
+  const canStartRef = useRef(canStart);
+  const pendingResultRef = useRef<number|null>(pendingResult);
+  const spaceHeldRef = useRef(spaceHeld);
 
    // State cho tái đấu
   const [rematchModal, setRematchModal] = useState<{show: boolean, from: 'me'|'opponent'|null}>({show: false, from: null});
@@ -246,6 +253,30 @@ useEffect(() => {
     myResultsRef.current = myResults;
   }, [myResults]);
 
+  useEffect(() => {
+    usersRef.current = users;
+  }, [users]);
+
+  useEffect(() => {
+    runningStateRef.current = running;
+  }, [running]);
+
+  useEffect(() => {
+    prepStateRef.current = prep;
+  }, [prep]);
+
+  useEffect(() => {
+    canStartRef.current = canStart;
+  }, [canStart]);
+
+  useEffect(() => {
+    pendingResultRef.current = pendingResult;
+  }, [pendingResult]);
+
+  useEffect(() => {
+    spaceHeldRef.current = spaceHeld;
+  }, [spaceHeld]);
+
   // Auto-scroll xuống cuối khi mở chat hoặc có tin nhắn mới
   useEffect(() => {
     if (showChat && chatListRef.current) {
@@ -263,36 +294,7 @@ useEffect(() => {
     }
   }, [pendingResult, running, prep]);
   // Lắng nghe danh sách users và hostId từ server
-  useEffect(() => {
-    const socket = getSocket();
-    const handleUsers = (data: { users: { userId: string, userName: string }[], hostId: string }) => {
-      setUsers(data.users.map(u => u.userId));
-      setWaiting(data.users.length < 2);
-      setPendingUsers(data.users);
-      // Đồng bộ chủ phòng từ server
-      if (userId && data.hostId) {
-        setIsCreator(userId === data.hostId);
-      } else {
-        setIsCreator(false);
-      }
-      
-      // Reset chế độ tái đấu khi có người mới vào phòng
-      if (data.users.length === 1) {
-        setIsRematchMode(false);
-      }
-      
-      // Reset sự kiện 2 lần DNF khi có sự thay đổi người chơi
-      if (data.users.length !== users.length) {
-        setIsLockedDue2DNF(false);
-        // setShowLockedDNFModal(false); // ĐÃ HỦY
-        setLockDNFInfo(null);
-      }
-    };
-    socket.on('room-users', handleUsers);
-    return () => {
-      socket.off('room-users', handleUsers);
-    };
-  }, [userId]);
+  
 
   // Lắng nghe sự kiện hủy tái đấu từ đối phương
   useEffect(() => {
@@ -317,6 +319,9 @@ useEffect(() => {
     if (opp) {
       setOpponentId(opp.userId);
       setOpponentName(opp.userName || 'Đối thủ');
+    } else {
+      setOpponentId("");
+      setOpponentName('Đối thủ');
     }
     
     // Chỉ reset SETS khi thực sự có người mới vào phòng (không phải khi tái đấu)
@@ -343,6 +348,114 @@ useEffect(() => {
   const opponentTimerRef = useRef(0);
   const opponentPrepIntervalRef = useRef<NodeJS.Timeout|null>(null);
   const opponentIntervalRef = useRef<NodeJS.Timeout|null>(null);
+
+  const resetOpponentTimerState = React.useCallback(() => {
+    if (opponentPrepIntervalRef.current) {
+      clearInterval(opponentPrepIntervalRef.current);
+      opponentPrepIntervalRef.current = null;
+    }
+    if (opponentIntervalRef.current) {
+      clearInterval(opponentIntervalRef.current);
+      opponentIntervalRef.current = null;
+    }
+    setOpponentPrep(false);
+    setOpponentPrepTime(15);
+    setOpponentRunning(false);
+    setOpponentTimer(0);
+    opponentTimerRef.current = 0;
+  }, []);
+
+  const resetMySolveState = React.useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (prepIntervalRef.current) {
+      clearInterval(prepIntervalRef.current);
+      prepIntervalRef.current = null;
+    }
+    clearReadyTimeout();
+    timerRef.current = 0;
+    startTimeRef.current = 0;
+    pressStartRef.current = null;
+    setRunning(false);
+    setPrep(false);
+    setPrepTime(15);
+    setCanStart(false);
+    setSpaceHeld(false);
+    setReady(false);
+    setTimer(0);
+    setPendingResult(null);
+    setPendingType('normal');
+    setDnf(false);
+    setShowConfirmButtons(false);
+    setOpponentTime(null);
+    setShowScrambleMsg(false);
+  }, [clearReadyTimeout]);
+
+  const broadcastTimerReset = React.useCallback(() => {
+    if (!roomId || !userId) return;
+    const socket = getSocket();
+    socket.emit("timer-update", {
+      roomId,
+      userId,
+      ms: 0,
+      running: false,
+      finished: false,
+      forceReset: true,
+    });
+  }, [roomId, userId]);
+
+  const stopSolveAndBroadcast = React.useCallback(() => {
+    resetMySolveState();
+    broadcastTimerReset();
+  }, [resetMySolveState, broadcastTimerReset]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    const handleUsers = (data: { users: { userId: string, userName: string }[], hostId: string }) => {
+      const incomingUsers = Array.isArray(data.users) ? data.users : [];
+      const newUserIds = incomingUsers.map(u => u.userId);
+      const previousUserIds = usersRef.current;
+      const playerCountDropped = newUserIds.length < previousUserIds.length;
+      const stillInRoom = userId ? newUserIds.includes(userId) : false;
+
+      setUsers(newUserIds);
+      setWaiting(newUserIds.length < 2);
+      setPendingUsers(incomingUsers);
+
+      if (userId && data.hostId) {
+        setIsCreator(userId === data.hostId);
+      } else {
+        setIsCreator(false);
+      }
+
+      if (newUserIds.length === 1) {
+        setIsRematchMode(false);
+      }
+
+      if (newUserIds.length !== previousUserIds.length) {
+        setIsLockedDue2DNF(false);
+        setLockDNFInfo(null);
+      }
+
+      if (playerCountDropped) {
+        resetOpponentTimerState();
+        if (stillInRoom) {
+          const wasSolving = prepStateRef.current || runningStateRef.current || canStartRef.current || pendingResultRef.current !== null || spaceHeldRef.current;
+          if (wasSolving) {
+            stopSolveAndBroadcast();
+          }
+        }
+      }
+
+      usersRef.current = newUserIds;
+    };
+    socket.on('room-users', handleUsers);
+    return () => {
+      socket.off('room-users', handleUsers);
+    };
+  }, [userId, resetOpponentTimerState, stopSolveAndBroadcast]);
 
   // Lắng nghe socket để đồng bộ timer-prep và timer-update từ đối thủ
   useEffect(() => {
@@ -372,9 +485,9 @@ useEffect(() => {
       }, 1000);
     };
     // Nhận sự kiện đối thủ bắt đầu hoặc đang chạy timer
-    type TimerPayload = { roomId: string; userId: string; ms: number; running: boolean; finished: boolean };
+  type TimerPayload = { roomId: string; userId: string; ms: number; running: boolean; finished: boolean; forceReset?: boolean };
     let lastOpponentUpdate = Date.now();
-    const handleOpponentTimer = ({ roomId: rid, userId: uid, ms, running, finished }: TimerPayload) => {
+    const handleOpponentTimer = ({ roomId: rid, userId: uid, ms, running, finished, forceReset }: TimerPayload) => {
       if (rid !== roomId || uid === userId) return;
       
       if (running) {
@@ -401,6 +514,9 @@ useEffect(() => {
         setOpponentTimer(ms);
         opponentTimerRef.current = ms;
         if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
+        if (forceReset) {
+          resetOpponentTimerState();
+        }
       }
     };
     socket.on('timer-prep', handleOpponentPrep);
@@ -411,7 +527,7 @@ useEffect(() => {
       if (opponentPrepIntervalRef.current) clearInterval(opponentPrepIntervalRef.current);
       if (opponentIntervalRef.current) clearInterval(opponentIntervalRef.current);
     };
-  }, [roomId, userId]);
+  }, [roomId, userId, resetOpponentTimerState]);
 
 
 
@@ -1234,18 +1350,13 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
 useEffect(() => {
   const socket = getSocket();
   const handleRoomReset = () => {
+    resetMySolveState();
+    resetOpponentTimerState();
     setMyResults([]);
     setOpponentResults([]);
     setScramble("");
     setScrambleIndex(0);
     setScrambles([]);
-    setPrep(false);
-    setCanStart(false);
-    setSpaceHeld(false);
-    setTimer(0);
-    setDnf(false);
-    setPendingResult(null);
-    setPendingType('normal');
     setOpponentId("");
     setOpponentName("Đối thủ");
     setRoomUrl("");
@@ -1263,7 +1374,7 @@ useEffect(() => {
   return () => {
     socket.off('room-reset', handleRoomReset);
   };
-}, [roomId]);
+}, [roomId, resetMySolveState, resetOpponentTimerState]);
 
 // Đặt effect lắng nghe rematch ở cuối cùng, sau tất cả các state liên quan
 
