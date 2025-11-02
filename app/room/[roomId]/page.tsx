@@ -44,7 +44,7 @@ function calcStats(times: (number|null)[]) {
 }
 
 
-const SCRAMBLE_LOCK_DURATION_MS = 20000;
+const SCRAMBLE_LOCK_DURATION_MS = 15000;
 
 
 

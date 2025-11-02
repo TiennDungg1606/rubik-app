@@ -5,7 +5,7 @@ declare global {
 }
 
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, type ReactNode } from "react";
 import TimerTab from "./components/TimerTab";
 import RoomTab from "./components/RoomTab";
 import AccountTab from "./components/AccountTab";
@@ -33,6 +33,10 @@ type User = {
   // Thêm các trường khác nếu cần
 };
 
+type TabKey = "new" | "timer" | "room" | "practice" | "shop" | "about";
+
+const ALL_TABS: TabKey[] = ["new", "timer", "room", "practice", "shop", "about"];
+
 // Component that uses useSearchParams
 function LobbyContent() {
   // Modal chọn background
@@ -47,6 +51,65 @@ function LobbyContent() {
     "images5.jpg",
     "images6.jpg",
     "images7.jpg",
+  ];
+  const navItems: { id: TabKey; label: string; icon: ReactNode }[] = [
+    {
+      id: "new",
+      label: "New",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M4 12h16" />
+        </svg>
+      ),
+    },
+    {
+      id: "timer",
+      label: "Timer",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
+          <circle cx="12" cy="13" r="7" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4l2.5 1.5M9 5h6" />
+        </svg>
+      ),
+    },
+    {
+      id: "room",
+      label: "Room",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 11a4 4 0 1 1 8 0v1M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" />
+        </svg>
+      ),
+    },
+    {
+      id: "practice",
+      label: "Practice",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="m12 5 6 6-6 6-6-6z" />
+          <circle cx="12" cy="11" r="1.5" />
+        </svg>
+      ),
+    },
+    {
+      id: "shop",
+      label: "Shop",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16l-1.5 10.5A2 2 0 0 1 16.52 19H7.48a2 2 0 0 1-1.98-1.5L4 7Zm3-3h10" />
+        </svg>
+      ),
+    },
+    {
+      id: "about",
+      label: "About",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 17v-4m0-6h.01" />
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+      ),
+    },
   ];
   // Gán hàm mở modal vào window để ProfileTab gọi được
   useEffect(() => {
@@ -111,9 +174,11 @@ function LobbyContent() {
   const searchParams = useSearchParams();
   
   // Hiệu ứng chuyển tab
-  const [tab, setTab] = useState("new");
-  const [displayedTab, setDisplayedTab] = useState("new");
+  const [tab, setTab] = useState<TabKey>("new");
+  const [displayedTab, setDisplayedTab] = useState<TabKey>("new");
   const [tabTransitioning, setTabTransitioning] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
@@ -123,6 +188,61 @@ function LobbyContent() {
   const [bgError, setBgError] = useState<string>("");
   const [loadingBg, setLoadingBg] = useState(false);
   // Lấy customBg từ user profile (MongoDB)
+
+  const handleTabSelect = (nextTab: TabKey) => {
+    setTab(nextTab);
+    if (isMobile) {
+      setIsNavOpen(false);
+    }
+  };
+
+  const openProfileMenu = () => {
+    setShowProfileMenu(true);
+    if (isMobile) {
+      setIsNavOpen(false);
+    }
+  };
+
+  const userInitials = user && (user.firstName || user.lastName)
+    ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
+    : "";
+
+  const renderNavButtons = (className?: string, collapsed = false) => (
+    <div className={`flex flex-col gap-1 ${className ?? ""}`}>
+      {navItems.map(item => {
+        const isActive = tab === item.id;
+        const baseClasses = collapsed
+          ? "flex items-center justify-center rounded-xl px-2 py-2.5 text-sm font-medium transition-colors"
+          : "flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition-colors md:gap-3 md:px-4 md:py-2.5 md:text-sm";
+        const iconSizing = collapsed ? "h-10 w-10" : "h-8 w-8 md:h-9 md:w-9";
+        return (
+          <button
+            key={item.id}
+            aria-label={item.label}
+            title={collapsed ? item.label : undefined}
+            className={`${baseClasses}
+              ${isActive ? "bg-blue-500/20 text-blue-200" : "text-slate-300 hover:bg-slate-800/70 hover:text-white"}`}
+            onClick={() => handleTabSelect(item.id)}
+          >
+            <span className={`flex ${iconSizing} items-center justify-center rounded-lg border border-white/10 transition-colors
+              ${isActive ? "bg-blue-500/30 text-blue-100" : "bg-slate-900/60 text-slate-400"}`}>
+              {item.icon}
+            </span>
+            {!collapsed && <span>{item.label}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const tabLabelMap: Record<TabKey, string> = {
+    new: "New",
+    timer: "Timer",
+    room: "Room",
+    practice: "Practice",
+    shop: "Shop",
+    about: "About",
+  };
 
 
   useEffect(() => {
@@ -272,6 +392,12 @@ function LobbyContent() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!isMobile) {
+      setIsNavOpen(false);
+    }
+  }, [isMobile]);
+
   // State theo dõi trạng thái toàn màn hình
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -395,8 +521,8 @@ function LobbyContent() {
   // Kiểm tra tham số tab từ URL và tự động chuyển tab
   useEffect(() => {
     const tabParam = searchParams?.get("tab");
-    if (tabParam && ["new", "timer", "room", "practice", "shop", "about"].includes(tabParam)) {
-      setTab(tabParam);
+    if (tabParam && ALL_TABS.includes(tabParam as TabKey)) {
+      setTab(tabParam as TabKey);
     }
   }, [searchParams]);
 
@@ -508,10 +634,6 @@ function LobbyContent() {
     router.push(`/room/${code}`);
   };
 
-  const navPaddingClass = mobileShrink ? "px-4" : "px-8";
-  const navGapClass = mobileShrink ? "gap-0.5" : "gap-1";
-  const navButtonSizeClass = mobileShrink ? "text-sm px-3 py-1.5" : "text-base px-5 py-2";
-
   if (isMobile && isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
@@ -521,98 +643,72 @@ function LobbyContent() {
     );
   }
   return (
-    <main
-      className="flex flex-col items-center justify-start min-h-screen text-white px-4 font-sans"
-      style={{ paddingTop: 80 }} // Để tránh bị che bởi nav fixed
-    >
-      {/* Hiển thị lỗi chọn ảnh nền nếu có */}
+    <main className="relative flex h-screen flex-col overflow-hidden font-sans text-white">
       {(bgError || loadingBg) && (
-        <div className="fixed top-2 left-1/2 -translate-x-1/2 px-4 py-2 rounded shadow-lg z-50 text-sm font-semibold animate-pulse"
-          style={{ background: loadingBg ? '#2563eb' : '#dc2626', color: 'white' }}>
-          {loadingBg ? 'Đang xử lý ảnh nền...' : bgError}
+        <div className="fixed left-1/2 top-3 z-[120] -translate-x-1/2 rounded-full border border-white/10 bg-slate-900/90 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+          {loadingBg ? "Đang xử lý ảnh nền..." : bgError}
         </div>
       )}
-      {/* Tab Navigation Bar */}
-      <nav className={`tab-navbar w-full max-w-7xl flex items-center justify-between bg-gray-900 rounded-b-2xl shadow-lg ${navPaddingClass} py-3 mx-auto fixed top-0 left-1/2 -translate-x-1/2 z-[100]`} style={{width: '100vw', maxWidth: '100vw'}}>
-        <div className={`flex items-center ${navGapClass}   `}>
-          <svg width="32" height="32" viewBox="0 0 64 64" fill="none" className="mr-2 drop-shadow-lg" style={{marginLeft: -8}} xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
-            <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
-            <rect x="44" y="2" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
-            <rect x="2" y="23" width="18" height="18" rx="3" fill="#FDE047" stroke="#222" strokeWidth="2"/>
-            <rect x="23" y="23" width="18" height="18" rx="3" fill="#22D3EE" stroke="#222" strokeWidth="2"/>
-            <rect x="44" y="23" width="18" height="18" rx="3" fill="#22C55E" stroke="#222" strokeWidth="2"/>
-            <rect x="2" y="44" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
-            <rect x="23" y="44" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
-            <rect x="44" y="44" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2"/>
-          </svg>
-          <button
-            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
-              ${tab === "new"
-                ? "bg-blue-100 text-blue-700 shadow-md"
-                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
-            `}
-            onClick={() => setTab("new")}
-          >New</button>
-          <button
-            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
-              ${tab === "timer"
-                ? "bg-blue-100 text-blue-700 shadow-md"
-                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
-            `}
-            onClick={() => setTab("timer")}
-          >Timer</button>
-          <button
-            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
-              ${tab === "room"
-                ? "bg-blue-100 text-blue-700 shadow-md"
-                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
-            `}
-            onClick={() => setTab("room")}
-          >Room</button>
-          <button
-            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
-              ${tab === "practice"
-                ? "bg-blue-100 text-blue-700 shadow-md"
-                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
-            `}
-            onClick={() => setTab("practice")}
-          >Practice</button>
-          <button
-            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
-              ${tab === "shop"
-                ? "bg-blue-100 text-blue-700 shadow-md"
-                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
-            `}
-            onClick={() => setTab("shop")}
-          >Shop</button>
-          <button
-            className={`${navButtonSizeClass} font-semibold rounded-lg transition-all shadow-sm
-              ${tab === "about"
-                ? "bg-blue-100 text-blue-700 shadow-md"
-                : "bg-transparent text-white hover:bg-blue-900/30 hover:text-blue-400"}
-            `}
-            onClick={() => setTab("about")}
-          >About</button>
-          {/* Ẩn tab Account trên menu */}
-        </div>
-        {/* Avatar + Popup menu */}
-        <div className="relative">
-          <button
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg border-2 border-white shadow hover:opacity-90 transition-all"
-            onClick={() => setShowProfileMenu(v => !v)}
-            title="Tài khoản"
+
+      {isNavOpen && (
+        <div className="fixed inset-0 z-[100] flex md:hidden" onClick={() => setIsNavOpen(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <aside
+            className="relative z-[110] flex h-full w-64 max-w-[75vw] flex-col gap-4 overflow-hidden bg-slate-900/95 px-4 py-5 shadow-2xl"
+            onClick={event => event.stopPropagation()}
           >
-            {user && (user.firstName || user.lastName)
-              ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
-              : <span>👤</span>}
-          </button>
+            <button
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-slate-300 transition hover:text-white"
+              onClick={() => setIsNavOpen(false)}
+              aria-label="Đóng menu"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m6 6 12 12M18 6 6 18" />
+              </svg>
+            </button>
+            <div className="mt-1.5 flex items-center gap-3">
+              <svg width="32" height="32" viewBox="0 0 64 64" fill="none" className="drop-shadow-lg" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2" />
+                <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2" />
+                <rect x="44" y="2" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2" />
+                <rect x="2" y="23" width="18" height="18" rx="3" fill="#FDE047" stroke="#222" strokeWidth="2" />
+                <rect x="23" y="23" width="18" height="18" rx="3" fill="#22D3EE" stroke="#222" strokeWidth="2" />
+                <rect x="44" y="23" width="18" height="18" rx="3" fill="#22C55E" stroke="#222" strokeWidth="2" />
+                <rect x="2" y="44" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2" />
+                <rect x="23" y="44" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2" />
+                <rect x="44" y="44" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2" />
+              </svg>
+              <div className="flex flex-col">
+                <span className="text-lg font-semibold text-white">Rubik App</span>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto pr-1">
+              {renderNavButtons()}
+            </div>
+            <div className="mt-4 flex flex-col gap-3 border-t border-white/5 pt-4">
+              <button
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-800/80 px-3 py-2 text-xs font-medium text-white transition hover:border-blue-400/50 hover:text-blue-200"
+                onClick={openProfileMenu}
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-pink-500 text-base font-semibold text-white shadow">
+                  {userInitials || "👤"}
+                </span>
+                <span className="text-sm md:text-base">Tài khoản của bạn</span>
+              </button>
+            </div>
+          </aside>
         </div>
-      </nav>
-      {/* Overlay profile menu ngoài nav, phủ toàn trang */}
+      )}
+
       {showProfileMenu && (
-        <div className="fixed inset-0 z-[9999] flex items-start justify-end bg-black/30" onClick={() => setShowProfileMenu(false)}>
-          <div onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[130] flex items-end justify-start bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowProfileMenu(false)}
+        >
+          <div
+            onClick={event => event.stopPropagation()}
+            className="mb-16 ml-12 w-full max-w-md px-4 pb-2 md:ml-24 md:pl-12"
+          >
             <ProfileTab
               user={user}
               onLogout={() => {
@@ -628,38 +724,125 @@ function LobbyContent() {
           </div>
         </div>
       )}
-      {/* Tab Content với hiệu ứng chuyển tab */}
-      <div className={`w-full transition-all duration-300 ${tabTransitioning ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
-        {displayedTab === "timer" && (
-          <TimerTab />
-        )}
-        {displayedTab === "room" && (
-          <>
-            <RoomTab
-              roomInput={roomInput}
-              setRoomInput={setRoomInput}
-              handleCreateRoom={handleCreateRoom}
-              handleJoinRoom={handleJoinRoom}
-            />
-            {joinError && <div className="text-red-400 text-center mt-2">{joinError}</div>}
-          </>
-        )}
-        {displayedTab === "practice" && (
-          <PracticeTab />
-        )}
-        {displayedTab === "new" && (
-          <NewTab />
-        )}
-        {displayedTab === "shop" && (
-          <ShopTab />
-        )}
-        {displayedTab === "about" && (
-          <AboutTab />
-        )}
+
+  <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
+        <aside className={`hidden md:flex ${isSidebarCollapsed ? "md:w-20 lg:w-24" : "md:w-56 lg:w-64"}`}>
+          <div className="flex h-full w-full flex-col overflow-hidden border border-white/5 bg-slate-900/60 backdrop-blur-xl transition-all duration-200">
+            <div className={`flex items-center pt-4 pb-4 ${isSidebarCollapsed ? "justify-center gap-2 px-2" : "gap-3 px-5"}`}>
+              <button
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-slate-300 transition hover:text-white"
+                onClick={() => setIsSidebarCollapsed(prev => !prev)}
+                aria-label={isSidebarCollapsed ? "Mở rộng menu" : "Thu gọn menu"}
+                aria-pressed={isSidebarCollapsed}
+              >
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <svg width="36" height="36" viewBox="0 0 64 64" fill="none" className="drop-shadow-lg" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2" />
+                <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2" />
+                <rect x="44" y="2" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2" />
+                <rect x="2" y="23" width="18" height="18" rx="3" fill="#FDE047" stroke="#222" strokeWidth="2" />
+                <rect x="23" y="23" width="18" height="18" rx="3" fill="#22D3EE" stroke="#222" strokeWidth="2" />
+                <rect x="44" y="23" width="18" height="18" rx="3" fill="#22C55E" stroke="#222" strokeWidth="2" />
+                <rect x="2" y="44" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2" />
+                <rect x="23" y="44" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2" />
+                <rect x="44" y="44" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2" />
+              </svg>
+              {!isSidebarCollapsed && (
+                <div className="flex flex-col">
+                  <span className="text-xl font-semibold text-white">Rubik App</span>
+                </div>
+              )}
+            </div>
+            <div className={`overflow-y-auto pb-5 ${isSidebarCollapsed ? "px-2" : "px-3"}`}>
+              {renderNavButtons(undefined, isSidebarCollapsed)}
+            </div>
+            <div className={`mt-auto pb-5 ${isSidebarCollapsed ? "px-3" : "px-5"}`}>
+              <button
+                className={`flex w-full items-center rounded-xl border border-white/10 bg-slate-800/80 text-sm font-medium text-white transition hover:border-blue-400/60 hover:text-blue-200 ${isSidebarCollapsed ? "justify-center px-2 py-3" : "justify-between px-4 py-3"}`}
+                onClick={openProfileMenu}
+                aria-label="Tài khoản"
+                title={isSidebarCollapsed ? "Tài khoản" : undefined}
+              >
+                <span className={`flex items-center ${isSidebarCollapsed ? "" : "gap-3"}`}>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-pink-500 text-lg font-semibold text-white shadow">
+                    {userInitials || "👤"}
+                  </span>
+                  {!isSidebarCollapsed && <span>Tài khoản</span>}
+                </span>
+                {!isSidebarCollapsed && (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.6}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+        </aside>
+
+  <section className="flex min-h-0 flex-1 flex-col">
+          <div className="sticky top-0 z-20 flex items-center justify-between bg-slate-950/95 px-4 py-4 shadow md:hidden">
+            <div className="flex items-center gap-3">
+              <button
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-slate-900/80 text-white shadow"
+                onClick={() => setIsNavOpen(true)}
+                aria-label="Mở menu"
+              >
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div className="flex flex-col leading-tight">
+                <span className="text-xs uppercase tracking-wide text-slate-400">Điều hướng</span>
+                <span className="text-base font-semibold text-white">{tabLabelMap[tab]}</span>
+              </div>
+            </div>
+            <button
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-pink-500 text-lg font-semibold text-white shadow"
+              onClick={openProfileMenu}
+              aria-label="Mở hồ sơ"
+            >
+              {userInitials || "👤"}
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="mx-auto w-full max-w-5xl px-2 pb-12 pt-8">
+              <div className={`transition-all duration-300 ${tabTransitioning ? 'pointer-events-none translate-y-2 opacity-0' : 'translate-y-0 opacity-100'}`}>
+                {displayedTab === "timer" && (
+                  <TimerTab />
+                )}
+                {displayedTab === "room" && (
+                  <>
+                    <RoomTab
+                      roomInput={roomInput}
+                      setRoomInput={setRoomInput}
+                      handleCreateRoom={handleCreateRoom}
+                      handleJoinRoom={handleJoinRoom}
+                    />
+                    {joinError && <div className="mt-3 text-center text-sm text-red-400">{joinError}</div>}
+                  </>
+                )}
+                {displayedTab === "practice" && (
+                  <PracticeTab />
+                )}
+                {displayedTab === "new" && (
+                  <NewTab />
+                )}
+                {displayedTab === "shop" && (
+                  <ShopTab />
+                )}
+                {displayedTab === "about" && (
+                  <AboutTab />
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
-      {/* Không render AccountTabWrapper nữa, đã chuyển vào avatar menu */}
-      
-      {/* Modal chọn background toàn trang */}
+
       {showBgModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
           <div className="bg-[#181926] rounded-2xl p-4 sm:p-6 shadow-2xl border border-blue-700 w-[95vw] max-w-2xl sm:max-w-3xl flex flex-col items-center max-h-[90vh]">

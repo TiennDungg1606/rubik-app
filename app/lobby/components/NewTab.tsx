@@ -43,7 +43,7 @@ export default function NewTab() {
   }, []);
 
   return (
-    <section className="w-full max-w-7xl p-15 mt-2 mb-4 rounded-xl bg-neutral-900/30 bg-neutral-900/50 shadow-xl border border-neutral-700 mx-auto">
+    <section className="w-full max-w-7xl p-5 mt-1 mb-1 rounded-xl bg-neutral-900/30 bg-neutral-900/50 shadow-xl border border-neutral-700 mx-auto">
       <h2 className="text-3xl font-extrabold text-yellow-400 mb-6 flex items-center gap-2">
        🔔 Tin tức & Cập nhật
       </h2>

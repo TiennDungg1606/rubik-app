@@ -44,7 +44,7 @@ function calcStats(times: (number|null)[]) {
   return { best, worst, mean, ao5 };
 }
 
-const SCRAMBLE_LOCK_DURATION_MS = 20000;
+const SCRAMBLE_LOCK_DURATION_MS = 15000;
 const EXCLUDED_TOUCH_SELECTOR = '.webcam-area';
 
 
