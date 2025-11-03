@@ -806,7 +806,7 @@ function LobbyContent() {
                 </svg>
               </button>
               <div className="flex flex-col leading-tight">
-                <span className="text-xs uppercase tracking-wide text-slate-400">Điều hướng</span>
+                <span className="text-xs uppercase tracking-wide text-slate-400">Menu</span>
                 <span className="text-base font-semibold text-white">{tabLabelMap[tab]}</span>
               </div>
             </div>
