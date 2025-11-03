@@ -95,9 +95,19 @@ function LobbyContent() {
       id: "shop",
       label: "Shop",
       icon: (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16l-1.5 10.5A2 2 0 0 1 16.52 19H7.48a2 2 0 0 1-1.98-1.5L4 7Zm3-3h10" />
-        </svg>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5"
+      >
+        <path d="M6 8a6 6 0 0 1 12 0" />
+        <rect x="4" y="8" width="16" height="12" rx="2" ry="2" />
+      </svg>
       ),
     },
     {
@@ -206,6 +216,7 @@ function LobbyContent() {
   const userInitials = user && (user.firstName || user.lastName)
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
     : "";
+  const userName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Tài khoản";
 
   const renderNavButtons = (className?: string, collapsed = false) => (
     <div className={`flex flex-col gap-1 ${className ?? ""}`}>
@@ -693,7 +704,7 @@ function LobbyContent() {
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-pink-500 text-base font-semibold text-white shadow">
                   {userInitials || "👤"}
                 </span>
-                <span className="text-sm md:text-base">Tài khoản của bạn</span>
+                <span className="text-sm md:text-base">{userName}</span>
               </button>
             </div>
           </aside>
@@ -759,9 +770,9 @@ function LobbyContent() {
             <div className={`overflow-y-auto pb-5 ${isSidebarCollapsed ? "px-2" : "px-3"}`}>
               {renderNavButtons(undefined, isSidebarCollapsed)}
             </div>
-            <div className={`mt-auto pb-5 ${isSidebarCollapsed ? "px-3" : "px-5"}`}>
+            <div className={`mt-auto pb-5 ${isSidebarCollapsed ? "px-5" : "px-5"}`}>
               <button
-                className={`flex w-full items-center rounded-xl border border-white/10 bg-slate-800/80 text-sm font-medium text-white transition hover:border-blue-400/60 hover:text-blue-200 ${isSidebarCollapsed ? "justify-center px-2 py-3" : "justify-between px-4 py-3"}`}
+                className={`flex w-full items-center rounded-xl border border-white/10 bg-slate-800/80 text-sm font-medium text-white transition hover:border-blue-400/60 hover:text-blue-200 ${isSidebarCollapsed ? "justify-center px-2 py-1" : "justify-between px-2 py-1"}`}
                 onClick={openProfileMenu}
                 aria-label="Tài khoản"
                 title={isSidebarCollapsed ? "Tài khoản" : undefined}
@@ -770,7 +781,7 @@ function LobbyContent() {
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-pink-500 text-lg font-semibold text-white shadow">
                     {userInitials || "👤"}
                   </span>
-                  {!isSidebarCollapsed && <span>Tài khoản</span>}
+                  {!isSidebarCollapsed && <span>{userName}</span>}
                 </span>
                 {!isSidebarCollapsed && (
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.6}>
@@ -809,7 +820,7 @@ function LobbyContent() {
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="mx-auto w-full max-w-5xl px-2 pb-12 pt-8">
+            <div className="w-full px-3 pb-10 pt-6 sm:px-6 lg:px-8 xl:px-10">
               <div className={`transition-all duration-300 ${tabTransitioning ? 'pointer-events-none translate-y-2 opacity-0' : 'translate-y-0 opacity-100'}`}>
                 {displayedTab === "timer" && (
                   <TimerTab />
