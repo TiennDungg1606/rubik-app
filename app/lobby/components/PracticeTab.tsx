@@ -1,10 +1,8 @@
 // PracticeTab.tsx
 "use client";
-import React from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 export default function PracticeTab() {
-  const router = useRouter();
   // Danh mục và subcategory
   const categories = [
     { name: "3x3", sub: ["OLL", "PLL"] },
@@ -13,8 +11,39 @@ export default function PracticeTab() {
   ];
 
   // State chọn danh mục và sub
-  const [selectedCat, setSelectedCat] = React.useState("3x3");
-  const [selectedSub, setSelectedSub] = React.useState("OLL");
+  const [selectedCat, setSelectedCat] = useState("3x3");
+  const [selectedSub, setSelectedSub] = useState("OLL");
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
+  const [isCompactWidth, setIsCompactWidth] = useState(false);
+
+  useEffect(() => {
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      const portrait = window.innerHeight > window.innerWidth;
+      const viewportWidth = window.innerWidth;
+      setIsMobileLandscape(mobile && !portrait && viewportWidth < 1200);
+      setIsCompactWidth(viewportWidth <= 768);
+    }
+
+    if (typeof window !== "undefined") {
+      checkDevice();
+      window.addEventListener("resize", checkDevice);
+      window.addEventListener("orientationchange", checkDevice);
+      return () => {
+        window.removeEventListener("resize", checkDevice);
+        window.removeEventListener("orientationchange", checkDevice);
+      };
+    }
+  }, []);
+
+  const mobileShrink = isMobileLandscape || isCompactWidth;
+  const gridClassName = mobileShrink ? "grid grid-cols-2 gap-3 sm:gap-4" : "grid grid-cols-2 md:grid-cols-2 gap-6";
+  const cardClassName = mobileShrink
+    ? "bg-gray-900 rounded-lg p-3 flex flex-col md:flex-row items-start md:items-start md:justify-between text-left shadow-lg gap-2"
+    : "bg-gray-900 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between shadow-lg";
+  const titleClassName = mobileShrink ? "text-sm font-bold mb-1 text-white text-left" : "text-lg font-bold mb-1 text-white";
+  const algTextClassName = mobileShrink ? "text-sm font-mono mb-2 whitespace-pre-wrap text-gray-200 text-left" : "text-lg font-mono mb-2 whitespace-pre-wrap text-gray-200";
+  const imageClassName = mobileShrink ? "w-16 h-16 object-contain md:ml-4 self-start" : "w-24 h-24 object-contain ml-4";
 
   // Công thức mẫu cho OLL 3x3
   const ollAlgs = [
@@ -397,28 +426,17 @@ export default function PracticeTab() {
         </select>
       </div>
       {/* Alg List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className={gridClassName}>
         {algs.length === 0 ? (
           <div className="col-span-2 text-center text-gray-400 py-8 text-lg">Sẽ cập nhật sau...</div>
         ) : (
           algs.map((alg) => (
-            <div key={alg.id} className="bg-gray-900 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between shadow-lg">
+            <div key={alg.id} className={cardClassName}>
               <div className="flex-1">
-                <div className="text-lg font-bold mb-1">{alg.name}</div>
-                <div className="text-base font-mono mb-2 whitespace-pre-wrap">{alg.alg}</div>
-                <div className="flex gap-2 mt-2">
-                                     <button
-                     className="bg-blue-600 text-white px-3 py-1 rounded"
-                     onClick={() => {
-                       // Chuyển hướng sang trang practice timer với thông tin OLL
-                       router.push(`/practice-timer?alg=${encodeURIComponent(alg.alg)}&name=${encodeURIComponent(alg.name)}`);
-                     }}
-                   >
-                     Start Training
-                   </button>
-                 </div>
-               </div>
-               <img src={alg.img} alt="alg" className="w-24 h-24 object-contain ml-4" />
+                <div className={titleClassName}>{alg.name}</div>
+                <div className={algTextClassName}>{alg.alg}</div>
+              </div>
+              <img src={alg.img} alt="alg" className={imageClassName} />
              </div>
            ))
          )}

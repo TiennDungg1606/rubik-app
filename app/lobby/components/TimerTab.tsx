@@ -890,7 +890,15 @@ export default function TimerTab() {
   const [scramble, setScramble] = useState("");
   const [solves, setSolves] = useState<Solve[]>([]);
   const [session, setSession] = useState<'3x3' | '2x2' | '4x4' | 'pyraminx'>('3x3');
-  const [inspection, setInspection] = useState(false);
+  const [inspection, setInspection] = useState(() => {
+    if (typeof document === 'undefined') return false;
+    const cookie = document.cookie
+      .split('; ')
+      .find(entry => entry.startsWith('timerInspection='));
+    if (!cookie) return false;
+    const storedValue = cookie.split('=')[1];
+    return storedValue === '1' || storedValue === 'true';
+  });
   const [inspectionActive, setInspectionActive] = useState(false);
   const [inspectionTime, setInspectionTime] = useState(15);
   const [isTypingMode, setIsTypingMode] = useState(false);
@@ -1003,6 +1011,12 @@ export default function TimerTab() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSettings]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `timerInspection=${inspection ? '1' : '0'}; path=/; expires=${expires}`;
+  }, [inspection]);
 
   // Theo dõi thay đổi fullscreen state
   useEffect(() => {
@@ -1770,34 +1784,6 @@ export default function TimerTab() {
                 className="w-40 bg-gray-800 border border-gray-600 rounded-lg shadow-xl"
               >
                 <div className="py-1">
-                  <button
-                    onClick={() => {
-                      const el = document.documentElement;
-                      if (!document.fullscreenElement) {
-                        if (el.requestFullscreen) el.requestFullscreen();
-                        else if ((el as any).webkitRequestFullscreen) (el as any).webkitRequestFullscreen();
-                        else if ((el as any).msRequestFullscreen) (el as any).msRequestFullscreen();
-                        setIsFullscreen(true);
-                      } else {
-                        if (document.exitFullscreen) document.exitFullscreen();
-                        else if ((document as any).webkitExitFullscreen) (document as any).webkitExitFullscreen();
-                        else if ((document as any).msExitFullscreen) (document as any).msExitFullscreen();
-                        setIsFullscreen(false);
-                      }
-                      setShowSettings(false);
-                    }}
-                    className={`w-full px-4 py-2 text-left flex items-center gap-3 transition-colors ${
-                      isFullscreen 
-                        ? 'bg-white text-gray-800' 
-                        : 'text-white hover:bg-gray-700'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                    </svg>
-                    Full Screen
-                  </button>
-                  
                   <button
                     onClick={() => {
                       setInspection(i => !i);

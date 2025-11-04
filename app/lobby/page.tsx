@@ -723,7 +723,10 @@ function LobbyContent() {
                 <rect x="44" y="44" width="18" height="18" rx="3" fill="#F9E042" stroke="#222" strokeWidth="2" />
               </svg>
               <div className="flex flex-col">
-                <span className="text-lg font-semibold text-white">Rubik App</span>
+                <span className="flex items-baseline gap-1 text-xs font-semibold text-white">
+                  Rubik App
+                  <span className="relative -top-1 text-[10px] font-medium uppercase tracking-wide text-white/70">VN</span>
+                </span>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto pr-1">
@@ -764,6 +767,7 @@ function LobbyContent() {
               onBgUpload={handleBgUpload}
               onBgRemove={handleBgRemove}
               hasCustomBg={!!customBg}
+              mobileShrink={mobileShrink}
             />
           </div>
         </div>
@@ -796,7 +800,10 @@ function LobbyContent() {
               </svg>
               {!isSidebarCollapsed && (
                 <div className="flex flex-col">
-                  <span className="text-xl font-semibold text-white">Rubik App</span>
+                  <span className="flex items-baseline gap-1 text-[12px] font-semibold text-white">
+                    Rubik App
+                    <span className="relative -top-1 text-[10px] font-medium uppercase tracking-wide text-white/70">VN</span>
+                  </span>
                 </div>
               )}
             </div>
