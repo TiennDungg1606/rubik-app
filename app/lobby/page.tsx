@@ -121,6 +121,28 @@ function LobbyContent() {
       ),
     },
   ];
+  const getCookie = (name: string) => {
+    if (typeof document === "undefined") return null;
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : null;
+  };
+
+  const setCookie = (name: string, value: string, days = 365) => {
+    if (typeof document === "undefined") return;
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${expires}`;
+  };
+  useEffect(() => {
+    const cookie = getCookie("sidebarCollapsed");
+    if (cookie === "1") {
+      setIsSidebarCollapsed(true);
+    } else if (cookie === "0") {
+      setIsSidebarCollapsed(false);
+    } else {
+      setCookie("sidebarCollapsed", "1");
+      setIsSidebarCollapsed(true);
+    }
+  }, []);
   // Gán hàm mở modal vào window để ProfileTab gọi được
   useEffect(() => {
     (window as any).openBgModal = () => {
@@ -188,9 +210,10 @@ function LobbyContent() {
   const [displayedTab, setDisplayedTab] = useState<TabKey>("new");
   const [tabTransitioning, setTabTransitioning] = useState(false);
   const [isNavOpen, setIsNavOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
   const [mobileShrink, setMobileShrink] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -211,6 +234,14 @@ function LobbyContent() {
     if (isMobile) {
       setIsNavOpen(false);
     }
+  };
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      setCookie("sidebarCollapsed", next ? "1" : "0");
+      return next;
+    });
   };
 
   const userInitials = user && (user.firstName || user.lastName)
@@ -386,11 +417,13 @@ function LobbyContent() {
   useEffect(() => {
     function checkDevice() {
       const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-      setIsMobile(mobile);
+      const viewportWidth = window.innerWidth;
+  const enableMobileLayout = mobile && viewportWidth >= 768;
+  setIsMobileDevice(mobile);
+  setIsMobile(enableMobileLayout);
       const portrait = window.innerHeight > window.innerWidth;
-      setIsPortrait(portrait);
-      const shouldShrink = mobile && window.innerWidth < 768;
-      setMobileShrink(shouldShrink);
+  setIsPortrait(mobile ? portrait : false);
+      setMobileShrink(false);
     }
     if (typeof window !== 'undefined') {
       checkDevice();
@@ -645,7 +678,7 @@ function LobbyContent() {
     router.push(`/room/${code}`);
   };
 
-  if (isMobile && isPortrait) {
+  if (isMobileDevice && isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
         <div className="text-2xl font-bold text-red-400 mb-4 text-center">VUI LÒNG XOAY NGANG MÀN HÌNH ĐỂ SỬ DỤNG ỨNG DỤNG!</div>
@@ -661,7 +694,7 @@ function LobbyContent() {
         </div>
       )}
 
-      {isNavOpen && (
+      {isNavOpen && mobileShrink && (
         <div className="fixed inset-0 z-[100] flex md:hidden" onClick={() => setIsNavOpen(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <aside
@@ -736,13 +769,13 @@ function LobbyContent() {
         </div>
       )}
 
-  <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
-        <aside className={`hidden md:flex ${isSidebarCollapsed ? "md:w-20 lg:w-24" : "md:w-56 lg:w-64"}`}>
+  <div className={`flex flex-1 overflow-hidden ${mobileShrink ? "flex-col" : "flex-row"} md:flex-row`}>
+    <aside className={`${mobileShrink ? "hidden md:flex" : "flex"} ${isSidebarCollapsed ? "w-20 md:w-20 lg:w-24" : "w-56 md:w-56 lg:w-64"} flex-shrink-0`}>
           <div className="flex h-full w-full flex-col overflow-hidden border border-white/5 bg-slate-900/60 backdrop-blur-xl transition-all duration-200">
             <div className={`flex items-center pt-4 pb-4 ${isSidebarCollapsed ? "justify-center gap-2 px-2" : "gap-3 px-5"}`}>
               <button
                 className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-slate-300 transition hover:text-white"
-                onClick={() => setIsSidebarCollapsed(prev => !prev)}
+                onClick={toggleSidebarCollapse}
                 aria-label={isSidebarCollapsed ? "Mở rộng menu" : "Thu gọn menu"}
                 aria-pressed={isSidebarCollapsed}
               >
@@ -793,7 +826,8 @@ function LobbyContent() {
           </div>
         </aside>
 
-  <section className="flex min-h-0 flex-1 flex-col">
+        <section className="flex min-h-0 flex-1 flex-col">
+          {mobileShrink && (
           <div className="sticky top-0 z-20 flex items-center justify-between bg-slate-950/95 px-4 py-4 shadow md:hidden">
             <div className="flex items-center gap-3">
               <button
@@ -818,6 +852,7 @@ function LobbyContent() {
               {userInitials || "👤"}
             </button>
           </div>
+          )}
 
           <div className="flex-1 overflow-y-auto min-h-0">
             <div className="w-full px-3 pb-10 pt-6 sm:px-6 lg:px-8 xl:px-10">
