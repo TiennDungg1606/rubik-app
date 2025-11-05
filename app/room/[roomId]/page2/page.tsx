@@ -156,6 +156,22 @@ export default function RoomPage() {
 
 
   const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
+  const userNameContainerRef = useRef<HTMLDivElement | null>(null);
+  const teammateNameContainerRef = useRef<HTMLDivElement | null>(null);
+  const opponent1NameContainerRef = useRef<HTMLDivElement | null>(null);
+  const opponent2NameContainerRef = useRef<HTMLDivElement | null>(null);
+  const userNameTextRef = useRef<HTMLSpanElement | null>(null);
+  const teammateNameTextRef = useRef<HTMLSpanElement | null>(null);
+  const opponent1NameTextRef = useRef<HTMLSpanElement | null>(null);
+  const opponent2NameTextRef = useRef<HTMLSpanElement | null>(null);
+  const [userNameOverflow, setUserNameOverflow] = useState(false);
+  const [teammateNameOverflow, setTeammateNameOverflow] = useState(false);
+  const [opponent1NameOverflow, setOpponent1NameOverflow] = useState(false);
+  const [opponent2NameOverflow, setOpponent2NameOverflow] = useState(false);
+  const [userNameMarqueeDuration, setUserNameMarqueeDuration] = useState(12);
+  const [teammateMarqueeDuration, setTeammateMarqueeDuration] = useState(12);
+  const [opponent1MarqueeDuration, setOpponent1MarqueeDuration] = useState(12);
+  const [opponent2MarqueeDuration, setOpponent2MarqueeDuration] = useState(12);
 
   const waitingRef = useRef(waiting);
   const runningRef = useRef(running);
@@ -198,6 +214,43 @@ export default function RoomPage() {
   // Thêm khai báo biến roomUrl đúng chuẩn
   const [roomUrl, setRoomUrl] = useState<string>('');
   const [hostId, setHostId] = useState<string>('');
+
+  const updateNameOverflow = React.useCallback(() => {
+    const detectOverflow = (
+      container: HTMLDivElement | null,
+      textEl: HTMLSpanElement | null,
+      setter: React.Dispatch<React.SetStateAction<boolean>>,
+      durationSetter: React.Dispatch<React.SetStateAction<number>>
+    ) => {
+      if (container && textEl) {
+        const diff = textEl.scrollWidth - container.clientWidth;
+        const shouldOverflow = diff > 1;
+        setter(prev => (prev !== shouldOverflow ? shouldOverflow : prev));
+        if (shouldOverflow) {
+          const duration = Math.max(8, textEl.scrollWidth / 40);
+          durationSetter(prev => (Math.abs(prev - duration) > 0.5 ? duration : prev));
+        }
+      } else {
+        setter(prev => (prev ? false : prev));
+      }
+    };
+
+    detectOverflow(userNameContainerRef.current, userNameTextRef.current, setUserNameOverflow, setUserNameMarqueeDuration);
+    detectOverflow(teammateNameContainerRef.current, teammateNameTextRef.current, setTeammateNameOverflow, setTeammateMarqueeDuration);
+    detectOverflow(opponent1NameContainerRef.current, opponent1NameTextRef.current, setOpponent1NameOverflow, setOpponent1MarqueeDuration);
+    detectOverflow(opponent2NameContainerRef.current, opponent2NameTextRef.current, setOpponent2NameOverflow, setOpponent2MarqueeDuration);
+  }, [isMobile, isMobileLandscape]);
+
+  useEffect(() => {
+    updateNameOverflow();
+  }, [updateNameOverflow]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => updateNameOverflow();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [updateNameOverflow]);
 
   // === TEAM MANAGEMENT STATES FOR 2VS2 ===
   // Team structure: { teamId: string, players: TeamPlayer[] }
@@ -3374,6 +3427,9 @@ const clampPlayerIndex = (idx: number) => {
     if (player?.userName) return player.userName;
     return fallbackPlayerName(displayOpponentTeamId, opponentIndexForTeammate);
   })();
+  useEffect(() => {
+    updateNameOverflow();
+  }, [updateNameOverflow, myPlayerLabel, teammateLabel, opponentLabel1, opponentLabel2]);
   const mySlotUserId = displayMyTeamData.players[effectiveMyIndex]?.userId || (myTeam ? userId : "");
   const teammateUserId = displayMyTeamData.players[teammateIndex]?.userId;
   const opponentUserId1 = displayOpponentTeamData.players[opponentIndexForMe]?.userId;
@@ -3477,6 +3533,10 @@ const clampPlayerIndex = (idx: number) => {
     if (spaceHeld && !running) return '#facc15';
     return '#ffffff';
   })();
+  const userMarqueeStyle = userNameOverflow ? ({ '--marquee-duration': `${userNameMarqueeDuration}s` } as React.CSSProperties) : undefined;
+  const teammateMarqueeStyle = teammateNameOverflow ? ({ '--marquee-duration': `${teammateMarqueeDuration}s` } as React.CSSProperties) : undefined;
+  const opponent1MarqueeStyle = opponent1NameOverflow ? ({ '--marquee-duration': `${opponent1MarqueeDuration}s` } as React.CSSProperties) : undefined;
+  const opponent2MarqueeStyle = opponent2NameOverflow ? ({ '--marquee-duration': `${opponent2MarqueeDuration}s` } as React.CSSProperties) : undefined;
   const normalizedActiveRemoteUserId = normalizeId(activeRemoteUserId);
   const getRemoteTimerColor = (targetId?: string | null) => {
     const normalizedTargetId = targetId ? normalizeId(targetId) : "";
@@ -4508,24 +4568,36 @@ const clampPlayerIndex = (idx: number) => {
               )}
             </div>
             {/* Tên người chơi */}
-            <div style={{
-              background: '#fff',
-              color: '#222',
-              borderRadius: 4,
-              fontWeight: 700,
-              fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-              padding: mobileShrink ? '2px 8px' : '4px 18px',
-              minWidth: 60,
-              maxWidth: mobileShrink ? 90 : 180,
-              textAlign: 'center',
-              border: '2px solid #bbb',
-              marginLeft: mobileShrink ? 2 : 6,
-              marginRight: mobileShrink ? 2 : 6,
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-              display: 'block'
-            }}>{myPlayerLabel}</div>
+            <div
+              ref={userNameContainerRef}
+              className="name-marquee-container"
+              style={{
+                background: '#fff',
+                color: '#222',
+                borderRadius: 4,
+                fontWeight: 700,
+                fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
+                padding: mobileShrink ? '2px 8px' : '4px 18px',
+                minWidth: 60,
+                maxWidth: mobileShrink ? 90 : 180,
+                textAlign: 'center',
+                border: '2px solid #bbb',
+                marginLeft: mobileShrink ? 2 : 6,
+                marginRight: mobileShrink ? 2 : 6,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                display: 'block'
+              }}
+            >
+              {userNameOverflow ? (
+                <div className="name-marquee-track name-marquee-track--animate" style={userMarqueeStyle}>
+                  <span ref={userNameTextRef} className="name-marquee-text">{myPlayerLabel}</span>
+                  <span className="name-marquee-text" aria-hidden="true">{myPlayerLabel}</span>
+                </div>
+              ) : (
+                <span ref={userNameTextRef} className="name-marquee-text">{myPlayerLabel}</span>
+              )}
+            </div>
           </div>
         </div>
         {/* Timer ở giữa - cột 2 */}
@@ -5079,24 +5151,36 @@ const clampPlayerIndex = (idx: number) => {
               })()}
             </div>
             {/* Tên đối thủ */}
-            <div style={{
-              background: '#fff',
-              color: '#222',
-              borderRadius: 4,
-              fontWeight: 700,
-              fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-              padding: mobileShrink ? '2px 8px' : '4px 18px',
-              minWidth: 60,
-              maxWidth: mobileShrink ? 90 : 180,
-              textAlign: 'center',
-              border: '2px solid #bbb',
-              marginLeft: mobileShrink ? 2 : 6,
-              marginRight: mobileShrink ? 2 : 6,
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-              display: 'block'
-            }}>{opponentLabel1}</div>
+            <div
+              ref={opponent1NameContainerRef}
+              className="name-marquee-container"
+              style={{
+                background: '#fff',
+                color: '#222',
+                borderRadius: 4,
+                fontWeight: 700,
+                fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
+                padding: mobileShrink ? '2px 8px' : '4px 18px',
+                minWidth: 60,
+                maxWidth: mobileShrink ? 90 : 180,
+                textAlign: 'center',
+                border: '2px solid #bbb',
+                marginLeft: mobileShrink ? 2 : 6,
+                marginRight: mobileShrink ? 2 : 6,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                display: 'block'
+              }}
+            >
+              {opponent1NameOverflow ? (
+                <div className="name-marquee-track name-marquee-track--animate" style={opponent1MarqueeStyle}>
+                  <span ref={opponent1NameTextRef} className="name-marquee-text">{opponentLabel1}</span>
+                  <span className="name-marquee-text" aria-hidden="true">{opponentLabel1}</span>
+                </div>
+              ) : (
+                <span ref={opponent1NameTextRef} className="name-marquee-text">{opponentLabel1}</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -5199,24 +5283,36 @@ const clampPlayerIndex = (idx: number) => {
               })()}
             </div>
             {/* Tên người khác 1 */}
-            <div style={{
-              background: '#fff',
-              color: '#222',
-              borderRadius: 4,
-              fontWeight: 700,
-              fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-              padding: mobileShrink ? '2px 8px' : '4px 18px',
-              minWidth: 60,
-              maxWidth: mobileShrink ? 90 : 180,
-              textAlign: 'center',
-              border: '2px solid #bbb',
-              marginLeft: mobileShrink ? 2 : 6,
-              marginRight: mobileShrink ? 2 : 6,
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-              display: 'block'
-            }}>{teammateLabel}</div>
+            <div
+              ref={teammateNameContainerRef}
+              className="name-marquee-container"
+              style={{
+                background: '#fff',
+                color: '#222',
+                borderRadius: 4,
+                fontWeight: 700,
+                fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
+                padding: mobileShrink ? '2px 8px' : '4px 18px',
+                minWidth: 60,
+                maxWidth: mobileShrink ? 90 : 180,
+                textAlign: 'center',
+                border: '2px solid #bbb',
+                marginLeft: mobileShrink ? 2 : 6,
+                marginRight: mobileShrink ? 2 : 6,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                display: 'block'
+              }}
+            >
+              {teammateNameOverflow ? (
+                <div className="name-marquee-track name-marquee-track--animate" style={teammateMarqueeStyle}>
+                  <span ref={teammateNameTextRef} className="name-marquee-text">{teammateLabel}</span>
+                  <span className="name-marquee-text" aria-hidden="true">{teammateLabel}</span>
+                </div>
+              ) : (
+                <span ref={teammateNameTextRef} className="name-marquee-text">{teammateLabel}</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -5321,24 +5417,36 @@ const clampPlayerIndex = (idx: number) => {
               })()}
             </div>
             {/* Tên người khác 2 */}
-            <div style={{
-              background: '#fff',
-              color: '#222',
-              borderRadius: 4,
-              fontWeight: 700,
-              fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-              padding: mobileShrink ? '2px 8px' : '4px 18px',
-              minWidth: 60,
-              maxWidth: mobileShrink ? 90 : 180,
-              textAlign: 'center',
-              border: '2px solid #bbb',
-              marginLeft: mobileShrink ? 2 : 6,
-              marginRight: mobileShrink ? 2 : 6,
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-              display: 'block'
-            }}>{opponentLabel2}</div>
+            <div
+              ref={opponent2NameContainerRef}
+              className="name-marquee-container"
+              style={{
+                background: '#fff',
+                color: '#222',
+                borderRadius: 4,
+                fontWeight: 700,
+                fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
+                padding: mobileShrink ? '2px 8px' : '4px 18px',
+                minWidth: 60,
+                maxWidth: mobileShrink ? 90 : 180,
+                textAlign: 'center',
+                border: '2px solid #bbb',
+                marginLeft: mobileShrink ? 2 : 6,
+                marginRight: mobileShrink ? 2 : 6,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                display: 'block'
+              }}
+            >
+              {opponent2NameOverflow ? (
+                <div className="name-marquee-track name-marquee-track--animate" style={opponent2MarqueeStyle}>
+                  <span ref={opponent2NameTextRef} className="name-marquee-text">{opponentLabel2}</span>
+                  <span className="name-marquee-text" aria-hidden="true">{opponentLabel2}</span>
+                </div>
+              ) : (
+                <span ref={opponent2NameTextRef} className="name-marquee-text">{opponentLabel2}</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -5505,6 +5613,38 @@ const clampPlayerIndex = (idx: number) => {
         /* Hiệu ứng đặc biệt cho tin nhắn của đối phương */
         .chat-message:has(.bg-gray-700) .chat-bubble {
           box-shadow: 0 2px 8px rgba(55, 65, 81, 0.3);
+        }
+        
+        .name-marquee-container {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .name-marquee-track {
+          display: inline-flex;
+          align-items: center;
+          gap: 32px;
+          min-width: 100%;
+          white-space: nowrap;
+          will-change: transform;
+        }
+
+        .name-marquee-track--animate {
+          animation: room-name-marquee var(--marquee-duration, 12s) linear infinite;
+        }
+
+        .name-marquee-text {
+          display: inline-block;
+          white-space: nowrap;
+        }
+
+        @keyframes room-name-marquee {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
         }
         
         /* Tùy chỉnh thanh cuộn cho chat */
