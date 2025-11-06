@@ -3,9 +3,11 @@
 import React, { useEffect, useState } from "react";
 import { ollAlgs, type AlgItem } from "./data/ollAlgs";
 import { pllAlgs } from "./data/pllAlgs";
+import { f2lAlgs } from "./data/f2lAlgs";
 
 const dataByCategory: Record<string, Record<string, AlgItem[]>> = {
   "3x3": {
+    F2L: f2lAlgs,
     OLL: ollAlgs,
     PLL: pllAlgs
   },
@@ -15,16 +17,16 @@ const dataByCategory: Record<string, Record<string, AlgItem[]>> = {
   },
   "4x4": {
     Parity: [],
-    OLL: []
+    PLL: []
   }
 };
 
 export default function PracticeTab() {
   // Danh mục và subcategory
   const categories = [
-    { name: "3x3", sub: ["OLL", "PLL"] },
+    { name: "3x3", sub: ["F2L", "OLL", "PLL"] },
     { name: "2x2", sub: ["Ortega", "CLL"] },
-    { name: "4x4", sub: ["Parity", "OLL"] },
+    { name: "4x4", sub: ["Parity", "PLL"] },
   ];
 
   // State chọn danh mục và sub
