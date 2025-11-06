@@ -114,7 +114,7 @@ export default function AuthForm({ onLogin }) {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-start pt-5">
+    <div className="relative flex flex-col items-center justify-start pt-15">
       <div className="w-full max-w-sm mx-auto bg-white/90 rounded-2xl shadow-2xl px-4 py-8 flex flex-col items-center border border-gray-200 relative z-20 mt-0">
         <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">Sign in to your account</h2>
         <form onSubmit={handleSubmit} className="w-full">

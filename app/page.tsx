@@ -116,7 +116,7 @@ export default function HomePage() {
         </video>
       </div>
       <div className="z-10 w-full max-w-md bg-black/40 rounded-2xl shadow-2xl p-8 flex flex-col items-center border border-gray-700">
-        <span className="mb-2">
+        <span className="mb-5">
           <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
             <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
@@ -131,7 +131,7 @@ export default function HomePage() {
         </span>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-center tracking-tight text-gray-200 drop-shadow mb-1">Rubik App Online</h1>
         <div className="text-gray-300 text-xs sm:text-sm text-center mb-2">Giải đấu Rubik trực tuyến, giao lưu rubik, hiện đại</div>
-        <div className="w-full flex flex-col gap-2">
+        <div className="w-full flex flex-col gap-1">
           <AuthForm onLogin={() => {
             // Đăng nhập thành công thì chuyển hướng sang /lobby
             window.location.href = "/lobby";
