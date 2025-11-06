@@ -5,13 +5,15 @@ declare global {
 
 
 import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import AuthForm from "@/components/AuthForm";
 
 export default function HomePage() {
   // Tự động chuyển hướng nếu đã đăng nhập (còn cookie)
   const router = useRouter();
   const [checking, setChecking] = useState(true);
+  const backgroundVideoRef = useRef<HTMLVideoElement|null>(null);
+  const [forceMuted, setForceMuted] = useState(false);
   useEffect(() => {
     async function checkLogin() {
       try {
@@ -36,15 +38,34 @@ export default function HomePage() {
     checkLogin();
   }, []);
 
+  useEffect(() => {
+    const video = backgroundVideoRef.current;
+    if (!video) return;
+    setForceMuted(false);
+    video.muted = false;
+    const playResult = video.play();
+    if (playResult instanceof Promise) {
+      playResult.catch(() => setForceMuted(true));
+    }
+  }, [checking]);
+
+  useEffect(() => {
+    const video = backgroundVideoRef.current;
+    if (!video || !forceMuted) return;
+    video.muted = true;
+    video.play().catch(() => {});
+  }, [forceMuted, checking]);
+
   if (checking) {
     return (
       <main className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
         {/* Background Rubik video */}
         <div className="absolute inset-0 pointer-events-none z-0">
           <video
+            ref={backgroundVideoRef}
             autoPlay
             loop
-            muted
+            muted={forceMuted}
             playsInline
             className="absolute inset-0 w-full h-full object-cover z-0"
             style={{ objectFit: 'cover' }}
@@ -83,9 +104,10 @@ export default function HomePage() {
       {/* Background Rubik video */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <video
+          ref={backgroundVideoRef}
           autoPlay
           loop
-          muted
+          muted={forceMuted}
           playsInline
           className="absolute inset-0 w-full h-full object-cover z-0"
           style={{ objectFit: 'cover' }}

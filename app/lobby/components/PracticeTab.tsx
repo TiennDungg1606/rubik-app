@@ -6,14 +6,14 @@ import { pllAlgs } from "./data/pllAlgs";
 import { f2lAlgs } from "./data/f2lAlgs";
 
 const dataByCategory: Record<string, Record<string, AlgItem[]>> = {
+  "2x2": {
+    Ortega: [],
+    CLL: []
+  },
   "3x3": {
     F2L: f2lAlgs,
     OLL: ollAlgs,
     PLL: pllAlgs
-  },
-  "2x2": {
-    Ortega: [],
-    CLL: []
   },
   "4x4": {
     Parity: [],

@@ -82,6 +82,8 @@ export default function RoomPage() {
   const [chatMessages, setChatMessages] = useState<{from: 'me'|'opponent', text: string, userName: string}[]>([]);
   const [hasNewChat, setHasNewChat] = useState(false);
   const audioRef = useRef<HTMLAudioElement|null>(null);
+  const loadingVideoRef = useRef<HTMLVideoElement|null>(null);
+  const [forceMuted, setForceMuted] = useState(false);
 
   // Ref cho video local và remote để truyền vào VideoCall
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -2500,6 +2502,24 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     return () => timeout && clearTimeout(timeout);
   }, [userName, roomId]);
 
+  useEffect(() => {
+    if (!showLoading || !loadingVideoRef.current) return;
+    const video = loadingVideoRef.current;
+    setForceMuted(false);
+    video.muted = false;
+    const playResult = video.play();
+    if (playResult instanceof Promise) {
+      playResult.catch(() => setForceMuted(true));
+    }
+  }, [showLoading]);
+
+  useEffect(() => {
+    if (!showLoading || !forceMuted || !loadingVideoRef.current) return;
+    const video = loadingVideoRef.current;
+    video.muted = true;
+    video.play().catch(() => {});
+  }, [forceMuted, showLoading]);
+
   // Effect để cập nhật userNameRef khi userName thay đổi
   useEffect(() => {
     userNameRef.current = userName;
@@ -2529,10 +2549,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black">
         {/* Video loading đã được comment lại - 1 tuần sau sẽ gỡ comment */}
          <video
+          ref={loadingVideoRef}
           src="/loadingroom.mp4"
           autoPlay
           loop
-          muted
+          muted={forceMuted}
           playsInline
           className="w-full h-full object-cover"
           style={{ position: 'absolute', inset: 0, zIndex: 1 }}
