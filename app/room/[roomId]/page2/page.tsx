@@ -4515,16 +4515,18 @@ const clampPlayerIndex = (idx: number) => {
                 borderRadius: 4,
                 fontWeight: 700,
                 fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-                padding: mobileShrink ? '3px 12px' : '4px 18px',
-                minWidth: mobileShrink ? 80 : 60,
-                maxWidth: mobileShrink ? 140 : 180,
+                padding: mobileShrink ? '4px 16px' : '4px 18px',
+                minWidth: mobileShrink ? 100 : 60,
+                maxWidth: mobileShrink ? 180 : 180,
                 textAlign: 'center',
                 border: '2px solid #bbb',
                 marginLeft: mobileShrink ? 2 : 6,
                 marginRight: mobileShrink ? 2 : 6,
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
-                display: 'block'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               {myPlayerLabel}
@@ -5089,16 +5091,18 @@ const clampPlayerIndex = (idx: number) => {
                 borderRadius: 4,
                 fontWeight: 700,
                 fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-                padding: mobileShrink ? '3px 12px' : '4px 18px',
-                minWidth: mobileShrink ? 80 : 60,
-                maxWidth: mobileShrink ? 140 : 180,
+                padding: mobileShrink ? '4px 16px' : '4px 18px',
+                minWidth: mobileShrink ? 100 : 60,
+                maxWidth: mobileShrink ? 180 : 180,
                 textAlign: 'center',
                 border: '2px solid #bbb',
                 marginLeft: mobileShrink ? 2 : 6,
                 marginRight: mobileShrink ? 2 : 6,
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
-                display: 'block'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               {opponentLabel1}
@@ -5212,16 +5216,18 @@ const clampPlayerIndex = (idx: number) => {
                 borderRadius: 4,
                 fontWeight: 700,
                 fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-                padding: mobileShrink ? '3px 12px' : '4px 18px',
-                minWidth: mobileShrink ? 80 : 60,
-                maxWidth: mobileShrink ? 140 : 180,
+                padding: mobileShrink ? '4px 16px' : '4px 18px',
+                minWidth: mobileShrink ? 100 : 60,
+                maxWidth: mobileShrink ? 180 : 180,
                 textAlign: 'center',
                 border: '2px solid #bbb',
                 marginLeft: mobileShrink ? 2 : 6,
                 marginRight: mobileShrink ? 2 : 6,
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
-                display: 'block'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               {teammateLabel}
@@ -5337,16 +5343,18 @@ const clampPlayerIndex = (idx: number) => {
                 borderRadius: 4,
                 fontWeight: 700,
                 fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-                padding: mobileShrink ? '3px 12px' : '4px 18px',
-                minWidth: mobileShrink ? 80 : 60,
-                maxWidth: mobileShrink ? 140 : 180,
+                padding: mobileShrink ? '4px 16px' : '4px 18px',
+                minWidth: mobileShrink ? 100 : 60,
+                maxWidth: mobileShrink ? 180 : 180,
                 textAlign: 'center',
                 border: '2px solid #bbb',
                 marginLeft: mobileShrink ? 2 : 6,
                 marginRight: mobileShrink ? 2 : 6,
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
-                display: 'block'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               {opponentLabel2}
