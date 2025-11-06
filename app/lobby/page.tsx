@@ -77,7 +77,10 @@ function LobbyContent() {
       label: "Room",
       icon: (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8 11a4 4 0 1 1 8 0v1M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" />
+          <circle cx="10.5" cy="9" r="3.5" />
+          <circle cx="17.5" cy="10.2" r="3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.2 21v-1.7a5.8 5.8 0 0 1 11.6 0V21" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.7 21v-1.7a5.8 5.8 0 0 1 11.6 0V21" />
         </svg>
       ),
     },
@@ -86,8 +89,12 @@ function LobbyContent() {
       label: "Practice",
       icon: (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="m12 5 6 6-6 6-6-6z" />
-          <circle cx="12" cy="11" r="1.5" />
+          <circle cx="12" cy="12" r="8" />
+          <circle cx="12" cy="12" r="4.5" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.9 7 12.4 11.5" />
+          <path fill="currentColor" d="m18.2 5.4-2.1-.5.5 2.1 1.6-1.6Z" />
+          <path fill="currentColor" d="m11.2 12.7 1.4-1.4.9.9-2.3.5Z" />
         </svg>
       ),
     },
@@ -324,8 +331,8 @@ function LobbyContent() {
   // Xử lý upload ảnh nền cá nhân hóa lên API MongoDB và refetch user
   const refetchUser = async () => {
     try {
-      const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
-      const data = await res.json();
+        const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
+        const data = await res.json();
       if (data && data.user) {
         setUser(data.user);
       }

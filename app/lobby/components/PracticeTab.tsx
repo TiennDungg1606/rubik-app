@@ -10,6 +10,14 @@ export default function PracticeTab() {
     { name: "4x4", sub: ["Parity", "OLL"] },
   ];
 
+  type AlgItem = {
+    id: number;
+    name: string;
+    alg: string;
+    img: string;
+    altAlgs?: string[];
+  };
+
   // State chọn danh mục và sub
   const [selectedCat, setSelectedCat] = useState("3x3");
   const [selectedSub, setSelectedSub] = useState("OLL");
@@ -42,27 +50,78 @@ export default function PracticeTab() {
     ? "bg-gray-900 rounded-lg p-3 flex flex-col md:flex-row items-start md:items-start md:justify-between text-left shadow-lg gap-2"
     : "bg-gray-900 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between shadow-lg";
   const titleClassName = mobileShrink ? "text-sm font-bold mb-1 text-white text-left" : "text-lg font-bold mb-1 text-white";
-  const algTextClassName = mobileShrink ? "text-sm font-mono mb-2 whitespace-pre-wrap text-gray-200 text-left" : "text-lg font-mono mb-2 whitespace-pre-wrap text-gray-200";
+  const algTextClassName = mobileShrink
+    ? "text-sm font-mono mb-2 text-gray-200 text-left space-y-1"
+    : "text-lg font-mono mb-2 text-gray-200 text-left space-y-1";
   const imageClassName = mobileShrink ? "w-16 h-16 object-contain md:ml-4 self-start" : "w-24 h-24 object-contain ml-4";
 
   // Công thức mẫu cho OLL 3x3
-  const ollAlgs = [
+  const ollAlgs: AlgItem[] = [
     {
       id: 1,
       name: "1. Dot",
-      alg: "R 2U' 2R' F R F' U2 R' F R F'",
+      alg: "R 2U' 2R' F R F' U2 (R' F R F')",
       img: "/practice/oll1.png"
+    },
+    {
+      id: 2,
+      name: "2. Dot",
+      alg: "r U r' U2 r U2 R' U2 R U' r'",
+      img: "/practice/oll2.png"
+    },
+    {
+      id: 3,
+      name: "3. Dot",
+      alg: "r' R2 U R' U r 2U' r' U M'",
+      img: "/practice/oll3.png"
+    },
+    {
+      id: 4,
+      name: "4. Dot",
+      alg: "M U' r U2 r' U' R U' R' M'",
+      img: "/practice/oll4.png"
+    },
+    {
+      id: 5,
+      name: "5. Square",
+      alg: "r' U2' R U R' U r",
+      img: "/practice/oll5.png"
+    },
+    {
+      id: 6,
+      name: "6. Square",
+      alg: "r U2' R' U' R U' r'",
+      img: "/practice/oll6.png"
+    },
+    {
+      id: 7,
+      name: "7. Lightning",
+      alg: "r U R' U R U2 r'",
+      img: "/practice/oll7.png"
+    },
+    {
+      id: 8,
+      name: "8. Lightning",
+      alg: "1. l' U' L U' L' U2 l",
+      img: "/practice/oll8.png",
+      altAlgs: ["2. y2 r' U' R U' R' U2' r"]
+    },
+    { 
+      id: 9,
+      name: "9. Fish",
+      alg: "(R U R' U') R' F R2 U R' U' F'",
+      img: "/practice/oll9.png"
     },
     {
       id: 10,
       name: "10. Fish",
-      alg: "R U R' U R' F R F' R U2 R'",
+      alg: "R U R' U (R' F R F') R U2 R'",
       img: "/practice/oll10.png"
     },
     {
       id: 11,
       name: "11. Lightning",
-      alg: "r U R' U R' F R F' R U2 r'",
+      alg: "r' R2 U R' U R U2' R' U M'",
       img: "/practice/oll11.png"
     },
     {
@@ -86,25 +145,25 @@ export default function PracticeTab() {
     {
       id: 15,
       name: "15. Knight",
-      alg: "l' U' l L' U' L U l' U l",
+      alg: "r' U' r R' U' R U r' U r",
       img: "/practice/oll15.png"
     },
     {
       id: 16,
       name: "16. Knight",
-      alg: "r U r' R U R' U' r U' r'",
+      alg: "r U r' (R U R' U') r U' r'",
       img: "/practice/oll16.png"
     },
     {
       id: 17,
       name: "17. Dot",
-      alg: "y2 R U R' U R' F U2 R' F",
+      alg: "R U R' U (R' F R F') U2 (R' F R F')",
       img: "/practice/oll17.png"
     },
     {
       id: 18,
       name: "18. Dot",
-      alg: "r U R' U R U2 r' r' U' R U' R' U2 r",
+      alg: "r U R' U R U2' r2' U' R U' R' U2' r",
       img: "/practice/oll18.png"
     },
     {
@@ -114,15 +173,9 @@ export default function PracticeTab() {
       img: "/practice/oll19.png"
     },
     {
-      id: 2,
-      name: "2. Dot",
-      alg: "r U r' U2 r U2 R' U2 R U' r'",
-      img: "/practice/oll2.png"
-    },
-    {
       id: 20,
       name: "20. Dot",
-      alg: "r U R' U' M2 U R U' R' U' M'",
+      alg: "r U R' U' M2' U R U' R' U' M'",
       img: "/practice/oll20.png"
     },
     {
@@ -140,8 +193,9 @@ export default function PracticeTab() {
     {
       id: 23,
       name: "23. EO",
-      alg: "↑ R2 D' R 2U' R' D R 2U' R",
-      img: "/practice/oll23.png"
+      alg: "1. ↑ R2 D' R 2U' R' D R 2U' R",
+      img: "/practice/oll23.png",
+      altAlgs: ["2. y2 R2 D R' U2 R D' R' U2 R'"]
     },
     {
       id: 24,
@@ -176,14 +230,9 @@ export default function PracticeTab() {
     {
       id: 29,
       name: "29. Awkward",
-      alg: "R U R' U' R U' ↓ R' F' U' F R U R'",
-      img: "/practice/oll29.png"
-    },
-    {
-      id: 3,
-      name: "3. Dot",
-      alg: "r' R2 U R' U r 2U' r' U M'",
-      img: "/practice/oll3.png"
+      alg: "1. (R U R' U') R U' ⭣ R' F' U' F R U R'",
+      img: "/practice/oll29.png",
+      altAlgs: ["2. (R U R' U')(R' F R F')(R U R' U') M' U R U' r'"]
     },
     {
       id: 30,
@@ -193,93 +242,91 @@ export default function PracticeTab() {
     },
     {
       id: 31,
-      name: "31",
+      name: "31. P",
       alg: "R' U' F U R U' R' F' R",
       img: "/practice/oll31.png"
     },
     {
       id: 32,
-      name: "32",
-      alg: "L U F' U' L' U L F L'",
+      name: "32. P",
+      alg: "S (R U R' U') R' F R f'",
       img: "/practice/oll32.png"
     },
     {
       id: 33,
-      name: "33",
-      alg: "R U R' U' R' F R F'",
+      name: "33. T",
+      alg: "(R U R' U')(R' F R F')",
       img: "/practice/oll33.png"
     },
     {
       id: 34,
-      name: "34",
-      alg: "R U R2 U' R' F R U R U' F'",
-      img: "/practice/oll34.png"
+      name: "34. C",
+      alg: "1. (R U R' U')(R' F R F') R' U2' R U R'U R",
+      img: "/practice/oll34.png",
+      altAlgs: ["2. ↓ F R U R' U' R' F' r U R U' r'" ]
     },
     {
       id: 35,
-      name: "35",
-      alg: "R U2 R' R' F R F' R U2 R'",
+      name: "35. Fish",
+      alg: "R U2' R2' F R F' R U2' R'",
       img: "/practice/oll35.png"
     },
     {
       id: 36,
-      name: "36",
-      alg: "L' U' L U' L' U L U L F' L' F",
-      img: "/practice/oll36.png"
+      name: "36. W",
+      alg: "1. L' U' L U' L' U L U L F' L' F",
+      img: "/practice/oll36.png",
+      altAlgs: ["2. y2 R' U' R U' R' U R U l U' R' U"]
     },
     {
       id: 37,
-      name: "37",
-      alg: "F R' F' R U R U' R'",
+      name: "37. Fish",
+      alg: "↓ F R U' R' U' R U R' F'",
       img: "/practice/oll37.png"
     },
     {
       id: 38,
-      name: "38",
+      name: "38. W",
       alg: "R U R' U R U' R' U' R' F R F'",
       img: "/practice/oll38.png"
     },
     {
       id: 39,
-      name: "39",
-      alg: "L F' L' U' L U F U' L'",
+      name: "39. Lightning",
+      alg: "R U R' F' U' F U R U2' R'",
       img: "/practice/oll39.png"
     },
     {
-      id: 4,
-      name: "4",
-      alg: "M U' r U2 r' U' R U' R' M'",
-      img: "/practice/oll4.png"
-    },
-    {
       id: 40,
-      name: "40",
-      alg: "R' F R U R' U' F' U R",
+      name: "40. Lightning",
+      alg: "R' F (R U R' U') F' U R",
       img: "/practice/oll40.png"
     },
     {
       id: 41,
-      name: "41",
-      alg: "R U R' U R U2 R' F R U R' U' F'",
+      name: "41. Awkward",
+      alg: "R U R' U R U2' R' F (R U R' U') F'",
       img: "/practice/oll41.png"
     },
     {
       id: 42,
-      name: "42",
-      alg: "R' U' R U' R' U2 R F R U R' U' F'",
-      img: "/practice/oll42.png"
+      name: "42. Awkward",
+      alg: "1. R' U' R U' R' U2' R ↓ F (R U R' U') F'",
+      img: "/practice/oll42.png",
+      altAlgs: ["2. R' U' R U' R' U2' R U R' F' U' F U R"]
     },
     {
       id: 43,
-      name: "43",
-      alg: "F' U' L' U L F",
+      name: "43. P",
+      alg: "R' U' F' U F R",
       img: "/practice/oll43.png"
     },
     {
       id: 44,
       name: "44. P",
-      alg: "↓ F U R U' R' F'",
-      img: "/practice/oll44.png"
+      alg: "1. ↓ F U R U' R' F'",
+      img: "/practice/oll44.png",
+      altAlgs: ["2. y2 ↓ f (R U R' U') f'"]
     },
     {
       id: 45,
@@ -295,99 +342,69 @@ export default function PracticeTab() {
     },
     {
       id: 47,
-      name: "47",
-      alg: "R' U' R' F R F' R' F R F' U R",
+      name: "47. L",
+      alg: "R' U' ⭡ (R' F R F')(R' F R F') U R",
       img: "/practice/oll47.png"
     },
     {
       id: 48,
-      name: "48",
-      alg: "F R U R' U' R U R' U' F'",
+      name: "48. L",
+      alg: "↓ F (R U R' U')(R U R' U') F'",
       img: "/practice/oll48.png"
     },
     {
       id: 49,
-      name: "49",
-      alg: "r U' r2 U r2 U r2 U' r",
+      name: "49. L",
+      alg: "r U' r2' U r2 U r2' U' r",
       img: "/practice/oll49.png"
     },
     {
-      id: 5,
-      name: "5",
-      alg: "l' U2 L U L' U l",
-      img: "/practice/oll5.png"
-    },
-    {
       id: 50,
-      name: "50",
-      alg: "r' U r2 U' r2 U' r2 U r'",
+      name: "50. L",
+      alg: "r' U r2 U' r2' U' r2 U r'",
       img: "/practice/oll50.png"
     },
     {
       id: 51,
-      name: "51",
-      alg: "F U R U' R' U R U' R' F'",
+      name: "51. Line",
+      alg: "⭣ F (U R U' R')(U R U' R') F'",
       img: "/practice/oll51.png"
     },
     {
       id: 52,
-      name: "52",
-      alg: "R U R' U R U' B U' B' R'",
+      name: "52. Line",
+      alg: "R' F' U' F U' R U R' U R",
       img: "/practice/oll52.png"
     },
     {
       id: 53,
-      name: "53",
-      alg: "l' U2 L U L' U' L U L' U l",
+      name: "53. L",
+      alg: "r' U2' (R U R' U') R U R' U r",
       img: "/practice/oll53.png"
     },
     {
       id: 54,
-      name: "54",
-      alg: "(r U2 R' U') R U R' U' R U' r'",
+      name: "54. L",
+      alg: "r U2' R' U' (R U R' U') R U' r'",
       img: "/practice/oll54.png"
     },
     {
       id: 55,
       name: "55. Line",
-      alg: "R' F R U R U' R2 F' R2 U' R' U R U R'",
+      alg: "r U2' R' U' r' R2 U R' U' r U' R'",
       img: "/practice/oll55.png"
     },
     {
       id: 56,
       name: "56. Line",
-      alg: "(r' U' r) U' R' U R U' R' U R r' U r",
+      alg: "r U r' U R U' R' U R U' R' r U' r'",
       img: "/practice/oll56.png"
     },
     {
       id: 57,
-      name: "57. H Shape",
+      name: "57. CO",
       alg: "R U R' U' M' U R U' r'",
       img: "/practice/oll57.png"
-    },
-    {
-      id: 6,
-      name: "6",
-      alg: "r U2 R' U' R U' r'",
-      img: "/practice/oll6.png"
-    },
-    {
-      id: 7,
-      name: "7. Lightning",
-      alg: "r U R' U R U2 r'",
-      img: "/practice/oll7.png"
-    },
-    {
-      id: 8,
-      name: "8. Lightning",
-      alg: "l' U' L U' L' U2 l",
-      img: "/practice/oll8.png"
-    },
-    {
-      id: 9,
-      name: "9. Fish",
-      alg: "R U R' U' R' F R2 U R' U' F'",
-      img: "/practice/oll9.png"
     },
   ];
 
@@ -434,7 +451,11 @@ export default function PracticeTab() {
             <div key={alg.id} className={cardClassName}>
               <div className="flex-1">
                 <div className={titleClassName}>{alg.name}</div>
-                <div className={algTextClassName}>{alg.alg}</div>
+                <div className={algTextClassName}>
+                  {[alg.alg, ...(alg.altAlgs ?? [])].map((formula, idx) => (
+                    <div key={idx}>{formula}</div>
+                  ))}
+                </div>
               </div>
               <img src={alg.img} alt="alg" className={imageClassName} />
              </div>
