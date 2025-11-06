@@ -50,17 +50,15 @@ export default function NewTab() {
       <div className="mb-6">
         <h3 className="text-lg font-bold text-blue-300 drop-shadow mb-2">Cập nhật website</h3>
         <ul className="list-disc list-inside text-white text-base ml-4">  
-          <li>Tính năng đấu đội 2vs2 đã ra mắt (thử nghiệm).</li>
-          <li>Cập nhật lại tính năng đổi hình nền. Hãy vào hồ sơ để đổi hình nền của mình nào (lưu ý: hình nền ngang)</li>   
+          <li>Hoàn thiện các công thức cho tab Paractice (đang thực hiện).</li>
+          <li>Tạo profile, thêm tính năng kết bạn trên server của Rubik App, thêm tin nhắn, thông báo (đang thực hiện).</li>   
           <li>Giao diện tối ưu cho cả desktop và mobile, trải nghiệm tốt hơn.</li>
         </ul>
       </div>
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-blue-400 drop-shadow mb-2">Dự kiến cập nhật tiếp theo (T11/2025)</h3>
-        <ul className="list-disc list-inside text-white text-base ml-4">
-          <li>Hoàn thiện các công thức cho tab Paractice.</li>
-          <li>Thêm tính năng kết bạn trên server của Rubik App, thêm tin nhắn, thông báo.</li>          
-          <li>Cập nhật giao diện đẹp hơn.</li>
+        <h3 className="text-lg font-bold text-blue-400 drop-shadow mb-2">Dự kiến cập nhật tiếp theo (T12/2025)</h3>
+        <ul className="list-disc list-inside text-white text-base ml-4"> 
+          <li>Chưa có bản cập nhật dự kiến!</li>      
         </ul>
       </div>
       <div>
