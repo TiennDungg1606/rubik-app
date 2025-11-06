@@ -156,52 +156,6 @@ export default function RoomPage() {
 
 
   const [opponentName, setOpponentName] = useState<string>('Đối thủ'); // display name
-  const userNameContainerRef = useRef<HTMLDivElement | null>(null);
-  const opponentNameContainerRef = useRef<HTMLDivElement | null>(null);
-  const userNameTextRef = useRef<HTMLSpanElement | null>(null);
-  const opponentNameTextRef = useRef<HTMLSpanElement | null>(null);
-  const [userNameOverflow, setUserNameOverflow] = useState(false);
-  const [opponentNameOverflow, setOpponentNameOverflow] = useState(false);
-  const [userNameMarqueeDuration, setUserNameMarqueeDuration] = useState(12);
-  const [opponentNameMarqueeDuration, setOpponentNameMarqueeDuration] = useState(12);
-  const updateNameOverflow = React.useCallback(() => {
-    const userWrapper = userNameContainerRef.current;
-    const userText = userNameTextRef.current;
-    if (userWrapper && userText) {
-      const shouldOverflow = userText.scrollWidth - userWrapper.clientWidth > 1;
-      setUserNameOverflow(prev => (prev !== shouldOverflow ? shouldOverflow : prev));
-      if (shouldOverflow) {
-        const duration = Math.max(8, userText.scrollWidth / 40);
-        setUserNameMarqueeDuration(prev => (Math.abs(prev - duration) > 0.5 ? duration : prev));
-      }
-    } else {
-      setUserNameOverflow(prev => (prev ? false : prev));
-    }
-
-    const opponentWrapper = opponentNameContainerRef.current;
-    const opponentText = opponentNameTextRef.current;
-    if (opponentWrapper && opponentText) {
-      const shouldOverflow = opponentText.scrollWidth - opponentWrapper.clientWidth > 1;
-      setOpponentNameOverflow(prev => (prev !== shouldOverflow ? shouldOverflow : prev));
-      if (shouldOverflow) {
-        const duration = Math.max(8, opponentText.scrollWidth / 40);
-        setOpponentNameMarqueeDuration(prev => (Math.abs(prev - duration) > 0.5 ? duration : prev));
-      }
-    } else {
-      setOpponentNameOverflow(prev => (prev ? false : prev));
-    }
-  }, [userName, opponentName, isMobile, isMobileLandscape]);
-
-  useEffect(() => {
-    updateNameOverflow();
-  }, [updateNameOverflow]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handleResize = () => updateNameOverflow();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [updateNameOverflow]);
   const intervalRef = useRef<NodeJS.Timeout|null>(null);
   const prepIntervalRef = useRef<NodeJS.Timeout|null>(null);
   const readyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -2625,8 +2579,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     if (spaceHeld && !running) return 'text-yellow-400';
     return 'text-white';
   })(); // Màu timer đồng bộ với TimerTab: trắng -> vàng -> xanh
-  const userMarqueeStyle = userNameOverflow ? ({ '--marquee-duration': `${userNameMarqueeDuration}s` } as React.CSSProperties) : undefined;
-  const opponentMarqueeStyle = opponentNameOverflow ? ({ '--marquee-duration': `${opponentNameMarqueeDuration}s` } as React.CSSProperties) : undefined;
   return (
     <div 
       className={  
@@ -3659,17 +3611,15 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </div>
             {/* Tên người chơi */}
             <div
-              ref={userNameContainerRef}
-              className="name-marquee-container"
               style={{
                 background: '#fff',
                 color: '#222',
                 borderRadius: 4,
                 fontWeight: 700,
                 fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-                padding: mobileShrink ? '2px 8px' : '4px 18px',
-                minWidth: 60,
-                maxWidth: mobileShrink ? 90 : 180,
+                padding: mobileShrink ? '3px 12px' : '4px 18px',
+                minWidth: mobileShrink ? 80 : 60,
+                maxWidth: mobileShrink ? 140 : 180,
                 textAlign: 'center',
                 border: '2px solid #bbb',
                 marginLeft: mobileShrink ? 2 : 6,
@@ -3679,14 +3629,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 display: 'block'
               }}
             >
-              {userNameOverflow ? (
-                <div className="name-marquee-track name-marquee-track--animate" style={userMarqueeStyle}>
-                  <span ref={userNameTextRef} className="name-marquee-text">{userName}</span>
-                  <span className="name-marquee-text" aria-hidden="true">{userName}</span>
-                </div>
-              ) : (
-                <span ref={userNameTextRef} className="name-marquee-text">{userName}</span>
-              )}
+              {userName}
             </div>
             {/* Số set thắng */}
             <div style={{
@@ -4350,17 +4293,15 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </div>
             {/* Tên đối thủ */}
             <div
-              ref={opponentNameContainerRef}
-              className="name-marquee-container"
               style={{
                 background: '#fff',
                 color: '#222',
                 borderRadius: 4,
                 fontWeight: 700,
                 fontSize: mobileShrink ? 'clamp(10px, 4vw, 15px)' : 'clamp(14px, 2vw, 22px)',
-                padding: mobileShrink ? '2px 8px' : '4px 18px',
-                minWidth: 60,
-                maxWidth: mobileShrink ? 90 : 180,
+                padding: mobileShrink ? '3px 12px' : '4px 18px',
+                minWidth: mobileShrink ? 80 : 60,
+                maxWidth: mobileShrink ? 140 : 180,
                 textAlign: 'center',
                 border: '2px solid #bbb',
                 marginLeft: mobileShrink ? 2 : 6,
@@ -4370,14 +4311,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 display: 'block'
               }}
             >
-              {opponentNameOverflow ? (
-                <div className="name-marquee-track name-marquee-track--animate" style={opponentMarqueeStyle}>
-                  <span ref={opponentNameTextRef} className="name-marquee-text">{opponentName}</span>
-                  <span className="name-marquee-text" aria-hidden="true">{opponentName}</span>
-                </div>
-              ) : (
-                <span ref={opponentNameTextRef} className="name-marquee-text">{opponentName}</span>
-              )}
+              {opponentName}
             </div>
             {/* Số set thắng */}
             <div style={{
