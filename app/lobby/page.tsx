@@ -455,6 +455,41 @@ function LobbyContent() {
   // Tự động yêu cầu chế độ toàn màn hình khi sử dụng điện thoại
   useEffect(() => {
     if (typeof window !== 'undefined' && isMobile) {
+      let interval: ReturnType<typeof setInterval> | undefined;
+      // Hàm yêu cầu chế độ toàn màn hình
+      const requestFullscreen = () => {
+        try {
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+          } else if ((document.documentElement as any).webkitRequestFullscreen) {
+            (document.documentElement as any).webkitRequestFullscreen();
+          } else if ((document.documentElement as any).mozRequestFullScreen) {
+            (document.documentElement as any).mozRequestFullScreen();
+          } else if ((document.documentElement as any).msRequestFullscreen) {
+            (document.documentElement as any).msRequestFullscreen();
+          }
+        } catch (error) {
+          // Không thể chuyển sang chế độ toàn màn hình
+          console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
+        }
+      };
+
+      const startInterval = () => {
+        if (!isFullscreen && !interval) {
+          interval = setInterval(() => {
+            if (isMobile && !isFullscreen) {
+              requestFullscreen();
+            } else {
+              // Nếu đã ở chế độ toàn màn hình, dừng interval
+              if (interval) {
+                clearInterval(interval);
+                interval = undefined;
+              }
+            }
+          }, 3000);
+        }
+      };
+
       // Hàm kiểm tra trạng thái toàn màn hình
       const checkFullscreenStatus = () => {
         const fullscreenElement = 
@@ -483,24 +518,6 @@ function LobbyContent() {
         }
       };
 
-      // Hàm yêu cầu chế độ toàn màn hình
-      const requestFullscreen = () => {
-        try {
-          if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen();
-          } else if ((document.documentElement as any).webkitRequestFullscreen) {
-            (document.documentElement as any).webkitRequestFullscreen();
-          } else if ((document.documentElement as any).mozRequestFullScreen) {
-            (document.documentElement as any).mozRequestFullScreen();
-          } else if ((document.documentElement as any).msRequestFullscreen) {
-            (document.documentElement as any).msRequestFullscreen();
-          }
-        } catch (error) {
-          // Không thể chuyển sang chế độ toàn màn hình
-          console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
-        }
-      };
-
       // Kiểm tra trạng thái ban đầu
       checkFullscreenStatus();
 
@@ -520,24 +537,6 @@ function LobbyContent() {
       const initialTimeout = setTimeout(requestFullscreen, 1000);
 
       // Chỉ kiểm tra định kỳ khi KHÔNG ở chế độ toàn màn hình
-      let interval: NodeJS.Timeout | undefined;
-      
-      const startInterval = () => {
-        if (!isFullscreen && !interval) {
-          interval = setInterval(() => {
-            if (isMobile && !isFullscreen) {
-              requestFullscreen();
-            } else {
-              // Nếu đã ở chế độ toàn màn hình, dừng interval
-              if (interval) {
-                clearInterval(interval);
-                interval = undefined;
-              }
-            }
-          }, 3000);
-        }
-      };
-
       // Bắt đầu interval ban đầu
       startInterval();
 

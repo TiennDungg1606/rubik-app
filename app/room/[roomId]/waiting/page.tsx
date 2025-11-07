@@ -150,36 +150,9 @@ export default function WaitingRoom() {
   // Tự động yêu cầu chế độ toàn màn hình khi sử dụng điện thoại
   useEffect(() => {
     if (typeof window !== 'undefined' && isMobile) {
-      // Hàm kiểm tra trạng thái toàn màn hình
-      const checkFullscreenStatus = () => {
-        const fullscreenElement = 
-          document.fullscreenElement ||
-          (document as any).webkitFullscreenElement ||
-          (document as any).mozFullScreenElement ||
-          (document as any).msFullscreenElement;
-        
-        const wasFullscreen = isFullscreen;
-        setIsFullscreen(!!fullscreenElement);
-        
-        if (fullscreenElement && !wasFullscreen) {
-          // Vừa vào chế độ toàn màn hình - dừng interval
-          if (interval) {
-            clearInterval(interval);
-            interval = undefined;
-          }
-        } else if (!fullscreenElement && wasFullscreen && isMobile) {
-          // Vừa thoát khỏi chế độ toàn màn hình - khởi động lại interval
-          startInterval();
-          // Và ngay lập tức yêu cầu lại
-          requestFullscreen();
-        } else if (!fullscreenElement && isMobile) {
-          // Không ở chế độ toàn màn hình và đang dùng điện thoại
-          requestFullscreen();
-        }
-      };
+      let interval: ReturnType<typeof setInterval> | undefined;
 
-      // Hàm yêu cầu chế độ toàn màn hình
-      const requestFullscreen = () => {
+      function requestFullscreen() {
         try {
           if (document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen();
@@ -191,13 +164,46 @@ export default function WaitingRoom() {
             (document.documentElement as any).msRequestFullscreen();
           }
         } catch (error) {
+          // Không thể chuyển sang chế độ toàn màn hình
         }
-      };
+      }
 
-      // Kiểm tra trạng thái ban đầu
+      function startInterval() {
+        if (!interval) {
+          interval = setInterval(() => {
+            checkFullscreenStatus();
+            if (!isFullscreen) {
+              requestFullscreen();
+            }
+          }, 2000);
+        }
+      }
+
+      function checkFullscreenStatus() {
+        const fullscreenElement =
+          document.fullscreenElement ||
+          (document as any).webkitFullscreenElement ||
+          (document as any).mozFullScreenElement ||
+          (document as any).msFullscreenElement;
+
+        const wasFullscreen = isFullscreen;
+        setIsFullscreen(!!fullscreenElement);
+
+        if (fullscreenElement && !wasFullscreen) {
+          if (interval) {
+            clearInterval(interval);
+            interval = undefined;
+          }
+        } else if (!fullscreenElement && wasFullscreen && isMobile) {
+          startInterval();
+          requestFullscreen();
+        } else if (!fullscreenElement && isMobile) {
+          requestFullscreen();
+        }
+      }
+
       checkFullscreenStatus();
 
-      // Thêm event listeners để theo dõi thay đổi trạng thái toàn màn hình
       const fullscreenChangeEvents = [
         'fullscreenchange',
         'webkitfullscreenchange',
@@ -209,24 +215,7 @@ export default function WaitingRoom() {
         document.addEventListener(event, checkFullscreenStatus);
       });
 
-      // Tự động yêu cầu chế độ toàn màn hình sau 1 giây
       const initialTimeout = setTimeout(requestFullscreen, 1000);
-
-      // Chỉ kiểm tra định kỳ khi KHÔNG ở chế độ toàn màn hình
-      let interval: NodeJS.Timeout | undefined;
-      
-      const startInterval = () => {
-        if (!interval) {
-          interval = setInterval(() => {
-            checkFullscreenStatus();
-            if (!isFullscreen) {
-              requestFullscreen();
-            }
-          }, 2000);
-        }
-      };
-
-      // Khởi động interval sau 2 giây
       const intervalTimeout = setTimeout(startInterval, 2000);
 
       return () => {
