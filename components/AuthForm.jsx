@@ -18,8 +18,28 @@ export default function AuthForm({ onLogin }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [tab, setTab] = useState("login");
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
+  const [mobileShrink, setMobileShrink] = useState(false);
+  useEffect(() => {
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      const portrait = window.innerHeight > window.innerWidth;
+      const mobileLandscape = mobile && !portrait && window.innerWidth < 1200;
+      setIsMobileLandscape(mobileLandscape);
+      const compactWidth = window.innerWidth < 768;
+      setMobileShrink(compactWidth || mobileLandscape);
+    }
 
-
+    if (typeof window !== "undefined") {
+      checkDevice();
+      window.addEventListener("resize", checkDevice);
+      window.addEventListener("orientationchange", checkDevice);
+      return () => {
+        window.removeEventListener("resize", checkDevice);
+        window.removeEventListener("orientationchange", checkDevice);
+      };
+    }
+  }, []);
   // Thêm script reCAPTCHA khi mount
   useEffect(() => {
     if (typeof window !== "undefined" && tab === "register") {
@@ -113,17 +133,30 @@ export default function AuthForm({ onLogin }) {
     }
   };
 
+  const effectiveMobileShrink = mobileShrink || isMobileLandscape;
+  const containerClasses = `relative flex flex-col items-center justify-start ${effectiveMobileShrink ? "pt-16 sm:pt-1": "pt-20 sm:pt-20"} `;
+  const headingClasses = effectiveMobileShrink ? "text-sm" : "text-xl";
+  const labelClasses = `block mb-1 text-gray-700 font-semibold ${effectiveMobileShrink ? "text-xs" : "text-sm"}`;
+  const inputSizingClasses = effectiveMobileShrink ? "px-2.5 py-1.5 text-xs" : "px-3 py-2 text-sm";
+  const buttonSizingClasses = effectiveMobileShrink ? "py-2 text-sm" : "py-3 text-lg";
+  const footerGapClasses = effectiveMobileShrink ? "gap-4" : "gap-8";
+  const cardWidthClasses = effectiveMobileShrink ? "max-w-[17rem]" : "max-w-sm";
+  const cardPaddingClasses = effectiveMobileShrink ? "px-3 py-2" : "px-4 py-8";
+  const linkTextClasses = effectiveMobileShrink ? "text-xs" : "text-sm";
+  const footerTextClasses = effectiveMobileShrink ? "text-[10px]" : "text-xs";
+  const footerIconSize = effectiveMobileShrink ? 10 : 16;
+  
   return (
-    <div className="relative flex flex-col items-center justify-start pt-15">
-      <div className="w-full max-w-sm mx-auto bg-white/90 rounded-2xl shadow-2xl px-4 py-8 flex flex-col items-center border border-gray-200 relative z-20 mt-0">
-        <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">Sign in to your account</h2>
+    <div className={containerClasses}>
+      <div className={`w-full ${cardWidthClasses} mx-auto bg-white/90 rounded-2xl shadow-2xl ${cardPaddingClasses} flex flex-col items-center border border-gray-200 relative z-20 mt-0`}>
+        <h2 className={`${headingClasses} font-bold text-gray-800 mb-4 text-center`}>Sign in to your account</h2>
         <form onSubmit={handleSubmit} className="w-full">
           <div className="mb-3">
-            <label className="block mb-1 text-gray-700 font-semibold text-sm">Email</label>
-            <input name="email" type="email" placeholder="Email" required value={form.email} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm" />
+            <label className={labelClasses}>Email</label>
+            <input name="email" type="email" placeholder="Email" required value={form.email} onChange={handleChange} className={`w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 ${inputSizingClasses}`} />
           </div>
           <div className="mb-3">
-            <label className="block mb-1 text-gray-700 font-semibold text-sm">Password</label>
+            <label className={labelClasses}>Password</label>
             <div className="relative">
               <input
                 name="password"
@@ -132,7 +165,7 @@ export default function AuthForm({ onLogin }) {
                 required
                 value={form.password}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm pr-10"
+                className={`w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 pr-10 ${inputSizingClasses}`}
               />
               <button
                 type="button"
@@ -155,7 +188,7 @@ export default function AuthForm({ onLogin }) {
           </div>
           {tab === "register" && (
             <div className="mb-3">
-              <label className="block mb-1 text-gray-700 font-semibold text-sm">Re-enter password</label>
+              <label className={labelClasses}>Re-enter password</label>
               <input
                 name="confirmPassword"
                 type={showPassword ? "text" : "password"}
@@ -163,23 +196,23 @@ export default function AuthForm({ onLogin }) {
                 required
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className={`w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 ${inputSizingClasses}`}
               />
             </div>
           )}
           {tab === "register" && (
             <>
               <div className="mb-4">
-                <label className="block mb-1 text-gray-700 font-semibold">First name</label>
-                <input name="firstName" placeholder="First name" required value={form.firstName} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                <label className={`block mb-1 text-gray-700 font-semibold ${effectiveMobileShrink ? "text-xs" : ""}`}>First name</label>
+                <input name="firstName" placeholder="First name" required value={form.firstName} onChange={handleChange} className={`w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 ${effectiveMobileShrink ? "px-2.5 py-1.5 text-sm" : "px-3 py-2"}`} />
               </div>
               <div className="mb-4">
-                <label className="block mb-1 text-gray-700 font-semibold">Last name</label>
-                <input name="lastName" placeholder="Last name" required value={form.lastName} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                <label className={`block mb-1 text-gray-700 font-semibold ${effectiveMobileShrink ? "text-xs" : ""}`}>Last name</label>
+                <input name="lastName" placeholder="Last name" required value={form.lastName} onChange={handleChange} className={`w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 ${effectiveMobileShrink ? "px-2.5 py-1.5 text-sm" : "px-3 py-2"}`} />
               </div>
               <div className="mb-4">
-                <label className="block mb-1 text-gray-700 font-semibold">Birthday</label>
-                <input name="birthday" type="date" required value={form.birthday} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                <label className={`block mb-1 text-gray-700 font-semibold ${effectiveMobileShrink ? "text-xs" : ""}`}>Birthday</label>
+                <input name="birthday" type="date" required value={form.birthday} onChange={handleChange} className={`w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 ${effectiveMobileShrink ? "px-2.5 py-1.5 text-sm" : "px-3 py-2"}`} />
               </div>
               {/* Widget reCAPTCHA v2 (nếu dùng v2) */}
               <div className="mb-4">
@@ -189,11 +222,11 @@ export default function AuthForm({ onLogin }) {
           )}
           {error && <div className="text-red-500 mb-2 text-center font-semibold">{error}</div>}
           {success && <div className="text-green-500 mb-2 text-center font-semibold">{success}</div>}
-          <button type="submit" className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-bold text-lg shadow transition-all duration-150">
+          <button type="submit" className={`w-full bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold shadow transition-all duration-150 ${buttonSizingClasses}`}>
             {tab === "register" ? "Sign up" : "Sign in"}
           </button>
         </form>
-        <div className="flex justify-between w-full mt-4 text-sm">
+        <div className={`flex justify-between w-full mt-3 ${linkTextClasses}`}>
           <button
             type="button"
             className="text-blue-600 hover:underline"
@@ -204,12 +237,12 @@ export default function AuthForm({ onLogin }) {
           <a href="/forgot-password" className="text-blue-600 hover:underline">Forgot password?</a>
         </div>
         {/* Footer app links */}
-        <div className="flex justify-center gap-8 mt-6 w-full flex-wrap">
-          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/vercel.svg" alt="file" width={16} height={16}/> Vercel</span>
-          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/railway.png" alt="globe" width={16} height={16}/> Railway</span>
-          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/mongodb.png" alt="window" width={16} height={16}/> MongoDB</span>
-          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/stringee.png" alt="nextjs" width={16} height={16}/> Stringee</span>
-          <span className="flex items-center gap-1 text-xs text-gray-500"><Image src="/dailyco.png" alt="nextjs" width={16} height={16}/> Daily.co</span>
+        <div className={`flex justify-center mt-4 w-full flex-wrap ${footerGapClasses}`}>
+          <span className={`flex items-center gap-1 text-gray-500 ${footerTextClasses}`}><Image src="/vercel.svg" alt="file" width={footerIconSize} height={footerIconSize}/> Vercel</span>
+          <span className={`flex items-center gap-1 text-gray-500 ${footerTextClasses}`}><Image src="/railway.png" alt="globe" width={footerIconSize} height={footerIconSize}/> Railway</span>
+          <span className={`flex items-center gap-1 text-gray-500 ${footerTextClasses}`}><Image src="/mongodb.png" alt="window" width={footerIconSize} height={footerIconSize}/> MongoDB</span>
+          <span className={`flex items-center gap-1 text-gray-500 ${footerTextClasses}`}><Image src="/stringee.png" alt="nextjs" width={footerIconSize} height={footerIconSize}/> Stringee</span>
+          <span className={`flex items-center gap-1 text-gray-500 ${footerTextClasses}`}><Image src="/dailyco.png" alt="nextjs" width={footerIconSize} height={footerIconSize}/> Daily.co</span>
 
         </div>
       </div>

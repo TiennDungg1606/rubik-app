@@ -14,6 +14,8 @@ export default function HomePage() {
   const [checking, setChecking] = useState(true);
   const backgroundVideoRef = useRef<HTMLVideoElement|null>(null);
   const [forceMuted, setForceMuted] = useState(false);
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
+  const [mobileShrink, setMobileShrink] = useState(false);
   useEffect(() => {
     async function checkLogin() {
       try {
@@ -39,6 +41,27 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    function evaluateViewport() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      const portrait = window.innerHeight > window.innerWidth;
+      const mobileLandscape = mobile && !portrait && window.innerWidth < 1200;
+      setIsMobileLandscape(mobileLandscape);
+      const compactWidth = window.innerWidth < 768;
+      setMobileShrink(compactWidth || mobileLandscape);
+    }
+
+    if (typeof window !== "undefined") {
+      evaluateViewport();
+      window.addEventListener("resize", evaluateViewport);
+      window.addEventListener("orientationchange", evaluateViewport);
+      return () => {
+        window.removeEventListener("resize", evaluateViewport);
+        window.removeEventListener("orientationchange", evaluateViewport);
+      };
+    }
+  }, []);
+
+  useEffect(() => {
     const video = backgroundVideoRef.current;
     if (!video) return;
     setForceMuted(false);
@@ -55,6 +78,14 @@ export default function HomePage() {
     video.muted = true;
     video.play().catch(() => {});
   }, [forceMuted, checking]);
+
+  const effectiveMobileShrink = mobileShrink || isMobileLandscape;
+  const loadingLogoSize = effectiveMobileShrink ? 40 : 48;
+  const loadingTitleClasses = `${effectiveMobileShrink ? "text-xl" : "text-2xl sm:text-3xl"} font-extrabold text-center tracking-tight text-gray-200 drop-shadow mb-3`;
+  const brandLogoSize = effectiveMobileShrink ? 48 : 64;
+  const brandTitleClasses = `${effectiveMobileShrink ? "text-lg" : "text-2xl sm:text-3xl"} font-extrabold text-center tracking-tight text-gray-200 drop-shadow mb-1`;
+  const brandSubtitleClasses = `text-center text-gray-300 ${effectiveMobileShrink ? "text-[11px]" : "text-xs sm:text-sm"} mb-2`;
+  const cardPaddingClasses = effectiveMobileShrink ? "p-3" : "p-8";
 
   if (checking) {
     return (
@@ -74,9 +105,9 @@ export default function HomePage() {
           </video>
         </div>
         <div className="z-10 w-full max-w-md bg-black/40 rounded-2xl shadow-2xl p-8 flex flex-col items-center border border-gray-700">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-center tracking-tight text-gray-200 drop-shadow mb-3">Rubik 1v1 Online</h1>
+          <h1 className={loadingTitleClasses}>Rubik 1v1 Online</h1>
           <span className="mb-6">
-            <svg width="48" height="48" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width={loadingLogoSize} height={loadingLogoSize} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="2" y="2" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
               <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
               <rect x="44" y="2" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
@@ -115,9 +146,9 @@ export default function HomePage() {
           <source src="/rubik-bg.mp4" type="video/mp4" />
         </video>
       </div>
-      <div className="z-10 w-full max-w-md bg-black/40 rounded-2xl shadow-2xl p-8 flex flex-col items-center border border-gray-700">
-        <span className="mb-5">
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div className={`z-10 w-full max-w-md bg-black/40 rounded-2xl shadow-2xl ${cardPaddingClasses} flex flex-col items-center border border-gray-700`}>
+        <span className="mb-2">
+          <svg width={brandLogoSize} height={brandLogoSize} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
             <rect x="23" y="2" width="18" height="18" rx="3" fill="#3B82F6" stroke="#222" strokeWidth="2"/>
             <rect x="44" y="2" width="18" height="18" rx="3" fill="#F43F5E" stroke="#222" strokeWidth="2"/>
@@ -129,9 +160,9 @@ export default function HomePage() {
             <rect x="44" y="44" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
           </svg>
         </span>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-center tracking-tight text-gray-200 drop-shadow mb-1">Rubik App Online</h1>
-        <div className="text-gray-300 text-xs sm:text-sm text-center mb-2">Giải đấu Rubik trực tuyến, giao lưu rubik, hiện đại</div>
-        <div className="w-full flex flex-col gap-1">
+        <h1 className={brandTitleClasses}>Rubik App Online</h1>
+        <div className={brandSubtitleClasses}>Giải đấu Rubik trực tuyến, giao lưu rubik, hiện đại</div>
+        <div className="w-full flex flex-col gap-2">
           <AuthForm onLogin={() => {
             // Đăng nhập thành công thì chuyển hướng sang /lobby
             window.location.href = "/lobby";
