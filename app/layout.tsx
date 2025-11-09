@@ -22,10 +22,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Rubik App",
   description: "Chơi Rubik online miễn phí, thi đấu 1vs1 với bạn bè, timer chuyên nghiệp, tạo phòng riêng. Ứng dụng giải Rubik tốt nhất cho người chơi Việt Nam.",
-  keywords: "rubik app, rubik online, rubik 1vs1, giải rubik, rubik timer, rubik cube online, chơi rubik với bạn bè, rubik việt nam",
-  authors: [{ name: "Rubik App Team" }],
-  creator: "Rubik App",
-  publisher: "Rubik App",
+  keywords: "Rubik App, solo rubik, solo rubik 1vs1, solo rubik 2vs2, web app rubik, web rubik của SunRubik, rubik online, rubik timer, thi đấu rubik",
+  authors: [{ name: "SunRubik" }],
+  creator: "SunRubik",
+  publisher: "SunRubik",
   formatDetection: {
     email: false,
     address: false,
@@ -126,7 +126,13 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebApplication",
               "name": "Rubik App",
-              "description": "Chơi Rubik online miễn phí, thi đấu 1vs1 với bạn bè, timer chuyên nghiệp, tạo phòng riêng.",
+              "alternateName": [
+                "Rubik App SunRubik",
+                "Solo Rubik 1vs1",
+                "Solo Rubik 2vs2"
+              ],
+              "description": "Rubik App của SunRubik giúp solo rubik 1vs1, solo rubik 2vs2, luyện timer rubik online và thi đấu rubik với cộng đồng Việt Nam.",
+              "keywords": "Rubik App, solo rubik, solo rubik 1vs1, solo rubik 2vs2, web app rubik, web rubik của SunRubik, rubik online, rubik timer",
               "url": "https://rubik-app-buhb.vercel.app",
               "applicationCategory": "Game",
               "operatingSystem": "Web Browser, iOS, Android",

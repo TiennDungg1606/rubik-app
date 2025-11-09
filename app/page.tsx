@@ -146,7 +146,7 @@ export default function HomePage() {
           <source src="/rubik-bg.mp4" type="video/mp4" />
         </video>
       </div>
-    <div className={`z-10 w-full max-w-md bg-black/40 rounded-2xl shadow-2xl ${cardPaddingClasses} flex flex-col items-center border border-gray-700`}>
+  <div className={`z-10 w-full max-w-md bg-black/40 rounded-2xl shadow-2xl ${cardPaddingClasses} flex flex-col items-center border border-gray-700`}>
         <span className="mb-2">
           <svg width={brandLogoSize} height={brandLogoSize} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>
