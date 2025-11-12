@@ -58,7 +58,7 @@ export default function NewTab() {
       <div className="mb-6">
         <h3 className="text-lg font-bold text-blue-400 drop-shadow mb-2">Dự kiến cập nhật tiếp theo (T12/2025)</h3>
         <ul className="list-disc list-inside text-white text-base ml-4"> 
-          <li>Chưa có bản cập nhật dự kiến!</li>      
+          <li>Cập nhật Tab Timer</li>      
         </ul>
       </div>
       <div>
