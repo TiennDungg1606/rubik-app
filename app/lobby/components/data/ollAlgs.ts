@@ -2,7 +2,7 @@ export type AlgItem = {
   id: number;
   name: string;
   alg: string;
-  img: string;
+  img?: string;
   altAlgs?: string[];
 };
 
