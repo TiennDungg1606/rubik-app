@@ -5,6 +5,7 @@ import { ollAlgs, type AlgItem } from "./data/ollAlgs";
 import { pllAlgs } from "./data/pllAlgs";
 import { f2lAlgs } from "./data/f2lAlgs";
 import { ortegaOllAlgs, ortegaPblAlgs } from "./data/ortegaAlgs";
+import { ollParityAlgs, pllParityAlgs } from "./data/parity4x4Algs";
 
 const dataByCategory: Record<string, Record<string, AlgItem[]>> = {
   "2x2": {
@@ -17,8 +18,8 @@ const dataByCategory: Record<string, Record<string, AlgItem[]>> = {
     PLL: pllAlgs
   },
   "4x4": {
-    Parity: [],
-    PLL: []
+    "OLL Parity": ollParityAlgs,
+    "PLL Parity": pllParityAlgs
   }
 };
 
@@ -27,7 +28,7 @@ export default function PracticeTab() {
   const categories = [
     { name: "3x3", sub: ["F2L", "OLL", "PLL"] },
     { name: "2x2", sub: ["Ortega OLL", "Ortega PBL"] },
-    { name: "4x4", sub: ["Parity", "PLL"] }
+    { name: "4x4", sub: ["OLL Parity", "PLL Parity"] }
   ];
 
   // State chọn danh mục và sub
