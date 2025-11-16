@@ -24,7 +24,8 @@ function calcStats(times: (number|null)[]) {
   // worst: nếu có DNF thì là DNF, nếu không thì là số lớn nhất
   const worst = times.includes(null) ? null : sorted[sorted.length - 1];
   // mean: trung bình cộng các lần hợp lệ
-  const mean = valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
+  // mean: trung bình cộng tổng thời gian hợp lệ chia cho tổng số lượt (kể cả DNF)
+  const mean = valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / times.length : null;
   // ao5: nếu có đủ 5 lần, loại tốt nhất và tệ nhất (DNF là tệ nhất), tính trung bình 3 lần còn lại
   let ao5 = null;
   if (times.length >= 5) {
@@ -3523,8 +3524,13 @@ const clampPlayerIndex = (idx: number) => {
     return { text: formatted, fontSize };
   };
 
+  const opponentPrimaryMedianDisplay = buildMedianDisplay(
+    myTeam ? displayOpponentResults[opponentIndexForMe] : opponentResults
+  );
   const teammateMedianDisplay = buildMedianDisplay(displayMyTeamResults[teammateIndex]);
-  const opponentSecondaryMedianDisplay = buildMedianDisplay(displayOpponentResults[opponentIndexForTeammate]);
+  const opponentSecondaryMedianDisplay = buildMedianDisplay(
+    myTeam ? displayOpponentResults[opponentIndexForTeammate] : undefined
+  );
 
   return (
     <div 
@@ -4990,56 +4996,10 @@ const clampPlayerIndex = (idx: number) => {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>Avg</div>
-              <div style={{fontSize: (() => {
-                const oppTeamResults = myTeam === 'A' ? teamBResults : teamAResults;
-                const allOppResults = oppTeamResults.flat();
-                if (allOppResults.length > 0) {
-                  const stats = calcStats(allOppResults);
-                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
-                    const ms = stats.mean;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    let timeStr = '';
-                    
-                    if (m > 0) {
-                      timeStr = `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      timeStr = `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      timeStr = `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                    
-                    // Điều chỉnh cỡ chữ dựa trên độ dài
-                    if (timeStr.length <= 4) return mobileShrink ? 11 : 18; // 0.05, 1.23
-                    if (timeStr.length <= 6) return mobileShrink ? 10 : 16; // 12.34, 1:05.43
-                    return mobileShrink ? 9 : 14; // 1:23.45, 12:34.56
-                  }
-                }
-                return mobileShrink ? 11 : 18;
-              })()}}>{(() => {
-                const oppTeamResults = myTeam === 'A' ? teamBResults : teamAResults;
-                const allOppResults = oppTeamResults.flat();
-                if (allOppResults.length > 0) {
-                  const stats = calcStats(allOppResults);
-                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
-                    const ms = stats.mean;
-                    const cs = Math.floor((ms % 1000) / 10);
-                    const s = Math.floor((ms / 1000) % 60);
-                    const m = Math.floor(ms / 60000);
-                    
-                    if (m > 0) {
-                      return `${m}:${s.toString().padStart(2, "0")}.${cs.toString().padStart(2, "0")}`;
-                    } else if (s > 0) {
-                      return `${s}.${cs.toString().padStart(2, "0")}`;
-                    } else {
-                      return `0.${cs.toString().padStart(2, "0")}`;
-                    }
-                  }
-                }
-                return '-';
-              })()}</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVG</div>
+              <div style={{fontSize: opponentPrimaryMedianDisplay.fontSize}}>
+                {opponentPrimaryMedianDisplay.text}
+              </div>
             </div>
             {/* Timer */}
             <div style={{
