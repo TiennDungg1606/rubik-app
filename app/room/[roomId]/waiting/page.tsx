@@ -58,6 +58,9 @@ export default function WaitingRoom() {
   const [roomUrl, setRoomUrl] = useState('');
   const [customBg, setCustomBg] = useState<string>('');
   const [user, setUser] = useState<any>(null);
+  const [isRoomFullModalVisible, setIsRoomFullModalVisible] = useState(false);
+  const roomFullTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isUserLoaded, setIsUserLoaded] = useState(false);
 
   // Video refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -119,6 +122,8 @@ export default function WaitingRoom() {
         }
       } catch (err) {
         console.error("❌ Error fetching user:", err);
+      } finally {
+        setIsUserLoaded(true);
       }
     };
     fetchUser();
@@ -519,6 +524,76 @@ export default function WaitingRoom() {
       document.body.style.backgroundColor = '';
     };
   }, [customBg]);
+
+  // Prevent additional players from entering a full 2vs2 room.
+  useEffect(() => {
+    if (!isUserLoaded || isRoomFullModalVisible) return;
+
+    const nonObserverPlayers = roomState.players.filter(player => !player.isObserver);
+    if (nonObserverPlayers.length < 4) return;
+
+    const normalize = (value?: string | null) => (value ? value.trim().toLowerCase() : '');
+
+    const idCandidates = new Set<string>();
+    const nameCandidates = new Set<string>();
+
+    if (currentUser?.id) idCandidates.add(currentUser.id);
+    if (user?._id) idCandidates.add(user._id);
+    if (user?.id) idCandidates.add(user.id);
+
+    if (currentUser?.name) nameCandidates.add(normalize(currentUser.name));
+    if (user?.firstName || user?.lastName) {
+      const combinedName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+      if (combinedName) nameCandidates.add(normalize(combinedName));
+    }
+
+    const isMember = roomState.players.some(player => {
+      const normalizedName = normalize(player.name);
+      return idCandidates.has(player.id) || (normalizedName && nameCandidates.has(normalizedName));
+    });
+
+    if (isMember) return;
+
+    setIsRoomFullModalVisible(true);
+
+    const userIdForLeave = currentUser?.id || user?._id || user?.id || null;
+    if (socket && userIdForLeave) {
+      socket.emit('leave-waiting-room', {
+        roomId,
+        userId: userIdForLeave
+      });
+    }
+
+    if (roomFullTimeoutRef.current) {
+      clearTimeout(roomFullTimeoutRef.current);
+    }
+
+    roomFullTimeoutRef.current = setTimeout(() => {
+      setIsRoomFullModalVisible(false);
+      router.push('/lobby');
+    }, 5000);
+  }, [
+    currentUser?.id,
+    currentUser?.name,
+    isRoomFullModalVisible,
+    isUserLoaded,
+    roomId,
+    roomState.players,
+    router,
+    socket,
+    user?._id,
+    user?.firstName,
+    user?.id,
+    user?.lastName
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (roomFullTimeoutRef.current) {
+        clearTimeout(roomFullTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleToggleReady = () => {
     if (!socket) return;
@@ -1136,6 +1211,17 @@ export default function WaitingRoom() {
                 </svg>
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isRoomFullModalVisible && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80">
+          <div className="bg-gray-900 border border-red-500 rounded-2xl px-6 py-8 text-center max-w-sm mx-4 shadow-xl">
+            <div className="text-2xl font-semibold text-red-400 mb-4">Phòng đã đầy</div>
+            <p className="text-gray-200">
+              Phòng chờ 2vs2 hiện đã đủ 4 người chơi. Vui lòng thử lại sau.
+            </p>
           </div>
         </div>
       )}

@@ -25,7 +25,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [activeRooms, setActiveRooms] = useState<string[]>([]);
   const [competingRooms, setCompetingRooms] = useState<string[]>([]);
   // Lưu meta phòng để kiểm tra mật khẩu
-  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string; event?: string; displayName?: string; gameMode?: string; isWaitingRoom?: boolean }>>({});
+  const [roomMetas, setRoomMetas] = useState<Record<string, { password?: string; event?: string; displayName?: string; gameMode?: string; isWaitingRoom?: boolean; usersCount?: number }>>({});
   const roomMetasRef = useRef(roomMetas);
 
   useEffect(() => {
@@ -47,6 +47,13 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       return () => { document.body.style.overflow = originalOverflow; };
     }
   }, [showCreateModal, showPasswordModal]);
+  useEffect(() => {
+    return () => {
+      if (roomFullTimerRef.current) {
+        clearTimeout(roomFullTimerRef.current);
+      }
+    };
+  }, []);
   // Animation state for modal
   const [modalVisible, setModalVisible] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
@@ -56,6 +63,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [modalPassword, setModalPassword] = useState("");
   const [modalPasswordConfirm, setModalPasswordConfirm] = useState("");
   const [modalError, setModalError] = useState("");
+  const [showRoomFullModal, setShowRoomFullModal] = useState(false);
+  const [roomFullMessage, setRoomFullMessage] = useState("");
+  const roomFullTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Đã loại bỏ logic spectator
   // Sử dụng localhost khi development, production server khi production
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -80,7 +90,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         }
         const active: string[] = [];
         const competing: string[] = [];
-        const metaMap: Record<string, { password?: string; gameMode?: string; isWaitingRoom?: boolean; displayName?: string; event?: string }> = {};
+        const metaMap: Record<string, { password?: string; gameMode?: string; isWaitingRoom?: boolean; displayName?: string; event?: string; usersCount?: number }> = {};
         for (const roomObj of roomObjs) {
           const roomId = typeof roomObj === 'string' ? roomObj : roomObj.roomId;
           const meta = typeof roomObj === 'object' && roomObj.meta ? roomObj.meta : {};
@@ -88,7 +98,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           const isWaitingRoom = typeof roomObj === 'object' && (roomObj.isWaitingRoom === true || meta.isWaitingRoom === true);
           if (!roomId) continue;
           const previousMeta = roomMetasRef.current[roomId] || {};
-          const mergedMeta = { ...previousMeta, ...meta, isWaitingRoom };
+          const mergedMeta = { ...previousMeta, ...meta, isWaitingRoom, usersCount };
           if (!mergedMeta.displayName) {
             const fallbackName = typeof meta.displayName === 'string'
               ? meta.displayName
@@ -202,6 +212,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setPasswordModalError("Mật khẩu không đúng.");
       return;
     }
+    if (meta.isWaitingRoom && meta.gameMode === '2vs2' && (meta.usersCount ?? 0) >= 4) {
+      const displayName = meta.displayName || passwordModalRoomId;
+      closePasswordModal();
+      triggerRoomFullModal(displayName);
+      return;
+    }
     
     setPasswordModalError("");
     window._roomPassword = passwordInput;
@@ -244,6 +260,13 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setError("Mã phòng không tồn tại.");
       return;
     }
+    const meta = roomMetas[roomInput] || {};
+    if (meta.isWaitingRoom && meta.gameMode === '2vs2' && (meta.usersCount ?? 0) >= 4) {
+      const displayName = meta.displayName || roomInput;
+      setError("Phòng 2vs2 này đã đủ 4 người.");
+      triggerRoomFullModal(displayName);
+      return;
+    }
     setError("");
     handleJoinRoom(roomInput);
   }
@@ -260,6 +283,18 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       if (tabBar) tabBar.classList.remove('hidden');
     };
   }, [showCreateModal, showPasswordModal]);
+
+  const triggerRoomFullModal = (displayName: string) => {
+    if (roomFullTimerRef.current) {
+      clearTimeout(roomFullTimerRef.current);
+    }
+    setRoomFullMessage(`${displayName} đã đủ 4 người chơi.`);
+    setShowRoomFullModal(true);
+    roomFullTimerRef.current = setTimeout(() => {
+      setShowRoomFullModal(false);
+      setRoomFullMessage("");
+    }, 5000);
+  };
 
   return (
   <div className="w-full flex flex-col items-center bg-neutral-900/50 justify-center rounded-2xl">
@@ -429,6 +464,18 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
               >
                 Vào phòng
               </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showRoomFullModal && typeof window !== 'undefined' && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70" style={{ minHeight: '100dvh', minWidth: '100vw' }}>
+          <div className="bg-gray-900 rounded-2xl shadow-2xl px-6 py-8 max-w-sm text-center border border-red-500 mx-4">
+            <div className="text-2xl font-semibold text-red-400 mb-3">Phòng đã đầy</div>
+            <div className="text-gray-200">
+              {roomFullMessage || 'Phòng chờ 2vs2 hiện đã đủ 4 người chơi. Vui lòng thử lại sau.'}
             </div>
           </div>
         </div>,
@@ -647,6 +694,11 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   key={room}
                   onClick={() => {
                     const meta = roomMetas[room] || {};
+                    if (meta.isWaitingRoom && meta.gameMode === '2vs2' && (meta.usersCount ?? 0) >= 4) {
+                      const displayName = meta.displayName || room;
+                      triggerRoomFullModal(displayName);
+                      return;
+                    }
                     if (meta.isWaitingRoom) {
                       // Kiểm tra mật khẩu cho waiting room
                       if (meta.password) {
