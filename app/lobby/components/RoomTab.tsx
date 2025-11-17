@@ -52,6 +52,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       if (roomFullTimerRef.current) {
         clearTimeout(roomFullTimerRef.current);
       }
+      if (roomFullHideTimerRef.current) {
+        clearTimeout(roomFullHideTimerRef.current);
+      }
     };
   }, []);
   // Animation state for modal
@@ -64,8 +67,10 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [modalPasswordConfirm, setModalPasswordConfirm] = useState("");
   const [modalError, setModalError] = useState("");
   const [showRoomFullModal, setShowRoomFullModal] = useState(false);
+  const [roomFullModalVisible, setRoomFullModalVisible] = useState(false);
   const [roomFullMessage, setRoomFullMessage] = useState("");
   const roomFullTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const roomFullHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Đã loại bỏ logic spectator
   // Sử dụng localhost khi development, production server khi production
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -284,16 +289,37 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     };
   }, [showCreateModal, showPasswordModal]);
 
+  const closeRoomFullModal = React.useCallback(() => {
+    if (roomFullTimerRef.current) {
+      clearTimeout(roomFullTimerRef.current);
+      roomFullTimerRef.current = null;
+    }
+    setRoomFullModalVisible(false);
+    if (roomFullHideTimerRef.current) {
+      clearTimeout(roomFullHideTimerRef.current);
+    }
+    roomFullHideTimerRef.current = setTimeout(() => {
+      setShowRoomFullModal(false);
+      setRoomFullMessage("");
+      roomFullHideTimerRef.current = null;
+    }, 300);
+  }, []);
+
   const triggerRoomFullModal = (displayName: string) => {
     if (roomFullTimerRef.current) {
       clearTimeout(roomFullTimerRef.current);
+      roomFullTimerRef.current = null;
+    }
+    if (roomFullHideTimerRef.current) {
+      clearTimeout(roomFullHideTimerRef.current);
+      roomFullHideTimerRef.current = null;
     }
     setRoomFullMessage(`${displayName} đã đủ 4 người chơi.`);
     setShowRoomFullModal(true);
+    requestAnimationFrame(() => setRoomFullModalVisible(true));
     roomFullTimerRef.current = setTimeout(() => {
-      setShowRoomFullModal(false);
-      setRoomFullMessage("");
-    }, 5000);
+      closeRoomFullModal();
+    }, 3000);
   };
 
   return (
@@ -471,8 +497,15 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       )}
 
       {showRoomFullModal && typeof window !== 'undefined' && ReactDOM.createPortal(
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70" style={{ minHeight: '100dvh', minWidth: '100vw' }}>
-          <div className="bg-gray-900 rounded-2xl shadow-2xl px-6 py-8 max-w-sm text-center border border-red-500 mx-4">
+        <div
+          className={`fixed inset-0 z-60 flex items-center justify-center bg-black/70 transition-opacity duration-300 ${roomFullModalVisible ? 'opacity-100' : 'opacity-0'}`}
+          style={{ minHeight: '100dvh', minWidth: '100vw' }}
+          onClick={closeRoomFullModal}
+        >
+          <div
+            className={`bg-gray-900 rounded-2xl shadow-2xl px-6 py-8 max-w-sm text-center border border-red-500 mx-4 transition-all duration-300 ${roomFullModalVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+            onClick={event => event.stopPropagation()}
+          >
             <div className="text-2xl font-semibold text-red-400 mb-3">Phòng đã đầy</div>
             <div className="text-gray-200">
               {roomFullMessage || 'Phòng chờ 2vs2 hiện đã đủ 4 người chơi. Vui lòng thử lại sau.'}

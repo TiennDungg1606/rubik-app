@@ -213,7 +213,7 @@ export const ollAlgs: AlgItem[] = [
     name: "34. C",
     alg: "1. (R U R' U')(R' F R F') R' U2' R U R'U R",
     img: "/practice/oll34.png",
-    altAlgs: ["2. ↓ F R U R' U' R' F' r U R U' r'"]
+    altAlgs: ["2. y2 ↓ F R U R' U' R' F' r U R U' r'"]
   },
   {
     id: 35,
