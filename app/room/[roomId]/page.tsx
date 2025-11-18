@@ -1338,9 +1338,11 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
 }
 // --- End CubeNetModal ---
 
-type RematchTone = "emerald" | "amber" | "rose";
+type AuroraTone = "emerald" | "amber" | "rose" | "crimson";
+type ModalTransitionStage = "enter" | "exit" | "idle";
+const MODAL_TRANSITION_MS = 240;
 
-const REMATCH_TONE_MAP: Record<RematchTone, {
+const AURORA_TONE_MAP: Record<AuroraTone, {
   glow: string;
   gradient: string;
   iconBg: string;
@@ -1371,30 +1373,94 @@ const REMATCH_TONE_MAP: Record<RematchTone, {
     chipBg: "bg-rose-500/10",
     chipText: "text-rose-100",
     chipBorder: "border-rose-300/40",
-  }
+  },
+  crimson: {
+    glow: "bg-red-500/40",
+    gradient: "from-red-500/10 via-rose-500/5 to-transparent",
+    iconBg: "from-red-500/30 via-rose-500/20 to-red-500/5",
+    chipBg: "bg-red-500/15",
+    chipText: "text-rose-50",
+    chipBorder: "border-red-200/40",
+  },
 };
 
-const RematchModalBackdrop = ({ children }: { children: React.ReactNode }) => (
-  <div className="fixed inset-0 z-[220] flex items-center justify-center">
-    <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md" />
-    <div className="relative z-10 flex w-full max-w-3xl items-center justify-center px-4">
-      {children}
-    </div>
-  </div>
-);
+const useModalTransition = (open: boolean, duration = MODAL_TRANSITION_MS, disableAnimation = false) => {
+  const [isMounted, setIsMounted] = useState(open);
+  const [stage, setStage] = useState<ModalTransitionStage>(open ? "enter" : "idle");
+  const prevOpenRef = useRef(open);
 
-interface RematchModalCardProps {
+  useEffect(() => {
+    if (disableAnimation) {
+      setIsMounted(open);
+      setStage("idle");
+      prevOpenRef.current = open;
+      return;
+    }
+
+    let timeout: NodeJS.Timeout | null = null;
+
+    if (open) {
+      setIsMounted(true);
+      setStage("enter");
+      timeout = setTimeout(() => setStage("idle"), duration);
+    } else if (prevOpenRef.current) {
+      setStage("exit");
+      timeout = setTimeout(() => {
+        setIsMounted(false);
+        setStage("idle");
+      }, duration);
+    }
+
+    prevOpenRef.current = open;
+
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [open, duration, disableAnimation]);
+
+  return { isMounted, stage };
+};
+
+const AuroraModalBackdrop = ({ open, children, disableAnimation }: { open: boolean; children: React.ReactNode; disableAnimation?: boolean }) => {
+  const { isMounted, stage } = useModalTransition(open, MODAL_TRANSITION_MS, disableAnimation);
+  if (!isMounted) return null;
+
+  const overlayClass = [
+    "absolute inset-0 aurora-overlay",
+    disableAnimation ? "" : stage === "enter" ? "aurora-overlay--enter" : "",
+    disableAnimation ? "" : stage === "exit" ? "aurora-overlay--exit" : "",
+  ].join(" ").trim();
+  const cardWrapperClass = [
+    "relative z-10 flex w-full max-w-3xl items-center justify-center px-4",
+    disableAnimation ? "" : stage === "enter" ? "aurora-card-wrapper--enter" : "",
+    disableAnimation ? "" : stage === "exit" ? "aurora-card-wrapper--exit" : "",
+  ].join(" ").trim();
+
+  return (
+    <div
+      className="fixed inset-0 z-[220] flex items-center justify-center"
+      data-no-motion={disableAnimation ? "true" : undefined}
+    >
+      <div className={overlayClass} />
+      <div className={cardWrapperClass}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+interface AuroraModalCardProps {
   badge?: string;
   title: string;
   subtitle?: string;
   description?: string;
   icon?: React.ReactNode;
-  tone?: RematchTone;
+  tone?: AuroraTone;
   compact?: boolean;
   children?: React.ReactNode;
 }
 
-const RematchModalCard: React.FC<RematchModalCardProps> = ({
+const AuroraModalCard: React.FC<AuroraModalCardProps> = ({
   badge,
   title,
   subtitle,
@@ -1404,29 +1470,35 @@ const RematchModalCard: React.FC<RematchModalCardProps> = ({
   compact,
   children
 }) => {
-  const palette = REMATCH_TONE_MAP[tone];
+  const palette = AURORA_TONE_MAP[tone];
+  const contentPadding = compact ? "gap-4 p-4" : "gap-5 p-5 sm:p-8";
+  const iconBoxSize = compact ? "h-12 w-12" : "h-14 w-14";
+  const badgeText = compact ? "text-[9px]" : "text-[11px]";
+  const titleClass = compact ? "mt-1 text-lg font-semibold leading-snug" : "mt-2 text-xl font-semibold leading-tight sm:text-2xl";
+  const subtitleClass = compact ? "text-xs text-slate-200/80" : "text-sm text-slate-200/90 sm:text-base";
+  const descClass = compact ? "text-xs leading-relaxed text-slate-100/90" : "text-sm leading-relaxed text-slate-200/90 sm:text-base";
   return (
     <div className={`relative w-full ${compact ? "max-w-xs" : "max-w-md"}`}>
       <div className={`absolute inset-0 blur-3xl opacity-80 pointer-events-none ${palette.glow}`} />
       <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-slate-900/85 backdrop-blur-xl shadow-[0_25px_80px_rgba(0,0,0,0.45)]">
         <div className={`absolute inset-0 bg-gradient-to-br ${palette.gradient}`} />
-        <div className="relative z-10 flex flex-col gap-5 p-5 sm:p-8 text-white">
+        <div className={`relative z-10 flex flex-col text-white ${contentPadding}`}>
           <div className="flex items-center gap-4">
-            <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${palette.iconBg}`}>
-              <span className={compact ? "text-2xl" : "text-3xl"}>{icon ?? "♻️"}</span>
+            <div className={`flex ${iconBoxSize} items-center justify-center rounded-2xl bg-gradient-to-br ${palette.iconBg}`}>
+              <span className={compact ? "text-xl" : "text-3xl"}>{icon ?? "♻️"}</span>
             </div>
             <div className="flex-1">
               {badge && (
-                <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${palette.chipBg} ${palette.chipText} ${palette.chipBorder}`}>
+                <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 ${badgeText} font-semibold uppercase tracking-[0.2em] ${palette.chipBg} ${palette.chipText} ${palette.chipBorder}`}>
                   {badge}
                 </span>
               )}
-              <h3 className="mt-2 text-xl font-semibold leading-tight sm:text-2xl">{title}</h3>
-              {subtitle && <p className="text-sm text-slate-200/90 sm:text-base">{subtitle}</p>}
+              <h3 className={titleClass}>{title}</h3>
+              {subtitle && <p className={subtitleClass}>{subtitle}</p>}
             </div>
           </div>
           {description && (
-            <p className="text-sm leading-relaxed text-slate-200/90 sm:text-base">
+            <p className={descClass}>
               {description}
             </p>
           )}
@@ -2681,6 +2753,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
   
   // Helper: compact style for mobile landscape only
   const mobileShrink = isMobileLandscape;
+  const modalActionClass = mobileShrink ? "px-3 py-2 text-sm" : "px-4 py-3 text-base";
+  const modalInfoTextClass = mobileShrink ? "text-[11px]" : "text-sm";
+  const showRematchRequest = rematchModal.show && rematchModal.from === 'opponent';
   const controlsLockedByOpponent = opponentRunning || opponentPrep;
   const timerColorClass = (() => {
     if (dnf) return 'text-red-400';
@@ -2761,17 +2836,39 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </button>
       </div>
       {/* Modal xác nhận rời phòng */}
-      {showLeaveModal && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(2px)' }}>
-          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[140px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[180px] border-4 border-red-400 flex flex-col items-center justify-center"} modal-content`}>
-            <div className="text-lg font-bold text-red-300 mb-4 text-center">Bạn có chắc chắn muốn rời phòng không?</div>
-            <div className="flex flex-row gap-4 mt-2">
-              <button onClick={confirmLeaveRoom} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Rời phòng</button>
-              <button onClick={() => setShowLeaveModal(false)} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Hủy</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AuroraModalBackdrop open={showLeaveModal}>
+        <AuroraModalCard
+          compact={mobileShrink}
+          tone="crimson"
+          badge="Rời phòng"
+          title="Thoát khỏi phòng thi đấu?"
+          subtitle="Hệ thống sẽ ngắt kết nối và trở về sảnh."
+          icon={( 
+              <svg
+                viewBox="0 0 48 48"
+                className="h-8 w-8 text-rose-50"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 12H9a3 3 0 0 0-3 3v18a3 3 0 0 0 3 3h12" />
+                <path d="M33 32l6-8-6-8" />
+                <path d="M17 24h22" />
+              </svg>
+            )}
+        >
+          <button
+            onClick={() => setShowLeaveModal(false)}
+            className={`w-full ${modalActionClass} rounded-2xl border border-white/15 bg-white/5 font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30`}
+          >Ở lại</button>
+          <button
+            onClick={confirmLeaveRoom}
+            className={`w-full ${modalActionClass} rounded-2xl border border-red-300/60 bg-gradient-to-r from-red-600/90 to-rose-500/90 font-semibold text-white shadow-lg shadow-red-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-red-300/60`}
+          >Rời phòng</button>
+        </AuroraModalCard>
+      </AuroraModalBackdrop>
       {/* Nút Chat, nút tái đấu và nút luật thi đấu ở góc trên bên phải */}
       <div
         className={
@@ -2873,16 +2970,15 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             
 
           {/* Modal xác nhận tái đấu khi nhận được yêu cầu từ đối phương */}
-      {rematchModal.show && rematchModal.from === 'opponent' && (
-        <RematchModalBackdrop>
-          <RematchModalCard
-            compact={mobileShrink}
-            tone="emerald"
-            badge="Tái đấu"
-            title="Thêm một trận nữa?"
-            subtitle={`${(opponentName || 'Đối thủ')} muốn bắt đầu Ao5 mới.`}
-            description="Chấp nhận để hệ thống cấp scramble mới, reset bảng điểm và mở khóa mọi thao tác cho cả hai người chơi."
-            icon={(
+      <AuroraModalBackdrop open={showRematchRequest}>
+        <AuroraModalCard
+          compact={mobileShrink}
+          tone="emerald"
+          badge="Tái đấu"
+          title="Thêm một trận nữa?"
+          subtitle={`${(opponentName || 'Đối thủ')} muốn bắt đầu Ao5 mới.`}
+          description="Chấp nhận để hệ thống cấp scramble mới, reset bảng điểm và mở khóa mọi thao tác cho cả hai người chơi."
+          icon={( 
               <svg
                 viewBox="0 0 48 48"
                 className="h-8 w-8 text-emerald-50"
@@ -2899,29 +2995,27 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <path d="M31 21h4l6-6" />
               </svg>
             )}
-          >
-            <button
-              onClick={() => respondRematch(false)}
-              className="w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-base font-semibold text-slate-100 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-            >Từ chối</button>
-            <button
-              onClick={() => respondRematch(true)}
-              className="w-full rounded-2xl border border-emerald-400/60 bg-emerald-500/80 px-4 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition hover:-translate-y-0.5 hover:bg-emerald-400/90 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
-            >Đồng ý ngay</button>
-          </RematchModalCard>
-        </RematchModalBackdrop>
-      )}
+        >
+          <button
+            onClick={() => respondRematch(false)}
+            className={`w-full ${modalActionClass} rounded-2xl border border-white/15 bg-white/5 font-semibold text-slate-100 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30`}
+          >Từ chối</button>
+          <button
+            onClick={() => respondRematch(true)}
+            className={`w-full ${modalActionClass} rounded-2xl border border-emerald-400/60 bg-emerald-500/80 font-semibold text-white shadow-lg shadow-emerald-500/25 transition hover:-translate-y-0.5 hover:bg-emerald-400/90 focus:outline-none focus:ring-2 focus:ring-emerald-300/60`}
+          >Đồng ý ngay</button>
+        </AuroraModalCard>
+      </AuroraModalBackdrop>
       {/* Modal đang chờ đối phương đồng ý tái đấu */}
-      {rematchPending && (
-        <RematchModalBackdrop>
-          <RematchModalCard
-            compact={mobileShrink}
-            tone="amber"
-            badge="Đang chờ"
-            title="Đợi phản hồi đối thủ"
-            subtitle="Bạn đã gửi lời mời tái đấu."
-            description="Chúng tôi đang ping đối thủ để xác nhận trận mới. Có thể mất vài giây nếu kết nối yếu."
-            icon={(
+      <AuroraModalBackdrop open={rematchPending}>
+        <AuroraModalCard
+          compact={mobileShrink}
+          tone="amber"
+          badge="Đang chờ"
+          title="Đợi phản hồi đối thủ"
+          subtitle="Bạn đã gửi lời mời tái đấu."
+          description="Chúng tôi đã gửi yêu cầu đến đối thủ để xác nhận trận mới. Vui lòng chờ trong giây lát."
+          icon={( 
               <svg
                 viewBox="0 0 48 48"
                 className="h-8 w-8 text-amber-100"
@@ -2935,38 +3029,35 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <path d="M24 12v12l8 4" />
               </svg>
             )}
-          >
-            <div className="w-full rounded-2xl border border-amber-200/30 bg-white/5 px-4 py-3 text-center text-sm font-medium text-amber-50/90">
+        >
+          <div className={`w-full rounded-2xl border border-amber-200/30 bg-white/5 px-4 py-3 text-center ${modalInfoTextClass} font-medium text-amber-50/90`}>
               <div className="mx-auto mb-1 flex w-full items-center justify-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-amber-200 animate-ping" />
                 <span className="h-2 w-2 rounded-full bg-amber-300 animate-ping" style={{ animationDelay: '150ms' }} />
                 <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" style={{ animationDelay: '300ms' }} />
               </div>
               Đang chờ {opponentName || 'đối thủ'} phản hồi...
-            </div>
-            <button
-              onClick={() => {
-                setRematchPending(false);
-                const socket = getSocket();
-                socket.emit('rematch-cancel', { roomId });
-              }}
-              className="w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-base font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
-            >Hủy yêu cầu</button>
-          </RematchModalCard>
-        </RematchModalBackdrop>
-      )}
+          </div>
+          <button
+            onClick={() => {
+              setRematchPending(false);
+              const socket = getSocket();
+              socket.emit('rematch-cancel', { roomId });
+            }}
+            className={`w-full ${modalActionClass} rounded-2xl border border-white/15 bg-white/5 font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30`}
+          >Hủy yêu cầu</button>
+        </AuroraModalCard>
+      </AuroraModalBackdrop>
 
       {/* Modal thông báo đối phương đã từ chối tái đấu */}
-      {rematchDeclined && (
-        <RematchModalBackdrop>
-          <RematchModalCard
-            compact={mobileShrink}
-            tone="rose"
-            badge="Bị từ chối"
-            title="Đối thủ chưa sẵn sàng"
-            subtitle="Lời mời tái đấu đã bị từ chối."
-            description="Không sao đâu! Hãy trao đổi thêm với đối thủ hoặc gửi lại yêu cầu khi cả hai đã thống nhất."
-            icon={(
+      <AuroraModalBackdrop open={rematchDeclined}>
+        <AuroraModalCard
+          compact={mobileShrink}
+          tone="rose"
+          badge="Bị từ chối"
+          title="Đối thủ chưa sẵn sàng"
+          subtitle="Lời mời tái đấu đã bị từ chối."
+          icon={( 
               <svg
                 viewBox="0 0 48 48"
                 className="h-8 w-8 text-rose-100"
@@ -2981,14 +3072,13 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <path d="M18 18l12 12" />
               </svg>
             )}
-          >
-            <button
-              onClick={() => setRematchDeclined(false)}
-              className="w-full rounded-2xl border border-rose-300/40 bg-rose-500/20 px-4 py-3 text-base font-semibold text-rose-50 transition hover:-translate-y-0.5 hover:bg-rose-500/30 focus:outline-none focus:ring-2 focus:ring-rose-300/50"
-            >Đã hiểu</button>
-          </RematchModalCard>
-        </RematchModalBackdrop>
-      )}
+        >
+          <button
+            onClick={() => setRematchDeclined(false)}
+            className={`w-full ${modalActionClass} rounded-2xl border border-rose-300/40 bg-rose-500/20 font-semibold text-rose-50 transition hover:-translate-y-0.5 hover:bg-rose-500/30 focus:outline-none focus:ring-2 focus:ring-rose-300/50`}
+          >Đã hiểu</button>
+        </AuroraModalCard>
+      </AuroraModalBackdrop>
         <div className="flex items-center relative">
           <button
             onClick={() => { setShowChat(true); setHasNewChat(false); }}
@@ -3013,31 +3103,28 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <audio ref={audioRef} src="/ting.mp3" preload="auto" />
         </div>
       {/* Modal chat nổi */}
-      {showChat && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent modal-backdrop"
-          style={{ backdropFilter: 'blur(2px)' }}
-        >
-          <div
-            className={`${mobileShrink ? "bg-gray-900 rounded pt-2 px-2 w-[90vw] max-w-[260px] h-[320px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl pt-6 px-6 w-[400px] max-w-[95vw] h-[520px] border-4 border-blue-400 relative flex flex-col"} modal-content`}
-            style={mobileShrink ? { fontSize: 10, overflow: 'hidden' } : { overflow: 'hidden' }}
-          >
-            <button
-              onClick={() => setShowChat(false)}
-              className={`${mobileShrink ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"} transition-all duration-200 hover:scale-105 active:scale-95`}
-              style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
-              type="button"
-            >Đóng</button>
-            <div className={mobileShrink ? "text-[11px] font-bold text-blue-300 mb-1 text-center" : "text-xl font-bold text-blue-300 mb-3 text-center"}>
-              Chat phòng
+      <AuroraModalBackdrop open={showChat} disableAnimation>
+        <div className={`relative w-full ${mobileShrink ? 'max-w-[320px]' : 'max-w-2xl'}`}>
+          <div className="absolute inset-0 blur-3xl opacity-70 bg-blue-500/20 pointer-events-none" />
+          <div className={`relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${mobileShrink ? 'p-3 min-h-[340px]' : 'p-6 min-h-[520px]'}`}>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <h3 className={`${mobileShrink ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Chat phòng</h3>
+              </div>
+              <button
+                onClick={() => setShowChat(false)}
+                className={`rounded-full bg-red-500/80 text-white ${mobileShrink ? 'w-7 h-7 text-xs' : 'w-10 h-10 text-base'} font-bold transition hover:bg-red-500`}
+                type="button"
+                aria-label="Đóng chat"
+              >✕</button>
             </div>
             <div
               ref={chatListRef}
-              className={mobileShrink ? "flex-1 overflow-y-auto" : "flex-1 overflow-y-auto"}
-              style={mobileShrink ? { maxHeight: 230 } : { maxHeight: 350 }}
+              className={`flex-1 overflow-y-auto pr-1 ${mobileShrink ? 'space-y-2' : 'space-y-3'}`}
+              style={{ maxHeight: mobileShrink ? 240 : 360 }}
             >
               {chatMessages.length === 0 && (
-                <div className="text-gray-400 text-center mt-4">Chưa có tin nhắn nào</div>
+                <div className="text-gray-400 text-center mt-4 text-sm">Chưa có tin nhắn nào</div>
               )}
               {chatMessages.map((msg, idx) => {
                 const displayName = msg.userName?.trim()
@@ -3046,23 +3133,23 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                       ? (userName?.trim() ? userName : 'Bạn')
                       : (opponentName?.trim() ? opponentName : 'Đối thủ'));
                 const nameClass = [
-                  mobileShrink ? "text-[8px]" : "text-xs",
+                  mobileShrink ? "text-[10px]" : "text-xs",
                   msg.from === 'me' ? 'text-blue-100 text-right' : 'text-gray-300 text-left',
                 ].join(' ');
                 const bubbleClass = msg.from === 'me'
-                  ? (mobileShrink ? "bg-blue-500 text-white px-2 py-1 rounded-lg text-[10px]" : "bg-blue-500 text-white px-3 py-2 rounded-lg text-base")
-                  : (mobileShrink ? "bg-gray-700 text-white px-2 py-1 rounded-lg text-[10px]" : "bg-gray-700 text-white px-3 py-2 rounded-lg text-base");
+                  ? (mobileShrink ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-2.5 py-1.5 rounded-2xl text-[11px]" : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-2xl text-base")
+                  : (mobileShrink ? "bg-slate-800 text-white px-2.5 py-1.5 rounded-2xl text-[11px]" : "bg-slate-800 text-white px-4 py-2 rounded-2xl text-base");
 
                 return (
                   <div
                     key={idx}
                     className={`${
                       msg.from === 'me'
-                        ? (mobileShrink ? "flex justify-end mb-1" : "flex justify-end mb-2")
-                        : (mobileShrink ? "flex justify-start mb-1" : "flex justify-start mb-2")
+                        ? (mobileShrink ? "flex justify-end" : "flex justify-end")
+                        : (mobileShrink ? "flex justify-start" : "flex justify-start")
                     } chat-message ${idx === chatMessages.length - 1 ? 'new-message' : ''}`}
                   >
-                    <div className="flex flex-col max-w-[70%]" style={{ wordBreak: 'break-word' }}>
+                    <div className="flex flex-col max-w-[75%]" style={{ wordBreak: 'break-word' }}>
                       <div className={`${nameClass} font-semibold mb-1`} title={displayName}>{displayName}</div>
                       <div className={`${bubbleClass} chat-bubble`} style={{ wordBreak: 'break-word' }}>
                         {msg.text}
@@ -3072,49 +3159,39 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 );
               })}
             </div>
-                          <form
-                className={mobileShrink ? "flex flex-row items-center gap-1" : "flex flex-row items-center gap-2"}
-                style={{ 
-                  position: 'absolute', 
-                  left: mobileShrink ? '8px' : '24px', 
-                  right: mobileShrink ? '8px' : '24px', 
-                  bottom: mobileShrink ? '8px' : '24px' 
-                }}
-                onSubmit={e => {
-                  e.preventDefault();
-                  if (chatInput.trim() === "") return;
-                  const senderName = userName?.trim() ? userName : 'Bạn';
-                  setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput, userName: senderName }]);
-                  // Gửi chat qua socket cho đối thủ
-                  const socket = getSocket();
-                  socket.emit('chat', { roomId, userId, userName, message: chatInput });
-                  setChatInput("");
-                }}
-              >
+            <form
+              className={`mt-3 flex w-full items-center ${mobileShrink ? 'gap-1.5' : 'gap-3'}`}
+              onSubmit={e => {
+                e.preventDefault();
+                if (chatInput.trim() === "") return;
+                const senderName = userName?.trim() ? userName : 'Bạn';
+                setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput, userName: senderName }]);
+                const socket = getSocket();
+                socket.emit('chat', { roomId, userId, userName, message: chatInput });
+                setChatInput("");
+              }}
+            >
               <input
                 type="text"
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
-                className={mobileShrink ? "flex-1 px-1 py-1 rounded bg-gray-800 text-white text-[10px] border border-gray-600" : "flex-1 px-3 py-2 rounded-lg bg-gray-800 text-white text-base border border-gray-600"}
+                className={`flex-1 rounded-2xl border border-white/15 bg-white/5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 ${mobileShrink ? 'px-3 py-2 text-sm' : 'px-4 py-3 text-base'}`}
                 placeholder="Nhập tin nhắn..."
                 autoFocus
               />
               <button
                 type="submit"
-                className={`${mobileShrink ? "px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold flex items-center justify-center" : "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold flex items-center justify-center"} transition-all duration-200 hover:scale-105 active:scale-95`}
-                style={{ minWidth: mobileShrink ? 28 : 40, minHeight: mobileShrink ? 28 : 40, padding: 0 }}
+                className={`rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-semibold shadow-lg shadow-blue-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-300 ${mobileShrink ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-base'}`}
+                style={{ minWidth: mobileShrink ? 72 : 96 }}
                 aria-label="Gửi"
                 title="Gửi"
               >
-                {/* Icon máy bay giấy */}
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width={mobileShrink ? 16 : 22} height={mobileShrink ? 16 : 22} style={{ display: 'block' }}>
-                  <path d="M2 21L23 12L2 3L5 12L2 21Z" fill="white"/>
-                </svg>
+                Gửi
               </button>
             </form>
           </div>
         </div>
-      )}
+      </AuroraModalBackdrop>
         {/* Nút luật thi đấu */}
         <div className="flex items-center">
           <button
@@ -3140,45 +3217,41 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
       </div>
       {/* Modal luật thi đấu */}
-      {showRules && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent modal-backdrop"
-          style={{ backdropFilter: 'blur(2px)' }}
-        >
-          <div
-            className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[220px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[480px] border-4 border-blue-400 relative flex flex-col"} modal-content`}
-            style={mobileShrink ? { fontSize: 10, overflow: 'hidden' } : { overflow: 'hidden' }}
-          >
-            <button
-              onClick={() => setShowRules(false)}
-              className={`${mobileShrink ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"} transition-all duration-200 hover:scale-105 active:scale-95`}
-              style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
-              type="button"
-            >Đóng</button>
-            <div className={mobileShrink ? "text-[11px] font-bold text-blue-300 mb-1 text-center" : "text-xl font-bold text-blue-300 mb-3 text-center"}>
-              Luật thi đấu phòng
+      <AuroraModalBackdrop open={showRules}>
+        <div className={`relative w-full ${mobileShrink ? 'max-w-[300px]' : 'max-w-xl'}`}>
+          <div className="absolute inset-0 blur-3xl opacity-60 bg-indigo-500/20 pointer-events-none" />
+          <div className={`relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${mobileShrink ? 'p-3 min-h-[260px]' : 'p-6 min-h-[420px]'}`}>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <h3 className={`${mobileShrink ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Luật thi đấu phòng</h3>
+              </div>
+              <button
+                onClick={() => setShowRules(false)}
+                className={`rounded-full bg-red-500/80 text-white ${mobileShrink ? 'w-7 h-7 text-xs' : 'w-10 h-10 text-base'} font-bold transition hover:bg-red-500`}
+                type="button"
+                aria-label="Đóng luật thi đấu"
+              >✕</button>
             </div>
             <div
-              className={mobileShrink ? "text-[9px] text-white flex-1 overflow-y-auto pr-1" : "text-base text-white flex-1 overflow-y-auto pr-2"}
-              style={mobileShrink ? { maxHeight: 160 } : { maxHeight: 380 }}
+              className={`${mobileShrink ? 'text-[11px]' : 'text-sm'} text-white flex-1 overflow-y-auto pr-2 leading-relaxed`}
+              style={{ maxHeight: mobileShrink ? 180 : 360 }}
             >
-              {/* Thay nội dung này bằng luật thi đấu cụ thể sau */}
-              <ul className="list-disc pl-4">
+              <ul className="list-decimal pl-4 space-y-2 text-white/90">
                 <li>Mỗi người có 5 lượt giải, chủ phòng là người giải trước.</li>
-                <li>Trường hợp camera không hoạt động, vui lòng tắt bật lại camera.</li>
-                <li>Chỉ có thể giải khi lượt của bạn, nếu không phải lượt của bạn thì hệ thống tự động khóa thao tác (chú ý xem thông báo trạng thái).</li>
-                <li>Mỗi vòng là 1 scramble, nghĩa là có tổng cộng 5 scramble, mỗi vòng cả 2 người đều cùng tráo theo scramble đã cho.</li>
-                <li>Nhấn <b>Space</b> (đối với máy tính) để có 15 giây chuẩn bị, tiếp tục nhấn <b>Space</b> để bắt đầu giải và cuối cùng nhấn phím <b>Space</b> để kết thúc lượt giải.</li>
-                <li>Trên điện thoại, chạm 1 lần vào timer để chuẩn bị, nhấn giữ và thả timer để bắt đầu và chạm 1 lần vào timer để kết thúc lượt giải.</li>              
-                <li>DNF (Did Not Finish) nếu hết giờ chuẩn bị hoặc chọn DNF sau khi bạn dừng thời gian.</li>
-                <li>Ấn <b>Gửi</b> để xác nhận kết quả, <b>+2</b> nếu bị phạt, <b>DNF</b> nếu không hoàn thành, khi đó kết quả sẽ được cập nhật lên bảng kết quả.</li>
-                <li>Người có Ao5 tốt hơn sẽ thắng.</li>
-                <li><b>HÃY THI ĐẤU MỘT CÁCH CÔNG BẰNG VÀ TRUNG THỰC!</b></li>
+                <li>Cam lỗi? Tắt/bật lại camera và báo cho đối thủ trước khi tiếp tục.</li>
+                <li>Chỉ giải khi tới lượt; nếu không phải lượt của bạn, hệ thống sẽ khóa timer.</li>
+                <li>Mỗi scramble dùng chung cho cả hai người trong từng vòng, tổng cộng 5 vòng.</li>
+                <li>Máy tính: nhấn <b>Space</b> để chuẩn bị 15s, nhả Space để bắt đầu và nhấn lần nữa để kết thúc.</li>
+                <li>Điện thoại: chạm để chuẩn bị, nhấn giữ rồi thả để bắt đầu, chạm một lần để dừng.</li>
+                <li>Chọn <b>DNF</b> khi không hoàn thành, hoặc <b>+2</b> khi bị phạt theo luật Ao5.</li>
+                <li>Ấn <b>Gửi</b> để xác nhận kết quả; hệ thống cập nhật bảng ngay lập tức.</li>
+                <li>Thắng thua dựa trên Ao5; nếu cả hai đều DNF Ao5 sẽ tính hòa.</li>
+                <li><b>THI ĐẤU TRUNG THỰC VÀ TỒN TRỌNG ĐỐI THỦ!!!</b></li>
               </ul>
             </div>
-          </div>  
+          </div>
         </div>
-      )}
+      </AuroraModalBackdrop>
       {/* Khối trên cùng: Tên phòng và scramble */}
       <div className="w-full flex flex-col items-center justify-center mb-0.5">
         <div className="relative w-full flex items-center justify-center mb-1">

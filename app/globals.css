@@ -46,3 +46,54 @@ body {
   background: rgba(0,0,0,0.4); /* Điều chỉnh opacity tại đây */
   pointer-events: none;
 }
+
+@layer components {
+  .aurora-overlay {
+    background: rgba(2, 6, 23, 0.82);
+    backdrop-filter: blur(18px);
+  }
+
+  .aurora-overlay--enter {
+    animation: auroraOverlayIn 0.28s ease forwards;
+  }
+
+  .aurora-overlay--exit {
+    animation: auroraOverlayOut 0.2s ease forwards;
+    pointer-events: none;
+  }
+
+  .aurora-card-wrapper--enter {
+    animation: auroraCardIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .aurora-card-wrapper--exit {
+    animation: auroraCardOut 0.22s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
+    pointer-events: none;
+  }
+}
+
+@keyframes auroraOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes auroraOverlayOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes auroraCardIn {
+  0% { opacity: 0; transform: translateY(24px) scale(0.94); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes auroraCardOut {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(18px) scale(0.9); }
+}
+
+[data-no-motion="true"],
+[data-no-motion="true"] * {
+  animation: none !important;
+  transition: none !important;
+}
