@@ -105,7 +105,7 @@ export default function HomePage() {
           </video>
         </div>
         <div className="z-10 w-full max-w-md bg-black/40 rounded-2xl shadow-2xl p-8 flex flex-col items-center border border-gray-700">
-          <h1 className={loadingTitleClasses}>Rubik 1v1 Online</h1>
+          <h1 className={loadingTitleClasses}>Rubik App</h1>
           <span className="mb-6">
             <svg width={loadingLogoSize} height={loadingLogoSize} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="2" y="2" width="18" height="18" rx="3" fill="#F59E42" stroke="#222" strokeWidth="2"/>

@@ -1337,6 +1337,109 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
   ) : null;
 }
 // --- End CubeNetModal ---
+
+type RematchTone = "emerald" | "amber" | "rose";
+
+const REMATCH_TONE_MAP: Record<RematchTone, {
+  glow: string;
+  gradient: string;
+  iconBg: string;
+  chipBg: string;
+  chipText: string;
+  chipBorder: string;
+}> = {
+  emerald: {
+    glow: "bg-emerald-500/40",
+    gradient: "from-emerald-400/15 via-emerald-300/5 to-transparent",
+    iconBg: "from-emerald-500/30 via-emerald-400/20 to-emerald-500/10",
+    chipBg: "bg-emerald-500/10",
+    chipText: "text-emerald-100",
+    chipBorder: "border-emerald-300/40",
+  },
+  amber: {
+    glow: "bg-amber-400/40",
+    gradient: "from-amber-300/20 via-amber-200/5 to-transparent",
+    iconBg: "from-amber-400/30 via-amber-300/15 to-amber-500/10",
+    chipBg: "bg-amber-400/10",
+    chipText: "text-amber-100",
+    chipBorder: "border-amber-200/40",
+  },
+  rose: {
+    glow: "bg-rose-500/40",
+    gradient: "from-rose-400/20 via-rose-300/10 to-transparent",
+    iconBg: "from-rose-500/30 via-rose-400/15 to-rose-500/5",
+    chipBg: "bg-rose-500/10",
+    chipText: "text-rose-100",
+    chipBorder: "border-rose-300/40",
+  }
+};
+
+const RematchModalBackdrop = ({ children }: { children: React.ReactNode }) => (
+  <div className="fixed inset-0 z-[220] flex items-center justify-center">
+    <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md" />
+    <div className="relative z-10 flex w-full max-w-3xl items-center justify-center px-4">
+      {children}
+    </div>
+  </div>
+);
+
+interface RematchModalCardProps {
+  badge?: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  icon?: React.ReactNode;
+  tone?: RematchTone;
+  compact?: boolean;
+  children?: React.ReactNode;
+}
+
+const RematchModalCard: React.FC<RematchModalCardProps> = ({
+  badge,
+  title,
+  subtitle,
+  description,
+  icon,
+  tone = "emerald",
+  compact,
+  children
+}) => {
+  const palette = REMATCH_TONE_MAP[tone];
+  return (
+    <div className={`relative w-full ${compact ? "max-w-xs" : "max-w-md"}`}>
+      <div className={`absolute inset-0 blur-3xl opacity-80 pointer-events-none ${palette.glow}`} />
+      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-slate-900/85 backdrop-blur-xl shadow-[0_25px_80px_rgba(0,0,0,0.45)]">
+        <div className={`absolute inset-0 bg-gradient-to-br ${palette.gradient}`} />
+        <div className="relative z-10 flex flex-col gap-5 p-5 sm:p-8 text-white">
+          <div className="flex items-center gap-4">
+            <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${palette.iconBg}`}>
+              <span className={compact ? "text-2xl" : "text-3xl"}>{icon ?? "♻️"}</span>
+            </div>
+            <div className="flex-1">
+              {badge && (
+                <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${palette.chipBg} ${palette.chipText} ${palette.chipBorder}`}>
+                  {badge}
+                </span>
+              )}
+              <h3 className="mt-2 text-xl font-semibold leading-tight sm:text-2xl">{title}</h3>
+              {subtitle && <p className="text-sm text-slate-200/90 sm:text-base">{subtitle}</p>}
+            </div>
+          </div>
+          {description && (
+            <p className="text-sm leading-relaxed text-slate-200/90 sm:text-base">
+              {description}
+            </p>
+          )}
+          {children && (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {children}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
   // Xác định loại cube dựa vào roomMeta.event, dùng useMemo để luôn cập nhật đúng
   const cubeSize = React.useMemo(() => {
     if (roomMeta && typeof roomMeta.event === 'string') {
@@ -2771,40 +2874,120 @@ function formatStat(val: number|null, showDNF: boolean = false) {
 
           {/* Modal xác nhận tái đấu khi nhận được yêu cầu từ đối phương */}
       {rematchModal.show && rematchModal.from === 'opponent' && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(2px)' }}>
-          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[160px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[200px] border-4 border-green-400 flex flex-col items-center justify-center"} modal-content`}>
-            <div className="text-lg font-bold text-green-300 mb-4 text-center">Đối thủ muốn tái đấu. Bạn có đồng ý không?</div>
-            <div className="flex flex-row gap-4 mt-2">
-              <button onClick={() => respondRematch(true)} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Đồng ý</button>
-              <button onClick={() => respondRematch(false)} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Từ chối</button>
-            </div>
-          </div>
-        </div>
+        <RematchModalBackdrop>
+          <RematchModalCard
+            compact={mobileShrink}
+            tone="emerald"
+            badge="Tái đấu"
+            title="Thêm một trận nữa?"
+            subtitle={`${(opponentName || 'Đối thủ')} muốn bắt đầu Ao5 mới.`}
+            description="Chấp nhận để hệ thống cấp scramble mới, reset bảng điểm và mở khóa mọi thao tác cho cả hai người chơi."
+            icon={(
+              <svg
+                viewBox="0 0 48 48"
+                className="h-8 w-8 text-emerald-50"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M34 12c4.418 0 8 3.582 8 8 0 3.314-2.686 6-6 6h-4" />
+                <path d="M14 36c-4.418 0-8-3.582-8-8 0-3.314 2.686-6 6-6h4" />
+                <path d="M17 17h14v10H17z" />
+                <path d="M17 27h-4l-6 6" />
+                <path d="M31 21h4l6-6" />
+              </svg>
+            )}
+          >
+            <button
+              onClick={() => respondRematch(false)}
+              className="w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-base font-semibold text-slate-100 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+            >Từ chối</button>
+            <button
+              onClick={() => respondRematch(true)}
+              className="w-full rounded-2xl border border-emerald-400/60 bg-emerald-500/80 px-4 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 transition hover:-translate-y-0.5 hover:bg-emerald-400/90 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
+            >Đồng ý ngay</button>
+          </RematchModalCard>
+        </RematchModalBackdrop>
       )}
       {/* Modal đang chờ đối phương đồng ý tái đấu */}
       {rematchPending && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(1px)' }}>
-          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[220px] h-[120px] border-2 border-green-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[320px] max-w-[95vw] h-[140px] border-4 border-green-400 flex flex-col items-center justify-center"} modal-content`}>
-            <div className="text-base font-semibold text-green-200 text-center mb-4">Đang chờ đối phương xác nhận tái đấu...</div>
+        <RematchModalBackdrop>
+          <RematchModalCard
+            compact={mobileShrink}
+            tone="amber"
+            badge="Đang chờ"
+            title="Đợi phản hồi đối thủ"
+            subtitle="Bạn đã gửi lời mời tái đấu."
+            description="Chúng tôi đang ping đối thủ để xác nhận trận mới. Có thể mất vài giây nếu kết nối yếu."
+            icon={(
+              <svg
+                viewBox="0 0 48 48"
+                className="h-8 w-8 text-amber-100"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="24" cy="24" r="16" />
+                <path d="M24 12v12l8 4" />
+              </svg>
+            )}
+          >
+            <div className="w-full rounded-2xl border border-amber-200/30 bg-white/5 px-4 py-3 text-center text-sm font-medium text-amber-50/90">
+              <div className="mx-auto mb-1 flex w-full items-center justify-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-amber-200 animate-ping" />
+                <span className="h-2 w-2 rounded-full bg-amber-300 animate-ping" style={{ animationDelay: '150ms' }} />
+                <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" style={{ animationDelay: '300ms' }} />
+              </div>
+              Đang chờ {opponentName || 'đối thủ'} phản hồi...
+            </div>
             <button
               onClick={() => {
                 setRematchPending(false);
                 const socket = getSocket();
                 socket.emit('rematch-cancel', { roomId });
               }}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-bold mt-2 transition-all duration-200 hover:scale-105 active:scale-95"
-            >Hủy</button>
-          </div>
-        </div>
+              className="w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-base font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
+            >Hủy yêu cầu</button>
+          </RematchModalCard>
+        </RematchModalBackdrop>
       )}
 
       {/* Modal thông báo đối phương đã từ chối tái đấu */}
       {rematchDeclined && (
-        <div className="fixed inset-0 z-[201] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(1px)' }}>
-          <div className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[80vw] max-w-[200px] h-[80px] border-2 border-red-400 flex flex-col items-center justify-center" : "bg-gray-900 rounded-2xl p-6 w-[300px] max-w-[90vw] h-[100px] border-4 border-red-400 flex flex-col items-center justify-center"} modal-content`}>
-            <div className="text-base font-semibold text-red-300 text-center">Đối thủ đã từ chối tái đấu</div>
-          </div>
-        </div>
+        <RematchModalBackdrop>
+          <RematchModalCard
+            compact={mobileShrink}
+            tone="rose"
+            badge="Bị từ chối"
+            title="Đối thủ chưa sẵn sàng"
+            subtitle="Lời mời tái đấu đã bị từ chối."
+            description="Không sao đâu! Hãy trao đổi thêm với đối thủ hoặc gửi lại yêu cầu khi cả hai đã thống nhất."
+            icon={(
+              <svg
+                viewBox="0 0 48 48"
+                className="h-8 w-8 text-rose-100"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="24" cy="24" r="16" />
+                <path d="M30 18L18 30" />
+                <path d="M18 18l12 12" />
+              </svg>
+            )}
+          >
+            <button
+              onClick={() => setRematchDeclined(false)}
+              className="w-full rounded-2xl border border-rose-300/40 bg-rose-500/20 px-4 py-3 text-base font-semibold text-rose-50 transition hover:-translate-y-0.5 hover:bg-rose-500/30 focus:outline-none focus:ring-2 focus:ring-rose-300/50"
+            >Đã hiểu</button>
+          </RematchModalCard>
+        </RematchModalBackdrop>
       )}
         <div className="flex items-center relative">
           <button
