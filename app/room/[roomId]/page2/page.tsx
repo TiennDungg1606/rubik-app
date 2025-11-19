@@ -3955,7 +3955,6 @@ const clampPlayerIndex = (idx: number) => {
           <div className={`relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${mobileShrink ? 'p-3 min-h-[340px]' : 'p-6 min-h-[520px]'}`}>
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
-                <p className={`uppercase tracking-[0.35em] text-blue-200/80 ${mobileShrink ? 'text-[9px]' : 'text-xs'}`}>CHAT</p>
                 <h3 className={`${mobileShrink ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Chat phòng</h3>
               </div>
               <button
@@ -4046,7 +4045,6 @@ const clampPlayerIndex = (idx: number) => {
           <div className={`relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${mobileShrink ? 'p-3 min-h-[260px]' : 'p-6 min-h-[420px]'}`}>
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
-                <p className={`uppercase tracking-[0.35em] text-blue-200/80 ${mobileShrink ? 'text-[9px]' : 'text-xs'}`}>RULES</p>
                 <h3 className={`${mobileShrink ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Luật thi đấu phòng</h3>
               </div>
               <button
@@ -4077,72 +4075,96 @@ const clampPlayerIndex = (idx: number) => {
           </div>
         </div>
       </AuroraModalBackdrop>
-      {/* Modal tái đấu 2v2 */}
-      {rematchDialog.show && (
-        <div
-          className="fixed inset-0 z-[240] flex items-center justify-center bg-transparent modal-backdrop"
-          style={{ backdropFilter: 'blur(2px)' }}
-        >
-          <div
-            className={`${mobileShrink ? "bg-gray-900 rounded p-3 w-[92vw] max-w-[300px] border-2 border-green-400 flex flex-col gap-2" : "bg-gray-900 rounded-2xl p-6 w-[440px] max-w-[95vw] border-4 border-green-400 flex flex-col gap-4"} modal-content`}
-            style={mobileShrink ? { maxHeight: '85vh', overflowY: 'auto' } : { maxHeight: '80vh', overflowY: 'auto' }}
+      <AuroraModalBackdrop open={rematchDialog.show}>
+        <div className={`relative w-full ${mobileShrink ? 'max-w-[320px]' : 'max-w-2xl'}`}>
+          <AuroraModalCard
+            compact={mobileShrink}
+            tone="emerald"
+            badge="Tái đấu"
+            title="Tái đấu 2v2"
+            subtitle={rematchPrimaryMessage}
+            icon={(
+              <svg
+                viewBox="0 0 48 48"
+                className="h-8 w-8 text-emerald-50"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 30l8 8a4 4 0 0 0 5.66 0L24 31" />
+                <path d="M44 18l-8-8a4 4 0 0 0-5.66 0L24 17" />
+                <path d="M4 18l8-8a4 4 0 0 1 5.66 0L24 17" />
+                <path d="M44 30l-8 8a4 4 0 0 1-5.66 0L24 31" />
+                <path d="M14 24h20" />
+              </svg>
+            )}
           >
-            <div className={mobileShrink ? "text-base font-bold text-green-300 text-center" : "text-2xl font-bold text-green-300 text-center"}>
-              Tái đấu 2v2
-            </div>
-            <div className={mobileShrink ? "text-[11px] text-gray-200 text-center leading-snug" : "text-sm text-gray-200 text-center leading-relaxed"}>
-              {rematchPrimaryMessage}
-            </div>
-            <div className={mobileShrink ? "mt-2 flex flex-col gap-1" : "mt-4 flex flex-col gap-2"}>
-              {rematchDialog.participants.map(participant => {
-                const normalizedParticipantId = normalizeId(participant.userId);
-                const accepted = rematchAcceptedNormalized.includes(normalizedParticipantId);
-                const isMe = normalizedParticipantId === normalizedUserId;
-                const playerMatch = [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(player => normalizeId(player.userId) === normalizedParticipantId);
-                const nameFromParticipant = participant.userName?.trim();
-                const nameFromPlayer = playerMatch?.userName?.trim();
-                const displayName = isMe
-                  ? (userName?.trim() || nameFromParticipant || nameFromPlayer || 'Bạn')
-                  : (nameFromParticipant || nameFromPlayer || 'Người chơi');
-                return (
-                  <div
-                    key={`${participant.userId}-${participant.userName ?? ''}`}
-                    className={mobileShrink ? "flex items-center justify-between px-2 py-1 rounded bg-gray-800/70" : "flex items-center justify-between px-3 py-2 rounded-lg bg-gray-800/70"}
-                  >
-                    <span className={mobileShrink ? "text-[11px] font-semibold text-gray-100" : "text-sm font-semibold text-gray-100"}>
-                      {accepted ? '✅' : '⏳'} {displayName}{isMe ? ' (Bạn)' : ''}
-                    </span>
-                    <span
-                      className={mobileShrink ? "text-[10px] font-medium" : "text-xs font-medium"}
-                      style={{ color: accepted ? '#86efac' : '#facc15' }}
+            <div
+              className={`w-full rounded-[26px] border border-white/10 bg-white/5 ${mobileShrink ? 'p-2 space-y-2 max-h-[220px]' : 'p-4 space-y-3 max-h-[320px]'} overflow-y-auto`}
+            >
+              {rematchDialog.participants.length === 0 ? (
+                <div className={`text-center ${mobileShrink ? 'text-[11px]' : 'text-sm'} text-white/60`}>
+                  Chưa có thành viên nào trong danh sách tái đấu.
+                </div>
+              ) : (
+                rematchDialog.participants.map(participant => {
+                  const normalizedParticipantId = normalizeId(participant.userId);
+                  const accepted = rematchAcceptedNormalized.includes(normalizedParticipantId);
+                  const isMe = normalizedParticipantId === normalizedUserId;
+                  const playerMatch = [...(teamA?.players ?? []), ...(teamB?.players ?? [])].find(player => normalizeId(player.userId) === normalizedParticipantId);
+                  const nameFromParticipant = participant.userName?.trim();
+                  const nameFromPlayer = playerMatch?.userName?.trim();
+                  const displayName = isMe
+                    ? (userName?.trim() || nameFromParticipant || nameFromPlayer || 'Bạn')
+                    : (nameFromParticipant || nameFromPlayer || 'Người chơi');
+
+                  return (
+                    <div
+                      key={`${participant.userId}-${participant.userName ?? ''}`}
+                      className={`flex items-center justify-between gap-3 rounded-2xl border px-3 py-2 ${accepted ? 'border-emerald-300/40 bg-emerald-500/10' : 'border-white/10 bg-slate-900/40'}`}
                     >
-                      {accepted ? 'Đã đồng ý' : 'Đang chờ'}
-                    </span>
-                  </div>
-                );
-              })}
+                      <div className="flex flex-col">
+                        <span className={`${mobileShrink ? 'text-[11px]' : 'text-sm'} font-semibold text-white`}>
+                          {displayName}{isMe ? ' (Bạn)' : ''}
+                        </span>
+                        <span className={`${mobileShrink ? 'text-[10px]' : 'text-xs'} text-white/60`}>
+                          {accepted ? 'Đang sẵn sàng' : 'Đang chờ xác nhận'}
+                        </span>
+                      </div>
+                      <span
+                        className={`${mobileShrink ? 'text-xs' : 'text-sm'} font-semibold`}
+                        style={{ color: accepted ? '#86efac' : '#facc15' }}
+                      >
+                        {accepted ? '✅ Đồng ý' : '⏳ Chờ'}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
             </div>
-            <div className={mobileShrink ? "text-[11px] text-gray-300 text-center mt-2" : "text-sm text-gray-300 text-center mt-2"}>
+            <div className={`w-full rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-center font-semibold text-emerald-100 shadow-inner ${mobileShrink ? 'px-3 py-2 text-[11px]' : 'px-4 py-3 text-sm'}`}>
               {rematchProgressMessage}
             </div>
-            <div className={mobileShrink ? "flex flex-col gap-2 mt-2" : "flex flex-col gap-3 mt-4"}>
+            <div className={`w-full flex flex-col ${mobileShrink ? 'gap-2' : 'gap-3'}`}>
               {shouldShowRematchAcceptButton ? (
                 <button
                   onClick={handleRematch2v2Respond}
-                  className={mobileShrink ? "px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-[12px] rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95" : "px-4 py-3 bg-green-600 hover:bg-green-700 text-white text-base rounded-xl font-bold transition-all duration-200 hover:scale-105 active:scale-95"}
+                  className={`w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-300 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
                   type="button"
                 >
                   Đồng ý tái đấu
                 </button>
               ) : (
-                <div className={mobileShrink ? "text-[11px] text-green-300 text-center font-semibold" : "text-sm text-green-300 text-center font-semibold"}>
+                <div className={`w-full rounded-2xl border border-white/15 bg-white/5 text-center font-semibold text-green-200 ${mobileShrink ? 'px-3 py-2 text-[11px]' : 'px-4 py-3 text-sm'}`}>
                   {hasAcceptedRematch ? 'Đã ghi nhận đồng ý của bạn.' : 'Đang chờ tất cả thành viên xác nhận.'}
                 </div>
               )}
               {shouldShowRematchDeclineButton && (
                 <button
                   onClick={handleRematch2v2Decline}
-                  className={mobileShrink ? "px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-[12px] rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95" : "px-4 py-3 bg-red-600 hover:bg-red-700 text-white text-base rounded-xl font-bold transition-all duration-200 hover:scale-105 active:scale-95"}
+                  className={`w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
                   type="button"
                 >
                   Không đồng ý
@@ -4151,16 +4173,16 @@ const clampPlayerIndex = (idx: number) => {
               {shouldShowRematchCancelButton && (
                 <button
                   onClick={handleRematch2v2Cancel}
-                  className={mobileShrink ? "px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-[12px] rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95" : "px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white text-base rounded-xl font-bold transition-all duration-200 hover:scale-105 active:scale-95"}
+                  className={`w-full rounded-2xl border border-white/15 bg-white/5 font-semibold text-white/90 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
                   type="button"
                 >
                   Hủy yêu cầu
                 </button>
               )}
             </div>
-          </div>
+          </AuroraModalCard>
         </div>
-      )}
+      </AuroraModalBackdrop>
       </div>
       {/* Khối trên cùng: Tên phòng và scramble */}
       <div className="w-full flex flex-col items-center justify-center mb-0.5">
