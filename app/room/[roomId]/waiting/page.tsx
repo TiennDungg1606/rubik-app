@@ -9,6 +9,7 @@ declare global {
 }
 
 import { useState, useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { io } from 'socket.io-client';
 import dynamic from 'next/dynamic';
@@ -34,6 +35,74 @@ interface WaitingRoomState {
   displayName?: string; // Thêm displayName
   password?: string; // Thêm password
 }
+
+type ModalTransitionStage = "enter" | "exit" | "idle";
+const MODAL_TRANSITION_MS = 240;
+
+const useModalTransition = (open: boolean, duration = MODAL_TRANSITION_MS, disableAnimation = false) => {
+  const [isMounted, setIsMounted] = useState(open);
+  const [stage, setStage] = useState<ModalTransitionStage>(open ? "enter" : "idle");
+  const prevOpenRef = useRef(open);
+
+  useEffect(() => {
+    if (disableAnimation) {
+      setIsMounted(open);
+      setStage("idle");
+      prevOpenRef.current = open;
+      return;
+    }
+
+    let timeout: NodeJS.Timeout | null = null;
+
+    if (open) {
+      setIsMounted(true);
+      setStage("enter");
+      timeout = setTimeout(() => setStage("idle"), duration);
+    } else if (prevOpenRef.current) {
+      setStage("exit");
+      timeout = setTimeout(() => {
+        setIsMounted(false);
+        setStage("idle");
+      }, duration);
+    }
+
+    prevOpenRef.current = open;
+
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [open, duration, disableAnimation]);
+
+  return { isMounted, stage };
+};
+
+const AuroraModalBackdrop = ({ open, children, disableAnimation }: { open: boolean; children: ReactNode; disableAnimation?: boolean }) => {
+  const { isMounted, stage } = useModalTransition(open, MODAL_TRANSITION_MS, disableAnimation);
+  if (!isMounted) return null;
+
+  const overlayClass = [
+    "absolute inset-0 aurora-overlay",
+    disableAnimation ? "" : stage === "enter" ? "aurora-overlay--enter" : "",
+    disableAnimation ? "" : stage === "exit" ? "aurora-overlay--exit" : "",
+  ].join(" ").trim();
+  const cardWrapperClass = [
+    "relative z-10 flex w-full max-w-3xl items-center justify-center px-4",
+    disableAnimation ? "" : stage === "enter" ? "aurora-card-wrapper--enter" : "",
+    disableAnimation ? "" : stage === "exit" ? "aurora-card-wrapper--exit" : "",
+  ].join(" ").trim();
+
+  return (
+    <div
+      className="fixed inset-0 z-[220] flex items-center justify-center"
+      data-no-motion={disableAnimation ? "true" : undefined}
+    >
+      <div className={overlayClass} />
+      <div className={cardWrapperClass}>
+        {children}
+      </div>
+    </div>
+  );
+};
 
 export default function WaitingRoom() {
   const router = useRouter();
@@ -1114,75 +1183,70 @@ export default function WaitingRoom() {
       )}
 
       {/* Modal chat */}
-      {showChat && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent modal-backdrop"
-          style={{ backdropFilter: 'blur(2px)' }}
-        >
-          <div
-            className={`${isMobileLandscape ? "bg-gray-900 rounded pt-2 px-2 w-[90vw] max-w-[260px] h-[320px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl pt-6 px-6 w-[400px] max-w-[95vw] h-[520px] border-4 border-blue-400 relative flex flex-col"} modal-content`}
-            style={isMobileLandscape ? { fontSize: 10, overflow: 'hidden' } : { overflow: 'hidden' }}
-          >
-            <button
-              onClick={() => setShowChat(false)}
-              className={`${isMobileLandscape ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"} transition-all duration-200 hover:scale-105 active:scale-95`}
-              style={isMobileLandscape ? { minWidth: 0, minHeight: 0 } : {}}
-              type="button"
-            >Đóng</button>
-            <div className={isMobileLandscape ? "text-[11px] font-bold text-blue-300 mb-1 text-center" : "text-xl font-bold text-blue-300 mb-3 text-center"}>
-              Chat phòng
+      <AuroraModalBackdrop open={showChat} disableAnimation>
+        <div className={`relative w-full ${isMobileLandscape ? 'max-w-[320px]' : 'max-w-2xl'}`} data-no-motion="true">
+          <div className="absolute inset-0 blur-3xl opacity-70 bg-blue-500/20 pointer-events-none" />
+          <div className={`relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${isMobileLandscape ? 'p-3 min-h-[340px]' : 'p-6 min-h-[520px]'}`}>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className={`uppercase tracking-[0.35em] text-blue-200/80 ${isMobileLandscape ? 'text-[9px]' : 'text-xs'}`}>CHAT</p>
+                <h3 className={`${isMobileLandscape ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Chat phòng</h3>
+              </div>
+              <button
+                onClick={() => setShowChat(false)}
+                className={`rounded-full bg-red-500/80 text-white ${isMobileLandscape ? 'w-7 h-7 text-xs' : 'w-10 h-10 text-base'} font-bold transition hover:bg-red-500`}
+                type="button"
+                aria-label="Đóng chat"
+              >✕</button>
             </div>
             <div
               ref={chatListRef}
-              className={isMobileLandscape ? "flex-1 overflow-y-auto" : "flex-1 overflow-y-auto"}
-              style={isMobileLandscape ? { maxHeight: 230 } : { maxHeight: 350 }}
+              className={`flex-1 overflow-y-auto pr-1 ${isMobileLandscape ? 'space-y-2' : 'space-y-3'}`}
+              style={{ maxHeight: isMobileLandscape ? 240 : 360 }}
             >
               {chatMessages.length === 0 && (
-                <div className="text-gray-400 text-center mt-4">Chưa có tin nhắn nào</div>
+                <div className="text-gray-400 text-center mt-4 text-sm">Chưa có tin nhắn nào</div>
               )}
-              {chatMessages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`${
-                    msg.from === 'me'
-                      ? (isMobileLandscape ? "flex justify-end mb-1" : "flex justify-end mb-2")
-                      : (isMobileLandscape ? "flex justify-start mb-1" : "flex justify-start mb-2")
-                  } chat-message ${idx === chatMessages.length - 1 ? 'new-message' : ''}`}
-                >
-                  <div className="flex flex-col max-w-[70%]">
-                    <div className={`${isMobileLandscape ? "text-[8px]" : "text-xs"} text-gray-400 mb-1 ${
-                      msg.from === 'me' ? 'text-right' : 'text-left'
-                    }`}>
-                      {msg.userName || (msg.from === 'me' ? 'Bạn' : 'Người khác')}
-                    </div>
-                    <div
-                      className={`${
-                        msg.from === 'me'
-                          ? (isMobileLandscape ? "bg-blue-500 text-white px-2 py-1 rounded-lg text-[10px]" : "bg-blue-500 text-white px-3 py-2 rounded-lg text-base")
-                          : (isMobileLandscape ? "bg-gray-700 text-white px-2 py-1 rounded-lg text-[10px]" : "bg-gray-700 text-white px-3 py-2 rounded-lg text-base")
-                      } chat-bubble`}
-                      style={{ wordBreak: 'break-word' }}
-                    >
-                      {msg.text}
+              {chatMessages.map((msg, idx) => {
+                const displayName = msg.userName?.trim()
+                  ? msg.userName.trim()
+                  : (msg.from === 'me'
+                      ? (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Bạn')
+                      : 'Người chơi khác');
+                const nameClass = [
+                  isMobileLandscape ? 'text-[10px]' : 'text-xs',
+                  msg.from === 'me' ? 'text-blue-100 text-right' : 'text-gray-300 text-left',
+                ].join(' ');
+                const bubbleClass = msg.from === 'me'
+                  ? (isMobileLandscape ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-2.5 py-1.5 rounded-2xl text-[11px]' : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-2 rounded-2xl text-base')
+                  : (isMobileLandscape ? 'bg-slate-800 text-white px-2.5 py-1.5 rounded-2xl text-[11px]' : 'bg-slate-800 text-white px-4 py-2 rounded-2xl text-base');
+
+                return (
+                  <div
+                    key={idx}
+                    className={`${
+                      msg.from === 'me'
+                        ? (isMobileLandscape ? 'flex justify-end' : 'flex justify-end')
+                        : (isMobileLandscape ? 'flex justify-start' : 'flex justify-start')
+                    } chat-message ${idx === chatMessages.length - 1 ? 'new-message' : ''}`}
+                  >
+                    <div className="flex flex-col max-w-[75%]" style={{ wordBreak: 'break-word' }}>
+                      <div className={`${nameClass} font-semibold mb-1`} title={displayName}>{displayName}</div>
+                      <div className={`${bubbleClass} chat-bubble`} style={{ wordBreak: 'break-word' }}>
+                        {msg.text}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <form
-              className={isMobileLandscape ? "flex flex-row items-center gap-1" : "flex flex-row items-center gap-2"}
-              style={{ 
-                position: 'absolute', 
-                left: isMobileLandscape ? '8px' : '24px', 
-                right: isMobileLandscape ? '8px' : '24px', 
-                bottom: isMobileLandscape ? '8px' : '24px' 
-              }}
+              className={`mt-3 flex w-full items-center ${isMobileLandscape ? 'gap-1.5' : 'gap-3'}`}
               onSubmit={e => {
                 e.preventDefault();
                 if (chatInput.trim() === "") return;
-                const userName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Bạn';
-                setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput, userName }]);
-                // Gửi chat qua socket
+                const fallbackName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Bạn';
+                setChatMessages(msgs => [...msgs, { from: 'me', text: chatInput, userName: fallbackName }]);
                 if (socket && user?._id && user?.firstName && user?.lastName) {
                   const userName = `${user.firstName} ${user.lastName}`;
                   socket.emit('chat', { roomId, userId: user._id, userName, message: chatInput });
@@ -1194,26 +1258,23 @@ export default function WaitingRoom() {
                 type="text"
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
-                className={isMobileLandscape ? "flex-1 px-1 py-1 rounded bg-gray-800 text-white text-[10px] border border-gray-600" : "flex-1 px-3 py-2 rounded-lg bg-gray-800 text-white text-base border border-gray-600"}
+                className={`flex-1 rounded-2xl border border-white/15 bg-white/5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 ${isMobileLandscape ? 'px-3 py-2 text-sm' : 'px-4 py-3 text-base'}`}
                 placeholder="Nhập tin nhắn..."
                 autoFocus
               />
               <button
                 type="submit"
-                className={`${isMobileLandscape ? "px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold flex items-center justify-center" : "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold flex items-center justify-center"} transition-all duration-200 hover:scale-105 active:scale-95`}
-                style={{ minWidth: isMobileLandscape ? 28 : 40, minHeight: isMobileLandscape ? 28 : 40, padding: 0 }}
+                className={`rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-semibold shadow-lg shadow-blue-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-300 ${isMobileLandscape ? 'px-3 py-2 text-xs' : 'px-4 py-3 text-base'}`}
+                style={{ minWidth: isMobileLandscape ? 72 : 96 }}
                 aria-label="Gửi"
                 title="Gửi"
               >
-                {/* Icon máy bay giấy */}
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width={isMobileLandscape ? 16 : 22} height={isMobileLandscape ? 16 : 22} style={{ display: 'block' }}>
-                  <path d="M2 21L23 12L2 3L5 12L2 21Z" fill="white"/>
-                </svg>
+                Gửi
               </button>
             </form>
           </div>
         </div>
-      )}
+      </AuroraModalBackdrop>
 
       {isRoomFullModalVisible && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80">
@@ -1249,13 +1310,13 @@ export default function WaitingRoom() {
         }
         
         /* Hiệu ứng đặc biệt cho tin nhắn của mình */
-        .chat-message:has(.bg-blue-500) .chat-bubble {
-          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        .chat-message:has(.bg-gradient-to-r) .chat-bubble {
+          box-shadow: 0 2px 10px rgba(59, 130, 246, 0.35);
         }
         
         /* Hiệu ứng đặc biệt cho tin nhắn của đối phương */
-        .chat-message:has(.bg-gray-700) .chat-bubble {
-          box-shadow: 0 2px 8px rgba(55, 65, 81, 0.3);
+        .chat-message:has(.bg-slate-800) .chat-bubble {
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
         }
         
         /* Tùy chỉnh thanh cuộn cho chat */
