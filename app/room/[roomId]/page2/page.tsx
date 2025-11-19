@@ -4161,69 +4161,7 @@ const clampPlayerIndex = (idx: number) => {
           </div>
         </div>
       )}
-        {/* Nút luật thi đấu */}
-        <div className="flex items-center">
-          <button
-            onClick={() => {
-              if (isSolveLocked) return;
-              setShowRules(true);
-            }}
-            disabled={isSolveLocked}
-            className={
-              `${mobileShrink
-                ? "px-1 py-0.5 bg-blue-700 hover:bg-blue-800 text-[18px] rounded-full font-bold shadow-lg min-w-0 min-h-0 flex items-center justify-center"
-                : "px-4 py-2 bg-blue-700 hover:bg-blue-800 text-[28px] text-white rounded-full font-bold shadow-lg flex items-center justify-center"
-              } transition-transform duration-200 hover:scale-110 active:scale-95 function-button ${isSolveLocked ? 'opacity-60 cursor-not-allowed' : ''}`
-            }
-            style={mobileShrink ? { fontSize: 18, minWidth: 0, minHeight: 0, padding: 1, width: 32, height: 32, lineHeight: '32px' } : { fontSize: 28, width: 48, height: 48, lineHeight: '48px' }}
-            type="button"
-            aria-label="Luật thi đấu"
-            title="Luật thi đấu"
-          >
-            <span role="img" aria-label="Luật thi đấu">📜</span>
-          </button>
-        </div>
       </div>
-      {/* Modal luật thi đấu */}
-      {showRules && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent modal-backdrop"
-          style={{ backdropFilter: 'blur(2px)' }}
-        >
-          <div
-            className={`${mobileShrink ? "bg-gray-900 rounded p-2 w-[90vw] max-w-[260px] h-[220px] border-2 border-blue-400 relative flex flex-col" : "bg-gray-900 rounded-2xl p-6 w-[400px] max-w-[95vw] h-[480px] border-4 border-blue-400 relative flex flex-col"} modal-content`}
-            style={mobileShrink ? { fontSize: 10, overflow: 'hidden' } : { overflow: 'hidden' }}
-          >
-            <button
-              onClick={() => setShowRules(false)}
-              className={`${mobileShrink ? "absolute top-1 right-1 px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white text-[10px] rounded font-bold" : "absolute top-3 right-3 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-base rounded-lg font-bold"} transition-all duration-200 hover:scale-105 active:scale-95`}
-              style={mobileShrink ? { minWidth: 0, minHeight: 0 } : {}}
-              type="button"
-            >Đóng</button>
-            <div className={mobileShrink ? "text-[11px] font-bold text-blue-300 mb-1 text-center" : "text-xl font-bold text-blue-300 mb-3 text-center"}>
-              Luật thi đấu phòng
-            </div>
-            <div
-              className={mobileShrink ? "text-[9px] text-white flex-1 overflow-y-auto pr-1" : "text-base text-white flex-1 overflow-y-auto pr-2"}
-              style={mobileShrink ? { maxHeight: 160 } : { maxHeight: 380 }}
-            >
-              {/* Thay nội dung này bằng luật thi đấu cụ thể sau */}
-              <ul className="list-disc pl-4">
-                <li>Mỗi người có 5 lượt giải, chủ phòng là người giải trước.</li>
-                <li>Trường hợp camera không hoạt động, vui lòng tắt bật lại camera.</li>
-                <li>Chỉ có thể giải khi lượt của bạn, nếu không phải lượt của bạn thì hệ thống tự động khóa thao tác (chú ý xem thông báo trạng thái).</li>
-                <li>Mỗi vòng là 1 scramble, nghĩa là có tổng cộng 5 scramble, mỗi vòng cả 2 người đều cùng tráo theo scramble đã cho.</li>
-                <li>Nhấn <b>Space</b> (đối với máy tính) để có 15 giây chuẩn bị, tiếp tục nhấn <b>Space</b> để bắt đầu giải và cuối cùng nhấn phím <b>Space</b> để kết thúc lượt giải.</li>
-                <li>Trên điện thoại, chạm 1 lần vào timer để chuẩn bị, nhấn giữ và thả timer để bắt đầu và chạm 1 lần vào timer để kết thúc lượt giải.</li>              
-                <li>DNF (Did Not Finish) nếu hết giờ chuẩn bị hoặc chọn DNF sau khi bạn dừng thời gian.</li>
-                <li>Ấn <b>Gửi</b> để xác nhận kết quả, <b>+2</b> nếu bị phạt, <b>DNF</b> nếu không hoàn thành, khi đó kết quả sẽ được cập nhật lên bảng kết quả.</li>
-                <li>Người có Ao5 tốt hơn sẽ thắng.</li>
-                <li><b>HÃY THI ĐẤU MỘT CÁCH CÔNG BẰNG VÀ TRUNG THỰC!</b></li>
-              </ul>
-            </div>
-          </div>  
-        </div>
-      )}
       {/* Khối trên cùng: Tên phòng và scramble */}
       <div className="w-full flex flex-col items-center justify-center mb-0.5">
         <div className="relative w-full flex items-center justify-center mb-1">

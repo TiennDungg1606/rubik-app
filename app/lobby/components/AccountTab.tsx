@@ -54,8 +54,10 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
 
   // State cho form đổi họ tên
   const [showNameForm, setShowNameForm] = useState(false);
-  const [firstNameInput, setFirstNameInput] = useState(user?.firstName || "");
-  const [lastNameInput, setLastNameInput] = useState(user?.lastName || "");
+  const NAME_MAX_LENGTH = 7;
+  const clampName = (value?: string | null) => (value || "").slice(0, NAME_MAX_LENGTH);
+  const [firstNameInput, setFirstNameInput] = useState(clampName(user?.firstName));
+  const [lastNameInput, setLastNameInput] = useState(clampName(user?.lastName));
   const [nameLoading, setNameLoading] = useState(false);
   const [nameError, setNameError] = useState("");
   const [nameSuccess, setNameSuccess] = useState("");
@@ -63,8 +65,8 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
   // Đồng bộ input khi prop user thay đổi
   useEffect(() => {
     if (user) {
-      setFirstNameInput(user.firstName || "");
-      setLastNameInput(user.lastName || "");
+      setFirstNameInput(clampName(user.firstName));
+      setLastNameInput(clampName(user.lastName));
     }
   }, [user]);
 
@@ -131,11 +133,23 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
     setNameLoading(true);
     setNameError("");
     setNameSuccess("");
+    const trimmedFirst = firstNameInput.trim();
+    const trimmedLast = lastNameInput.trim();
+    if (!trimmedFirst || !trimmedLast) {
+      setNameError("Vui lòng nhập đủ họ và tên");
+      setNameLoading(false);
+      return;
+    }
+    if (trimmedFirst.length > NAME_MAX_LENGTH || trimmedLast.length > NAME_MAX_LENGTH) {
+      setNameError(`Họ và tên không được vượt quá ${NAME_MAX_LENGTH} ký tự`);
+      setNameLoading(false);
+      return;
+    }
     try {
       const res = await fetch("/api/user/change-name", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName: firstNameInput, lastName: lastNameInput }),
+        body: JSON.stringify({ firstName: trimmedFirst, lastName: trimmedLast }),
       });
       if (!res.ok) throw new Error("Đổi họ tên thất bại");
       setNameSuccess("Đổi họ tên thành công!");
@@ -435,7 +449,8 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
                       className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="Nhập họ"
                       value={firstNameInput}
-                      onChange={(e) => setFirstNameInput(e.target.value)}
+                      maxLength={NAME_MAX_LENGTH}
+                      onChange={(e) => setFirstNameInput(e.target.value.slice(0, NAME_MAX_LENGTH))}
                       required
                     />
                   </div>
@@ -447,7 +462,8 @@ export default function AccountTab({ user, loading, onUserUpdated }: AccountTabP
                       className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="Nhập tên"
                       value={lastNameInput}
-                      onChange={(e) => setLastNameInput(e.target.value)}
+                      maxLength={NAME_MAX_LENGTH}
+                      onChange={(e) => setLastNameInput(e.target.value.slice(0, NAME_MAX_LENGTH))}
                       required
                     />
                   </div>
