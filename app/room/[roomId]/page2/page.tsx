@@ -3659,7 +3659,7 @@ const clampPlayerIndex = (idx: number) => {
     if (spaceHeld && !running) return '#facc15';
     return '#ffffff';
   })();
-  const rematchActionSlotClass = mobileShrink ? 'flex-1 min-w-[120px]' : 'flex-1 min-w-[180px]';
+  const rematchActionSlotClass = mobileShrink ? 'min-w-[140px]' : 'min-w-[180px]';
   const normalizedActiveRemoteUserId = normalizeId(activeRemoteUserId);
   const getRemoteTimerColor = (targetId?: string | null) => {
     const normalizedTargetId = targetId ? normalizeId(targetId) : "";
@@ -4145,11 +4145,13 @@ const clampPlayerIndex = (idx: number) => {
                 })
               )}
             </div>
-            <div className={`w-full rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-center font-semibold text-emerald-100 shadow-inner ${mobileShrink ? 'px-3 py-2 text-[11px]' : 'px-4 py-3 text-sm'}`}>
-              {rematchProgressMessage}
-            </div>
-            <div className={`w-full flex flex-wrap justify-center ${mobileShrink ? 'gap-2' : 'gap-3'}`}>
-              <div className={`${rematchActionSlotClass} flex ${mobileShrink ? 'justify-center' : 'justify-start'}`}>
+            <div className={`w-full flex ${mobileShrink ? 'flex-nowrap overflow-x-auto gap-2' : 'gap-3'} items-stretch`}>
+              <div className={`${rematchActionSlotClass} flex-shrink-0 flex`}>
+                <div className={`w-full rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-center font-semibold text-emerald-100 shadow-inner ${mobileShrink ? 'px-3 py-2 text-[11px]' : 'px-4 py-3 text-sm'}`}>
+                  {rematchProgressMessage}
+                </div>
+              </div>
+              <div className={`${rematchActionSlotClass} flex-shrink-0 flex`}>
                 {shouldShowRematchAcceptButton ? (
                   <button
                     onClick={handleRematch2v2Respond}
@@ -4165,7 +4167,7 @@ const clampPlayerIndex = (idx: number) => {
                 )}
               </div>
               {shouldShowRematchDeclineButton && (
-                <div className={`${rematchActionSlotClass} flex ${mobileShrink ? 'justify-center' : 'justify-start'}`}>
+                <div className={`${rematchActionSlotClass} flex-shrink-0 flex`}>
                   <button
                     onClick={handleRematch2v2Decline}
                     className={`w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
@@ -4176,7 +4178,7 @@ const clampPlayerIndex = (idx: number) => {
                 </div>
               )}
               {shouldShowRematchCancelButton && (
-                <div className={`${rematchActionSlotClass} flex ${mobileShrink ? 'justify-center' : 'justify-start'}`}>
+                <div className={`${rematchActionSlotClass} flex-shrink-0 flex`}>
                   <button
                     onClick={handleRematch2v2Cancel}
                     className={`w-full rounded-2xl border border-white/15 bg-white/5 font-semibold text-white/90 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
