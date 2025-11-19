@@ -66,16 +66,26 @@ export default function AuthForm({ onLogin }) {
     let recaptchaToken = "";
     if (tab === "register") {
       const hasNumber = /\d/;
-      if (!form.firstName.trim() || hasNumber.test(form.firstName)) {
+      const trimmedFirst = form.firstName.trim();
+      const trimmedLast = form.lastName.trim();
+      if (!trimmedFirst || hasNumber.test(trimmedFirst)) {
         setError("Họ không được chứa ký tự số");
         return;
       }
-      if (!form.lastName.trim() || hasNumber.test(form.lastName)) {
-        setError("First name must not contain numbers");
+      if (trimmedFirst.length > 7) {
+        setError("Họ không được vượt quá 7 ký tự");
+        return;
+      }
+      if (!trimmedLast || hasNumber.test(trimmedLast)) {
+        setError("Tên không được chứa ký tự số");
+        return;
+      }
+      if (trimmedLast.length > 7) {
+        setError("Tên không được vượt quá 7 ký tự");
         return;
       }
       if (!form.password || form.password.length < 8) {
-        setError("Password must be at least 8 characters");
+        setError("Mật khẩu phải có ít nhất 8 ký tự");
         return;
       }
       if (form.password !== confirmPassword) {
@@ -204,11 +214,11 @@ export default function AuthForm({ onLogin }) {
             <>
               <div className="mb-4">
                 <label className={`block mb-1 text-gray-700 font-semibold ${effectiveMobileShrink ? "text-xs" : ""}`}>First name</label>
-                <input name="firstName" placeholder="First name" required value={form.firstName} onChange={handleChange} className={`w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 ${effectiveMobileShrink ? "px-2.5 py-1.5 text-sm" : "px-3 py-2"}`} />
+                <input name="firstName" placeholder="First name" required maxLength={7} value={form.firstName} onChange={handleChange} className={`w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 ${effectiveMobileShrink ? "px-2.5 py-1.5 text-sm" : "px-3 py-2"}`} />
               </div>
               <div className="mb-4">
                 <label className={`block mb-1 text-gray-700 font-semibold ${effectiveMobileShrink ? "text-xs" : ""}`}>Last name</label>
-                <input name="lastName" placeholder="Last name" required value={form.lastName} onChange={handleChange} className={`w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 ${effectiveMobileShrink ? "px-2.5 py-1.5 text-sm" : "px-3 py-2"}`} />
+                <input name="lastName" placeholder="Last name" required maxLength={7} value={form.lastName} onChange={handleChange} className={`w-full border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 ${effectiveMobileShrink ? "px-2.5 py-1.5 text-sm" : "px-3 py-2"}`} />
               </div>
               <div className="mb-4">
                 <label className={`block mb-1 text-gray-700 font-semibold ${effectiveMobileShrink ? "text-xs" : ""}`}>Birthday</label>
