@@ -3659,6 +3659,7 @@ const clampPlayerIndex = (idx: number) => {
     if (spaceHeld && !running) return '#facc15';
     return '#ffffff';
   })();
+  const rematchActionSlotClass = mobileShrink ? 'flex-1 min-w-[120px]' : 'flex-1 min-w-[180px]';
   const normalizedActiveRemoteUserId = normalizeId(activeRemoteUserId);
   const getRemoteTimerColor = (targetId?: string | null) => {
     const normalizedTargetId = targetId ? normalizeId(targetId) : "";
@@ -4147,37 +4148,43 @@ const clampPlayerIndex = (idx: number) => {
             <div className={`w-full rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-center font-semibold text-emerald-100 shadow-inner ${mobileShrink ? 'px-3 py-2 text-[11px]' : 'px-4 py-3 text-sm'}`}>
               {rematchProgressMessage}
             </div>
-            <div className={`w-full flex flex-col ${mobileShrink ? 'gap-2' : 'gap-3'}`}>
-              {shouldShowRematchAcceptButton ? (
-                <button
-                  onClick={handleRematch2v2Respond}
-                  className={`w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-300 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
-                  type="button"
-                >
-                  Đồng ý tái đấu
-                </button>
-              ) : (
-                <div className={`w-full rounded-2xl border border-white/15 bg-white/5 text-center font-semibold text-green-200 ${mobileShrink ? 'px-3 py-2 text-[11px]' : 'px-4 py-3 text-sm'}`}>
-                  {hasAcceptedRematch ? 'Đã ghi nhận đồng ý của bạn.' : 'Đang chờ tất cả thành viên xác nhận.'}
+            <div className={`w-full flex flex-wrap justify-center ${mobileShrink ? 'gap-2' : 'gap-3'}`}>
+              <div className={`${rematchActionSlotClass} flex ${mobileShrink ? 'justify-center' : 'justify-start'}`}>
+                {shouldShowRematchAcceptButton ? (
+                  <button
+                    onClick={handleRematch2v2Respond}
+                    className={`w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-300 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
+                    type="button"
+                  >
+                    Đồng ý tái đấu
+                  </button>
+                ) : (
+                  <div className={`w-full rounded-2xl border border-white/15 bg-white/5 text-center font-semibold text-green-200 ${mobileShrink ? 'px-3 py-2 text-[11px]' : 'px-4 py-3 text-sm'}`}>
+                    {hasAcceptedRematch ? 'Đã ghi nhận đồng ý của bạn.' : 'Đang chờ tất cả thành viên xác nhận.'}
+                  </div>
+                )}
+              </div>
+              {shouldShowRematchDeclineButton && (
+                <div className={`${rematchActionSlotClass} flex ${mobileShrink ? 'justify-center' : 'justify-start'}`}>
+                  <button
+                    onClick={handleRematch2v2Decline}
+                    className={`w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
+                    type="button"
+                  >
+                    Không đồng ý
+                  </button>
                 </div>
               )}
-              {shouldShowRematchDeclineButton && (
-                <button
-                  onClick={handleRematch2v2Decline}
-                  className={`w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
-                  type="button"
-                >
-                  Không đồng ý
-                </button>
-              )}
               {shouldShowRematchCancelButton && (
-                <button
-                  onClick={handleRematch2v2Cancel}
-                  className={`w-full rounded-2xl border border-white/15 bg-white/5 font-semibold text-white/90 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
-                  type="button"
-                >
-                  Hủy yêu cầu
-                </button>
+                <div className={`${rematchActionSlotClass} flex ${mobileShrink ? 'justify-center' : 'justify-start'}`}>
+                  <button
+                    onClick={handleRematch2v2Cancel}
+                    className={`w-full rounded-2xl border border-white/15 bg-white/5 font-semibold text-white/90 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 ${mobileShrink ? 'px-3 py-2 text-[12px]' : 'px-4 py-3 text-base'}`}
+                    type="button"
+                  >
+                    Hủy yêu cầu
+                  </button>
+                </div>
               )}
             </div>
           </AuroraModalCard>
