@@ -1217,7 +1217,7 @@ export default function WaitingRoom() {
 
       {/* Modal chat */}
       <AuroraModalBackdrop open={chatModalVisible}>
-        <div className={`relative w-full ${isMobileLandscape ? 'max-w-[320px]' : 'max-w-2xl'}`}>
+        <div className={`relative w-full ${isMobileLandscape ? 'max-w-[500px]' : 'max-w-2xl'}`}>
           <div className="absolute inset-0 blur-3xl opacity-70 bg-blue-500/20 pointer-events-none" />
           <div
             data-chat-modal-state={chatModalPhase}

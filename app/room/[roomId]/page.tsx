@@ -1264,15 +1264,57 @@ interface CubeNetModalProps {
   open: boolean;
   onClose: () => void;
   size: number | string; // 2, 3, 4, hoặc 'pyraminx'
+  mobileShrink?: boolean;
 }
 
 
-function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
+function CubeNetModal({ scramble, open, onClose, size, mobileShrink }: CubeNetModalProps) {
   const [cubeState, setCubeState] = useState<CubeState>(() => applyScrambleToCubeState(scramble || '', size));
+  const [isCompactNet, setIsCompactNet] = useState(false);
+
   useEffect(() => {
     setCubeState(applyScrambleToCubeState(scramble || '', size));
   }, [scramble, size]);
-  const faceSize = 70;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const computeIsCompact = () => {
+      const visualWidth = window.visualViewport?.width ?? window.innerWidth;
+      const docWidth = document.documentElement?.clientWidth ?? visualWidth;
+      const screenWidth = window.screen?.width ?? visualWidth;
+      const effectiveWidth = Math.min(visualWidth, docWidth, screenWidth);
+      setIsCompactNet(effectiveWidth < 768);
+    };
+
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const handleMediaChange = (event: MediaQueryListEvent) => {
+      setIsCompactNet(event.matches);
+    };
+
+    computeIsCompact();
+    window.addEventListener('resize', computeIsCompact);
+    window.addEventListener('orientationchange', computeIsCompact);
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleMediaChange);
+    } else {
+      mediaQuery.addListener(handleMediaChange);
+    }
+
+    return () => {
+      window.removeEventListener('resize', computeIsCompact);
+      window.removeEventListener('orientationchange', computeIsCompact);
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleMediaChange);
+      } else {
+        mediaQuery.removeListener(handleMediaChange);
+      }
+    };
+  }, []);
+
+  const compactNet = mobileShrink ? true : isCompactNet;
+  const faceSize = compactNet ? 44 : 72;
   // layoutGrid cho 2x2 và 3x3 giống nhau về vị trí, chỉ khác số sticker mỗi mặt
   const layoutGrid: (Face | '')[][] = [
     ['', 'U', '', ''],
@@ -1312,62 +1354,110 @@ function CubeNetModal({ scramble, open, onClose, size }: CubeNetModalProps) {
       );
     }
   }
-  return open ? (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-transparent modal-backdrop" style={{ backdropFilter: 'blur(2px)' }}>
-      <div className="bg-pink-100 rounded-xl p-4 shadow-lg relative modal-content" style={{ minWidth: 320, minHeight: 320 }}>
-        <button onClick={onClose} className="absolute top-2 right-2 px-2 py-1 bg-red-500 hover:bg-red-700 text-white rounded font-bold transition-all duration-200 hover:scale-105 active:scale-95">Đóng</button>
-        <div className="mb-2 text-center font-bold text-lg text-gray-700"></div>
-        <div id="net-view" style={{ 
-          display: size === 'pyraminx' ? 'flex' : 'grid', 
-          flexDirection: size === 'pyraminx' ? 'column' : 'row',
-          alignItems: size === 'pyraminx' ? 'center' : 'stretch',
-          justifyContent: size === 'pyraminx' ? 'center' : 'stretch',
-          gridTemplateColumns: size === 'pyraminx' ? 'none' : `repeat(4, ${faceSize}px)`, 
-          gridTemplateRows: size === 'pyraminx' ? 'none' : `repeat(3, ${faceSize}px)`, 
-          gap: size === 'pyraminx' ? 0 : 2, 
-          background: 'none' 
-        }}>
-          {size === 'pyraminx' ? (
-            // Pyraminx: hiển thị 4 tam giác với cấu trúc 1-3-5
-            <div className="flex flex-col items-center gap-1">
-              {/* Hàng trên: 2 tam giác hướng xuống + 1 tam giác hướng lên */}
-              <div className="flex items-center gap-1">
-                {/* Tam giác đỏ bên trái (mặt L) - dịch sang phải */}
-                <div style={{ marginRight: '-35px' }}>
-                  <PyraminxTriangleLeft faceSize={80} faceArray={cubeState.L || []} />
-                </div>
-                {/* Tam giác xanh lá giữa (mặt F) */}
-                <PyraminxTriangle faceSize={80} faceArray={cubeState.F || []} />
-                {/* Tam giác xanh biển bên phải (mặt R) - dịch sang trái */}
-                <div style={{ marginLeft: '-35px' }}>
-                  <PyraminxTriangleRight faceSize={80} faceArray={cubeState.R || []} />
+  if (!open) return null;
+
+  const scrambleText = scramble || 'Chưa có scramble.';
+  const tone: AuroraTone = size === 'pyraminx' ? 'amber' : 'emerald';
+
+  return (
+    <AuroraModalBackdrop open={open}>
+      <div className="relative w-full max-w-4xl px-2 sm:px-4">
+        <div className="relative">
+          <AuroraModalCard
+            compact={compactNet}
+            tone={tone}
+            badge="Lưới scramble"
+            title={size === 'pyraminx' ? 'Lưới Pyraminx' : `Lưới ${typeof size === 'number' ? `${size}x${size}` : ''}`}
+            maxWidthClass={compactNet ? "max-w-[78vw] sm:max-w-xl" : "max-w-2xl"}
+            icon={(
+              <svg
+                viewBox="0 0 48 48"
+                className="h-10 w-10 text-white"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M6 6h36v36H6z" />
+                <path d="M6 18h36" />
+                <path d="M6 30h36" />
+                <path d="M18 6v36" />
+                <path d="M30 6v36" />
+              </svg>
+            )}
+          >
+            <button
+              onClick={onClose}
+              className={`absolute right-4 top-4 rounded-full bg-red-500/95 text-white font-semibold shadow-md shadow-red-500/40 transition hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-red-300 ${compactNet ? 'w-8 h-8 text-sm' : 'w-10 h-10 text-base'}`}
+              type="button"
+              aria-label="Đóng lưới"
+            >
+              ✕
+            </button>
+            <div className="relative w-full flex flex-col gap-4">
+              <div className="rounded-[26px] border border-white/10 bg-slate-950/40 p-3 sm:p-5 shadow-inner overflow-auto">
+                <div
+                  className="mx-auto"
+                  style={{
+                    display: size === 'pyraminx' ? 'flex' : 'grid',
+                    flexDirection: size === 'pyraminx' ? 'column' : undefined,
+                    alignItems: size === 'pyraminx' ? 'center' : undefined,
+                    justifyContent: size === 'pyraminx' ? 'center' : undefined,
+                    gridTemplateColumns: size === 'pyraminx' ? undefined : `repeat(4, ${faceSize}px)`,
+                    gridTemplateRows: size === 'pyraminx' ? undefined : `repeat(3, ${faceSize}px)`,
+                    gap: size === 'pyraminx' ? (compactNet ? 4 : 8) : 4,
+                  }}
+                >
+                  {size === 'pyraminx' ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-1">
+                        <div style={{ marginRight: '-28px' }}>
+                          <PyraminxTriangleLeft faceSize={compactNet ? 64 : 80} faceArray={cubeState.L || []} />
+                        </div>
+                        <PyraminxTriangle faceSize={compactNet ? 64 : 80} faceArray={cubeState.F || []} />
+                        <div style={{ marginLeft: '-28px' }}>
+                          <PyraminxTriangleRight faceSize={compactNet ? 64 : 80} faceArray={cubeState.R || []} />
+                        </div>
+                      </div>
+                      <div className="flex justify-center">
+                        <PyraminxTriangleDown faceSize={compactNet ? 64 : 80} faceArray={cubeState.D || []} />
+                      </div>
+                    </div>
+                  ) : (
+                    layoutGrid.flatMap((row, rowIdx) =>
+                      row.map((faceKey, colIdx) => {
+                        if (faceKey === '') {
+                          return (
+                            <div
+                              key={`blank-${rowIdx}-${colIdx}`}
+                              className="net-face-empty"
+                              style={{ width: faceSize, height: faceSize }}
+                            />
+                          );
+                        }
+                        return (
+                          <React.Fragment key={`${faceKey}-${rowIdx}-${colIdx}`}>
+                            {renderStickers(faceKey as Face)}
+                          </React.Fragment>
+                        );
+                      })
+                    )
+                  )}
                 </div>
               </div>
-              {/* Hàng dưới: 1 tam giác hướng xuống */}
-              <div className="flex justify-center">
-                {/* Tam giác vàng dưới (mặt D) */}
-                <PyraminxTriangleDown faceSize={80} faceArray={cubeState.D || []} />
+              <div className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-center">
+                <div className="text-[10px] uppercase tracking-[0.35em] text-blue-200/80">Scramble</div>
+                <div className="mt-2 font-mono text-sm sm:text-base text-white break-words">
+                  {scrambleText}
+                </div>
               </div>
             </div>
-          ) : (
-            // Các loại khác: grid layout bình thường
-            layoutGrid.flatMap((row, rowIdx) =>
-              row.map((faceKey, colIdx) => {
-                if (faceKey === '') {
-                  return <div key={`blank-${rowIdx}-${colIdx}`} className="net-face-empty" style={{ width: faceSize, height: faceSize, background: 'none' }}></div>;
-                } else {
-                  return (
-                    <React.Fragment key={faceKey}>{renderStickers(faceKey as Face)}</React.Fragment>
-                  );
-                }
-              })
-            )
-          )}
+          </AuroraModalCard>
         </div>
-        <div className="mt-3 text-gray-700 text-sm text-center font-mono">Scramble: <span className="font-bold">{scramble}</span></div>
       </div>
-    </div>
-  ) : null;
+    </AuroraModalBackdrop>
+  );
 }
 // --- End CubeNetModal ---
 
@@ -1491,6 +1581,7 @@ interface AuroraModalCardProps {
   tone?: AuroraTone;
   compact?: boolean;
   children?: React.ReactNode;
+  maxWidthClass?: string;
 }
 
 const AuroraModalCard: React.FC<AuroraModalCardProps> = ({
@@ -1501,7 +1592,8 @@ const AuroraModalCard: React.FC<AuroraModalCardProps> = ({
   icon,
   tone = "emerald",
   compact,
-  children
+  children,
+  maxWidthClass
 }) => {
   const palette = AURORA_TONE_MAP[tone];
   const contentPadding = compact ? "gap-4 p-4" : "gap-5 p-5 sm:p-8";
@@ -1510,8 +1602,9 @@ const AuroraModalCard: React.FC<AuroraModalCardProps> = ({
   const titleClass = compact ? "mt-1 text-lg font-semibold leading-snug" : "mt-2 text-xl font-semibold leading-tight sm:text-2xl";
   const subtitleClass = compact ? "text-xs text-slate-200/80" : "text-sm text-slate-200/90 sm:text-base";
   const descClass = compact ? "text-xs leading-relaxed text-slate-100/90" : "text-sm leading-relaxed text-slate-200/90 sm:text-base";
+  const appliedWidthClass = maxWidthClass ?? (compact ? "max-w-xs" : "max-w-md");
   return (
-    <div className={`relative w-full ${compact ? "max-w-xs" : "max-w-md"}`}>
+    <div className={`relative w-full ${appliedWidthClass}`}>
       <div className={`absolute inset-0 blur-3xl opacity-80 pointer-events-none ${palette.glow}`} />
       <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-slate-900/85 backdrop-blur-xl shadow-[0_25px_80px_rgba(0,0,0,0.45)]">
         <div className={`absolute inset-0 bg-gradient-to-br ${palette.gradient}`} />
@@ -2876,21 +2969,21 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           badge="Rời phòng"
           title="Thoát khỏi phòng thi đấu?"
           subtitle="Hệ thống sẽ ngắt kết nối và trở về sảnh."
-          icon={( 
-              <svg
-                viewBox="0 0 48 48"
-                className="h-8 w-8 text-rose-50"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 12H9a3 3 0 0 0-3 3v18a3 3 0 0 0 3 3h12" />
-                <path d="M33 32l6-8-6-8" />
-                <path d="M17 24h22" />
-              </svg>
-            )}
+          icon={(
+            <svg
+              viewBox="0 0 48 48"
+              className="h-8 w-8 text-rose-50"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12H9a3 3 0 0 0-3 3v18a3 3 0 0 0 3 3h12" />
+              <path d="M33 32l6-8-6-8" />
+              <path d="M17 24h22" />
+            </svg>
+          )}
         >
           <button
             onClick={() => setShowLeaveModal(false)}
@@ -2998,7 +3091,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             <span role="img" aria-label="cross" style={{ display: 'inline-block', transform: 'rotate(-90deg)' }}>✟</span>
           </button>
           {/* Modal lưới Rubik */}
-          <CubeNetModal key={`${scramble}-${String(cubeSize)}`} scramble={scramble} open={showCubeNet} onClose={() => setShowCubeNet(false)} size={cubeSize} />
+          <CubeNetModal
+            key={`${scramble}-${String(cubeSize)}`}
+            scramble={scramble}
+            open={showCubeNet}
+            onClose={() => setShowCubeNet(false)}
+            size={cubeSize}
+            mobileShrink={mobileShrink}
+          />
         </div>
             
 
@@ -3137,7 +3237,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         </div>
       {/* Modal chat nổi */}
       <AuroraModalBackdrop open={chatModalVisible} disableAnimation>
-        <div className={`relative w-full ${mobileShrink ? 'max-w-[320px]' : 'max-w-2xl'}`}>
+        <div className={`relative w-full ${mobileShrink ? 'max-w-[500px]' : 'max-w-2xl'}`}>
           <div className="absolute inset-0 blur-3xl opacity-70 bg-blue-500/20 pointer-events-none" />
           <div
             data-chat-modal-state={chatModalPhase}
@@ -3254,9 +3354,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       </div>
       {/* Modal luật thi đấu */}
       <AuroraModalBackdrop open={showRules}>
-        <div className={`relative w-full ${mobileShrink ? 'max-w-[300px]' : 'max-w-xl'}`}>
+        <div className={`relative w-full ${mobileShrink ? 'max-w-[520px]' : 'max-w-2xl'}`}>
           <div className="absolute inset-0 blur-3xl opacity-60 bg-indigo-500/20 pointer-events-none" />
-          <div className={`relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${mobileShrink ? 'p-3 min-h-[260px]' : 'p-6 min-h-[420px]'}`}>
+          <div className={`relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${mobileShrink ? 'p-3 min-h-[320px]' : 'p-6 min-h-[520px]'}`}>
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <h3 className={`${mobileShrink ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Luật thi đấu phòng</h3>
@@ -3270,7 +3370,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </div>
             <div
               className={`${mobileShrink ? 'text-[11px]' : 'text-sm'} text-white flex-1 overflow-y-auto pr-2 leading-relaxed`}
-              style={{ maxHeight: mobileShrink ? 180 : 360 }}
+              style={{ maxHeight: mobileShrink ? 260 : 420 }}
             >
               <ul className="pl-4 space-y-2 text-white/90">
                 <li>1. Mỗi người có 5 lượt giải, chủ phòng là người giải trước.</li>
