@@ -3370,7 +3370,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       </AuroraModalBackdrop>
               {/* Thông tin phòng */}
         <div className={`w-full flex justify-center ${mobileShrink ? 'px-1' : 'px-3'} mb-2`}>
-          <div className={`w-full ${mobileShrink ? 'max-w-sm' : 'max-w-3xl'}`}>
+          <div className={`w-full ${mobileShrink ? 'max-w-[420px]' : 'max-w-[700px]'}`}>
             <div
               className={`rounded-[20px] border border-white/10 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-950/85 shadow-[0_14px_35px_rgba(0,0,0,0.35)] flex flex-row items-center justify-between gap-3 ${mobileShrink ? 'p-2' : 'p-3.5'} flex-nowrap`}
             >
@@ -3548,17 +3548,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={
             mobileShrink
-              ? "flex-1 min-w-0 px-1 max-w-[400px]"
+              ? "flex-1 min-w-0 px-1 max-w-[480px]"
               : isMobileLandscape
-                ? "flex-1 w-full max-w-[420px] min-w-[260px] px-1 mb-2"
-                : "flex-1 w-full max-w-[520px] min-w-[360px] px-2"
+                ? "flex-1 w-full max-w-[560px] min-w-[320px] px-1.5 mb-2"
+                : "flex-1 w-full max-w-[850px] min-w-[420px] px-3"
           }
         >
           <div className={`w-full ${mobileShrink ? 'space-y-1' : 'space-y-2.5'}`}>
             <div className={`grid grid-cols-1 ${mobileShrink ? 'gap-1' : 'gap-2.5'}`}>
               <div className={`rounded-[16px] border border-white/10 bg-slate-950/80 shadow-[0_12px_30px_rgba(0,0,0,0.3)] ${mobileShrink ? 'p-2.25' : 'p-2.5'} flex flex-col ${mobileShrink ? 'gap-1.5' : 'gap-1.75'}`}>
                 <div className="flex items-center gap-2">
-                  <div className={`flex ${mobileShrink ? 'h-6 w-6 text-sm' : 'h-7 w-7 text-base'} items-center justify-center rounded-2xl bg-white/5`} aria-hidden="true">{readyStatusIcon}</div>
+                  <div className={`flex ${mobileShrink ? 'h-4 w-4 text-sm' : 'h-4 w-4 text-base'} items-center justify-center rounded-2xl bg-white/5`} aria-hidden="true">{readyStatusIcon}</div>
                   <div>
                     <div className={`${mobileShrink ? 'text-[11px]' : 'text-base'} font-semibold ${readyStatusTone}`}>
                       {readyStatusText}
@@ -3693,11 +3693,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   </div>
                 </div>
                 <div
-                  className={`rounded-2xl border border-white/10 bg-black/30 ${mobileShrink ? 'px-1.25 py-0.75' : 'px-2 py-1.5'} text-left`}
+                  className={`rounded-2xl border border-white/10 bg-black/30 w-full ${mobileShrink ? 'px-1.25 py-0.75' : 'px-3 py-1.5'} text-left`}
                   style={{ wordBreak: 'break-word' }}
                 >
                   <div
-                    className={`${mobileShrink ? 'text-[13px]' : 'text-xl'} font-bold tracking-widest text-blue-100 leading-relaxed select-all`}
+                    className={`${mobileShrink ? 'text-[13px]' : 'text-xl'} font-bold tracking-widest text-blue-100 leading-relaxed select-all break-words`}
                   >
                     {scramble || 'Chưa có scramble'}
                   </div>

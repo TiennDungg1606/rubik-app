@@ -3790,9 +3790,6 @@ const clampPlayerIndex = (idx: number) => {
   const requiredPlayers = 4;
   const playerDisplayCount = Math.min(users.length, requiredPlayers);
   const hasEnoughPlayers = !waiting && playerDisplayCount >= requiredPlayers;
-  const readyStatusText = hasEnoughPlayers ? 'Đã đủ 4 cuber, sẵn sàng thi đấu!' : 'Đang chờ đủ 4 cuber...';
-  const readyStatusIcon = hasEnoughPlayers ? '⚡' : '⏳';
-  const readyStatusTone = hasEnoughPlayers ? 'text-emerald-200' : 'text-amber-200';
   const scrambleLabel = typeof cubeSize === 'number'
     ? `${cubeSize}x${cubeSize}`
     : (cubeSize === 'pyraminx' ? 'Pyraminx' : 'Scramble');
@@ -4409,17 +4406,7 @@ const clampPlayerIndex = (idx: number) => {
         >
           <div className={`w-full ${mobileShrink ? 'space-y-1' : 'space-y-2.5'}`}>
             <div className={`grid grid-cols-1 ${mobileShrink ? 'gap-1' : 'gap-2.5'}`}>
-              <div className={`rounded-[16px] border border-white/10 bg-slate-950/80 shadow-[0_12px_30px_rgba(0,0,0,0.3)] ${mobileShrink ? 'p-2.25' : 'p-2.5'} flex flex-col ${mobileShrink ? 'gap-1.5' : 'gap-1.75'}`}>
-                <div className="flex items-center gap-2">
-                  <div className={`flex ${mobileShrink ? 'h-6 w-6 text-sm' : 'h-7 w-7 text-base'} items-center justify-center rounded-2xl bg-white/5`} aria-hidden="true">
-                    {readyStatusIcon}
-                  </div>
-                  <div>
-                    <div className={`${mobileShrink ? 'text-[11px]' : 'text-base'} font-semibold ${readyStatusTone}`}>
-                      {readyStatusText}
-                    </div>
-                  </div>
-                </div>
+              <div className={`rounded-[16px] border border-white/10 bg-slate-950/80 shadow-[0_12px_30px_rgba(0,0,0,0.3)] ${mobileShrink ? 'p-1.75' : 'p-2'} text-center`}>
                 <div className={`rounded-2xl border border-white/10 bg-white/5 ${mobileShrink ? 'px-1.25 py-0.75' : 'px-2 py-1.5'} text-center text-white/90`}>
                   {(() => {
                     if (waiting || users.length < requiredPlayers) {
