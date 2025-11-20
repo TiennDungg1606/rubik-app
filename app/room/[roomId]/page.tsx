@@ -3924,7 +3924,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               gap: 4
             }}>
               {prep ? (
-                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16 }}>
+                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12, fontFamily: 'Digital7Mono' }}>
                   Chuẩn bị: {prepTime}s
                 </span>
               ) : dnf ? (
@@ -4404,7 +4404,17 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               >
                 {prep ? (
                   <span className={mobileShrink ? "text-[20px]" : undefined}>
-                    Chuẩn bị: {prepTime}s
+                    Chuẩn bị:
+                    <span
+                      style={{
+                        fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace",
+                        marginLeft: 6,
+                        marginRight: 2,
+                      }}
+                    >
+                      {prepTime}
+                    </span>
+                    <span style={{ fontFamily: "'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif" }}>s</span>
                   </span>
                 ) : dnf ? (
                   <span className={mobileShrink ? "text-[20px] text-red-400" : "text-red-400"}>DNF</span>
@@ -4609,7 +4619,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
             }}>
               {opponentPrep ? (
-                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>
+                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>
               ) : (
                 <>
                   <span style={{ 

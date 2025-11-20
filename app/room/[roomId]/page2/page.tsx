@@ -4193,8 +4193,8 @@ const clampPlayerIndex = (idx: number) => {
       </AuroraModalBackdrop>
       <AuroraModalBackdrop open={rematchDialog.show}>
         <div
-          className={`relative w-full ${mobileShrink ? 'max-w-[250px]' : 'max-w-2xl'} mx-auto`}
-          style={mobileShrink ? { width: 'calc(100vw - 24px)', maxWidth: '250px' } : undefined}
+          className={`relative w-full ${mobileShrink ? 'max-w-[320px]' : 'max-w-2xl'} mx-auto`}
+          style={mobileShrink ? { width: 'calc(100vw - 24px)', maxWidth: '320px' } : undefined}
         >
           <AuroraModalCard
             compact={mobileShrink}
@@ -4789,7 +4789,7 @@ const clampPlayerIndex = (idx: number) => {
               gap: 4
             }}>
               {prep ? (
-                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16 }}>
+                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12 }}>
                   Chuẩn bị: {prepTime}s
                 </span>
               ) : dnf ? (
@@ -5184,7 +5184,17 @@ const clampPlayerIndex = (idx: number) => {
               >
                 {prep ? (
                   <span className={mobileShrink ? "text-[20px]" : "text-[56px] leading-tight"}>
-                    Chuẩn bị: {prepTime}s
+                    Chuẩn bị:
+                    <span
+                      style={{
+                        fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace",
+                        marginLeft: 6,
+                        marginRight: 2,
+                      }}
+                    >
+                      {prepTime}
+                    </span>
+                    <span style={{ fontFamily: "'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif" }}>s</span>
                   </span>
                 ) : dnf ? (
                   <span className={mobileShrink ? "text-[20px] text-red-400" : "text-red-400"}>DNF</span>
@@ -5344,7 +5354,7 @@ const clampPlayerIndex = (idx: number) => {
                 const targetId = opponentUserId1;
                 const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
                 if (isTargetActive && opponentPrep) {
-                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>;
+                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>;
                 }
                 if (isTargetActive) {
                   const cs = Math.floor((opponentTimer % 1000) / 10);
@@ -5469,7 +5479,7 @@ const clampPlayerIndex = (idx: number) => {
                 const targetId = teammateUserId;
                 const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
                 if (isTargetActive && opponentPrep) {
-                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>;
+                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>;
                 }
                 if (isTargetActive) {
                   const cs = Math.floor((opponentTimer % 1000) / 10);
@@ -5596,7 +5606,7 @@ const clampPlayerIndex = (idx: number) => {
                 const targetId = opponentUserId2;
                 const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
                 if (isTargetActive && opponentPrep) {
-                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 13 : 16, fontFamily: 'inherit' }}>Chuẩn bị: {opponentPrepTime}s</span>;
+                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>;
                 }
                 if (isTargetActive) {
                   const cs = Math.floor((opponentTimer % 1000) / 10);
