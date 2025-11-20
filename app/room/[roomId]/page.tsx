@@ -3370,21 +3370,19 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       </AuroraModalBackdrop>
               {/* Thông tin phòng */}
         <div className={`w-full flex justify-center ${mobileShrink ? 'px-1' : 'px-3'} mb-2`}>
-          <div className={`w-full ${mobileShrink ? 'max-w-[420px]' : 'max-w-[700px]'}`}>
+          <div className={`w-full ${mobileShrink ? 'max-w-[250px]' : 'max-w-[500px]'}`}>
             <div
-              className={`rounded-[20px] border border-white/10 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-950/85 shadow-[0_14px_35px_rgba(0,0,0,0.35)] flex flex-row items-center justify-between gap-3 ${mobileShrink ? 'p-2' : 'p-3.5'} flex-nowrap`}
+              className={`rounded-[20px] border border-white/10 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-950/85 shadow-[0_14px_35px_rgba(0,0,0,0.35)] flex flex-col items-center text-center gap-2 ${mobileShrink ? 'p-1' : 'p-1'}`}
             >
               <div className="min-w-0">
                 <div className={`${mobileShrink ? 'text-[17px]' : 'text-xl'} font-bold text-white`}>{roomDisplayName}</div>
                 <div className={`${mobileShrink ? 'text-[10px]' : 'text-[11px]'} text-slate-300 mt-0.5`}>ID phòng: {roomId}</div>
               </div>
-              <div className={`flex flex-row items-center gap-1.5 text-right justify-end flex-shrink-0 ${mobileShrink ? 'mt-0 whitespace-nowrap' : ''}`}>
-                {eventName && (
-                  <span className="inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[13px] font-semibold text-blue-100">
-                    {eventName}
-                  </span>
-                )}
-              </div>
+              {eventName && (
+                <span className="inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[13px] font-semibold text-blue-100">
+                  {eventName}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -3557,12 +3555,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           <div className={`w-full ${mobileShrink ? 'space-y-1' : 'space-y-2.5'}`}>
             <div className={`grid grid-cols-1 ${mobileShrink ? 'gap-1' : 'gap-2.5'}`}>
               <div className={`rounded-[16px] border border-white/10 bg-slate-950/80 shadow-[0_12px_30px_rgba(0,0,0,0.3)] ${mobileShrink ? 'p-2.25' : 'p-2.5'} flex flex-col ${mobileShrink ? 'gap-1.5' : 'gap-1.75'}`}>
-                <div className="flex items-center gap-2">
-                  <div className={`flex ${mobileShrink ? 'h-4 w-4 text-sm' : 'h-4 w-4 text-base'} items-center justify-center rounded-2xl bg-white/5`} aria-hidden="true">{readyStatusIcon}</div>
-                  <div>
-                    <div className={`${mobileShrink ? 'text-[11px]' : 'text-base'} font-semibold ${readyStatusTone}`}>
-                      {readyStatusText}
-                    </div>
+                <div className="flex items-center justify-center gap-2 text-center">
+                  <div className={`flex ${mobileShrink ? 'h-5 w-5 text-sm' : 'h-6 w-6 text-base'} items-center justify-center rounded-2xl bg-white/5`} aria-hidden="true">{readyStatusIcon}</div>
+                  <div className={`${mobileShrink ? 'text-[11px]' : 'text-base'} font-semibold ${readyStatusTone}`}>
+                    {readyStatusText}
                   </div>
                 </div>
                 <div className={`rounded-2xl border border-white/10 bg-white/5 ${mobileShrink ? 'px-1.25 py-0.75' : 'px-2 py-1.5'} text-center text-white/90`}>
@@ -3654,7 +3650,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                         msg = `Đến lượt ${name} thi đấu`;
                       }
                       return (
-                        <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-col gap-0.5 items-center text-center">
                           <span className={`${mobileShrink ? 'text-11px]' : 'text-lg'} font-semibold text-green-200`}>
                             {msg}
                           </span>

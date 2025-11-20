@@ -4317,7 +4317,7 @@ const clampPlayerIndex = (idx: number) => {
       <div className={`w-full flex justify-center ${mobileShrink ? 'px-1' : 'px-3'} mb-2`}>
         <div className={`w-full ${mobileShrink ? 'max-w-sm' : 'max-w-3xl'}`}>
           <div
-            className={`rounded-[20px] border border-white/10 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-950/85 shadow-[0_14px_35px_rgba(0,0,0,0.35)] flex flex-row items-center justify-between gap-3 ${mobileShrink ? 'p-2 flex-nowrap' : 'p-3.5'}`}
+            className={`rounded-[20px] border border-white/10 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-950/85 shadow-[0_14px_35px_rgba(0,0,0,0.35)] flex flex-col items-center text-center gap-2 ${mobileShrink ? 'p-2' : 'p-3.5'}`}
           >
             <div className="min-w-0">
               <div className={`${mobileShrink ? 'text-[17px]' : 'text-xl'} font-bold text-white`}>
@@ -4327,13 +4327,11 @@ const clampPlayerIndex = (idx: number) => {
                 ID phòng: {roomId}
               </div>
             </div>
-            <div className={`flex flex-row items-center gap-1.5 text-right justify-end flex-shrink-0 ${mobileShrink ? 'mt-0 whitespace-nowrap' : ''}`}>
-              {eventName && (
-                <span className="inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[9px] font-semibold text-blue-100">
-                  {eventName}
-                </span>
-              )}
-            </div>
+            {eventName && (
+              <span className="inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[9px] font-semibold text-blue-100">
+                {eventName}
+              </span>
+            )}
           </div>
         </div>
       </div>
