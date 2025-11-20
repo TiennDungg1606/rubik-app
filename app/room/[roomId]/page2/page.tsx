@@ -4315,20 +4315,19 @@ const clampPlayerIndex = (idx: number) => {
       </div>
       {/* Thông tin phòng */}
       <div className={`w-full flex justify-center ${mobileShrink ? 'px-1' : 'px-3'} mb-2`}>
-        <div className={`w-full ${mobileShrink ? 'max-w-sm' : 'max-w-3xl'}`}>
+        <div className={`w-full ${mobileShrink ? 'max-w-[250px]' : 'max-w-[500px]'}`}>
           <div
-            className={`rounded-[20px] border border-white/10 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-950/85 shadow-[0_14px_35px_rgba(0,0,0,0.35)] flex flex-col items-center text-center gap-2 ${mobileShrink ? 'p-2' : 'p-3.5'}`}
+            className={`rounded-[20px] border border-white/10 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-950/85 shadow-[0_14px_35px_rgba(0,0,0,0.35)] flex items-center justify-between gap-2 ${mobileShrink ? 'p-2' : 'p-2'}`}
           >
-            <div className="min-w-0">
-              <div className={`${mobileShrink ? 'text-[17px]' : 'text-xl'} font-bold text-white`}>
-                {roomDisplayName}
+            <div className="min-w-0 text-left flex-1">
+              <div className={`${mobileShrink ? 'text-[17px]' : 'text-xl'} font-bold text-white`}>{roomDisplayName}
               </div>
               <div className={`${mobileShrink ? 'text-[10px]' : 'text-[11px]'} text-slate-300 mt-0.5`}>
                 ID phòng: {roomId}
               </div>
             </div>
             {eventName && (
-              <span className="inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[9px] font-semibold text-blue-100">
+              <span className="ml-auto inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[13px] font-semibold text-blue-100">
                 {eventName}
               </span>
             )}
@@ -4396,15 +4395,15 @@ const clampPlayerIndex = (idx: number) => {
         <div
           className={
             mobileShrink
-              ? "flex-1 min-w-0 px-1 max-w-[400px]"
+              ? "flex-1 min-w-0 px-1 max-w-[480px]"
               : isMobileLandscape
-                ? "flex-1 w-full max-w-[420px] min-w-[260px] px-1 mb-2"
-                : "flex-1 w-full max-w-[520px] min-w-[360px] px-2"
+                ? "flex-1 w-full max-w-[560px] min-w-[320px] px-1.5 mb-2"
+                : "flex-1 w-full max-w-[850px] min-w-[420px] px-3"
           }
         >
           <div className={`w-full ${mobileShrink ? 'space-y-1' : 'space-y-2.5'}`}>
             <div className={`grid grid-cols-1 ${mobileShrink ? 'gap-1' : 'gap-2.5'}`}>
-              <div className={`rounded-[16px] border border-white/10 bg-slate-950/80 shadow-[0_12px_30px_rgba(0,0,0,0.3)] ${mobileShrink ? 'p-1.75' : 'p-2'} text-center`}>
+              <div className={`rounded-[16px] border border-white/10 bg-slate-950/80 shadow-[0_12px_30px_rgba(0,0,0,0.3)] ${mobileShrink ? 'p-2.25' : 'p-2.5'} flex flex-col ${mobileShrink ? 'gap-1.5' : 'gap-1.75'}`}>
                 <div className={`rounded-2xl border border-white/10 bg-white/5 ${mobileShrink ? 'px-1.25 py-0.75' : 'px-2 py-1.5'} text-center text-white/90`}>
                   {(() => {
                     if (waiting || users.length < requiredPlayers) {
@@ -4414,7 +4413,7 @@ const clampPlayerIndex = (idx: number) => {
                       return null;
                     }
                     if (isLockedDue2DNF && !showEarlyEndMsg.show) {
-                      const baseClass = mobileShrink ? "text-[9px] font-semibold" : "text-base font-semibold";
+                      const baseClass = mobileShrink ? "text-[10px] font-semibold" : "text-base font-semibold";
                       if (teamAHasDoubleDNF && teamBHasDoubleDNF) {
                         return (
                           <span className={`${baseClass} text-yellow-400`}>
@@ -4520,11 +4519,11 @@ const clampPlayerIndex = (idx: number) => {
 
                       return (
                         <>
-                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-base'} font-semibold text-green-300`}>
+                          <span className={`${mobileShrink ? 'text-[10px]' : 'text-base'} font-semibold text-green-300`}>
                             {msg}
                           </span>
                           {showScrambleMsg && (
-                            <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} font-semibold text-yellow-300 block mt-1`}>
+                            <span className={`${mobileShrink ? 'text-[10px]' : 'text-sm'} font-semibold text-yellow-300 block mt-1`}>
                               Các cuber hãy tráo scramble trong {SCRAMBLE_LOCK_DURATION_MS / 1000}s
                             </span>
                           )}
@@ -4563,10 +4562,10 @@ const clampPlayerIndex = (idx: number) => {
                   </div>
                 </div>
                 <div
-                  className={`rounded-2xl border border-white/10 bg-black/30 ${mobileShrink ? 'px-1.25 py-0.75' : 'px-2 py-1.5'} text-left`}
+                  className={`rounded-2xl border border-white/10 bg-black/30 w-full ${mobileShrink ? 'px-1.25 py-0.75' : 'px-3 py-1.5'} text-left`}
                   style={{ wordBreak: 'break-word' }}
                 >
-                  <div className={`${mobileShrink ? 'text-[10px]' : 'text-lg'} font-bold tracking-widest text-blue-100 leading-relaxed select-all`}>
+                  <div className={`${mobileShrink ? 'text-[13px]' : 'text-xl'} font-bold tracking-widest text-blue-100 leading-relaxed select-all break-words`}>
                     {scramble || 'Chưa có scramble'}
                   </div>
                 </div>
