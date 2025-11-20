@@ -2889,6 +2889,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     if (spaceHeld && !running) return 'text-yellow-400';
     return 'text-white';
   })(); // Màu timer đồng bộ với TimerTab: trắng -> vàng -> xanh
+  const roomDisplayName = roomMeta?.displayName || roomId;
+  const eventName = roomMeta?.event?.trim() ? roomMeta.event.trim() : null;
+  const readyStatusText = waiting ? 'Đang chờ đối thủ vào phòng...' : 'Đã đủ 2 người, sẵn sàng thi đấu!';
+  const readyStatusIcon = waiting ? '⏳' : '⚡';
+  const readyStatusTone = waiting ? 'text-amber-200' : 'text-emerald-200';
+  const scrambleLabel = typeof cubeSize === 'number'
+    ? `${cubeSize}x${cubeSize}`
+    : (cubeSize === 'pyraminx' ? 'Pyraminx' : 'Scramble');
   return (
     <div 
       className={  
@@ -3388,58 +3396,46 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           </div>
         </div>
       </AuroraModalBackdrop>
-      {/* Khối trên cùng: Tên phòng và scramble */}
-      <div className="w-full flex flex-col items-center justify-center mb-0.5">
-        <div className="relative w-full flex items-center justify-center mb-1">
-          {/* Overlay dưới tên phòng */}
-          <div style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: mobileShrink ? 'auto' : 'auto',
-            minWidth: mobileShrink ? '120px' : '200px',
-            maxWidth: mobileShrink ? '200px' : '300px',
-            height: mobileShrink ? 24 : 40,
-            background: 'rgba(0,0,0,0.35)',
-            borderRadius: 12,
-            zIndex: 0,
-            padding: mobileShrink ? '0 8px' : '0 16px'
-          }} />
-          <h2 className={mobileShrink ? "text-[14px] font-bold mb-1 relative z-10" : "text-3xl font-bold mb-2 relative z-10"}>
-            Phòng: <span className="text-blue-400">{roomId}</span>
-          </h2>
-        </div>
-        {mobileShrink ? (
-          <div className="flex justify-center w-full">
-            <div className="mb-1 px-2 py-1 bg-gray-800 rounded text-[16px] font-mono font-bold tracking-widest select-all min-w-[60vw] max-w-[90vw] overflow-x-auto whitespace-normal inline-block"
-              style={{ fontSize: 16, minWidth: '60vw', maxWidth: '90vw', overflowX: 'auto', whiteSpace: 'normal', width: 'fit-content' }}>
-              {scramble}
+              {/* Thông tin phòng */}
+        <div className={`w-full flex justify-center ${mobileShrink ? 'px-1' : 'px-3'} mb-2`}>
+          <div className={`w-full ${mobileShrink ? 'max-w-sm' : 'max-w-3xl'}`}>
+            <div
+              className={`rounded-[20px] border border-white/10 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-950/85 shadow-[0_14px_35px_rgba(0,0,0,0.35)] flex flex-row items-center justify-between gap-3 ${mobileShrink ? 'p-2' : 'p-3.5'} flex-nowrap`}
+            >
+              <div className="min-w-0">
+                <div className={`${mobileShrink ? 'text-[17px]' : 'text-xl'} font-bold text-white`}>{roomDisplayName}</div>
+                <div className={`${mobileShrink ? 'text-[10px]' : 'text-[11px]'} text-slate-300 mt-0.5`}>ID phòng: {roomId}</div>
+              </div>
+              <div className={`flex flex-row items-center gap-1.5 text-right justify-end flex-shrink-0 ${mobileShrink ? 'mt-0 whitespace-nowrap' : ''}`}>
+                {eventName && (
+                  <span className="inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[9px] font-semibold text-blue-100">
+                    {eventName}
+                  </span>
+                )}
+                <span className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[13px] font-semibold text-white/80">
+                  {users.length >= 2 ? 'Đủ 2 cuber' : `Đang có ${Math.min(users.length, 2)}/2 cuber`}
+                </span>
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="mb-2 px-2 py-1 bg-gray-800 rounded-xl text-2xl font-mono font-bold tracking-widest select-all max-w-4xl overflow-x-auto"
-            style={{ maxWidth: '56rem', overflowX: 'auto' }}>
-            {scramble}
-          </div>
-        )}
-      </div>
+        </div>
+        {/* Khối meta + trạng thái + scramble ở giữa */}
       {/* Hàng ngang 3 khối: bảng tổng hợp | trạng thái + thông báo | bảng kết quả */}
       <div
         className={
           mobileShrink
-            ? "w-full flex flex-row items-center gap-1 px-0 mb-1"
+            ? "w-full flex flex-row justify-between items-start gap-1 px-1 mb-1"
             : isMobileLandscape
               ? "w-full flex flex-row flex-wrap justify-between items-start gap-2 px-1 mb-4 overflow-x-auto"
-              : "w-full flex flex-row justify-between items-start gap-4 mb-6"
+              : "w-full flex flex-row flex-wrap justify-between items-start gap-4 mb-6"
         }
-        style={mobileShrink ? { maxWidth: '100vw', columnGap: 4 } : isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
+        style={mobileShrink ? { maxWidth: '100vw' } : isMobileLandscape ? { maxWidth: '100vw', rowGap: 8 } : {}}
       >
         {/* Bảng tổng hợp bên trái */}
         <div
           className={
             (mobileShrink
-              ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[120px] max-w-[180px] w-[150px] flex-shrink-0 ml-0 mb-1"
+              ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[140px] max-w-[210px] w-[180px] flex-shrink-0 ml-0 mb-1"
               : isMobileLandscape
                 ? "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[180px] max-w-[260px] w-[220px] flex-shrink-0 ml-0 mb-2"
                 : "bg-gray-900 bg-opacity-90 shadow-lg text-xs font-semibold text-white rounded-xl p-0 m-0 min-w-[260px] max-w-[340px] w-[300px] flex-shrink-0 ml-4")
@@ -3579,161 +3575,165 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             </tbody>
           </table>
         </div>
-        {/* Khối giữa: trạng thái + thông báo */}
+
         <div
           className={
             mobileShrink
-              ? "flex flex-col items-center justify-center min-w-[140px] max-w-[200px] mx-auto mb-1 w-auto"
+              ? "flex-1 min-w-0 px-1 max-w-[400px]"
               : isMobileLandscape
-                ? "flex flex-col items-center justify-center min-w-[140px] max-w-[200px] mx-auto mb-2 w-auto"
-                : "flex flex-col items-center justify-center min-w-[260px] max-w-[520px] mx-auto w-auto"
+                ? "flex-1 w-full max-w-[420px] min-w-[260px] px-1 mb-2"
+                : "flex-1 w-full max-w-[520px] min-w-[360px] px-2"
           }
-          style={mobileShrink ? { wordBreak: 'break-word', fontSize: 9 } : isMobileLandscape ? { wordBreak: 'break-word' } : {}}
         >
-          {/* Overlay dưới thanh trạng thái */}
-          <div style={{ position: 'relative', width: '100%' }}>
-            <div style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: '100%',
-              height: mobileShrink ? 28 : 48,
-              background: 'rgba(0,0,0,0.35)',
-              borderRadius: 12,
-              zIndex: 0
-            }} />
-            <div className="mb-2 w-full flex items-center justify-center" style={{ position: 'relative', zIndex: 1 }}>
-              {waiting ? (
-                <span className={mobileShrink ? "text-yellow-400 text-[10px] font-semibold text-center w-full block" : "text-yellow-400 text-2xl font-semibold text-center w-full block"}>Đang chờ đối thủ vào phòng...</span>
-              ) : (
-                <span className={mobileShrink ? "text-green-400 text-[10px] font-semibold text-center w-full block" : "text-green-400 text-2xl font-semibold text-center w-full block"}>Đã đủ 2 người, sẵn sàng thi đấu!</span>
-              )}
-            </div>
-          </div>
-          {/* Thông báo trạng thái lượt giải + Thông báo lỗi camera */}
-          <div className="mb-3 relative w-full flex flex-col items-center justify-center text-center" style={{ position: 'relative' }}>
-            {/* Overlay dưới thông báo trạng thái lượt giải */}
-            <div style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: '100%',
-              height: mobileShrink ? 38 : 60,
-              background: 'rgba(0,0,0,0.32)',
-              borderRadius: 12,
-              zIndex: 0
-            }} />
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              {(() => {
-                // Chỉ hiển thị khi đủ 2 người
-                if (waiting || users.length < 2) return null;
-                
-                // Ưu tiên hiển thị thông báo 2 lần DNF - ĐÃ HỦY
-                if (showEarlyEndMsg.show) {
-                  return null; // KHÔNG HIỆN MODAL
-                }
-                
-                // Hiển thị thông báo kết quả khi bị khóa do 2 lần DNF (nếu không có showEarlyEndMsg)
-                // Đảm bảo cả hai bên đều thấy thông báo về người thắng/thua/hòa
-                if (isLockedDue2DNF && !showEarlyEndMsg.show) {
-                  // Sử dụng kết quả local để tính toán chính xác
-                  const myDnfCount = myResults.filter(r => r === null).length;
-                  const oppDnfCount = opponentResults.filter(r => r === null).length;
-                  
-                  if (myDnfCount >= 2 && oppDnfCount >= 2) {
-                    // Cả hai đều có 2 lần DNF -> Hòa
-                    return (
-                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-yellow-400`}>
-                        {userName} và {opponentName} hòa - cả hai đều có 2 lần DNF.
-                      </span>
-                    );
-                  } else if (myDnfCount >= 2) {
-                    // Mình có 2 lần DNF -> Đối thủ thắng
-                    return (
-                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-orange-400`}>
-                        {userName} thua - có 2 lần DNF. {opponentName} thắng.
-                      </span>
-                    );
-                  } else if (oppDnfCount >= 2) {
-                    // Đối thủ có 2 lần DNF -> Mình thắng
-                    return (
-                      <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-2xl font-semibold"} text-green-400`}>
-                        {userName} thắng - {opponentName} có 2 lần DNF.
-                      </span>
-                    );
-                  }
-                }
-                
-                // Nếu cả 2 đã đủ 5 lượt thì thông báo kết quả
-                const bothDone = myResults.length >= 5 && opponentResults.length >= 5;
-                if (bothDone) {
-                  // So sánh ao5, nếu đều DNF thì hòa
-                  const myAo5 = calcStats(myResults).ao5;
-                  const oppAo5 = calcStats(opponentResults).ao5;
-                  let winner = null;
-                  if (myAo5 === null && oppAo5 === null) {
-                    return <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-400" : "text-2xl font-semibold text-yellow-400"}>Trận đấu kết thúc, hòa</span>;
-                  } else if (myAo5 === null) {
-                    winner = opponentName;
-                  } else if (oppAo5 === null) {
-                    winner = userName;
-                  } else if (myAo5 < oppAo5) {
-                    winner = userName;
-                  } else if (myAo5 > oppAo5) {
-                    winner = opponentName;
-                  } else {
-                    return <span className="text-2xl font-semibold text-yellow-400">Trận đấu kết thúc, hòa</span>;
-                  }
-                    return <span className={mobileShrink ? "text-[10px] font-semibold text-green-400" : "text-2xl font-semibold text-green-400"}>Trận đấu kết thúc, {winner} thắng</span>;
-                }
-                
-                // Đang trong trận - chỉ hiển thị khi không bị khóa do 2 lần DNF
-                if (!isLockedDue2DNF) {
-                  let msg = "";
-                  let name = userId === turnUserId ? userName : opponentName;
-                  if (prep) {
-                    msg = `${name} đang chuẩn bị`;
-                  } else if (running) {
-                    msg = `${name} đang giải`;
-                  } else {
-                    msg = `Đến lượt ${name} thi đấu`;
-                  }
-                  
-                  // Thêm thông báo rõ ràng về lượt chơi
-                
-                  
-                  return (
-                    <>
-                      <span className={mobileShrink ? "text-[10px] font-semibold text-green-300" : "text-xl font-semibold text-green-300"}>{msg}</span>
-                      {showScrambleMsg && (
-                        <span className={mobileShrink ? "text-[10px] font-semibold text-yellow-300 block mt-1" : "text-2xl font-semibold text-yellow-300 block mt-2"}>
-                          Hai cuber hãy tráo scramble trong {SCRAMBLE_LOCK_DURATION_MS / 1000}s
-                        </span>
-                      )}
-                    </>
-                  );
-                }
-                
-                // Hiển thị thông báo khi bị khóa do 2 lần DNF
-                return (
-                  <span className={`${mobileShrink ? "text-[10px] font-semibold" : "text-xl font-semibold"} text-red-400`}>
-                    ⚠️ KHÓA THAO TÁC DO 2 LẦN DNF! 
-                    <br />
-                    {(() => {
+          <div className={`w-full ${mobileShrink ? 'space-y-1' : 'space-y-2.5'}`}>
+            <div className={`grid grid-cols-1 ${mobileShrink ? 'gap-1' : 'gap-2.5'}`}>
+              <div className={`rounded-[16px] border border-white/10 bg-slate-950/80 shadow-[0_12px_30px_rgba(0,0,0,0.3)] ${mobileShrink ? 'p-2.25' : 'p-2.5'} flex flex-col ${mobileShrink ? 'gap-1.5' : 'gap-1.75'}`}>
+                <div className="flex items-center gap-2">
+                  <div className={`flex ${mobileShrink ? 'h-6 w-6 text-sm' : 'h-7 w-7 text-base'} items-center justify-center rounded-2xl bg-white/5`} aria-hidden="true">{readyStatusIcon}</div>
+                  <div>
+                    <div className={`${mobileShrink ? 'text-[11px]' : 'text-base'} font-semibold ${readyStatusTone}`}>
+                      {readyStatusText}
+                    </div>
+                  </div>
+                </div>
+                <div className={`rounded-2xl border border-white/10 bg-white/5 ${mobileShrink ? 'px-1.25 py-0.75' : 'px-2 py-1.5'} text-center text-white/90`}>
+                  {(() => {
+                    if (waiting || users.length < 2) {
+                      return null;
+                    }
+                    if (showEarlyEndMsg.show) {
+                      return null;
+                    }
+                    if (isLockedDue2DNF && !showEarlyEndMsg.show) {
                       const myDnfCount = myResults.filter(r => r === null).length;
                       const oppDnfCount = opponentResults.filter(r => r === null).length;
-                      
                       if (myDnfCount >= 2 && oppDnfCount >= 2) {
-                        return `Cả hai đều có 2 lần DNF. Tái đấu để mở khóa.`;
-                      } else if (myDnfCount >= 2) {
-                        return `Bạn có 2 lần DNF. Tái đấu để mở khóa.`;
-                      } else {
-                        return `Đối thủ có 2 lần DNF. Tái đấu để mở khóa.`;
+                        return (
+                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-yellow-300 font-semibold`}>
+                            {userName} và {opponentName} hòa - cả hai đều có 2 lần DNF.
+                          </span>
+                        );
                       }
-                    })()}
-                  </span>
-                );
-              })()}
+                      if (myDnfCount >= 2) {
+                        return (
+                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-orange-300 font-semibold`}>
+                            {userName} thua - có 2 lần DNF. {opponentName} thắng.
+                          </span>
+                        );
+                      }
+                      if (oppDnfCount >= 2) {
+                        return (
+                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-emerald-300 font-semibold`}>
+                            {userName} thắng - {opponentName} có 2 lần DNF.
+                          </span>
+                        );
+                      }
+                    }
+                    const bothDone = myResults.length >= 5 && opponentResults.length >= 5;
+                    if (bothDone) {
+                      const myAo5 = calcStats(myResults).ao5;
+                      const oppAo5 = calcStats(opponentResults).ao5;
+                      if (myAo5 === null && oppAo5 === null) {
+                        return (
+                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-yellow-300 font-semibold`}>
+                            Trận đấu kết thúc, hòa
+                          </span>
+                        );
+                      }
+                      if (myAo5 === null) {
+                        return (
+                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-emerald-300 font-semibold`}>
+                            Trận đấu kết thúc, {opponentName} thắng
+                          </span>
+                        );
+                      }
+                      if (oppAo5 === null) {
+                        return (
+                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-emerald-300 font-semibold`}>
+                            Trận đấu kết thúc, {userName} thắng
+                          </span>
+                        );
+                      }
+                      if (myAo5 < oppAo5) {
+                        return (
+                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-emerald-300 font-semibold`}>
+                            Trận đấu kết thúc, {userName} thắng
+                          </span>
+                        );
+                      }
+                      if (myAo5 > oppAo5) {
+                        return (
+                          <span className={`${mobileShrink ? 'text-[10px]' : 'text-sm'} text-emerald-300 font-semibold`}>
+                            Trận đấu kết thúc, {opponentName} thắng
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-yellow-300 font-semibold`}>
+                          Trận đấu kết thúc, hòa
+                        </span>
+                      );
+                    }
+                    if (!isLockedDue2DNF) {
+                      const name = userId === turnUserId ? (userName || 'Bạn') : (opponentName || 'Đối thủ');
+                      let msg = '';
+                      if (prep) {
+                        msg = `${name} đang chuẩn bị`;
+                      } else if (running) {
+                        msg = `${name} đang giải`;
+                      } else {
+                        msg = `Đến lượt ${name} thi đấu`;
+                      }
+                      return (
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} font-semibold text-green-200`}>
+                            {msg}
+                          </span>
+                          {showScrambleMsg && (
+                            <span className={`${mobileShrink ? 'text-[9px]' : 'text-xs'} text-yellow-200`}>
+                              Hai cuber hãy tráo scramble trong {SCRAMBLE_LOCK_DURATION_MS / 1000}s
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+                    return (
+                      <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-red-300 font-semibold`}>
+                        ⚠️ KHÓA THAO TÁC DO 2 LẦN DNF! {(() => {
+                          const myDnfCount = myResults.filter(r => r === null).length;
+                          const oppDnfCount = opponentResults.filter(r => r === null).length;
+                          if (myDnfCount >= 2 && oppDnfCount >= 2) {
+                            return 'Cả hai đều có 2 lần DNF. Tái đấu để mở khóa.';
+                          }
+                          if (myDnfCount >= 2) {
+                            return 'Bạn có 2 lần DNF. Tái đấu để mở khóa.';
+                          }
+                          return 'Đối thủ có 2 lần DNF. Tái đấu để mở khóa.';
+                        })()}
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
+              <div className={`rounded-[16px] border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-slate-900/40 shadow-[0_12px_30px_rgba(0,0,0,0.3)] ${mobileShrink ? 'p-1.25' : 'p-2.5'} flex flex-col ${mobileShrink ? 'gap-1.25' : 'gap-1.75'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className={`${mobileShrink ? 'text-[13px]' : 'text-lg'} font-semibold text-white mt-0.5`}>
+                      {scrambleLabel} #{scrambleIndex + 1}
+                    </div>
+                  </div>
+                </div>
+                <div
+                  className={`rounded-2xl border border-white/10 bg-black/30 ${mobileShrink ? 'px-1.25 py-0.75' : 'px-2 py-1.5'} text-left`}
+                  style={{ wordBreak: 'break-word' }}
+                >
+                  <div
+                    className={`${mobileShrink ? 'text-[10px]' : 'text-lg'} font-bold tracking-widest text-blue-100 leading-relaxed select-all`}
+                  >
+                    {scramble || 'Chưa có scramble'}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -3741,7 +3741,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div
           className={
             (mobileShrink
-              ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[120px] max-w-[180px] w-[150px] flex-shrink-0 mr-0 mb-1"
+              ? "bg-gray-900 bg-opacity-90 shadow rounded p-1 m-0 min-w-[140px] max-w-[210px] w-[180px] flex-shrink-0 mr-0 mb-1"
               : isMobileLandscape
                 ? "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[180px] max-w-[260px] w-[220px] flex-shrink-0 mr-0 mb-2"
                 : "bg-gray-900 bg-opacity-90 shadow-lg rounded-xl p-0 m-0 min-w-[260px] max-w-[340px] w-[300px] flex-shrink-0 mr-4")

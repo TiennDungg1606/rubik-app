@@ -4213,8 +4213,8 @@ const clampPlayerIndex = (idx: number) => {
       </AuroraModalBackdrop>
       <AuroraModalBackdrop open={rematchDialog.show}>
         <div
-          className={`relative w-full ${mobileShrink ? 'max-w-[280px]' : 'max-w-2xl'} mx-auto`}
-          style={mobileShrink ? { width: 'calc(100vw - 32px)', maxWidth: '280px' } : undefined}
+          className={`relative w-full ${mobileShrink ? 'max-w-[250px]' : 'max-w-2xl'} mx-auto`}
+          style={mobileShrink ? { width: 'calc(100vw - 24px)', maxWidth: '250px' } : undefined}
         >
           <AuroraModalCard
             compact={mobileShrink}
@@ -4240,9 +4240,9 @@ const clampPlayerIndex = (idx: number) => {
               </svg>
             )}
           >
-            <div className={`w-full flex flex-col ${mobileShrink ? 'gap-2.5' : 'gap-4'}`}>
+            <div className={`w-full flex flex-col ${mobileShrink ? 'gap-2' : 'gap-4'}`}>
               <div
-                className={`flex-1 rounded-[22px] border border-white/10 bg-white/5 ${mobileShrink ? 'px-2 py-1.25 space-y-1 max-h-[170px]' : 'p-4 space-y-3 max-h-[320px]'} overflow-y-auto`}
+                className={`flex-1 rounded-[22px] border border-white/10 bg-white/5 ${mobileShrink ? 'px-2 py-1 space-y-1 max-h-[150px]' : 'p-4 space-y-3 max-h-[320px]'} overflow-y-auto`}
               >
                 {rematchDialog.participants.length === 0 ? (
                   <div className={`text-center ${mobileShrink ? 'text-[11px]' : 'text-sm'} text-white/60`}>
@@ -4263,7 +4263,7 @@ const clampPlayerIndex = (idx: number) => {
                     return (
                       <div
                         key={`${participant.userId}-${participant.userName ?? ''}`}
-                        className={`flex items-center justify-between gap-2.5 rounded-2xl border ${mobileShrink ? 'px-2.5 py-1.5' : 'px-3 py-2'} ${accepted ? 'border-emerald-300/40 bg-emerald-500/10' : 'border-white/10 bg-slate-900/40'}`}
+                        className={`flex items-center justify-between gap-2 rounded-2xl border ${mobileShrink ? 'px-2 py-1' : 'px-3 py-2'} ${accepted ? 'border-emerald-300/40 bg-emerald-500/10' : 'border-white/10 bg-slate-900/40'}`}
                       >
                         <div className="flex flex-col">
                           <span className={`${mobileShrink ? 'text-[11px]' : 'text-sm'} font-semibold text-white`}>
@@ -4285,7 +4285,7 @@ const clampPlayerIndex = (idx: number) => {
                 )}
               </div>
               <div className={`w-full flex flex-col ${mobileShrink ? 'gap-1.5' : 'gap-3'}`}>
-                <div className={`rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-center font-semibold text-emerald-100 shadow-inner ${mobileShrink ? 'px-2 py-1.25 text-[9px]' : 'px-4 py-3 text-sm'}`}>
+                <div className={`rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-center font-semibold text-emerald-100 shadow-inner ${mobileShrink ? 'px-2 py-1 text-[9px]' : 'px-4 py-3 text-sm'}`}>
                   {rematchProgressMessage}
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -4293,13 +4293,13 @@ const clampPlayerIndex = (idx: number) => {
                     {shouldShowRematchAcceptButton ? (
                       <button
                         onClick={handleRematch2v2Respond}
-                        className={`w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-300 ${mobileShrink ? 'px-2 py-1.25 text-[10px]' : 'px-4 py-3 text-base'}`}
+                        className={`w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-emerald-300 ${mobileShrink ? 'px-2 py-1 text-[10px]' : 'px-4 py-3 text-base'}`}
                         type="button"
                       >
                         Đồng ý tái đấu
                       </button>
                     ) : (
-                      <div className={`w-full rounded-2xl border border-white/15 bg-white/5 text-center font-semibold text-green-200 ${mobileShrink ? 'px-2 py-1.25 text-[9px]' : 'px-4 py-3 text-sm'}`}>
+                      <div className={`w-full rounded-2xl border border-white/15 bg-white/5 text-center font-semibold text-green-200 ${mobileShrink ? 'px-2 py-1 text-[9px]' : 'px-4 py-3 text-sm'}`}>
                         {hasAcceptedRematch ? 'Đã ghi nhận đồng ý của bạn.' : 'Đang chờ tất cả thành viên xác nhận.'}
                       </div>
                     )}
@@ -4308,7 +4308,7 @@ const clampPlayerIndex = (idx: number) => {
                     <div className="w-full">
                       <button
                         onClick={handleRematch2v2Decline}
-                        className={`w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300 ${mobileShrink ? 'px-2 py-1.25 text-[10px]' : 'px-4 py-3 text-base'}`}
+                        className={`w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300 ${mobileShrink ? 'px-2 py-1 text-[10px]' : 'px-4 py-3 text-base'}`}
                         type="button"
                       >
                         Không đồng ý
@@ -4319,7 +4319,7 @@ const clampPlayerIndex = (idx: number) => {
                     <div className="w-full">
                       <button
                         onClick={handleRematch2v2Cancel}
-                        className={`w-full rounded-2xl border border-white/15 bg-white/5 font-semibold text-white/90 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 ${mobileShrink ? 'px-2 py-1.25 text-[10px]' : 'px-4 py-3 text-base'}`}
+                        className={`w-full rounded-2xl border border-white/15 bg-white/5 font-semibold text-white/90 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/20 ${mobileShrink ? 'px-2 py-1 text-[10px]' : 'px-4 py-3 text-base'}`}
                         type="button"
                       >
                         Hủy yêu cầu
