@@ -3372,14 +3372,14 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         <div className={`w-full flex justify-center ${mobileShrink ? 'px-1' : 'px-3'} mb-2`}>
           <div className={`w-full ${mobileShrink ? 'max-w-[250px]' : 'max-w-[500px]'}`}>
             <div
-              className={`rounded-[20px] border border-white/10 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-950/85 shadow-[0_14px_35px_rgba(0,0,0,0.35)] flex flex-col items-center text-center gap-2 ${mobileShrink ? 'p-1' : 'p-1'}`}
+              className={`rounded-[20px] border border-white/10 bg-gradient-to-r from-slate-950/85 via-slate-900/65 to-slate-950/85 shadow-[0_14px_35px_rgba(0,0,0,0.35)] flex items-center justify-between gap-2 ${mobileShrink ? 'p-2' : 'p-2'}`}
             >
-              <div className="min-w-0">
+              <div className="min-w-0 text-left flex-1">
                 <div className={`${mobileShrink ? 'text-[17px]' : 'text-xl'} font-bold text-white`}>{roomDisplayName}</div>
                 <div className={`${mobileShrink ? 'text-[10px]' : 'text-[11px]'} text-slate-300 mt-0.5`}>ID phòng: {roomId}</div>
               </div>
               {eventName && (
-                <span className="inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[13px] font-semibold text-blue-100">
+                <span className="ml-auto inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[13px] font-semibold text-blue-100">
                   {eventName}
                 </span>
               )}
