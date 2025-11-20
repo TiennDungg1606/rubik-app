@@ -38,6 +38,7 @@ interface WaitingRoomState {
 
 type ModalTransitionStage = "enter" | "exit" | "idle";
 const MODAL_TRANSITION_MS = 240;
+const CHAT_MODAL_ANIMATION_MS = 150;
 
 const useModalTransition = (open: boolean, duration = MODAL_TRANSITION_MS, disableAnimation = false) => {
   const [isMounted, setIsMounted] = useState(open);
@@ -137,10 +138,13 @@ export default function WaitingRoom() {
 
   // Chat states
   const [showChat, setShowChat] = useState(false);
+  const [chatModalVisible, setChatModalVisible] = useState(false);
+  const [chatModalPhase, setChatModalPhase] = useState<'enter' | 'exit'>('exit');
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<{from: 'me'|'opponent', text: string, userName?: string}[]>([]);
   const [hasNewChat, setHasNewChat] = useState(false);
   const chatListRef = useRef<HTMLDivElement|null>(null);
+  const chatModalAnimRef = useRef<NodeJS.Timeout | null>(null);
 
   // Swap seat states
   const [showSwapModal, setShowSwapModal] = useState(false);
@@ -664,6 +668,35 @@ export default function WaitingRoom() {
     };
   }, []);
 
+  useEffect(() => {
+    if (showChat) {
+      if (chatModalAnimRef.current) {
+        clearTimeout(chatModalAnimRef.current);
+        chatModalAnimRef.current = null;
+      }
+      setChatModalVisible(true);
+      requestAnimationFrame(() => setChatModalPhase('enter'));
+      return;
+    }
+
+    if (chatModalVisible) {
+      setChatModalPhase('exit');
+      chatModalAnimRef.current = setTimeout(() => {
+        setChatModalVisible(false);
+        chatModalAnimRef.current = null;
+      }, CHAT_MODAL_ANIMATION_MS);
+    }
+  }, [showChat, chatModalVisible]);
+
+  useEffect(() => {
+    return () => {
+      if (chatModalAnimRef.current) {
+        clearTimeout(chatModalAnimRef.current);
+        chatModalAnimRef.current = null;
+      }
+    };
+  }, []);
+
   const handleToggleReady = () => {
     if (!socket) return;
     
@@ -1183,13 +1216,15 @@ export default function WaitingRoom() {
       )}
 
       {/* Modal chat */}
-      <AuroraModalBackdrop open={showChat} disableAnimation>
-        <div className={`relative w-full ${isMobileLandscape ? 'max-w-[320px]' : 'max-w-2xl'}`} data-no-motion="true">
+      <AuroraModalBackdrop open={chatModalVisible}>
+        <div className={`relative w-full ${isMobileLandscape ? 'max-w-[320px]' : 'max-w-2xl'}`}>
           <div className="absolute inset-0 blur-3xl opacity-70 bg-blue-500/20 pointer-events-none" />
-          <div className={`relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${isMobileLandscape ? 'p-3 min-h-[340px]' : 'p-6 min-h-[520px]'}`}>
+          <div
+            data-chat-modal-state={chatModalPhase}
+            className={`chat-modal-surface relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${isMobileLandscape ? 'p-3 min-h-[340px]' : 'p-6 min-h-[520px]'}`}
+          >
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
-                <p className={`uppercase tracking-[0.35em] text-blue-200/80 ${isMobileLandscape ? 'text-[9px]' : 'text-xs'}`}>CHAT</p>
                 <h3 className={`${isMobileLandscape ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Chat phòng</h3>
               </div>
               <button
@@ -1289,6 +1324,22 @@ export default function WaitingRoom() {
 
       {/* Chat styles */}
       <style jsx global>{`
+        .chat-modal-surface {
+          opacity: 0;
+          transform: translateY(12px) scale(0.96);
+          transition: opacity ${CHAT_MODAL_ANIMATION_MS}ms ease, transform ${CHAT_MODAL_ANIMATION_MS}ms ease;
+        }
+
+        .chat-modal-surface[data-chat-modal-state='enter'] {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+
+        .chat-modal-surface[data-chat-modal-state='exit'] {
+          opacity: 0;
+          transform: translateY(6px) scale(0.97);
+        }
+
         /* Hiệu ứng cho tin nhắn mới nhất */
         .chat-message.new-message {
           animation: newMessagePop 0.6s ease-out;

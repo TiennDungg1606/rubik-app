@@ -46,6 +46,7 @@ function calcStats(times: (number|null)[]) {
 }
 
 const SCRAMBLE_LOCK_DURATION_MS = 15000;
+const CHAT_MODAL_ANIMATION_MS = 150;
 const EXCLUDED_TOUCH_SELECTOR = '.webcam-area';
 type AuroraTone = "emerald" | "amber" | "rose" | "crimson";
 type ModalTransitionStage = "enter" | "exit" | "idle";
@@ -252,10 +253,13 @@ export default function RoomPage() {
   const [showCubeNet, setShowCubeNet] = useState(false);
   // State cho chat - Updated for 2vs2
   const [showChat, setShowChat] = useState(false);
+  const [chatModalVisible, setChatModalVisible] = useState(false);
+  const [chatModalPhase, setChatModalPhase] = useState<'enter' | 'exit'>('exit');
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<{from: string, text: string, team?: 'A'|'B', playerName?: string}[]>([]);
   const [hasNewChat, setHasNewChat] = useState(false);
   const audioRef = useRef<HTMLAudioElement|null>(null);
+  const chatModalAnimRef = useRef<NodeJS.Timeout | null>(null);
   const loadingVideoRef = useRef<HTMLVideoElement|null>(null);
   const [forceMuted, setForceMuted] = useState(false);
 
@@ -928,6 +932,35 @@ useEffect(() => {
       chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
     }
   }, [showChat, chatMessages]);
+
+  useEffect(() => {
+    if (showChat) {
+      if (chatModalAnimRef.current) {
+        clearTimeout(chatModalAnimRef.current);
+        chatModalAnimRef.current = null;
+      }
+      setChatModalVisible(true);
+      requestAnimationFrame(() => setChatModalPhase('enter'));
+      return;
+    }
+
+    if (chatModalVisible) {
+      setChatModalPhase('exit');
+      chatModalAnimRef.current = setTimeout(() => {
+        setChatModalVisible(false);
+        chatModalAnimRef.current = null;
+      }, CHAT_MODAL_ANIMATION_MS);
+    }
+  }, [showChat]);
+
+  useEffect(() => {
+    return () => {
+      if (chatModalAnimRef.current) {
+        clearTimeout(chatModalAnimRef.current);
+        chatModalAnimRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!roomId) return;
@@ -3949,10 +3982,13 @@ const clampPlayerIndex = (idx: number) => {
           </button>
         </div>
       {/* Modal chat nổi - Aurora style */}
-      <AuroraModalBackdrop open={showChat} disableAnimation>
+      <AuroraModalBackdrop open={chatModalVisible} disableAnimation>
         <div className={`relative w-full ${mobileShrink ? 'max-w-[320px]' : 'max-w-2xl'}`} data-no-motion="true">
           <div className="absolute inset-0 blur-3xl opacity-70 bg-blue-500/20 pointer-events-none" />
-          <div className={`relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${mobileShrink ? 'p-3 min-h-[340px]' : 'p-6 min-h-[520px]'}`}>
+          <div
+            data-chat-modal-state={chatModalPhase}
+            className={`chat-modal-surface relative flex flex-col rounded-[30px] border border-white/10 bg-slate-950/85 backdrop-blur-2xl shadow-[0_30px_80px_rgba(0,0,0,0.45)] ${mobileShrink ? 'p-3 min-h-[340px]' : 'p-6 min-h-[520px]'}`}
+          >
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
                 <h3 className={`${mobileShrink ? 'text-lg' : 'text-2xl'} font-semibold text-white`}>Chat phòng</h3>
@@ -4058,18 +4094,18 @@ const clampPlayerIndex = (idx: number) => {
               className={`${mobileShrink ? 'text-[11px]' : 'text-sm'} text-white flex-1 overflow-y-auto pr-2 leading-relaxed`}
               style={{ maxHeight: mobileShrink ? 180 : 360 }}
             >
-              <ul className="list-decimal pl-4 space-y-2 text-white/90">
-                <li>Mỗi người có 5 lượt giải, chủ phòng là người giải trước.</li>
-                <li>Cam lỗi? Tắt/bật lại camera và báo cho đối thủ trước khi tiếp tục.</li>
-                <li>Chỉ giải khi tới lượt; nếu không phải lượt của bạn, hệ thống sẽ khóa timer.</li>
-                <li>Mỗi scramble dùng chung cho cả bốn người trong từng vòng, tổng cộng 5 vòng.</li>
-                <li>Máy tính: nhấn <b>Space</b> để chuẩn bị 15s, nhả Space để bắt đầu và nhấn lần nữa để kết thúc.</li>
-                <li>Điện thoại: chạm để chuẩn bị, nhấn giữ rồi thả để bắt đầu, chạm một lần để dừng.</li>
-                <li>Chọn <b>DNF</b> khi không hoàn thành, hoặc <b>+2</b> khi bị phạt theo luật WCA.</li>
-                <li>Ấn <b>Gửi</b> để xác nhận kết quả; hệ thống cập nhật bảng ngay lập tức.</li>
-                <li>Thắng thua dựa trên tổng điểm của đội, quy chế tính điểm: Người nhanh nhất +3đ, người thứ hai +2đ, người thứ ba +1đ, người xong cuối 0đ.</li>
-                <li>Trường hợp cả hai đội cùng số điểm thì sẽ xét averaga để phân định thắng thua.</li>
-                <li>HÃY THI ĐÂU MỘT CÁCH TRUNG THỰC VÀ TÔN TRỌNG ĐỐI THỦ!</li>
+              <ul className="pl-4 space-y-2 text-white/90">
+                <li>1. Mỗi người có 5 lượt giải, chủ phòng là người giải trước.</li>
+                <li>2. Cam lỗi? Tắt/bật lại camera và báo cho đối thủ trước khi tiếp tục.</li>
+                <li>3. Chỉ giải khi tới lượt; nếu không phải lượt của bạn, hệ thống sẽ khóa timer.</li>
+                <li>4. Mỗi scramble dùng chung cho cả bốn người trong từng vòng, tổng cộng 5 vòng.</li>
+                <li>5. Máy tính: nhấn <b>Space</b> để chuẩn bị 15s, nhả Space để bắt đầu và nhấn lần nữa để kết thúc.</li>
+                <li>6. Điện thoại: chạm để chuẩn bị, nhấn giữ rồi thả để bắt đầu, chạm một lần để dừng.</li>
+                <li>7. Chọn <b>DNF</b> khi không hoàn thành, hoặc <b>+2</b> khi bị phạt theo luật WCA.</li>
+                <li>8. Ấn <b>Gửi</b> để xác nhận kết quả; hệ thống cập nhật bảng ngay lập tức.</li>
+                <li>9. Thắng thua dựa trên tổng điểm của đội, quy chế tính điểm: Người nhanh nhất +3đ, người thứ hai +2đ, người thứ ba +1đ, người xong cuối 0đ.</li>
+                <li>10. Trường hợp cả hai đội cùng số điểm thì sẽ xét averaga để phân định thắng thua.</li>
+                <li>11. HÃY THI ĐẤU MỘT CÁCH TRUNG THỰC VÀ TÔN TRỌNG ĐỐI THỦ!</li>
               </ul>
             </div>
           </div>
@@ -5624,6 +5660,22 @@ const clampPlayerIndex = (idx: number) => {
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
         
+        .chat-modal-surface {
+          opacity: 0;
+          transform: translateY(12px) scale(0.96);
+          transition: opacity ${CHAT_MODAL_ANIMATION_MS}ms ease, transform ${CHAT_MODAL_ANIMATION_MS}ms ease;
+        }
+
+        .chat-modal-surface[data-chat-modal-state='enter'] {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+
+        .chat-modal-surface[data-chat-modal-state='exit'] {
+          opacity: 0;
+          transform: translateY(6px) scale(0.97);
+        }
+
         /* Hiệu ứng cho tất cả các nút trong giao diện */
         button {
           transition: all 0.2s ease;
