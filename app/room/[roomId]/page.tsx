@@ -2915,34 +2915,6 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         // height: '100%',
       }}
     >
-      {/* Hiển thị meta phòng */}
-      <div className="w-full flex flex-col items-center justify-center mt-2 mb-1">
-        {roomMeta && (
-          <div className="relative w-full flex items-center justify-center">
-            {/* Overlay dưới thông tin phòng */}
-            <div style={{
-              position: 'absolute',
-              left: '50%',
-              top: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: mobileShrink ? 'auto' : 'auto',
-              minWidth: mobileShrink ? '140px' : '250px',
-              maxWidth: mobileShrink ? '220px' : '400px',
-              height: mobileShrink ? 32 : 48,
-              background: 'rgba(0,0,0,0.35)',
-              borderRadius: 12,
-              zIndex: 0,
-              padding: mobileShrink ? '0 8px' : '0 16px'
-            }} />
-            <div className={mobileShrink ? "text-[13px] font-semibold text-center mb-1 relative z-10" : "text-xl font-semibold text-center mb-2 relative z-10"}>
-              <span className="text-blue-300">Tên phòng:</span> <span className="text-white">{roomMeta.displayName || roomId}</span>
-              {roomMeta.event && (
-                <span className="ml-3 text-pink-300">Thể loại: <span className="font-bold">{roomMeta.event}</span></span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
       {/* Nút rời phòng */}
       <div
         className={
@@ -3408,13 +3380,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               </div>
               <div className={`flex flex-row items-center gap-1.5 text-right justify-end flex-shrink-0 ${mobileShrink ? 'mt-0 whitespace-nowrap' : ''}`}>
                 {eventName && (
-                  <span className="inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[9px] font-semibold text-blue-100">
+                  <span className="inline-flex items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[13px] font-semibold text-blue-100">
                     {eventName}
                   </span>
                 )}
-                <span className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[13px] font-semibold text-white/80">
-                  {users.length >= 2 ? 'Đủ 2 cuber' : `Đang có ${Math.min(users.length, 2)}/2 cuber`}
-                </span>
               </div>
             </div>
           </div>
@@ -3609,21 +3578,21 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                       const oppDnfCount = opponentResults.filter(r => r === null).length;
                       if (myDnfCount >= 2 && oppDnfCount >= 2) {
                         return (
-                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-yellow-300 font-semibold`}>
+                          <span className={`${mobileShrink ? 'text-[10px]' : 'text-sm'} text-yellow-300 font-semibold`}>
                             {userName} và {opponentName} hòa - cả hai đều có 2 lần DNF.
                           </span>
                         );
                       }
                       if (myDnfCount >= 2) {
                         return (
-                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-orange-300 font-semibold`}>
+                          <span className={`${mobileShrink ? 'text-[10px]' : 'text-sm'} text-orange-300 font-semibold`}>
                             {userName} thua - có 2 lần DNF. {opponentName} thắng.
                           </span>
                         );
                       }
                       if (oppDnfCount >= 2) {
                         return (
-                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-emerald-300 font-semibold`}>
+                          <span className={`${mobileShrink ? 'text-[10px]' : 'text-sm'} text-emerald-300 font-semibold`}>
                             {userName} thắng - {opponentName} có 2 lần DNF.
                           </span>
                         );
@@ -3635,28 +3604,28 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                       const oppAo5 = calcStats(opponentResults).ao5;
                       if (myAo5 === null && oppAo5 === null) {
                         return (
-                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-yellow-300 font-semibold`}>
+                          <span className={`${mobileShrink ? 'text-[10px]' : 'text-sm'} text-yellow-300 font-semibold`}>
                             Trận đấu kết thúc, hòa
                           </span>
                         );
                       }
                       if (myAo5 === null) {
                         return (
-                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-emerald-300 font-semibold`}>
+                          <span className={`${mobileShrink ? 'text-[10px]' : 'text-sm'} text-emerald-300 font-semibold`}>
                             Trận đấu kết thúc, {opponentName} thắng
                           </span>
                         );
                       }
                       if (oppAo5 === null) {
                         return (
-                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-emerald-300 font-semibold`}>
+                          <span className={`${mobileShrink ? 'text-[10px]' : 'text-sm'} text-emerald-300 font-semibold`}>
                             Trận đấu kết thúc, {userName} thắng
                           </span>
                         );
                       }
                       if (myAo5 < oppAo5) {
                         return (
-                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-emerald-300 font-semibold`}>
+                          <span className={`${mobileShrink ? 'text-[10px]' : 'text-sm'} text-emerald-300 font-semibold`}>
                             Trận đấu kết thúc, {userName} thắng
                           </span>
                         );
@@ -3669,7 +3638,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                         );
                       }
                       return (
-                        <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} text-yellow-300 font-semibold`}>
+                        <span className={`${mobileShrink ? 'text-[10px]' : 'text-sm'} text-yellow-300 font-semibold`}>
                           Trận đấu kết thúc, hòa
                         </span>
                       );
@@ -3686,11 +3655,11 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                       }
                       return (
                         <div className="flex flex-col gap-0.5">
-                          <span className={`${mobileShrink ? 'text-[9px]' : 'text-sm'} font-semibold text-green-200`}>
+                          <span className={`${mobileShrink ? 'text-11px]' : 'text-lg'} font-semibold text-green-200`}>
                             {msg}
                           </span>
                           {showScrambleMsg && (
-                            <span className={`${mobileShrink ? 'text-[9px]' : 'text-xs'} text-yellow-200`}>
+                            <span className={`${mobileShrink ? 'text-[10px]' : 'text-base'} text-yellow-200`}>
                               Hai cuber hãy tráo scramble trong {SCRAMBLE_LOCK_DURATION_MS / 1000}s
                             </span>
                           )}
@@ -3728,7 +3697,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   style={{ wordBreak: 'break-word' }}
                 >
                   <div
-                    className={`${mobileShrink ? 'text-[10px]' : 'text-lg'} font-bold tracking-widest text-blue-100 leading-relaxed select-all`}
+                    className={`${mobileShrink ? 'text-[13px]' : 'text-xl'} font-bold tracking-widest text-blue-100 leading-relaxed select-all`}
                   >
                     {scramble || 'Chưa có scramble'}
                   </div>
