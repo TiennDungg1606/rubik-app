@@ -3924,7 +3924,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               gap: 4
             }}>
               {prep ? (
-                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12, fontFamily: 'Digital7Mono' }}>
+                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 13, fontFamily: 'Digital7Mono' }}>
                   Chuẩn bị: {prepTime}s
                 </span>
               ) : dnf ? (
@@ -4619,7 +4619,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               fontFamily: "'Digital7Mono', 'Digital-7', 'Courier New', monospace"
             }}>
               {opponentPrep ? (
-                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>
+                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 13, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>
               ) : (
                 <>
                   <span style={{ 

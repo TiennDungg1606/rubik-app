@@ -14,10 +14,11 @@ type RoomTabProps = {
   setRoomInput: (v: string) => void;
   handleCreateRoom: (event: '2x2' | '3x3' | '4x4' | 'pyraminx', displayName: string, password: string, gameMode: '1vs1' | '2vs2') => void;
   handleJoinRoom: (roomId: string) => void;
+  mobileShrink?: boolean;
 };
 
 
-export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom }: RoomTabProps) {
+export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink }: RoomTabProps) {
 
   // Skeleton loading state
   const [loadingRooms, setLoadingRooms] = useState(true);
@@ -65,12 +66,28 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [modalRoomName, setModalRoomName] = useState("");
   const [modalPassword, setModalPassword] = useState("");
   const [modalPasswordConfirm, setModalPasswordConfirm] = useState("");
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
+  const [isCompactWidth, setIsCompactWidth] = useState(false);
   const [modalError, setModalError] = useState("");
   const [showRoomFullModal, setShowRoomFullModal] = useState(false);
   const [roomFullModalVisible, setRoomFullModalVisible] = useState(false);
   const [roomFullMessage, setRoomFullMessage] = useState("");
   const roomFullTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const roomFullHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const effectiveMobileShrink = Boolean(mobileShrink || isMobileLandscape || isCompactWidth);
+  const modalInputClasses = `w-full rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 ${effectiveMobileShrink ? 'px-3 py-1.5 text-sm' : 'px-3 py-2'}`;
+  const modalHeadingClass = `${effectiveMobileShrink ? 'text-base' : 'text-lg'} font-semibold text-white mb-4`;
+  const modalSectionTitleClass = `${effectiveMobileShrink ? 'text-sm' : 'text-lg'} font-semibold text-white mb-4`;
+  const modalButtonBase = `${effectiveMobileShrink ? 'px-3 py-2 text-sm' : 'px-4 py-2'} rounded text-white font-bold transition-colors`;
+  const modalContainerClasses = effectiveMobileShrink
+    ? 'flex flex-row gap-3 p-3 w-[95vw] max-w-[95vw] overflow-x-auto'
+    : 'flex flex-col sm:flex-row w-full max-w-[98vw] sm:max-w-[720px] md:max-w-[880px] lg:max-w-[1040px] xl:max-w-[1180px] p-2 sm:p-6';
+  const selectionColumnClass = effectiveMobileShrink
+    ? 'flex flex-col items-center justify-start w-1/4 min-w-[120px] px-2 border-r border-white/10'
+    : 'flex flex-col items-center justify-start w-1/4 px-4 border-r border-white/10';
+  const formColumnClass = effectiveMobileShrink
+    ? 'flex-1 min-w-[200px] px-2 flex flex-col justify-between'
+    : 'flex-1 px-4 flex flex-col justify-between';
   // Đã loại bỏ logic spectator
   // Sử dụng localhost khi development, production server khi production
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -78,6 +95,25 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     ? "http://localhost:3001" 
     : "https://rubik-socket-server-production-3b21.up.railway.app";
   
+  useEffect(() => {
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      const portrait = window.innerHeight > window.innerWidth;
+      const viewportWidth = window.innerWidth;
+      setIsMobileLandscape(mobile && !portrait && viewportWidth < 1200);
+      setIsCompactWidth(viewportWidth <= 768);
+    }
+
+    if (typeof window !== "undefined") {
+      checkDevice();
+      window.addEventListener("resize", checkDevice);
+      window.addEventListener("orientationchange", checkDevice);
+      return () => {
+        window.removeEventListener("resize", checkDevice);
+        window.removeEventListener("orientationchange", checkDevice);
+      };
+    }
+  }, []);
 
   // Lấy danh sách phòng và phân loại - đã gộp logic Skeleton loading vào đây
   useEffect(() => {
@@ -331,21 +367,16 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           style={{ minHeight: '100dvh', minWidth: '100vw', padding: 0 }}
         >
           <div
-            className={`bg-gray-900 rounded-xl shadow-2xl flex flex-col sm:flex-row w-full max-w-[98vw] sm:max-w-[600px] md:max-w-[700px] lg:max-w-[800px] p-2 sm:p-6 box-border transform transition-all duration-200 ${modalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+            className={`rounded-[28px] border border-white/10 bg-gradient-to-br from-slate-950/95 via-slate-900/80 to-slate-950/95 shadow-[0_40px_120px_rgba(0,0,0,0.5)] backdrop-blur-2xl box-border transform transition-all duration-200 ${modalContainerClasses} ${modalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
             style={{
               overflowY: 'auto',
               borderRadius: 16,
               position: 'absolute',
-              ...(window.innerWidth < 640
+              ...(effectiveMobileShrink
                 ? {
                     top: 16,
                     left: '50%',
-                    width: '90vw',
-                    minWidth: '0',
-                    maxWidth: '90vw',
-                    height: 'auto',
                     maxHeight: '92dvh',
-                    padding: 4,
                     transform: `translateX(-50%) ${modalVisible ? '' : 'scale(0.97)'}`,
                   }
                 : {
@@ -357,82 +388,114 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             }}
           >
             {/* Cột 1: Chọn thể loại rubik */}
-            <div className="flex flex-col items-center justify-start w-1/4 px-4 border-r border-gray-700">
-              <div className="text-lg font-semibold text-white mb-4">Thể loại</div>
-              <button
-                className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '2x2' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                onClick={() => setModalEvent('2x2')}
-              >2x2</button>
-              <button
-                className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '3x3' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                onClick={() => setModalEvent('3x3')}
-              >3x3</button>
-              <button
-                className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === '4x4' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                onClick={() => setModalEvent('4x4')}
-              >4x4</button>
-              <button
-                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalEvent === 'pyraminx' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                onClick={() => setModalEvent('pyraminx')}
-              >Pyraminx</button>
+            <div className={selectionColumnClass}>
+              <div className="flex flex-col items-center text-center mb-4">
+                <div className={`${modalSectionTitleClass} tracking-wide uppercase text-blue-200`}>Thể loại</div>
+              </div>
+              {[
+                { id: '2x2', label: '2x2', hue: 'from-cyan-400/80 to-blue-500/70' },
+                { id: '3x3', label: '3x3', hue: 'from-blue-500/85 to-indigo-600/70' },
+                { id: '4x4', label: '4x4', hue: 'from-violet-500/85 to-purple-600/70' },
+                { id: 'pyraminx', label: 'Pyraminx', hue: 'from-amber-400/80 to-orange-500/70' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  className={`w-full mb-3 rounded-2xl border px-3 py-3 text-sm font-semibold tracking-wide transition-all duration-200 flex flex-col items-center gap-1 shadow-sm ${modalEvent === option.id
+                    ? `border-white/80 text-white bg-gradient-to-br ${option.hue} shadow-[0_12px_24px_rgba(0,0,0,0.35)]`
+                    : 'border-white/10 text-slate-200 bg-white/5 hover:bg-white/10'}`}
+                  onClick={() => setModalEvent(option.id as typeof modalEvent)}
+                >
+                  <span className="text-base">{option.label}</span>
+                </button>
+              ))}
             </div>
             {/* Cột 2: Chọn chế độ đấu */}
-            <div className="flex flex-col items-center justify-start w-1/4 px-4 border-r border-gray-700">
-              <div className="text-lg font-semibold text-white mb-4">Chế độ đấu</div>
-              <button
-                className={`mb-2 px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalGameMode === '1vs1' ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                onClick={() => setModalGameMode('1vs1')}
-              >1vs1</button>
-              <button
-                className={`px-4 py-2 rounded-lg w-full text-white font-bold transition-colors ${modalGameMode === '2vs2' ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-                onClick={() => setModalGameMode('2vs2')}
-              >2vs2</button>
+            <div className={selectionColumnClass}>
+              <div className="flex flex-col items-center text-center mb-4">
+                <div className={`${modalSectionTitleClass} tracking-wide uppercase text-emerald-200`}>Chế độ đấu</div>
+              </div>
+              {[
+                { id: '1vs1', label: '1 vs 1', desc: 'Đối đầu trực tiếp' },
+                { id: '2vs2', label: '2 vs 2', desc: 'Đồng đội kịch tính' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  className={`w-full mb-3 rounded-2xl border px-3 py-3 text-sm font-semibold tracking-wide transition-all duration-200 text-left shadow-sm ${modalGameMode === option.id
+                    ? 'border-emerald-200/80 text-white bg-gradient-to-br from-emerald-500/80 to-teal-500/70 shadow-[0_12px_24px_rgba(16,185,129,0.35)]'
+                    : 'border-white/10 text-slate-200 bg-white/5 hover:bg-white/10'}`}
+                  onClick={() => setModalGameMode(option.id as typeof modalGameMode)}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-base">{option.label}</span>
+                    <span className="text-[10px] uppercase tracking-[0.3em] text-white/60">Mode</span>
+                  </div>
+                  <p className="text-[11px] text-white/70 mt-1">{option.desc}</p>
+                </button>
+              ))}
             </div>
             {/* Cột 3: Nhập tên phòng, mật khẩu, xác nhận */}
-            <div className="flex-1 px-4 flex flex-col justify-between">
-              <div>
-                <div className="text-lg font-semibold text-white mb-4">Tạo phòng mới</div>
-                <div className="mb-3">
-                  <label className="block text-gray-300 mb-1">Tên phòng (tối đa 10 ký tự)</label>
-                  <input
-                    className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    maxLength={10}
-                    value={modalRoomName}
-                    onChange={e => setModalRoomName(e.target.value)}
-                    placeholder="Nhập tên phòng"
-                  />
+            <div className={formColumnClass}>
+              <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-5 shadow-inner shadow-black/40">
+                <div className={`${modalHeadingClass} flex items-center justify-between`}>
+                  <span>Tạo phòng mới</span>
                 </div>
-                <div className="mb-3">
-                  <label className="block text-gray-300 mb-1">Mật khẩu (có thể để trống)</label>
-                  <input
-                    className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    type="password"
-                    value={modalPassword}
-                    onChange={e => setModalPassword(e.target.value)}
-                    placeholder="Nhập mật khẩu"
-                  />
+                <div className="space-y-4">
+                  <div>
+                    <label className={`block text-gray-200 mb-1 font-medium ${effectiveMobileShrink ? 'text-sm' : ''}`}>
+                      Tên phòng <span className="text-white/50">(tối đa 10 ký tự)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        className={`${modalInputClasses} pl-10 bg-white/10 border-white/20 focus:border-blue-400/70`}
+                        maxLength={10}
+                        value={modalRoomName}
+                        onChange={e => setModalRoomName(e.target.value)}
+                        placeholder="Nhập tên phòng"
+                      />
+                      <span className="absolute inset-y-0 left-3 flex items-center text-white/60 text-sm">#</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={`block text-gray-200 mb-1 font-medium ${effectiveMobileShrink ? 'text-sm' : ''}`}>
+                      Mật khẩu <span className="text-white/50">(có thể để trống)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        className={`${modalInputClasses} pr-10 bg-white/10 border-white/20 focus:border-blue-400/70`}
+                        type="password"
+                        value={modalPassword}
+                        onChange={e => setModalPassword(e.target.value)}
+                        placeholder="Nhập mật khẩu"
+                      />
+                      <span className="absolute inset-y-0 right-3 flex items-center text-white/60 text-sm">🔒</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={`block text-gray-200 mb-1 font-medium ${effectiveMobileShrink ? 'text-sm' : ''}`}>Nhập lại mật khẩu</label>
+                    <input
+                      className={`${modalInputClasses} bg-white/10 border-white/20 focus:border-blue-400/70`}
+                      type="password"
+                      value={modalPasswordConfirm}
+                      onChange={e => setModalPasswordConfirm(e.target.value)}
+                      placeholder="Nhập lại mật khẩu"
+                    />
+                  </div>
+                  {modalError && <div className="text-red-400 text-sm">{modalError}</div>}
                 </div>
-                <div className="mb-3">
-                  <label className="block text-gray-300 mb-1">Nhập lại mật khẩu</label>
-                  <input
-                    className="w-full px-3 py-2 rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    type="password"
-                    value={modalPasswordConfirm}
-                    onChange={e => setModalPasswordConfirm(e.target.value)}
-                    placeholder="Nhập lại mật khẩu"
-                  />
-                </div>
-                {modalError && <div className="text-red-400 text-sm mb-2">{modalError}</div>}
               </div>
-              <div className="flex flex-row justify-end gap-3 mt-4">
+              <div className="mt-4 flex items-center justify-between text-xs text-white/60">
+                <span>Phòng riêng tư sẽ hiển thị biểu tượng khóa.</span>
+                <span>{modalRoomName.length}/10</span>
+              </div>
+              <div className={`flex flex-row justify-end gap-3 mt-4 ${effectiveMobileShrink ? 'text-sm' : ''}`}>
                 <button
-                  className="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-500 transition-colors"
+                  className={`${modalButtonBase} bg-white/10 border border-white/20 text-white hover:bg-white/20 font-normal`}
                   onClick={closeCreateModal}
                 >Hủy</button>
                 <button
-                  className="px-4 py-2 rounded bg-green-600 text-white font-bold hover:bg-green-500 transition-colors"
+                  className={`${modalButtonBase} bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-400 hover:to-sky-400 shadow-lg shadow-emerald-500/30`}
                   onClick={handleModalConfirm}
-                >Xác nhận</button>
+                >Tạo phòng</button>
               </div>
             </div>
           </div>
@@ -498,17 +561,35 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
       {showRoomFullModal && typeof window !== 'undefined' && ReactDOM.createPortal(
         <div
-          className={`fixed inset-0 z-60 flex items-center justify-center bg-black/70 transition-opacity duration-300 ${roomFullModalVisible ? 'opacity-100' : 'opacity-0'}`}
+          className={`fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${roomFullModalVisible ? 'opacity-100' : 'opacity-0'}`}
           style={{ minHeight: '100dvh', minWidth: '100vw' }}
           onClick={closeRoomFullModal}
         >
           <div
-            className={`bg-gray-900 rounded-2xl shadow-2xl px-6 py-8 max-w-sm text-center border border-red-500 mx-4 transition-all duration-300 ${roomFullModalVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+            className={`rounded-[26px] border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900/90 to-slate-950 shadow-[0_40px_120px_rgba(0,0,0,0.55)] px-6 py-8 w-full max-w-md text-center mx-4 transition-all duration-300 ${roomFullModalVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
             onClick={event => event.stopPropagation()}
           >
-            <div className="text-2xl font-semibold text-red-400 mb-3">Phòng đã đầy</div>
-            <div className="text-gray-200">
-              {roomFullMessage || 'Phòng chờ 2vs2 hiện đã đủ 4 người chơi. Vui lòng thử lại sau.'}
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-red-300">
+              <svg className="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M21 12a9 9 0 1 0-18 0 9 9 0 0 0 18 0Z" />
+              </svg>
+            </div>
+            <div className="text-2xl font-semibold text-red-300 mb-2 tracking-wide">Phòng đã đầy</div>
+            <p className="text-sm text-white/80 leading-relaxed">
+              {roomFullMessage || 'Phòng chờ 2vs2 hiện đã đủ 4 người chơi. Vui lòng thử lại sau hoặc mở phòng mới cho bạn bè.'}
+            </p>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <button
+                className="px-5 py-2.5 rounded-2xl border border-white/15 text-white/90 hover:bg-white/10 transition-colors"
+                onClick={closeRoomFullModal}
+              >Quay lại</button>
+              <button
+                className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-red-500 text-white font-semibold shadow-lg shadow-rose-500/30 transition hover:translate-y-[-1px]"
+                onClick={() => {
+                  closeRoomFullModal();
+                  openCreateModal();
+                }}
+              >Tạo phòng mới</button>
             </div>
           </div>
         </div>,

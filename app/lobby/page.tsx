@@ -880,6 +880,7 @@ function LobbyContent() {
                       setRoomInput={setRoomInput}
                       handleCreateRoom={handleCreateRoom}
                       handleJoinRoom={handleJoinRoom}
+                      mobileShrink={mobileShrink}
                     />
                     {joinError && <div className="mt-3 text-center text-sm text-red-400">{joinError}</div>}
                   </>

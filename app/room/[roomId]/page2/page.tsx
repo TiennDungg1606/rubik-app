@@ -4789,7 +4789,7 @@ const clampPlayerIndex = (idx: number) => {
               gap: 4
             }}>
               {prep ? (
-                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12 }}>
+                <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 13 }}>
                   Chuẩn bị: {prepTime}s
                 </span>
               ) : dnf ? (
@@ -5354,7 +5354,7 @@ const clampPlayerIndex = (idx: number) => {
                 const targetId = opponentUserId1;
                 const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
                 if (isTargetActive && opponentPrep) {
-                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>;
+                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 13, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>;
                 }
                 if (isTargetActive) {
                   const cs = Math.floor((opponentTimer % 1000) / 10);
@@ -5479,7 +5479,7 @@ const clampPlayerIndex = (idx: number) => {
                 const targetId = teammateUserId;
                 const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
                 if (isTargetActive && opponentPrep) {
-                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>;
+                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 13, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>;
                 }
                 if (isTargetActive) {
                   const cs = Math.floor((opponentTimer % 1000) / 10);
@@ -5606,7 +5606,7 @@ const clampPlayerIndex = (idx: number) => {
                 const targetId = opponentUserId2;
                 const isTargetActive = targetId && normalizeId(activeRemoteUserId) === normalizeId(targetId);
                 if (isTargetActive && opponentPrep) {
-                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 12, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>;
+                  return <span style={{ color: '#fbc02d', fontSize: mobileShrink ? 9 : 13, fontFamily: 'Digital7Mono' }}>Chuẩn bị: {opponentPrepTime}s</span>;
                 }
                 if (isTargetActive) {
                   const cs = Math.floor((opponentTimer % 1000) / 10);
