@@ -254,6 +254,10 @@ useEffect(() => {
 
     // Ref cho khối chat để auto-scroll
   const chatListRef = useRef<HTMLDivElement>(null);
+  const scrollChatToBottom = React.useCallback(() => {
+    if (!chatListRef.current) return;
+    chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+  }, []);
 
   useEffect(() => {
     myResultsRef.current = myResults;
@@ -285,10 +289,12 @@ useEffect(() => {
 
   // Auto-scroll xuống cuối khi mở chat hoặc có tin nhắn mới
   useEffect(() => {
-    if (showChat && chatListRef.current) {
-      chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
-    }
-  }, [showChat, chatMessages]);
+    if (!showChat || !chatModalVisible) return;
+    const rafId = window.requestAnimationFrame(() => {
+      scrollChatToBottom();
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [showChat, chatModalVisible, chatMessages, scrollChatToBottom]);
 
   useEffect(() => {
     if (showChat) {

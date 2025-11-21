@@ -88,7 +88,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const formColumnClass = effectiveMobileShrink
     ? 'flex-1 min-w-[200px] px-2 flex flex-col justify-between'
     : 'flex-1 px-4 flex flex-col justify-between';
-  const listSectionWrapperClass = effectiveMobileShrink ? 'w-full max-w-xl' : 'w-full max-w-5xl';
+  const listSectionWrapperClass = effectiveMobileShrink ? 'w-full max-w-lg' : 'w-full max-w-3xl';
   const listSectionSpacingClass = effectiveMobileShrink ? 'mb-2' : 'mb-5';
   const listHeadingClass = `${effectiveMobileShrink ? 'text-base' : 'text-lg'} font-semibold mb-4 text-center text-white`;
   const listContainerClass = effectiveMobileShrink
@@ -980,7 +980,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
               ))
             )}
             {activeRooms.length === 0 && (
-              <div className="col-span-full text-center text-white py-8">
+              <div className="col-span-full text-center text-white py-5">
                 Chưa có phòng nào đang hoạt động
               </div>
             )}
