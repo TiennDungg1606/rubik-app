@@ -88,6 +88,24 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const formColumnClass = effectiveMobileShrink
     ? 'flex-1 min-w-[200px] px-2 flex flex-col justify-between'
     : 'flex-1 px-4 flex flex-col justify-between';
+  const listSectionWrapperClass = effectiveMobileShrink ? 'w-full max-w-xl' : 'w-full max-w-5xl';
+  const listSectionSpacingClass = effectiveMobileShrink ? 'mb-2' : 'mb-5';
+  const listHeadingClass = `${effectiveMobileShrink ? 'text-base' : 'text-lg'} font-semibold mb-4 text-center text-white`;
+  const listContainerClass = effectiveMobileShrink
+    ? 'h-62 overflow-y-auto border border-gray-700 rounded-xl p-1'
+    : 'h-74 overflow-y-auto border border-gray-700 rounded-lg p-2';
+  const listGridClass = effectiveMobileShrink
+    ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center'
+    : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center';
+  const roomCardWrapperClass = `flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-xl ${effectiveMobileShrink ? 'gap-1 text-sm' : ''}`;
+  const roomTileBaseClass = `${effectiveMobileShrink ? 'w-20 h-20 text-2xl' : 'w-24 h-24 text-3xl'} rounded-xl flex items-center justify-center text-gray-100 mb-2 relative`;
+  const createTileClass = `${effectiveMobileShrink ? 'w-20 h-20 text-4xl' : 'w-24 h-24 text-5xl'} bg-gray-700 rounded-xl flex items-center justify-center text-gray-300 mb-2 hover:bg-gray-600 transition-all`;
+  const skeletonTileClass = `${effectiveMobileShrink ? 'w-20 h-20' : 'w-24 h-24'} rounded-xl mb-2 flex items-center justify-center`;
+  const skeletonInnerTileClass = `${effectiveMobileShrink ? 'w-14 h-14' : 'w-16 h-16'} rounded grid place-items-center`;
+  const skeletonLabelClass = `${effectiveMobileShrink ? 'h-3 w-16' : 'h-4 w-20'} rounded`;
+  const roomNameClass = `${effectiveMobileShrink ? 'text-sm' : 'text-base'} text-gray-200 text-center`;
+  const roomModeLabelClass = `${effectiveMobileShrink ? 'text-[10px]' : 'text-xs'} text-gray-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
+  const waitingBadgeTextClass = `${effectiveMobileShrink ? 'text-[10px]' : 'text-xs'} text-yellow-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
   // Đã loại bỏ logic spectator
   // Sử dụng localhost khi development, production server khi production
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -622,28 +640,28 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       </div>
       */}
       {/* Danh sách phòng đang thi đấu */}
-      <div className="w-full max-w-3xl mb-8">
-        <div className="text-lg font-semibold mb-4 text-center text-white">
+      <div className={`${listSectionWrapperClass} ${listSectionSpacingClass}`}>
+        <div className={listHeadingClass}>
           🔴 Phòng đang thi đấu ({competingRooms.length} phòng)
         </div>
-        <div className="h-64 overflow-y-auto border border-gray-700 rounded-lg p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
+        <div className={listContainerClass}>
+          <div className={listGridClass}>
             {loadingRooms ? (
               Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="flex flex-col items-center animate-pulse">
-                  <div className="w-24 h-24 bg-red-900/40 rounded-xl mb-2 flex items-center justify-center">
-                    <div className="w-16 h-16 bg-red-300/30 rounded grid place-items-center" />
+                <div key={idx} className={`${roomCardWrapperClass} animate-pulse`}>
+                  <div className={`${skeletonTileClass} bg-red-900/40`}>
+                    <div className={`${skeletonInnerTileClass} bg-red-300/30`} />
                   </div>
-                  <div className="h-4 w-20 bg-red-300/30 rounded mb-1" />
+                  <div className={`${skeletonLabelClass} bg-red-300/30 mb-1`} />
                 </div>
               ))
             ) : (
               competingRooms.map((room: string) => (
                 <div
                   key={room}
-                  className="flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-xl"
+                  className={roomCardWrapperClass}
                 >
-                  <div className="w-24 h-24 bg-red-800 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative">
+                  <div className={`${roomTileBaseClass} bg-red-800`}>
                     {/* Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx */}
                     {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
                       roomMetas[room].event.includes('2x2') ? (
@@ -755,16 +773,16 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                       <span className="absolute top-1 right-1 text-yellow-300"></span>
                     )}
                   </div>
-                  <div className="text-base text-gray-200">
+                  <div className={roomNameClass}>
                     {roomMetas[room]?.isWaitingRoom ? `Phòng chờ ${room}` : (roomMetas[room]?.displayName || room)}
                   </div>
                   {roomMetas[room]?.gameMode && (
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className={roomModeLabelClass}>
                       {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
                     </div>
                   )}
                   {roomMetas[room]?.isWaitingRoom && (
-                    <div className="text-xs text-yellow-400 mt-1">
+                    <div className={waitingBadgeTextClass}>
                       Đang chờ
                     </div>
                   )}
@@ -772,7 +790,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
               ))
             )}
             {competingRooms.length === 0 && (
-              <div className="col-span-full text-center text-white py-8">
+              <div className="col-span-full text-center text-white py-1">
                 Chưa có phòng nào đang thi đấu
               </div>
             )}
@@ -781,25 +799,25 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       </div>
 
       {/* Danh sách phòng đang hoạt động */}
-      <div className="w-full max-w-3xl">
-        <div className="text-lg font-semibold mb-4 text-center text-white">
+      <div className={listSectionWrapperClass}>
+        <div className={listHeadingClass}>
           🟢 Phòng đang hoạt động ({activeRooms.length} phòng)
         </div>
-        <div className="h-64 overflow-y-auto border border-gray-700 rounded-lg p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
+        <div className={listContainerClass}>
+          <div className={listGridClass}>
             {/* Nút tạo phòng */}
-            <div onClick={openCreateModal} className="flex flex-col items-center cursor-pointer">
-              <div className="w-24 h-24 bg-gray-700 rounded-xl flex items-center justify-center text-5xl text-gray-300 mb-2 hover:bg-gray-600 transition-all">+</div>
-              <div className="text-base text-gray-200">Tạo phòng</div>
+            <div onClick={openCreateModal} className={`${roomCardWrapperClass} cursor-pointer`}>
+              <div className={createTileClass}>+</div>
+              <div className={roomNameClass}>Tạo phòng</div>
             </div>
             {/* Hiển thị các phòng đang hoạt động */}
             {loadingRooms ? (
               Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="flex flex-col items-center animate-pulse">
-                  <div className="w-24 h-24 bg-blue-900/40 rounded-xl mb-2 flex items-center justify-center">
-                    <div className="w-16 h-16 bg-blue-300/30 rounded grid place-items-center" />
+                <div key={idx} className={`${roomCardWrapperClass} animate-pulse`}>
+                  <div className={`${skeletonTileClass} bg-blue-900/40`}>
+                    <div className={`${skeletonInnerTileClass} bg-blue-300/30`} />
                   </div>
-                  <div className="h-4 w-20 bg-blue-300/30 rounded mb-1" />
+                  <div className={`${skeletonLabelClass} bg-blue-300/30 mb-1`} />
                 </div>
               ))
             ) : (
@@ -829,9 +847,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                       handleJoinRoom(room);
                     }
                   }}
-                  className="flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-105 hover:shadow-xl"
+                  className={`${roomCardWrapperClass} cursor-pointer`}
                 >
-                  <div className={`w-24 h-24 rounded-xl flex items-center justify-center text-3xl text-gray-100 mb-2 relative ${
+                  <div className={`${roomTileBaseClass} ${
                     roomMetas[room]?.isWaitingRoom ? 'bg-yellow-800' : 'bg-blue-800'
                   }`}>
                     {/* Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx - áp dụng cho cả waiting room và phòng thường */}
@@ -945,16 +963,16 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                       <span className="absolute top-1 right-1 text-green-300"></span>
                     )}
                   </div>
-                  <div className="text-base text-gray-200">
+                  <div className={roomNameClass}>
                     {roomMetas[room]?.displayName || room}
                   </div>
                   {roomMetas[room]?.gameMode && (
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className={roomModeLabelClass}>
                       {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
                     </div>
                   )}
                   {roomMetas[room]?.isWaitingRoom && (
-                    <div className="text-xs text-yellow-400 mt-1">
+                    <div className={waitingBadgeTextClass}>
                       Đang chờ
                     </div>
                   )}
