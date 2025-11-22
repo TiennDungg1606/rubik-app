@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-export default function AuthForm({ onLogin }) {
+export default function AuthForm({ onLogin, initialTab = "login" }) {
   const recaptchaRef = useRef(null);
   const router = useRouter();
   const [form, setForm] = useState({
@@ -17,7 +17,12 @@ export default function AuthForm({ onLogin }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [tab, setTab] = useState("login");
+  const [tab, setTab] = useState(initialTab === "register" ? "register" : "login");
+    useEffect(() => {
+      if (initialTab && (initialTab === "login" || initialTab === "register")) {
+        setTab(initialTab);
+      }
+    }, [initialTab]);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [mobileShrink, setMobileShrink] = useState(false);
   useEffect(() => {
@@ -144,7 +149,7 @@ export default function AuthForm({ onLogin }) {
   };
 
   const effectiveMobileShrink = mobileShrink || isMobileLandscape;
-  const containerClasses = `relative flex flex-col items-center justify-start ${effectiveMobileShrink ? "pt-16 sm:pt-1": "pt-20 sm:pt-20"} `;
+  const containerClasses = `relative flex flex-col items-center justify-start ${effectiveMobileShrink ? "pt-16 sm:pt-1": "pt-4 sm:pt-5"} `;
   const headingClasses = effectiveMobileShrink ? "text-sm" : "text-xl";
   const labelClasses = `block mb-1 text-gray-700 font-semibold ${effectiveMobileShrink ? "text-xs" : "text-sm"}`;
   const inputSizingClasses = effectiveMobileShrink ? "px-2.5 py-1.5 text-xs" : "px-3 py-2 text-sm";
