@@ -3626,7 +3626,7 @@ const clampPlayerIndex = (idx: number) => {
           src="/loadingroom.mp4"
           autoPlay
           loop
-          muted={forceMuted}
+          muted
           playsInline
           className="w-full h-full object-cover"
           style={{ position: 'absolute', inset: 0, zIndex: 1 }}

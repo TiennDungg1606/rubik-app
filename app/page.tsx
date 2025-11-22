@@ -167,15 +167,17 @@ export default function HomePage() {
 
   if (checking) {
     return (
-      <main className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden bg-slate-900">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black">
+        {/* Video loading đã được comment lại - 1 tuần sau sẽ gỡ comment */}
         <video
-          className="absolute inset-0 h-full w-full object-cover"
           src="/rubik-bg.mp4"
           autoPlay
           loop
+          muted
           playsInline
+          className="w-full h-full object-cover"
+          style={{ position: 'absolute', inset: 0, zIndex: 1 }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/40 via-slate-950/40 to-slate-900/30" />
         <div className="relative z-10 w-full max-w-lg rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_25px_90px_rgba(0,0,0,0.4)] px-6 py-12 flex flex-col items-center text-center">
           <BrandCubeIcon size={loadingLogoSize + 8} className="mb-4" />
           <h1 className={loadingTitleClasses}>Rubik App</h1>
@@ -191,7 +193,7 @@ export default function HomePage() {
             Nếu đã lưu cookie, bạn sẽ được tự động chuyển vào sảnh trong giây lát.
           </p>
         </div>
-      </main>
+      </div>
     );
   }
   return (
