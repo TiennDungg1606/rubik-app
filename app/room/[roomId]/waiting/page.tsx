@@ -1,4 +1,3 @@
-
 'use client';
 
 // Khai báo window._roomPassword và _roomDisplayName để tránh lỗi TS
@@ -118,48 +117,6 @@ export default function WaitingRoom() {
     roomCreator: '',
     gameStarted: false
   });
-
-    // Modal for kick notification
-    const [kickModalVisible, setKickModalVisible] = useState(false);
-    const [kickModalMessage, setKickModalMessage] = useState("");
-      // Handle being kicked
-      socket.on('kick-player', (data: { roomId: string; targetUserId: string; hostUserName: string; targetUserName: string }) => {
-        const currentUserId = currentUserIdRef.current;
-        if (data.targetUserId === currentUserId) {
-          setKickModalMessage(`Bạn đã bị chủ phòng (${data.hostUserName}) loại khỏi phòng.`);
-          setKickModalVisible(true);
-          setTimeout(() => {
-            setKickModalVisible(false);
-            router.push('/lobby');
-          }, 3500);
-        }
-      });
-        {/* Modal kick notification */}
-        {kickModalVisible && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60">
-            <div className="bg-red-700 text-white rounded-2xl p-8 shadow-xl border-4 border-red-400 text-center text-lg font-bold">
-              {kickModalMessage || "Bạn đã bị loại khỏi phòng."}
-            </div>
-          </div>
-        )}
-  // Kick player handler
-  const handleKickPlayer = (targetPlayer: Player) => {
-    if (!socket) return;
-    // Only host can kick
-    const isHost = currentUser?.role === 'creator' || (currentUser?.id && roomState.roomCreator === currentUser.id);
-    if (!isHost) return;
-    // Prevent kicking self
-    if (targetPlayer.id === currentUser?.id) return;
-    socket.emit('kick-player', {
-      roomId,
-      targetUserId: targetPlayer.id,
-      hostUserId: currentUser?.id,
-      hostUserName: currentUser?.name,
-      targetUserName: targetPlayer.name
-    });
-  };
-
-
 
   // State cho device detection và fullscreen
   const [isMobile, setIsMobile] = useState(false);
@@ -1074,36 +1031,15 @@ export default function WaitingRoom() {
                           )}
                           {/* Nút swap - chỉ hiện khi không phải chính mình */}
                           {currentUser && player.id !== currentUser.id && (
-                            <>
-                              <button
-                                onClick={() => handleSwapSeatRequest(player, index + 1)}
-                                className="ml-2 p-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                                title="Đổi chỗ với người này"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                </svg>
-                              </button>
-                              {/* Nút kick - chỉ hiện với host và không phải chính mình */}
-                              {(() => {
-                                // Kiểm tra host
-                                const isHost = currentUser?.role === 'creator' || (currentUser?.id && roomState.roomCreator === currentUser.id);
-                                if (isHost && player.id !== currentUser.id) {
-                                  return (
-                                    <button
-                                      onClick={() => handleKickPlayer(player)}
-                                      className="ml-2 p-1 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors"
-                                      title="Kick người này"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    </button>
-                                  );
-                                }
-                                return null;
-                              })()}
-                            </>
+                            <button
+                              onClick={() => handleSwapSeatRequest(player, index + 1)}
+                              className="ml-2 p-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                              title="Đổi chỗ với người này"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                              </svg>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -1144,37 +1080,16 @@ export default function WaitingRoom() {
                           )}
                           {/* Nút swap - chỉ hiện khi không phải chính mình */}
                           {currentUser && player.id !== currentUser.id && (
-                            <>
-                              <button
-                                onClick={() => handleSwapSeatRequest(player, index + 1)}
-                                className="ml-2 p-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                                title="Đổi chỗ với người này"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                </svg>
-                              </button>
-                              {/* Nút kick - chỉ hiện với host và không phải chính mình */}
-                              {(() => {
-                                const isHost = currentUser?.role === 'creator' || (currentUser?.id && roomState.roomCreator === currentUser.id);
-                                if (isHost && player.id !== currentUser.id) {
-                                  return (
-                                    <button
-                                      onClick={() => handleKickPlayer(player)}
-                                      className="ml-2 p-1 rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors"
-                                      title="Kick người này"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    </button>
-                                  );
-                                }
-                                return null;
-                              })()}
-                            </>
+                            <button
+                              onClick={() => handleSwapSeatRequest(player, index + 1)}
+                              className="ml-2 p-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                              title="Đổi chỗ với người này"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                              </svg>
+                            </button>
                           )}
-                        // Kick player handler
                         </div>
                       </div>
                     ) : (
