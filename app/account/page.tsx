@@ -16,6 +16,8 @@ export default function AccountPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [customBg, setCustomBg] = useState<string | null>(null);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
 
   useEffect(() => {
     fetch("/api/user/me", { credentials: "include" })
@@ -56,6 +58,41 @@ export default function AccountPage() {
       document.body.style.backgroundImage = '';
     }
   }, [customBg]);
+
+  useEffect(() => {
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      setIsMobileDevice(mobile);
+      const portrait = window.innerHeight > window.innerWidth;
+      setIsPortrait(mobile ? portrait : false);
+    }
+    if (typeof window !== "undefined") {
+      checkDevice();
+      window.addEventListener("resize", checkDevice);
+      window.addEventListener("orientationchange", checkDevice);
+      return () => {
+        window.removeEventListener("resize", checkDevice);
+        window.removeEventListener("orientationchange", checkDevice);
+      };
+    }
+  }, []);
+
+  if (isMobileDevice && isPortrait) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
+        <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-red-500/40 shadow-xl">
+          <video
+            src="/xoay.mp4"
+            className="h-auto w-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return (
     <div

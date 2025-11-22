@@ -125,6 +125,17 @@ export default function HomePage() {
     { value: "1+", label: "Years Cubing" }
   ];
 
+  const proTimerFeatures = [
+    "Focus mode",
+    "StackMat support",
+    "Manual time entry",
+    "Inspection mode",
+    "Change cube type",
+    "Up to 3 decimal points",
+    "Hotkeys",
+    "Lock, copy, and reset scramble"
+  ];
+
   const publisherInfo = {
     name: "Chu Tiến Dũng",
     title: "Nhà phát hành Rubik App • Sinh viên, trường ĐH Bách khoa Đà Nẵng",
@@ -164,7 +175,7 @@ export default function HomePage() {
           loop
           playsInline
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-neutral-900/10 to-neutral-900/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/40 via-slate-950/40 to-slate-900/30" />
         <div className="relative z-10 w-full max-w-lg rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_25px_90px_rgba(0,0,0,0.4)] px-6 py-12 flex flex-col items-center text-center">
           <BrandCubeIcon size={loadingLogoSize + 8} className="mb-4" />
           <h1 className={loadingTitleClasses}>Rubik App</h1>
@@ -197,7 +208,7 @@ export default function HomePage() {
             Rubik App
           </div>
           <div className="hidden gap-3 md:flex">
-            <a className="rounded-full border border-slate-300 px-2 py-1 hover:text-slate-900" href="#about">About</a>
+            <a className="rounded-full border border-slate-300 px-2 py-1 hover:text-slate-900" href="/about">About</a>
             <button
               className="rounded-full border border-slate-300 px-2 py-1 hover:text-slate-900"
               onClick={() => {
@@ -219,7 +230,7 @@ export default function HomePage() {
           </div>
         </nav>
         <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-600 md:hidden justify-end">
-          <a className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold" href="#about">About</a>
+          <a className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold" href="/about">About</a>
           <button
             className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold"
             onClick={() => {
@@ -304,7 +315,7 @@ export default function HomePage() {
           <div className="rounded-[32px] border border-slate-200 bg-white/80 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
             <div className="flex flex-col gap-6 md:flex-row md:items-center">
               <div className="flex items-center gap-4">
-                <div className="h-20 w-20 overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-lg md:h-24 md:w-24">
+                <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-lg md:h-24 md:w-24">
                   <img
                     src="/myavatar.jpg"
                     alt="Chu Tiến Dũng"
@@ -339,6 +350,34 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+                
+          <div className={`${effectiveMobileShrink ? 'grid gap-10 lg:grid-cols-[1.05fr_minmax(0,0.95fr)]' : 'grid gap-10 lg:grid-cols-[1.05fr_minmax(0,0.95fr)]'}`}>
+            <div className="rounded-[28px] border border-slate-200 bg-slate-900 shadow-[0_25px_80px_rgba(15,23,42,0.18)] p-0">
+              <div className="relative rounded-[24px] border border-slate-800 bg-slate-950 p-2">
+                <div className="absolute inset-0 -z-10 rounded-[24px] border border-orange-200/60" />
+                <img
+                  src="/anhtimer.png"
+                  alt="RubikApp timer preview"
+                  className="h-full w-full rounded-[20px] object-cover"
+                />
+              </div>
+            </div>
+            <div className="space-y-5">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.4em] text-amber-500">Pro timer</p>
+                <h2 className="text-3xl font-black text-slate-900">Tập trung tối đa cho từng lần solve.</h2>
+                <p className="mt-3 text-base text-slate-600">RubikApp Timer đem lại trải nghiệm sạch sẽ, không xao nhãng: vừa hỗ trợ thi đấu thực tế, vừa theo dõi mọi chỉ số bạn quan tâm.</p>
+              </div>
+              <ul className="grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
+                {proTimerFeatures.map(feature => (
+                  <li key={feature} className="flex items-start gap-2">
+                    <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         <div
           className={modalOverlayClass}
           onClick={() => setLoginModalOpen(false)}

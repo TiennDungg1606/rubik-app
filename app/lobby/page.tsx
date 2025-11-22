@@ -687,8 +687,16 @@ function LobbyContent() {
   if (isMobileDevice && isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
-        <div className="text-2xl font-bold text-red-400 mb-4 text-center">VUI LÒNG XOAY NGANG MÀN HÌNH ĐỂ SỬ DỤNG ỨNG DỤNG!</div>
-        <div className="text-lg text-red-300 mb-2 text-center">Nhớ tắt chế độ khóa xoay màn hình ở bảng điều khiển của thiết bị.</div>
+        <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-red-500/40 shadow-xl">
+          <video
+            src="/xoay.mp4"
+            className="h-auto w-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        </div>
       </div>
     );
   }
