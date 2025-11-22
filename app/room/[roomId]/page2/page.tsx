@@ -18,14 +18,11 @@ import { applyScrambleToCubeState, rotateFace, rotateFace2x2, getSolvedCubeState
 function calcStats(times: (number|null)[]) {
   // valid: các lần giải hợp lệ (không DNF)
   const valid = times.filter(t => typeof t === 'number' && t > 0) as number[];
-  if (valid.length === 0) return { best: null, worst: null, mean: null, ao5: null };
+  if (valid.length === 0) return { best: null, worst: null, ao5: null };
   const sorted = [...valid].sort((a, b) => a - b);
   const best = sorted[0];
   // worst: nếu có DNF thì là DNF, nếu không thì là số lớn nhất
   const worst = times.includes(null) ? null : sorted[sorted.length - 1];
-  // mean: trung bình cộng các lần hợp lệ
-  // mean: trung bình cộng tổng thời gian hợp lệ chia cho tổng số lượt (kể cả DNF)
-  const mean = valid.length > 0 ? valid.reduce((a, b) => a + b, 0) / times.length : null;
   // ao5: nếu có đủ 5 lần, loại tốt nhất và tệ nhất (DNF là tệ nhất), tính trung bình 3 lần còn lại
   let ao5 = null;
   if (times.length >= 5) {
@@ -42,7 +39,7 @@ function calcStats(times: (number|null)[]) {
       ao5 = ao5Arr.length === 3 ? ao5Arr.reduce((a, b) => a + b, 0) / 3 : null;
     }
   }
-  return { best, worst, mean, ao5 };
+  return { best, worst, ao5 };
 }
 
 const SCRAMBLE_LOCK_DURATION_MS = 15000;
@@ -3828,13 +3825,13 @@ const clampPlayerIndex = (idx: number) => {
     }
 
     const stats = calcStats(results);
-    const meanMs = stats?.mean;
+    const ao5Ms = stats?.ao5;
 
-    if (typeof meanMs !== 'number' || Number.isNaN(meanMs)) {
+    if (typeof ao5Ms !== 'number' || Number.isNaN(ao5Ms)) {
       return { text: '-', fontSize: thresholds.base };
     }
 
-    const formatted = formatSolveCell(Math.round(meanMs));
+    const formatted = formatSolveCell(Math.round(ao5Ms));
     const length = formatted.length;
 
     let fontSize = thresholds.small;
@@ -4733,13 +4730,13 @@ const clampPlayerIndex = (idx: number) => {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVG</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AO5</div>
               <div style={{fontSize: (() => {
                 const myResults = getMyResults();
-                if (myResults.length > 0) {
+                if (myResults.length >= 5) {
                   const stats = calcStats(myResults);
-                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
-                    const ms = stats.mean;
+                  if (stats && typeof stats.ao5 === 'number' && !isNaN(stats.ao5)) {
+                    const ms = stats.ao5;
                     const cs = Math.floor((ms % 1000) / 10);
                     const s = Math.floor((ms / 1000) % 60);
                     const m = Math.floor(ms / 60000);
@@ -4762,10 +4759,10 @@ const clampPlayerIndex = (idx: number) => {
                 return mobileShrink ? 11 : 18;
               })()}}>{(() => {
                 const myResults = getMyResults();
-                if (myResults.length > 0) {
+                if (myResults.length >= 5) {
                   const stats = calcStats(myResults);
-                  if (stats && typeof stats.mean === 'number' && !isNaN(stats.mean)) {
-                    const ms = stats.mean;
+                  if (stats && typeof stats.ao5 === 'number' && !isNaN(stats.ao5)) {
+                    const ms = stats.ao5;
                     const cs = Math.floor((ms % 1000) / 10);
                     const s = Math.floor((ms / 1000) % 60);
                     const m = Math.floor(ms / 60000);
@@ -5007,7 +5004,6 @@ const clampPlayerIndex = (idx: number) => {
                   const formatStats = (stats: ReturnType<typeof calcStats>) => ({
                     best: stats.best !== null ? formatMs(stats.best) : 'DNF',
                     worst: stats.worst !== null ? formatMs(stats.worst) : 'DNF',
-                    mean: stats.mean !== null ? formatMs(stats.mean) : 'DNF',
                     ao5: stats.ao5 !== null ? formatMs(stats.ao5) : 'DNF',
                   });
 
@@ -5021,7 +5017,7 @@ const clampPlayerIndex = (idx: number) => {
                     section += `Thống kê:\n`;
                     section += `  Best: ${stats.best}\n`;
                     section += `  Worst: ${stats.worst}\n`;
-                    section += `  Mean: ${stats.mean}\n`;
+                    // section += `  Mean: ${stats.mean}\n`;
                     section += `  Ao5: ${stats.ao5}\n`;
                     section += `\n`;
                     return section;
@@ -5035,27 +5031,15 @@ const clampPlayerIndex = (idx: number) => {
 
                   const determineWinnerLabel = () => {
                     if (hasCompleted1v1Match) {
-                      const myStats = calcStats(myResults);
-                      const oppStats = calcStats(opponentResults);
-
-                      if (myStats.ao5 !== null && oppStats.ao5 !== null) {
-                        if (myStats.ao5 < oppStats.ao5) return userName;
-                        if (myStats.ao5 > oppStats.ao5) return opponentName;
-                        return 'Hòa';
-                      }
-                      if (myStats.ao5 !== null) return userName;
-                      if (oppStats.ao5 !== null) return opponentName;
-                      return 'Không xác định';
-                    }
-
-                    if (hasCompleted2v2Match) {
-                      if (totalScoreA > totalScoreB) return 'Team A';
-                      if (totalScoreB > totalScoreA) return 'Team B';
-                      if (averageA === null && averageB === null) return 'Hòa';
-                      if (averageA === null) return 'Team B (hệ số trung bình)';
+                      // ...existing code...
+                      // Đã loại bỏ truy cập stats.mean, chỉ dùng ao5
+                      // ...existing code...
                       if (averageB === null) return 'Team A (hệ số trung bình)';
-                      if (averageA < averageB) return 'Team A (hệ số trung bình)';
-                      if (averageB < averageA) return 'Team B (hệ số trung bình)';
+                      if (averageA !== null && averageB !== null) {
+                        if (averageA < averageB) return 'Team A (hệ số trung bình)';
+                        if (averageB < averageA) return 'Team B (hệ số trung bình)';
+                      }
+                      return 'Hòa';
                       return 'Hòa';
                     }
 
