@@ -259,7 +259,7 @@ export default function HomePage() {
                 <span className="absolute inset-x-0 bottom-1 h-3 rounded-full bg-emerald-200/60" />
                 <span className="relative">All the tools</span>
               </span>{" "}
-              you need to improve at cubing.
+              you need to improve at cubing!
             </h1>
             <p className={bodyTextClass}>
               Bộ công cụ Rubik toàn diện: luyện tập, thống kê Ao5, phân tích video và cộng đồng thi đấu online giúp bạn nâng trình mỗi ngày.
@@ -353,32 +353,99 @@ export default function HomePage() {
           </div>
         </section>
                 
-          <div className={`${effectiveMobileShrink ? 'grid gap-8 sm:gap-30 grid-cols-1 sm:grid-cols-[0.8fr_minmax(0,0.7fr)] mt-12' : 'mt-12 grid gap-4 lg:grid-cols-[0.3fr_minmax(0,0.3fr)]'}`}>
-              <div className={`${effectiveMobileShrink ? 'rounded-[10px] border border-slate-200 bg-slate-900 shadow-[0_4px_10px_rgba(15,23,42,0.08)] p-0 mx-auto overflow-hidden' : 'rounded-[10px] border border-slate-200 bg-slate-900 shadow-[0_25px_80px_rgba(15,23,42,0.18)] p-0 max-w-2xl mx-auto overflow-hidden'}`}>
-                <div className={`${effectiveMobileShrink ? 'absolute inset-0 -z-10 rounded-[5px] border border-orange-200/60' : 'absolute inset-0 -z-10 rounded-[10px] border border-orange-200/60'}`} />
+          <div className={`${effectiveMobileShrink ? 'grid gap-8 sm:gap-10 grid-cols-1 grid-cols-[2.8fr_minmax(0,2.2fr)] mt-12' : 'mt-12 grid gap-30 lg:grid-cols-[0.9fr_minmax(0,0.9fr)]'}`}>
+              <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
                 <img
                   src="/anhtimer.png"
                   alt="RubikApp timer preview"
-                  className={`${effectiveMobileShrink ? 'rounded-[10px] object-cover w-full h-full min-h-[340px] min-w-[480px]' : 'rounded-[10px] object-cover w-full h-full min-h-[380px] min-w-[780px]'}`}
-                />
+                  className="rounded-[18px] border border-emerald-200 shadow-lg w-full object-cover"
+                  style={{ background: '#fff', minHeight: effectiveMobileShrink ? '280px' : '380px', minWidth: effectiveMobileShrink ? '500px' : '700px' }}/>
                 </div>
             <div className="space-y-5">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.4em] text-amber-500">Pro timer</p>
-                <h2 className="text-3xl font-black text-slate-900">Tập trung tối đa cho từng lần solve.</h2>
-                <p className="mt-3 text-base text-slate-600">RubikApp Timer đem lại trải nghiệm sạch sẽ, không xao nhãng: vừa hỗ trợ thi đấu thực tế, vừa theo dõi mọi chỉ số bạn quan tâm.</p>
+                <h2 className="text-3xl font-black text-slate-900">Chế độ giải chuyên nghiệp cho cuber.</h2>
+                <p className="mt-3 text-base text-slate-600">Giao diện tập trung, hỗ trợ StackMat, nhập thời gian thủ công, chế độ inspection, đổi loại Rubik, hiển thị 3 số thập phân, phím tắt, khoá/copy/reset scramble.</p>
               </div>
-              <ul className="grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
-                {proTimerFeatures.map(feature => (
-                  <li key={feature} className="flex items-start gap-2">
-                    <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>
-                    <span>{feature}</span>
-                  </li>
-                ))}
+              <ul className="grid gap-3 text-sm text-slate-700 sm:grid-cols-2 mt-4">
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">✓</span>Xen lịch sử giải</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">✓</span>Hỗ trợ StackMat</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">✓</span>Nhập thời gian thủ công</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">✓</span>Chế độ inspection</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">✓</span>Đổi loại Rubik</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">✓</span>Khoá, copy, reset scramble</li>
               </ul>
+              
             </div>
           </div>
-        <div
+        {/* Analytics Section - Unified layout for mobile and desktop */}
+ 
+          <div className={`grid ${effectiveMobileShrink ? 'grid-cols-[0.4fr_minmax(0,0.4fr)]' : 'lg:grid-cols-[0.7fr_minmax(0,0.9fr)]'} items-center mt-12`}>
+            <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
+              <p className="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-500">Phòng đấu giao lưu</p>
+              <h2 className="text-3xl font-black text-slate-900">Giao lưu online có tích hợp camera + mic hiện đại.</h2>
+              <ul className="mt-4 space-y-3 text-base text-slate-700">
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>Thi đấu trực tiếp 1v1/2v2 với thời gian hiển thị trực tiếp</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>Hỗ trợ camera & mic để kiểm tra và giao tiếp</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>Mời, chấp nhận trận và ghép đôi tự động (sẽ có trong tương lai)</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>Hiển thị scramble chung và xác nhận kết quả</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>Lưu kết quả trận đấu và lịch sử phòng (sẽ có trong tương lai)</li>
+              </ul>
+            </div>
+            <div className={`${effectiveMobileShrink ? 'mx-auto max-w-xs' : 'flex justify-center'}`}>
+              <div className="relative w-full max-w-xl">
+                <img
+                  src="/anhphong.png"
+                  alt="Room tab preview"
+                  className="rounded-[18px] border border-emerald-200 shadow-lg w-full object-cover"
+                  style={{ background: '#fff', minHeight: effectiveMobileShrink ? '300px' : '380px', minWidth: effectiveMobileShrink ? '520px' : '700px'}}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Practice Trainer (Việt hóa cho tab Practice) */}
+          <div className={`grid ${effectiveMobileShrink ? 'grid gap-8 sm:gap-10 grid-cols-1 grid-cols-[2.8fr_minmax(0,2.2fr)] mt-12' : 'mt-12 grid gap-30 lg:grid-cols-[0.9fr_minmax(0,0.9fr)]'} items-center mt-12`}>
+              <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
+              <img
+                src="/anhalg.png"
+                alt="Preview luyện thuật toán"
+                className="rounded-[18px] border border-emerald-200 shadow-lg w-full object-cover"
+                style={{ background: '#fff', minHeight: effectiveMobileShrink ? '300px' : '380px', minWidth: effectiveMobileShrink ? '520px' : '700px'}}
+              />
+            </div>
+            <div className={`${effectiveMobileShrink ? 'pt-4' : 'pl-10'}`}>
+              <p className="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-500">Luyện tập</p>
+              <h2 className="text-3xl font-black text-slate-900">Tất cả công thức để luyện như người chuyên nghiệp.</h2>
+              <div className="mt-4 space-y-3 text-base text-slate-700">
+                <div className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>100+ công thức từ cơ bản đến nâng cao của 2x2, 3x3, 4x4</div>
+                <div className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>Công thức được chọn lọc kỹ càng từ Yiheng Wang</div>
+                <div className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>Dễ học, dễ nhớ, dễ thành speedcuber</div>
+              </div>
+            </div>
+          </div>
+
+            {/* Giao diện section (dùng public/giaodien.png) */}
+            <div className={`grid ${effectiveMobileShrink ? 'gap-6 grid-cols-[0.4fr_minmax(0,0.4fr)]' : 'lg:grid-cols-[0.7fr_minmax(0,0.9fr)]'} items-center mt-12`}>
+              <div className={`${effectiveMobileShrink ? 'pt-4' : 'pl-10'}`}>
+                <p className="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-500">Giao diện</p>
+                <h2 className="text-3xl font-black text-slate-900">Giao diện trực quan, tập trung cho luyện tập.</h2>
+                <div className="mt-4 space-y-3 text-base text-slate-700">
+                  <div className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>Chế độ tối/sáng và giao diện tối giản cho tập trung.</div>
+                  <div className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>Tùy chỉnh hình nền có sẵn hoặc hình nền cá nhân từ thiết bị</div>
+                </div>
+              </div>
+              <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
+                <img
+                  src="/giaodien.png"
+                  alt="Preview giao diện ứng dụng"
+                  className="rounded-[18px] border border-emerald-200 shadow-lg w-full object-cover"
+                  style={{ background: '#fff', minHeight: effectiveMobileShrink ? '300px' : '380px', minWidth: effectiveMobileShrink ? '520px' : '700px'}}
+                />
+              </div>            
+            </div>
+
+          <div
           className={modalOverlayClass}
           onClick={() => setLoginModalOpen(false)}
         >
@@ -411,6 +478,56 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+        {/* Footer */}
+        <footer className="mt-16 bg-rose-600 text-white pt-12 pb-8">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 text-sm text-white">
+              <div>
+                <h4 className="text-sm font-semibold text-white">LIÊN HỆ</h4>
+                <div className="mt-4 space-y-3 text-rose-50">
+                  <div className="font-semibold text-white">Rubik App</div>
+                  <div>Email: <a href="mailto:info@rubikapp.local" className="underline text-white">chuthang233@gmail.com</a></div>
+                  <div className="pt-2">
+                    <div className="font-semibold text-white">Việt Nam</div>
+                    <div className="text-xs text-rose-50">Đà Nẵng, Việt Nam</div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-white">TÀI NGUYÊN - ĐƠN VỊ HỖ TRỢ</h4>
+                <ul className="mt-4 space-y-2 text-rose-50">
+                  <li><a href="https://vercel.com/" className="hover:text-white">Vercel</a></li>
+                  <li><a href="https://railway.com/" className="hover:text-white">Railway</a></li>
+                  <li><a href="https://stringee.com/" className="hover:text-white">Stringee</a></li>
+                  <li><a href="https://daily.co/" className="hover:text-white">DailyCo</a></li>
+                  <li><a href="https://mongodb.com" className="hover:text-white">MongoDB</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-white">Gửi phản hồi qua email</h4>
+                <div className="mt-4 flex items-center">
+                  <div className="flex-1">
+                    <input aria-label="email" placeholder="Địa chỉ Email" className="w-full rounded-l-md border border-white/20 px-3 py-2 bg-white/10 text-sm text-white" />
+                  </div>
+                  <button className="ml-2 rounded-r-md bg-rose-700 px-3 py-2 text-white">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" fill="currentColor" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="mt-6 flex items-center gap-3 text-white">
+                  <a href="https://www.facebook.com/tienndungg258/" aria-label="facebook" className="hover:text-white"><FacebookIcon /></a>
+                  <a href="https://www.tiktok.com/@tienndungg2006" aria-label="tiktok" className="hover:text-white"><TikTokIcon /></a>
+                  <a href="https://www.instagram.com/tienndungg258/" aria-label="instagram" className="hover:text-white"><InstagramIcon /></a>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-10 pt-6 text-center text-xs text-white/80">
+              Bản quyền © {new Date().getFullYear()} Rubik App.
+            </div>
+          </div>
+        </footer>
     </main>
   );
 }
