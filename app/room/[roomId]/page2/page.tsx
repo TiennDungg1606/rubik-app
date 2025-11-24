@@ -3617,8 +3617,8 @@ const clampPlayerIndex = (idx: number) => {
     // Thanh loading đơn giản phía dưới màn hình
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black">
-        {/* Video loading đã được comment lại - 1 tuần sau sẽ gỡ comment */}
-         <video
+        {/* Video loading đã được bật lại và luôn muted */}
+        <video
           ref={loadingVideoRef}
           src="/loadingroom.mp4"
           autoPlay
@@ -3627,8 +3627,7 @@ const clampPlayerIndex = (idx: number) => {
           playsInline
           className="w-full h-full object-cover"
           style={{ position: 'absolute', inset: 0, zIndex: 1 }}
-        /> 
-            
+        />
         {/* Thanh loading nâng lên cao hơn mép dưới */}
         <div className="fixed left-1/2 -translate-x-1/2" style={{ bottom: '60px', width: '90vw', maxWidth: 480, zIndex: 10000 }}>
           <div className="h-2 bg-gradient-to-r from-blue-400 to-pink-400 rounded-full animate-loading-bar" style={{ width: '100%' }}></div>
@@ -5322,7 +5321,7 @@ const clampPlayerIndex = (idx: number) => {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AVG</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AO5</div>
               <div style={{fontSize: opponentPrimaryMedianDisplay.fontSize}}>
                 {opponentPrimaryMedianDisplay.text}
               </div>
@@ -5449,7 +5448,7 @@ const clampPlayerIndex = (idx: number) => {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>Avg</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AO5</div>
               <div style={{fontSize: teammateMedianDisplay.fontSize}}>{teammateMedianDisplay.text}</div>
             </div>
             {/* Timer */}
@@ -5576,7 +5575,7 @@ const clampPlayerIndex = (idx: number) => {
               flexShrink: 0,
               overflow: 'hidden'
             }}>
-              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>Avg</div>
+              <div style={{fontSize: mobileShrink ? 8 : 13, color: '#aaa', fontWeight: 400, lineHeight: 1}}>AO5</div>
               <div style={{fontSize: opponentSecondaryMedianDisplay.fontSize}}>{opponentSecondaryMedianDisplay.text}</div>
             </div>
             {/* Timer */}

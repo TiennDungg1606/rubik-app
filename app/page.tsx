@@ -203,7 +203,7 @@ export default function HomePage() {
         <div className="absolute -bottom-24 left-[-60px] w-[480px] h-[480px] rounded-full bg-indigo-200/40 blur-3xl" />
         <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top_left,_#a5b4fc33,_transparent_45%),_radial-gradient(circle_at_bottom_right,_#34d39933,_transparent_45%)]" />
       </div>
-      <div className={`relative z-10 mx-auto flex w-full max-w-5xl flex-col ${effectiveMobileShrink ? 'px-2 py-6' : 'px-2 py-10 lg:py-6'}`}>
+      <div className={`relative z-10 mx-auto flex w-full flex-col ${effectiveMobileShrink ? 'px-2 py-6' : 'px-2 py-10 lg:py-6'}`}>
         <nav className="flex items-center justify-between text-sm text-slate-600">
           <div className="flex items-center gap-2 font-semibold text-slate-900">
             <BrandCubeIcon size={40} />
@@ -353,17 +353,15 @@ export default function HomePage() {
           </div>
         </section>
                 
-          <div className={`${effectiveMobileShrink ? 'grid gap-10 lg:grid-cols-[1.05fr_minmax(0,0.95fr)]' : 'grid gap-10 lg:grid-cols-[1.05fr_minmax(0,0.95fr)]'}`}>
-            <div className="rounded-[28px] border border-slate-200 bg-slate-900 shadow-[0_25px_80px_rgba(15,23,42,0.18)] p-0">
-              <div className="relative rounded-[24px] border border-slate-800 bg-slate-950 p-2">
-                <div className="absolute inset-0 -z-10 rounded-[24px] border border-orange-200/60" />
+          <div className={`${effectiveMobileShrink ? 'grid gap-8 sm:gap-30 grid-cols-1 sm:grid-cols-[0.8fr_minmax(0,0.7fr)] mt-12' : 'mt-12 grid gap-4 lg:grid-cols-[0.3fr_minmax(0,0.3fr)]'}`}>
+              <div className={`${effectiveMobileShrink ? 'rounded-[10px] border border-slate-200 bg-slate-900 shadow-[0_4px_10px_rgba(15,23,42,0.08)] p-0 mx-auto overflow-hidden' : 'rounded-[10px] border border-slate-200 bg-slate-900 shadow-[0_25px_80px_rgba(15,23,42,0.18)] p-0 max-w-2xl mx-auto overflow-hidden'}`}>
+                <div className={`${effectiveMobileShrink ? 'absolute inset-0 -z-10 rounded-[5px] border border-orange-200/60' : 'absolute inset-0 -z-10 rounded-[10px] border border-orange-200/60'}`} />
                 <img
                   src="/anhtimer.png"
                   alt="RubikApp timer preview"
-                  className="h-full w-full rounded-[20px] object-cover"
+                  className={`${effectiveMobileShrink ? 'rounded-[10px] object-cover w-full h-full min-h-[340px] min-w-[480px]' : 'rounded-[10px] object-cover w-full h-full min-h-[380px] min-w-[780px]'}`}
                 />
-              </div>
-            </div>
+                </div>
             <div className="space-y-5">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.4em] text-amber-500">Pro timer</p>
