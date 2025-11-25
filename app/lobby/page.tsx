@@ -8,8 +8,6 @@ declare global {
 import { useState, useEffect, Suspense, type ReactNode } from "react";
 import TimerTab from "./components/TimerTab";
 import RoomTab from "./components/RoomTab";
-import AccountTab from "./components/AccountTab";
-import AccountTabWrapper from "./components/AccountTabWrapper";
 import ProfileTab from "./components/ProfileTab";
 import NewTab from "./components/NewTab";
 import AboutTab from "./components/AboutTab";

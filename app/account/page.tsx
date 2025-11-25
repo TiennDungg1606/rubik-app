@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 // Tái sử dụng AccountTab từ components
-import AccountTab from "../lobby/components/AccountTab";
+import AccountTab from "./AccountTab";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -110,13 +110,13 @@ export default function AccountPage() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-start text-white pt-10"
+      className="min-h-screen flex flex-col justify-start text-white pt-4"
       style={{
         // backgroundColor: '#181926',
         // Không set backgroundImage ở đây nữa, đã set qua body
       }}
     >
-      <div className="w-full max-w-7xl px-2 md:px-6 flex items-center gap-3 mb-4">
+      <div className="w-full max-w-7xl px-2 md:px-4 flex gap-2 ">
         <button
           aria-label="Quay lại Lobby"
           className="inline-flex items-center justify-center size-10 rounded-full border border-neutral-700 bg-black/30 hover:bg-black/50 transition"
@@ -128,7 +128,7 @@ export default function AccountPage() {
         </button>
         <h1 className="text-3xl font-bold">Account Settings</h1>
       </div>
-      <div className="w-full max-w-7xl px-2 md:px-6">
+      <div className="w-full max-w-7xl px-2 md:px-1">
         <AccountTab user={user} onUserUpdated={(u) => setUser(u)} />
       </div>
     </main>
