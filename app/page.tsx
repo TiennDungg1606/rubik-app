@@ -477,7 +477,7 @@ export default function HomePage() {
         </div>
       </div>
         {/* Footer */}
-        <footer className="mt-16 bg-rose-600 text-white pt-12 pb-8">
+        <footer className="mt-16 bg-red-700 text-white pt-12 pb-8">
           <div className="mx-auto max-w-6xl px-4">
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 text-sm text-white">
               <div>
