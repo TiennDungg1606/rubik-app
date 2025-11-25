@@ -2839,8 +2839,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
     // Thanh loading đơn giản phía dưới màn hình
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black">
-        {/* Video loading đã được comment lại - 1 tuần sau sẽ gỡ comment */}
-         <video
+        <video
           ref={loadingVideoRef}
           src="/loadingroom.mp4"
           autoPlay
@@ -2849,9 +2848,8 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           playsInline
           className="w-full h-full object-cover"
           style={{ position: 'absolute', inset: 0, zIndex: 1 }}
-        /> 
-            
-        {/* Thanh loading nâng lên cao hơn mép dưới */}
+          onLoadedMetadata={e => { e.currentTarget.volume = 0.5; }}
+        />
         <div className="fixed left-1/2 -translate-x-1/2" style={{ bottom: '60px', width: '90vw', maxWidth: 480, zIndex: 10000 }}>
           <div className="h-2 bg-gradient-to-r from-blue-400 to-pink-400 rounded-full animate-loading-bar" style={{ width: '100%' }}></div>
           <div className="text-white text-center mt-2 text-base font-semibold drop-shadow" style={{ textShadow: '0 2px 8px #000' }}>

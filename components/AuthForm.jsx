@@ -149,14 +149,14 @@ export default function AuthForm({ onLogin, initialTab = "login" }) {
   };
 
   const effectiveMobileShrink = mobileShrink || isMobileLandscape;
-  const containerClasses = `relative flex flex-col items-center justify-start ${effectiveMobileShrink ? "pt-16 sm:pt-1": "pt-4 sm:pt-5"} `;
+  const containerClasses = `relative flex flex-col items-center justify-start ${effectiveMobileShrink ? "pt-1 sm:pt-1": "pt-4 sm:pt-5"} `;
   const headingClasses = effectiveMobileShrink ? "text-sm" : "text-xl";
   const labelClasses = `block mb-1 text-gray-700 font-semibold ${effectiveMobileShrink ? "text-xs" : "text-sm"}`;
   const inputSizingClasses = effectiveMobileShrink ? "px-2.5 py-1.5 text-xs" : "px-3 py-2 text-sm";
   const buttonSizingClasses = effectiveMobileShrink ? "py-2 text-sm" : "py-3 text-lg";
-  const footerGapClasses = effectiveMobileShrink ? "gap-4" : "gap-8";
+  const footerGapClasses = effectiveMobileShrink ? "gap-4" : "gap-4";
   const cardWidthClasses = effectiveMobileShrink ? "max-w-[17rem]" : "max-w-sm";
-  const cardPaddingClasses = effectiveMobileShrink ? "px-3 py-2" : "px-4 py-8";
+  const cardPaddingClasses = effectiveMobileShrink ? "px-3 py-2" : "px-4 py-4";
   const linkTextClasses = effectiveMobileShrink ? "text-xs" : "text-sm";
   const footerTextClasses = effectiveMobileShrink ? "text-[10px]" : "text-xs";
   const footerIconSize = effectiveMobileShrink ? 10 : 16;

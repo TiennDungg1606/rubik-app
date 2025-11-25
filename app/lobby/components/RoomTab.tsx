@@ -12,7 +12,7 @@ import { io } from "socket.io-client";
 type RoomTabProps = {
   roomInput: string;
   setRoomInput: (v: string) => void;
-  handleCreateRoom: (event: '2x2' | '3x3' | '4x4' | 'pyraminx', displayName: string, password: string, gameMode: '1vs1' | '2vs2') => void;
+  handleCreateRoom: (event: '2x2' | '3x3' | '4x4' | 'pyraminx' | 'relay2-4', displayName: string, password: string, gameMode: '1vs1' | '2vs2') => void;
   handleJoinRoom: (roomId: string) => void;
   mobileShrink?: boolean;
 };
@@ -61,7 +61,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   // Animation state for modal
   const [modalVisible, setModalVisible] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
-  const [modalEvent, setModalEvent] = useState<'2x2' | '3x3' | '4x4' | 'pyraminx'>("3x3");
+  const [modalEvent, setModalEvent] = useState<'2x2' | '3x3' | '4x4' | 'pyraminx' | 'relay2-4'>("3x3");
   const [modalGameMode, setModalGameMode] = useState<'1vs1' | '2vs2'>("1vs1");
   const [modalRoomName, setModalRoomName] = useState("");
   const [modalPassword, setModalPassword] = useState("");
@@ -414,7 +414,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 { id: '2x2', label: '2x2', hue: 'from-cyan-400/80 to-blue-500/70' },
                 { id: '3x3', label: '3x3', hue: 'from-blue-500/85 to-indigo-600/70' },
                 { id: '4x4', label: '4x4', hue: 'from-violet-500/85 to-purple-600/70' },
-                { id: 'pyraminx', label: 'Pyraminx', hue: 'from-amber-400/80 to-orange-500/70' }
+                { id: 'pyraminx', label: 'Pyraminx', hue: 'from-amber-400/80 to-orange-500/70' },
+                { id: 'relay2-4', label: 'Relay 2-4', hue: 'from-pink-400/80 to-red-500/70' }
               ].map(option => (
                 <button
                   key={option.id}

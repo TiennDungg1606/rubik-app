@@ -162,8 +162,8 @@ export default function HomePage() {
     ? "text-2xl font-black leading-snug"
     : "text-5xl md:text-6xl font-black leading-tight";
   const bodyTextClass = `${effectiveMobileShrink ? "text-sm" : "text-lg"} text-slate-600 max-w-xl`;
-  const modalOverlayClass = `fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${loginModalOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'} flex overflow-y-auto px-4 ${effectiveMobileShrink ? 'items-start justify-center pt-1 pb-10' : 'items-center justify-center py-12 md:py-20'}`;
-  const modalPanelClass = `relative w-full ${effectiveMobileShrink ? 'max-w-sm rounded-[28px] px-4 py-6' : 'max-w-md rounded-[32px] px-6 py-8'} border border-white/10 bg-slate-950/95 text-white shadow-[0_30px_100px_rgba(0,0,0,0.45)] transition-transform duration-200 ${loginModalOpen ? 'scale-100' : 'scale-95'}`;
+  const modalOverlayClass = `fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${loginModalOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'} flex overflow-y-auto px-4 ${effectiveMobileShrink ? 'items-start justify-center pt-1 pb-1' : 'items-start justify-center py-12 md:py-10'}`;
+  const modalPanelClass = `relative w-full ${effectiveMobileShrink ? 'max-w-[20rem] rounded-[28px] px-6 py-4' : 'max-w-md rounded-[32px] px-6 py-8'} border border-white/10 bg-slate-950/95 text-white shadow-[0_30px_100px_rgba(0,0,0,0.45)] transition-transform duration-200 ${loginModalOpen ? 'scale-100' : 'scale-95'}`;
 
   if (checking) {
     return (
@@ -197,7 +197,7 @@ export default function HomePage() {
     );
   }
   return (
-    <main className={`relative min-h-screen overflow-hidden bg-[#F8FBFF] text-slate-900 ${effectiveMobileShrink ? 'px-2' : 'px-4'}`}>
+    <main className={`relative min-h-screen overflow-hidden bg-[#F8FBFF] text-slate-900 ${effectiveMobileShrink ? 'px-1' : 'px-1'}`}>
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-20 right-0 w-[420px] h-[420px] rounded-full bg-emerald-200/40 blur-3xl" />
         <div className="absolute -bottom-24 left-[-60px] w-[480px] h-[480px] rounded-full bg-indigo-200/40 blur-3xl" />
@@ -353,7 +353,7 @@ export default function HomePage() {
           </div>
         </section>
                 
-          <div className={`${effectiveMobileShrink ? 'grid gap-8 sm:gap-10 grid-cols-1 grid-cols-[2.8fr_minmax(0,2.2fr)] mt-12' : 'mt-12 grid gap-30 lg:grid-cols-[0.9fr_minmax(0,0.9fr)]'}`}>
+          <div className={`grid mt-12 ${effectiveMobileShrink ? 'grid-cols-1 gap-8' : 'gap-30 lg:grid-cols-[0.9fr_minmax(0,0.9fr)]'}`}> 
               <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
                 <img
                   src="/anhtimer.png"
@@ -380,7 +380,7 @@ export default function HomePage() {
           </div>
         {/* Analytics Section - Unified layout for mobile and desktop */}
  
-          <div className={`grid ${effectiveMobileShrink ? 'grid-cols-[0.4fr_minmax(0,0.4fr)]' : 'lg:grid-cols-[0.7fr_minmax(0,0.9fr)]'} items-center mt-12`}>
+          <div className={`grid items-center mt-12 ${effectiveMobileShrink ? 'grid-cols-1 gap-8' : 'lg:grid-cols-[0.7fr_minmax(0,0.9fr)]'}`}> 
             <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
               <p className="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-500">Phòng đấu giao lưu</p>
               <h2 className="text-3xl font-black text-slate-900">Giao lưu online có tích hợp camera + mic hiện đại.</h2>
@@ -392,20 +392,18 @@ export default function HomePage() {
                 <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">✓</span>Lưu kết quả trận đấu và lịch sử phòng (sẽ có trong tương lai)</li>
               </ul>
             </div>
-            <div className={`${effectiveMobileShrink ? 'mx-auto max-w-xs' : 'flex justify-center'}`}>
-              <div className="relative w-full max-w-xl">
+              <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
                 <img
                   src="/anhphong.png"
                   alt="Room tab preview"
                   className="rounded-[18px] border border-emerald-200 shadow-lg w-full object-cover"
-                  style={{ background: '#fff', minHeight: effectiveMobileShrink ? '300px' : '380px', minWidth: effectiveMobileShrink ? '520px' : '700px'}}
+                  style={{ background: '#fff', minHeight: effectiveMobileShrink ? '280px' : '380px', minWidth: effectiveMobileShrink ? '700px' : '700px'}}
                 />
               </div>
-            </div>
           </div>
 
           {/* Practice Trainer (Việt hóa cho tab Practice) */}
-          <div className={`grid ${effectiveMobileShrink ? 'grid gap-8 sm:gap-10 grid-cols-1 grid-cols-[2.8fr_minmax(0,2.2fr)] mt-12' : 'mt-12 grid gap-30 lg:grid-cols-[0.9fr_minmax(0,0.9fr)]'} items-center mt-12`}>
+          <div className={`grid items-center mt-12 ${effectiveMobileShrink ? 'grid-cols-1 gap-8' : 'gap-30 lg:grid-cols-[0.9fr_minmax(0,0.9fr)]'}`}> 
               <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
               <img
                 src="/anhalg.png"
@@ -426,7 +424,7 @@ export default function HomePage() {
           </div>
 
             {/* Giao diện section (dùng public/giaodien.png) */}
-            <div className={`grid ${effectiveMobileShrink ? 'gap-6 grid-cols-[0.4fr_minmax(0,0.4fr)]' : 'lg:grid-cols-[0.7fr_minmax(0,0.9fr)]'} items-center mt-12`}>
+            <div className={`grid items-center mt-12 ${effectiveMobileShrink ? 'grid-cols-1 gap-8' : 'lg:grid-cols-[0.7fr_minmax(0,0.9fr)]'}`}> 
               <div className={`${effectiveMobileShrink ? 'pt-4' : 'pl-10'}`}>
                 <p className="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-500">Giao diện</p>
                 <h2 className="text-3xl font-black text-slate-900">Giao diện trực quan, tập trung cho luyện tập.</h2>
@@ -463,7 +461,7 @@ export default function HomePage() {
             <div className="mb-4 flex items-center gap-3">
               <BrandCubeIcon size={40} />
               <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">Sign in to compete</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">Sign in to compete</div>
                 <div className="text-lg font-semibold">Rubik App</div>
               </div>
             </div>

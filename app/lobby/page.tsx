@@ -576,7 +576,7 @@ function LobbyContent() {
     }
   }, [searchParams]);
 
-  const handleCreateRoom = async (event: '2x2' | '3x3' | '4x4' | 'pyraminx', displayName: string, password: string, gameMode: '1vs1' | '2vs2') => {
+  const handleCreateRoom = async (event: '2x2' | '3x3' | '4x4' | 'pyraminx' | 'relay2-4', displayName: string, password: string, gameMode: '1vs1' | '2vs2') => {
     const roomId = generateRoomId();
     
     if (typeof window !== 'undefined') {

@@ -3627,6 +3627,7 @@ const clampPlayerIndex = (idx: number) => {
           playsInline
           className="w-full h-full object-cover"
           style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+          onLoadedMetadata={e => { e.currentTarget.volume = 0.5; }}
         />
         {/* Thanh loading nâng lên cao hơn mép dưới */}
         <div className="fixed left-1/2 -translate-x-1/2" style={{ bottom: '60px', width: '90vw', maxWidth: 480, zIndex: 10000 }}>
