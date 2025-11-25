@@ -4576,7 +4576,7 @@ const clampPlayerIndex = (idx: number) => {
                   className={`rounded-2xl border border-white/10 bg-black/30 w-full ${mobileShrink ? 'px-1.25 py-0.75' : 'px-3 py-1.5'} text-left`}
                   style={{ wordBreak: 'break-word' }}
                 >
-                  <div className={`${mobileShrink ? 'text-[13px]' : 'text-xl'} font-bold tracking-widest text-blue-100 leading-relaxed select-all break-words`}>
+                  <div className={`${mobileShrink ? 'text-[13px]' : 'text-xl'} font-bold tracking-widest text-blue-100 leading-relaxed select-all break-words`} style={{ whiteSpace: 'pre-line' }}>
                     {scramble || 'Chưa có scramble'}
                   </div>
                 </div>

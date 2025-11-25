@@ -3706,6 +3706,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 >
                   <div
                     className={`${mobileShrink ? 'text-[13px]' : 'text-xl'} font-bold tracking-widest text-blue-100 leading-relaxed select-all break-words`}
+                    style={{ whiteSpace: 'pre-line' }}
                   >
                     {scramble || 'Chưa có scramble'}
                   </div>
