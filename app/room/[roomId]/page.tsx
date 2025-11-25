@@ -3696,7 +3696,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <div className={`${mobileShrink ? 'text-[13px]' : 'text-lg'} font-semibold text-white mt-0.5`}>
-                      {scrambleLabel} #{scrambleIndex + 1}
+                      {eventName} #{scrambleIndex + 1}
                     </div>
                   </div>
                 </div>
