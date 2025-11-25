@@ -5,6 +5,7 @@ declare global {
 
 
 import { useRouter } from "next/navigation"
+import Head from "next/head"
 import { useState, useEffect } from "react"
 import AuthForm from "@/components/AuthForm";
 
@@ -61,6 +62,16 @@ const InstagramIcon = () => (
 );
 
 export default function HomePage() {
+  // Quảng cáo Google AdSense
+  const adsenseScript = (
+    <Head>
+      <script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8360769059197958"
+        crossOrigin="anonymous"
+      />
+    </Head>
+  );
   // Tự động chuyển hướng nếu đã đăng nhập (còn cookie)
   const router = useRouter();
   const [checking, setChecking] = useState(true);
@@ -197,7 +208,9 @@ export default function HomePage() {
     );
   }
   return (
-    <main className={`relative min-h-screen overflow-hidden bg-[#F8FBFF] text-slate-900 ${effectiveMobileShrink ? 'px-2' : 'px-4'}`}>
+    <>
+      {adsenseScript}
+      <main className={`relative min-h-screen overflow-hidden bg-[#F8FBFF] text-slate-900 ${effectiveMobileShrink ? 'px-2' : 'px-4'}`}>
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-20 right-0 w-[420px] h-[420px] rounded-full bg-emerald-200/40 blur-3xl" />
         <div className="absolute -bottom-24 left-[-60px] w-[480px] h-[480px] rounded-full bg-indigo-200/40 blur-3xl" />
@@ -529,5 +542,6 @@ export default function HomePage() {
           </div>
         </footer>
     </main>
+    </>
   );
 }
