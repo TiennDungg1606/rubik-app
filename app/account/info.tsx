@@ -98,7 +98,8 @@ export default function Info({ user }: { user: { email?: string; firstName?: str
                 type="text"
                 className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-gray-100"
                 value={firstName}
-                onChange={e => setFirstName(e.target.value)}
+                maxLength={7}
+                onChange={e => setFirstName(e.target.value.slice(0, 7))}
                 required
               />
             </div>
@@ -108,7 +109,8 @@ export default function Info({ user }: { user: { email?: string; firstName?: str
                 type="text"
                 className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-gray-100"
                 value={lastName}
-                onChange={e => setLastName(e.target.value)}
+                maxLength={7}
+                onChange={e => setLastName(e.target.value.slice(0, 7))}
                 required
               />
             </div>

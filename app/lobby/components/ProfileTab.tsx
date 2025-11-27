@@ -56,7 +56,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
   else greeting = "Chào buổi tối👋";
   const userName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "";
 
-  const containerClassName = `mt-4 ${effectiveMobileShrink ? "mr-2 w-[90vw] max-w-sm rounded-xl shadow-xl" : "mr-4 w-[340px] rounded-2xl shadow-2xl"} max-w-full bg-[#181926] border border-blue-700 flex flex-col items-center p-0 relative`;
+  const containerClassName = `mt-4 ${effectiveMobileShrink ? "mr-2 w-[90vw] max-w-xs rounded-xl shadow-xl" : "mr-4 w-[340px] rounded-2xl shadow-2xl"} max-w-full bg-[#181926] border border-blue-700 flex flex-col items-center p-0 relative`;
   const headerPadding = effectiveMobileShrink ? "pt-5 pb-2" : "pt-6 pb-2";
   const avatarClassName = `${effectiveMobileShrink ? "w-16 h-16 text-3xl" : "w-20 h-20 text-4xl"} rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-bold border-4 border-white shadow mb-2`;
   const emailClassName = effectiveMobileShrink ? "text-base font-semibold text-white mb-1" : "text-lg font-semibold text-white mb-1";
@@ -80,14 +80,24 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           {greeting}{userName ? `, ${userName}` : ""} !
         </div>
       </div>
-      {/* Account Setting và Logout */}
+      {/* Profile, Account Setting và Logout */}
       <div className={actionWrapperClass}>
         <button
           className={`flex items-center ${buttonSpacing} text-blue-400 hover:text-blue-600 font-bold transition ${buttonTextSize} justify-start`}
+          onClick={() => window.location.href = '/profile'}
+        >
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2"/><path stroke="currentColor" strokeWidth="2" d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6"/></svg>
+          Profile
+        </button>
+        <button
+          className={`flex items-center ${buttonSpacing} text-blue-400 hover:text-blue-600 font-bold transition ${buttonTextSize} justify-start mt-1`}
           onClick={() => window.location.href = '/account'}
         >
-          <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.418 0-8 2.239-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-2.761-3.582-5-8-5Z"/></svg>
-          Account Setting
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+            <path stroke="currentColor" strokeWidth="2" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09A1.65 1.65 0 0 0 9 4.09V4a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          Account setting
         </button>
         {/* Chỉ còn 1 nút Change background, gọi callback mở modal ở page.tsx */}
         <button

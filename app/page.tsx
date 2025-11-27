@@ -166,8 +166,15 @@ export default function HomePage() {
   const modalPanelClass = `relative w-full ${effectiveMobileShrink ? 'max-w-[20rem] rounded-[28px] px-6 py-4' : 'max-w-md rounded-[32px] px-6 py-8'} border border-white/10 bg-slate-950/95 text-white shadow-[0_30px_100px_rgba(0,0,0,0.45)] transition-transform duration-200 ${loginModalOpen ? 'scale-100' : 'scale-95'}`;
 
   if (checking) {
+    // Sử dụng effectiveMobileShrink để xác định modal nhỏ
+    const modalMaxWidth = mobileShrink ? 'max-w-[23rem]' : 'max-w-lg';
+    const modalPaddingX = mobileShrink ? 'px-3' : 'px-6';
+    const modalPaddingY = mobileShrink ? 'py-6' : 'py-12';
+    const modalRounded = mobileShrink ? 'rounded-[20px]' : 'rounded-[32px]';
+    const iconSize = mobileShrink ? 32 : loadingLogoSize + 8;
+    const titleClass = mobileShrink ? 'text-xl font-black text-center tracking-tight text-white drop-shadow mb-3' : loadingTitleClasses;
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
         {/* Video loading đã được comment lại - 1 tuần sau sẽ gỡ comment */}
         <video
           src="/rubik-bg.mp4"
@@ -178,14 +185,14 @@ export default function HomePage() {
           className="w-full h-full object-cover"
           style={{ position: 'absolute', inset: 0, zIndex: 1 }}
         />
-        <div className="relative z-10 w-full max-w-lg rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_25px_90px_rgba(0,0,0,0.4)] px-6 py-12 flex flex-col items-center text-center">
-          <BrandCubeIcon size={loadingLogoSize + 8} className="mb-4" />
-          <h1 className={loadingTitleClasses}>Rubik App</h1>
-          <span className="mb-6 inline-flex items-center justify-center rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-emerald-200 border border-white/20">
+        <div className={`relative z-10 w-full ${modalMaxWidth} ${modalRounded} bg-neutral-900/30 bg-neutral-900/50 shadow-xl border border-neutral-700 flex flex-col items-center text-center ${modalPaddingX} ${modalPaddingY}`}>
+          <BrandCubeIcon size={iconSize} className="mb-4" />
+          <h1 className={titleClass}>Rubik App</h1>
+          <span className="mb-6 inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-emerald-200">
             Đang kiểm tra đăng nhập...
           </span>
           <span className="mb-4 animate-spin">
-            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width={effectiveMobileShrink ? 40 : 64} height={effectiveMobileShrink ? 40 : 64} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="32" cy="32" r="26" stroke="#38bdf8" strokeWidth="6" strokeDasharray="70 40" strokeLinecap="round" />
             </svg>
           </span>
