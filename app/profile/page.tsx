@@ -7,6 +7,9 @@ export default function ProfilePage() {
       const menuRef = useRef<HTMLDivElement>(null);
       const [isMobileLandscape, setIsMobileLandscape] = useState(false);
       const [mobileShrink, setMobileShrink] = useState(false);
+      const [isMobile, setIsMobile] = useState(false);
+      const [isMobileDevice, setIsMobileDevice] = useState(false);
+      const [isPortrait, setIsPortrait] = useState(false);
       useEffect(() => {
         if (!showMenu) return;
         function handleClick(e: MouseEvent) {
@@ -60,6 +63,29 @@ export default function ProfilePage() {
       }
     }, []);
 
+
+      useEffect(() => {
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      const viewportWidth = window.innerWidth;
+  const enableMobileLayout = mobile && viewportWidth >= 768;
+  setIsMobileDevice(mobile);
+  setIsMobile(enableMobileLayout);
+      const portrait = window.innerHeight > window.innerWidth;
+  setIsPortrait(mobile ? portrait : false);
+      setMobileShrink(false);
+    }
+    if (typeof window !== 'undefined') {
+      checkDevice();
+      window.addEventListener('resize', checkDevice);
+      window.addEventListener('orientationchange', checkDevice);
+      return () => {
+        window.removeEventListener('resize', checkDevice);
+        window.removeEventListener('orientationchange', checkDevice);
+      };
+    }
+  }, []);
+
   // Avatar upload logic
   const avatarText = user && (user.firstName || user.lastName)
     ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase()
@@ -81,6 +107,23 @@ export default function ProfilePage() {
     };
     reader.readAsDataURL(file);
   };
+
+    if (isMobileDevice && isPortrait) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
+        <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-red-500/40 shadow-xl">
+          <video
+            src="/xoay.mp4"
+            className="h-auto w-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        </div>
+      </div>
+    );
+  }
 
   // mobileShrink logic (assume you already have useEffect and state)
   // Variables for responsive sizes

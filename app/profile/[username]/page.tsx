@@ -22,7 +22,13 @@ export default function PublicProfilePage() {
   const [myId, setMyId] = useState<string | null>(null);
   const { username: userId } = useParams();
   const router = useRouter();
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+  const [mobileShrink, setMobileShrink] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [loadTimeout, setLoadTimeout] = useState(false); // Giữ lại khai báo này ở đầu hàm
+
   useEffect(() => {
     async function fetchUser() {
       const res = await fetch(`/api/user/public-profile?userId=${userId}`);
@@ -32,7 +38,28 @@ export default function PublicProfilePage() {
     fetchUser();
   }, [userId]);
 
-  // Fetch logged-in user's _id
+  useEffect(() => {
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      const viewportWidth = window.innerWidth;
+      const enableMobileLayout = mobile && viewportWidth >= 768;
+      setIsMobileDevice(mobile);
+      setIsMobile(enableMobileLayout);
+      const portrait = window.innerHeight > window.innerWidth;
+      setIsPortrait(mobile ? portrait : false);
+      setMobileShrink(false);
+    }
+    if (typeof window !== 'undefined') {
+      checkDevice();
+      window.addEventListener('resize', checkDevice);
+      window.addEventListener('orientationchange', checkDevice);
+      return () => {
+        window.removeEventListener('resize', checkDevice);
+        window.removeEventListener('orientationchange', checkDevice);
+      };
+    }
+  }, []);
+
   useEffect(() => {
     async function fetchMe() {
       try {
@@ -44,6 +71,24 @@ export default function PublicProfilePage() {
     fetchMe();
   }, []);
 
+  // Các return sớm phải nằm sau tất cả các hook
+  if (isMobileDevice && isPortrait) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
+        <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-red-500/40 shadow-xl">
+          <video
+            src="/xoay.mp4"
+            className="h-auto w-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        </div>
+      </div>
+    );
+  }
+
 
   // Move redirect logic to line 54 (before render)
   if (myId && userId === myId) {
@@ -53,7 +98,7 @@ export default function PublicProfilePage() {
     return null;
   }
 
-  const [loadTimeout, setLoadTimeout] = useState(false);
+  // Xóa dòng khai báo lặp này
   useEffect(() => {
     if (!user) {
       const timer = setTimeout(() => setLoadTimeout(true), 10000);
@@ -75,7 +120,7 @@ export default function PublicProfilePage() {
         <div className="text-base text-white/70 mb-8">UserId không tồn tại hoặc đã bị xóa khỏi hệ thống.</div>
         <button
           className="px-5 py-2 rounded-full bg-neutral-900/80 text-white font-semibold shadow hover:bg-neutral-800/90 transition"
-          onClick={() => router.back()}
+            onClick={() => router.replace("/lobby")}
         >
           Trở về
         </button>
@@ -88,7 +133,7 @@ export default function PublicProfilePage() {
       {/* Back button */}
       <button
         className="absolute left-6 top-6 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-900/80 text-white font-semibold shadow hover:bg-neutral-800/90 transition"
-        onClick={() => router.back()}
+          onClick={() => router.replace("/lobby")}
         aria-label="Quay lại"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
