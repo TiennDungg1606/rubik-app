@@ -18,7 +18,12 @@ export default function ProfilePage() {
         return () => document.removeEventListener('mousedown', handleClick);
       }, [showMenu]);
     const handleCopyProfileLink = () => {
-      navigator.clipboard.writeText(window.location.href);
+      if (user?._id) {
+        const url = `${window.location.origin}/profile/${user._id}`;
+        navigator.clipboard.writeText(url);
+      } else {
+        navigator.clipboard.writeText(window.location.href);
+      }
     };
   const [user, setUser] = React.useState<any>(null);
   useEffect(() => {
