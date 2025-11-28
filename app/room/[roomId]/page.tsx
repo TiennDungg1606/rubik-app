@@ -241,10 +241,12 @@ useEffect(() => {
     .then(res => res.ok ? res.json() : null)
     .then(data => {
       if (!data) setOpponentUser(null);
+      else if (Array.isArray(data.user)) setOpponentUser(data.user[0]);
       else if (data.user) setOpponentUser(data.user);
+      else if (Array.isArray(data)) setOpponentUser(data[0]);
       else setOpponentUser(data);
     });
-}, [opponentId]);
+}, [opponentId, opponentResults]);
 
 useEffect(() => {
   if (user && user.customBg) {
@@ -3877,11 +3879,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               <img
                 src={user.avatar}
                 alt="avatar"
+                className="avatar"
                 style={{
                   width: mobileShrink ? 30 : 50,
                   height: mobileShrink ? 30 : 50,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
                   marginRight: mobileShrink ? 4 : 5,
                   border: '2px solid #555',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
@@ -4587,11 +4588,10 @@ function formatStat(val: number|null, showDNF: boolean = false) {
               <img
                 src={opponentUser.avatar}
                 alt="avatar"
+                className="avatar"
                 style={{
                   width: mobileShrink ? 30 : 50,
                   height: mobileShrink ? 30 : 50,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
                   marginRight: mobileShrink ? 4 : 5,
                   border: '2px solid #555',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
@@ -4839,7 +4839,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         .modal-content {
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
-        
+        .avatar {
+          border-radius: 50%;
+          object-fit: cover;
+          aspect-ratio: 1/1;
+          display: inline-block;
+        }       
         .chat-modal-surface {
           opacity: 0;
           transform: translateY(12px) scale(0.96);
