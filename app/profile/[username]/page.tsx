@@ -28,7 +28,7 @@ export default function PublicProfilePage() {
   const [mobileShrink, setMobileShrink] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loadTimeout, setLoadTimeout] = useState(false); // Giữ lại khai báo này ở đầu hàm
-
+  const [isFullscreen, setIsFullscreen] = useState(false);
   useEffect(() => {
     async function fetchUser() {
       const res = await fetch(`/api/user/public-profile?userId=${userId}`);
@@ -71,23 +71,7 @@ export default function PublicProfilePage() {
     fetchMe();
   }, []);
 
-  // Các return sớm phải nằm sau tất cả các hook
-  if (isMobileDevice && isPortrait) {
-    return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
-        <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-red-500/40 shadow-xl">
-          <video
-            src="/xoay.mp4"
-            className="h-auto w-full object-cover"
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
-        </div>
-      </div>
-    );
-  }
+
 
 
   // Move redirect logic to line 54 (before render)
@@ -105,6 +89,91 @@ export default function PublicProfilePage() {
       return () => clearTimeout(timer);
     }
   }, [user]);
+
+   
+   
+
+    // Tự động yêu cầu chế độ toàn màn hình khi sử dụng điện thoại
+    useEffect(() => {
+      if (typeof window !== 'undefined' && isMobile) {
+        let interval: ReturnType<typeof setInterval> | undefined;
+        // Hàm yêu cầu chế độ toàn màn hình
+        const requestFullscreen = () => {
+          try {
+            if (document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen();
+            } else if ((document.documentElement as any).webkitRequestFullscreen) {
+              (document.documentElement as any).webkitRequestFullscreen();
+            } else if ((document.documentElement as any).mozRequestFullScreen) {
+              (document.documentElement as any).mozRequestFullScreen();
+            } else if ((document.documentElement as any).msRequestFullscreen) {
+              (document.documentElement as any).msRequestFullscreen();
+            }
+          } catch (error) {
+            // Không thể chuyển sang chế độ toàn màn hình
+            console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
+          }
+        };
+
+        const startInterval = () => {
+          if (!isFullscreen && !interval) {
+            interval = setInterval(() => {
+              if (isMobile && !isFullscreen) {
+                requestFullscreen();
+              } else {
+                if (interval) {
+                  clearInterval(interval);
+                  interval = undefined;
+                }
+              }
+            }, 3000);
+          }
+        };
+
+        const checkFullscreenStatus = () => {
+          const fullscreenElement = 
+            document.fullscreenElement ||
+            (document as any).webkitFullscreenElement ||
+            (document as any).mozFullScreenElement ||
+            (document as any).msFullscreenElement;
+          const wasFullscreen = isFullscreen;
+          setIsFullscreen(!!fullscreenElement);
+          if (fullscreenElement && !wasFullscreen) {
+            if (interval) {
+              clearInterval(interval);
+              interval = undefined;
+            }
+          } else if (!fullscreenElement && wasFullscreen && isMobile) {
+            startInterval();
+            requestFullscreen();
+          } else if (!fullscreenElement && isMobile) {
+            requestFullscreen();
+          }
+        };
+
+        checkFullscreenStatus();
+        const fullscreenChangeEvents = [
+          'fullscreenchange',
+          'webkitfullscreenchange',
+          'mozfullscreenchange',
+          'MSFullscreenChange'
+        ];
+        fullscreenChangeEvents.forEach(event => {
+          document.addEventListener(event, checkFullscreenStatus);
+        });
+        const initialTimeout = setTimeout(requestFullscreen, 1000);
+        startInterval();
+        return () => {
+          clearTimeout(initialTimeout);
+          if (interval) {
+            clearInterval(interval);
+          }
+          fullscreenChangeEvents.forEach(event => {
+            document.removeEventListener(event, checkFullscreenStatus);
+          });
+        };
+      }
+    }, [isMobile, isFullscreen]);
 
   if (!user && !loadTimeout) {
     return (
@@ -124,6 +193,24 @@ export default function PublicProfilePage() {
         >
           Trở về
         </button>
+      </div>
+    );
+  }
+
+    // Các return sớm phải nằm sau tất cả các hook
+  if (isMobileDevice && isPortrait) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
+        <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-red-500/40 shadow-xl">
+          <video
+            src="/xoay.mp4"
+            className="h-auto w-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        </div>
       </div>
     );
   }

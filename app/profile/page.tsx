@@ -10,6 +10,7 @@ export default function ProfilePage() {
       const [isMobile, setIsMobile] = useState(false);
       const [isMobileDevice, setIsMobileDevice] = useState(false);
       const [isPortrait, setIsPortrait] = useState(false);
+      const [isFullscreen, setIsFullscreen] = useState(false);
       useEffect(() => {
         if (!showMenu) return;
         function handleClick(e: MouseEvent) {
@@ -64,18 +65,18 @@ export default function ProfilePage() {
     }, []);
 
 
-      useEffect(() => {
-    function checkDevice() {
-      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-      const viewportWidth = window.innerWidth;
-  const enableMobileLayout = mobile && viewportWidth >= 768;
-  setIsMobileDevice(mobile);
-  setIsMobile(enableMobileLayout);
-      const portrait = window.innerHeight > window.innerWidth;
-  setIsPortrait(mobile ? portrait : false);
-      setMobileShrink(false);
-    }
-    if (typeof window !== 'undefined') {
+    useEffect(() => {
+        function checkDevice() {
+        const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+        const viewportWidth = window.innerWidth;
+        const enableMobileLayout = mobile && viewportWidth >= 768;
+        setIsMobileDevice(mobile);
+        setIsMobile(enableMobileLayout);
+        const portrait = window.innerHeight > window.innerWidth;
+        setIsPortrait(mobile ? portrait : false);
+        setMobileShrink(false);
+      }
+      if (typeof window !== 'undefined') {
       checkDevice();
       window.addEventListener('resize', checkDevice);
       window.addEventListener('orientationchange', checkDevice);
@@ -85,6 +86,91 @@ export default function ProfilePage() {
       };
     }
   }, []);
+
+    
+
+
+        // Tự động yêu cầu chế độ toàn màn hình khi sử dụng điện thoại
+        useEffect(() => {
+          if (typeof window !== 'undefined' && isMobile) {
+            let interval: ReturnType<typeof setInterval> | undefined;
+            // Hàm yêu cầu chế độ toàn màn hình
+            const requestFullscreen = () => {
+              try {
+                if (document.documentElement.requestFullscreen) {
+                  document.documentElement.requestFullscreen();
+                } else if ((document.documentElement as any).webkitRequestFullscreen) {
+                  (document.documentElement as any).webkitRequestFullscreen();
+                } else if ((document.documentElement as any).mozRequestFullScreen) {
+                  (document.documentElement as any).mozRequestFullScreen();
+                } else if ((document.documentElement as any).msRequestFullscreen) {
+                  (document.documentElement as any).msRequestFullscreen();
+                }
+              } catch (error) {
+                // Không thể chuyển sang chế độ toàn màn hình
+                console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
+              }
+            };
+
+            const startInterval = () => {
+              if (!isFullscreen && !interval) {
+                interval = setInterval(() => {
+                  if (isMobile && !isFullscreen) {
+                    requestFullscreen();
+                  } else {
+                    if (interval) {
+                      clearInterval(interval);
+                      interval = undefined;
+                    }
+                  }
+                }, 3000);
+              }
+            };
+
+            const checkFullscreenStatus = () => {
+              const fullscreenElement = 
+                document.fullscreenElement ||
+                (document as any).webkitFullscreenElement ||
+                (document as any).mozFullScreenElement ||
+                (document as any).msFullscreenElement;
+              const wasFullscreen = isFullscreen;
+              setIsFullscreen(!!fullscreenElement);
+              if (fullscreenElement && !wasFullscreen) {
+                if (interval) {
+                  clearInterval(interval);
+                  interval = undefined;
+                }
+              } else if (!fullscreenElement && wasFullscreen && isMobile) {
+                startInterval();
+                requestFullscreen();
+              } else if (!fullscreenElement && isMobile) {
+                requestFullscreen();
+              }
+            };
+
+            checkFullscreenStatus();
+            const fullscreenChangeEvents = [
+              'fullscreenchange',
+              'webkitfullscreenchange',
+              'mozfullscreenchange',
+              'MSFullscreenChange'
+            ];
+            fullscreenChangeEvents.forEach(event => {
+              document.addEventListener(event, checkFullscreenStatus);
+            });
+            const initialTimeout = setTimeout(requestFullscreen, 1000);
+            startInterval();
+            return () => {
+              clearTimeout(initialTimeout);
+              if (interval) {
+                clearInterval(interval);
+              }
+              fullscreenChangeEvents.forEach(event => {
+                document.removeEventListener(event, checkFullscreenStatus);
+              });
+            };
+          }
+        }, [isMobile, isFullscreen]);
 
   // Avatar upload logic
   const avatarText = user && (user.firstName || user.lastName)

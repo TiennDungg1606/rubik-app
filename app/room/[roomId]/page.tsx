@@ -211,6 +211,7 @@ type User = {
   lastName?: string;
   birthday?: string;
   customBg?: string;
+  avatar?: string;
 };
 
 const [user, setUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
@@ -226,6 +227,24 @@ useEffect(() => {
       else setUser(data);
     });
 }, []);
+
+// State lưu thông tin đối thủ (bao gồm avatar)
+const [opponentUser, setOpponentUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
+
+// Lấy avatar đối thủ khi opponentId thay đổi
+useEffect(() => {
+  if (!opponentId) {
+    setOpponentUser(null);
+    return;
+  }
+  fetch(`/api/user/${opponentId}`, { credentials: "include" })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      if (!data) setOpponentUser(null);
+      else if (data.user) setOpponentUser(data.user);
+      else setOpponentUser(data);
+    });
+}, [opponentId]);
 
 useEffect(() => {
   if (user && user.customBg) {
@@ -2848,7 +2867,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
           playsInline
           className="w-full h-full object-cover"
           style={{ position: 'absolute', inset: 0, zIndex: 1 }}
-          onLoadedMetadata={e => { e.currentTarget.volume = 0.5; }}
+          onLoadedMetadata={e => { e.currentTarget.volume = 0.1; }}
         />
         <div className="fixed left-1/2 -translate-x-1/2" style={{ bottom: '60px', width: '90vw', maxWidth: 480, zIndex: 10000 }}>
           <div className="h-2 bg-gradient-to-r from-blue-400 to-pink-400 rounded-full animate-loading-bar" style={{ width: '100%' }}></div>
@@ -3782,12 +3801,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Webcam của bạn - cột 1 */}
         <div
           className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
-          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
+          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 200, minWidth: 120 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
             className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-blue-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-blue-400"}
             style={mobileShrink
-              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
+              ? { width: 180, height: 140, minWidth: 120, minHeight: 100, maxWidth: 200, maxHeight: 160 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
@@ -3849,10 +3868,26 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
-            gap: mobileShrink ? 2 : 8,
+            gap: mobileShrink ? 2 : 3,
             justifyContent: 'center',
             width: '100%'
           }}>
+            {/* Avatar nhỏ hình tròn bên trái ô Avg */}
+            {user && user.avatar && (
+              <img
+                src={user.avatar}
+                alt="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}
+              />
+            )}
             {/* Median */}
             <div style={{
               background: '#23272b',
@@ -4512,12 +4547,12 @@ function formatStat(val: number|null, showDNF: boolean = false) {
         {/* Webcam đối thủ - cột 3 */}
         <div
           className={mobileShrink ? "flex flex-col items-center webcam-area flex-shrink-0" : "flex flex-col items-center webcam-area flex-shrink-0"}
-          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 180, minWidth: 100 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
+          style={mobileShrink ? { flex: '0 1 40%', maxWidth: 200, minWidth: 120 } : { flex: '0 1 40%', maxWidth: 420, minWidth: 180 }}
         >
           <div
             className={mobileShrink ? "rounded flex items-center justify-center mb-0.5 relative shadow border border-pink-400" : "rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 border-pink-400"}
             style={mobileShrink
-              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
+              ? { width: 180, height: 140, minWidth: 120, minHeight: 100, maxWidth: 200, maxHeight: 160 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 420, height: 320 }}
@@ -4547,6 +4582,22 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             justifyContent: 'center',
             width: '100%'
           }}>
+            {/* Avatar nhỏ hình tròn bên trái ô Avg của đối thủ */}
+            {opponentUser && opponentUser.avatar && (
+              <img
+                src={opponentUser.avatar}
+                alt="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}
+              />
+            )}
             {/* Median */}
             <div style={{
               background: '#23272b',
