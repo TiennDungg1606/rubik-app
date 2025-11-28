@@ -85,7 +85,16 @@ export default function PublicProfilePage() {
         <img src={user.customBg || "/profile-bg.jpg"} alt="Profile background" className="w-full h-[260px] object-cover opacity-80" />
         <div className="absolute left-8 top-8 flex items-center gap-6">
           <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-bold border-4 border-white shadow text-5xl">
-            {user.avatar || `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase()}
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt="avatar"
+                className="w-full h-full object-cover rounded-full"
+                style={{ display: "block" }}
+              />
+            ) : (
+              `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase()
+            )}
           </div>
           <div>
             <h1 className="text-5xl font-bold text-white drop-shadow">{user.firstName} {user.lastName}</h1>

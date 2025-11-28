@@ -28,8 +28,10 @@ type User = {
   lastName?: string;
   birthday?: string;
   customBg?: string;
+  avatar?: string;
   // Thêm các trường khác nếu cần
 };
+
 
 type TabKey = "new" | "timer" | "room" | "practice" | "shop" | "about";
 
@@ -249,6 +251,23 @@ function LobbyContent() {
     });
   };
 
+    // Avatar change logic for main lobby (must be inside LobbyContent to access refetchUser)
+    const handleAvatarChangeLobby = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      await fetch("/api/user/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ avatar: base64 })
+      });
+      await refetchUser();
+    };
+    reader.readAsDataURL(file);
+  };
   const userInitials = user && (user.firstName || user.lastName)
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
     : "";
@@ -749,8 +768,17 @@ function LobbyContent() {
                 className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-800/80 px-3 py-2 text-xs font-medium text-white transition hover:border-blue-400/50 hover:text-blue-200"
                 onClick={openProfileMenu}
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-pink-500 text-base font-semibold text-white shadow">
-                  {userInitials || "👤"}
+                <span className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-pink-500 text-base font-semibold text-white shadow`}>
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt="avatar"
+                      className="w-full h-full object-cover rounded-full"
+                      style={{ display: "block" }}
+                    />
+                  ) : (
+                    userInitials || "👤"
+                  )}
                 </span>
                 <span className="text-sm md:text-base">{userName}</span>
               </button>
@@ -831,7 +859,16 @@ function LobbyContent() {
               >
                 <span className={`flex items-center ${isSidebarCollapsed ? "" : "gap-3"}`}>
                   <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-pink-500 text-lg font-semibold text-white shadow">
-                    {userInitials || "👤"}
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt="avatar"
+                        className="w-full h-full object-cover rounded-full"
+                        style={{ display: "block" }}
+                      />
+                    ) : (
+                      userInitials || "👤"
+                    )}
                   </span>
                   {!isSidebarCollapsed && <span>{userName}</span>}
                 </span>
@@ -868,7 +905,18 @@ function LobbyContent() {
               onClick={openProfileMenu}
               aria-label="Mở hồ sơ"
             >
-              {userInitials || "👤"}
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-pink-500 text-lg font-semibold text-white shadow">
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt="avatar"
+                    className="w-full h-full object-cover rounded-full"
+                    style={{ display: "block" }}
+                  />
+                ) : (
+                  userInitials || "👤"
+                )}
+              </span>
             </button>
           </div>
           )}

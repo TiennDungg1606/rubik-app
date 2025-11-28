@@ -60,9 +60,27 @@ export default function ProfilePage() {
       }
     }, []);
 
+  // Avatar upload logic
   const avatarText = user && (user.firstName || user.lastName)
     ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase()
     : "👤";
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      await fetch("/api/user/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ avatar: base64 })
+      });
+      window.location.reload();
+    };
+    reader.readAsDataURL(file);
+  };
 
   // mobileShrink logic (assume you already have useEffect and state)
   // Variables for responsive sizes
@@ -94,9 +112,27 @@ export default function ProfilePage() {
         {/* Background lấy từ customBg */}
         <img src={user?.customBg || "/profile-bg.jpg"} alt="Profile background" className={`w-full object-cover opacity-80 ${mobileShrink ? "h-[120px]" : "h-[260px]"}`} />
         <div className={`absolute left-4 top-4 flex items-center ${mobileShrink ? "gap-3" : "gap-6"}`}>
-          <div className={`rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-bold border-4 border-white shadow ${avatarSize}`}>
-            {avatarText}
-          </div>
+          <label htmlFor="avatar-upload-profile" style={{ cursor: "pointer" }}>
+            <div className={`rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-bold border-4 border-white shadow ${avatarSize}`}>
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt="avatar"
+                  className="w-full h-full object-cover rounded-full"
+                  style={{ display: "block" }}
+                />
+              ) : (
+                avatarText
+              )}
+            </div>
+            <input
+              id="avatar-upload-profile"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleAvatarChange}
+            />
+          </label>
           <div>
             <h1 className={`${nameSize} font-bold text-white drop-shadow`}>{user?.firstName} {user?.lastName ? user.lastName : ""}</h1>
           </div>
