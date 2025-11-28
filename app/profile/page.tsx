@@ -17,6 +17,7 @@ export default function ProfilePage() {
         document.addEventListener('mousedown', handleClick);
         return () => document.removeEventListener('mousedown', handleClick);
       }, [showMenu]);
+    const [copied, setCopied] = useState(false);
     const handleCopyProfileLink = () => {
       if (user?._id) {
         const url = `${window.location.origin}/profile/${user._id}`;
@@ -24,6 +25,8 @@ export default function ProfilePage() {
       } else {
         navigator.clipboard.writeText(window.location.href);
       }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
     };
   const [user, setUser] = React.useState<any>(null);
   useEffect(() => {
@@ -171,6 +174,11 @@ export default function ProfilePage() {
                 Copy Profile URL
                 <svg width={mobileShrink ? 14 : 18} height={mobileShrink ? 14 : 18} fill="none" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/><rect x="3" y="3" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/></svg>
               </button>
+              {copied && (
+                <div className="absolute right-0 top-full mt-2 bg-black text-white px-3 py-1 rounded shadow text-sm z-50">
+                  Đã copy link!
+                </div>
+              )}
               <button
                 className={`flex items-center gap-2 text-white hover:text-blue-300 rounded-lg transition font-semibold ${chevronBtnSize}`}
                 onClick={() => window.location.href = '/account?tab=profile'}
