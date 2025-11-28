@@ -15,8 +15,13 @@ type User = {
   username?: string;
 };
 
+import { useRouter } from "next/navigation";
+
+  
 export default function PublicProfilePage() {
+  const [myId, setMyId] = useState<string | null>(null);
   const { username: userId } = useParams();
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   useEffect(() => {
     async function fetchUser() {
@@ -27,10 +32,40 @@ export default function PublicProfilePage() {
     fetchUser();
   }, [userId]);
 
+  // Fetch logged-in user's _id
+  useEffect(() => {
+    async function fetchMe() {
+      try {
+        const res = await fetch("/api/user/me", { credentials: "include" });
+        const data = await res.json();
+        if (data && data.user && data.user._id) setMyId(data.user._id);
+      } catch {}
+    }
+    fetchMe();
+  }, []);
+
+  // Redirect if userId matches myId
+  useEffect(() => {
+    if (myId && userId === myId) {
+      router.replace("/profile");
+    }
+  }, [myId, userId, router]);
+
   if (!user) return <div className="text-center text-white py-20">Loading...</div>;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-black flex flex-col py-10 px-10">
+      {/* Back button */}
+      <button
+        className="absolute left-6 top-6 z-20 flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-900/80 text-white font-semibold shadow hover:bg-neutral-800/90 transition"
+        onClick={() => router.back()}
+        aria-label="Quay lại"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Trở về
+      </button>
       <div className="w-full rounded-3xl overflow-hidden relative mb-8" style={{ background: "#181926" }}>
         <img src={user.customBg || "/profile-bg.jpg"} alt="Profile background" className="w-full h-[260px] object-cover opacity-80" />
         <div className="absolute left-8 top-8 flex items-center gap-6">

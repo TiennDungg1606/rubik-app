@@ -5,7 +5,7 @@ declare global {
 
 
 import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import AuthForm from "@/components/AuthForm";
 
 const BrandCubeIcon = ({ size = 64, className = "" }: { size?: number; className?: string }) => (
