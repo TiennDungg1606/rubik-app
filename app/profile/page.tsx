@@ -71,7 +71,7 @@ export default function ProfilePage() {
   const chevronBtnSize = mobileShrink ? "px-2 py-1 text-sm" : "px-3 py-2";
 
   return (
-    <div className={`relative min-h-screen overflow-hidden bg-[#23242a] flex flex-col ${pySize} ${pxSize}`}>
+    <div className={`relative min-h-screen overflow-hidden bg-black flex flex-col ${pySize} ${pxSize}`}>
       {/* Back button top left */}
       <button
         className={`absolute top-4 left-6 z-20 bg-neutral-900/70 hover:bg-neutral-900/90 text-white rounded-full shadow-lg flex items-center gap-2 ${chevronBtnSize}`}
@@ -101,25 +101,35 @@ export default function ProfilePage() {
           <div className={mobileShrink ? "mb-2" : "mb-4"}>
             <span className={`bg-neutral-800 text-white rounded-full font-semibold mr-2 ${cardBadgeSize}`}>Bio</span>
           </div>
-          <div className={`${bioTextSize} italic text-white/70 ml-2`}>No bio yet</div>
+          <div className={`${bioTextSize} italic text-white/70 ml-2`}>
+            {user?.bio ? user.bio : "No bio yet"}
+          </div>
         </div>
         {/* Profile Info Cards */}
         <div className={`flex-1 grid grid-cols-1 md:grid-cols-2 ${mobileShrink ? "gap-3" : "gap-6"}`}>
           <div className={`bg-[#23242a] rounded-2xl shadow border border-neutral-700 ${cardPadding}`}>
             <span className={`bg-neutral-800 text-white rounded-full font-semibold mb-2 inline-block ${cardBadgeSize}`}>3x3 Method</span>
-            <div className={`${cardTitleSize} text-white mt-2`}>-</div>
+            <div className={`${cardTitleSize} text-white mt-2`}>
+              {user?.md33 ? user.md33 : "-"}
+            </div>
           </div>
           <div className={`bg-[#23242a] rounded-2xl shadow border border-neutral-700 ${cardPadding}`}>
             <span className={`bg-neutral-800 text-white rounded-full font-semibold mb-2 inline-block ${cardBadgeSize}`}>3x3 Goal</span>
-            <div className={`${cardTitleSize} text-white mt-2`}>-</div>
+            <div className={`${cardTitleSize} text-white mt-2`}>
+              {user?.goal33 ? user.goal33 : "-"}
+            </div>
           </div>
           <div className={`bg-[#23242a] rounded-2xl shadow border border-neutral-700 ${cardPadding}`}>
             <span className={`bg-neutral-800 text-white rounded-full font-semibold mb-2 inline-block ${cardBadgeSize}`}>Main 3x3 Cube</span>
-            <div className={`${cardTitleSize} text-white mt-2`}>-</div>
+            <div className={`${cardTitleSize} text-white mt-2`}>
+              {user?.main33 ? user.main33 : "-"}
+            </div>
           </div>
           <div className={`bg-[#23242a] rounded-2xl shadow border border-neutral-700 ${cardPadding}`}>
             <span className={`bg-neutral-800 text-white rounded-full font-semibold mb-2 inline-block ${cardBadgeSize}`}>Favorite Event</span>
-            <div className={`${cardTitleSize} text-white mt-2`}>-</div>
+            <div className={`${cardTitleSize} text-white mt-2`}>
+              {user?.Feevent ? user.Feevent : "-"}
+            </div>
           </div>
         </div>
         {/* Publish PBs Button */}
@@ -148,12 +158,12 @@ export default function ProfilePage() {
             )}
           </button>
           {showMenu && (
-            <div ref={menuRef} className={`absolute right-0 ${mobileShrink ? "mt-10 w-40 p-2" : "mt-20 w-56 p-3"} bg-[#23242a] border border-neutral-700 rounded-xl shadow-xl z-30 flex flex-col gap-2`}>
+            <div ref={menuRef} className={`absolute right-0 ${mobileShrink ? "mt-19 w-44 p-2" : "mt-20 w-56 p-3"} bg-[#23242a] border border-neutral-700 rounded-xl shadow-xl z-30 flex flex-col gap-1`}>
               <button
                 className={`flex items-center gap-2 text-white hover:text-blue-300 rounded-lg transition font-semibold ${chevronBtnSize}`}
                 onClick={handleCopyProfileLink}
               >
-                Copy Profile Link
+                Copy Profile URL
                 <svg width={mobileShrink ? 14 : 18} height={mobileShrink ? 14 : 18} fill="none" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/><rect x="3" y="3" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/></svg>
               </button>
               <button
