@@ -139,7 +139,7 @@ export default function HomePage() {
   const publisherInfo = {
     name: "Chu Tiến Dũng",
     title: "Nhà phát hành Rubik App • Sinh viên, trường ĐH Bách khoa Đà Nẵng",
-    bio: "Mình xây Rubik App để gom đủ công cụ luyện tập cho cộng đồng speedcubing Việt Nam: luyện giải, phân tích dữ liệu, và kết nối thi đấu online mỗi ngày.",
+    bio: "'Mình xây Rubik App để gom đủ công cụ luyện tập cho cộng đồng speedcubing Việt Nam: luyện giải, phân tích dữ liệu, và kết nối thi đấu online mỗi ngày.'",
     socials: [
       { label: "Facebook", href: "https://www.facebook.com/tienndungg258/", icon: FacebookIcon },
       { label: "TikTok", href: "https://www.tiktok.com/@tienndungg2006", icon: TikTokIcon },
@@ -269,7 +269,7 @@ export default function HomePage() {
               you need to improve at cubing!
             </h1>
             <p className={bodyTextClass}>
-              Bộ công cụ Rubik toàn diện: luyện tập, thống kê Ao5, phân tích video và cộng đồng thi đấu online giúp bạn nâng trình mỗi ngày.
+              Bộ công cụ Rubik toàn diện: luyện tập, thống kê ao5, thi đấu online có camera + mic và cộng đồng thi đấu online giúp bạn nâng trình mỗi ngày.
             </p>
             <div className={`${effectiveMobileShrink ? 'flex flex-col gap-2 items-start' : 'flex flex-col gap-3 sm:flex-row'}`}>
               <a
@@ -278,7 +278,7 @@ export default function HomePage() {
                 rel="noopener noreferrer"
                 className={`inline-flex items-center justify-center whitespace-nowrap rounded-2xl border border-slate-300 bg-white ${effectiveMobileShrink ? 'px-3.5 py-1.5 text-xs self-start' : 'px-5 py-2.5 text-sm'} font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5`}
               >
-                Join Community
+                Tham gia cộng đồng
               </a>
             </div>
             <div className={`flex flex-wrap ${effectiveMobileShrink ? 'gap-2' : 'gap-3'}`}>
@@ -372,7 +372,7 @@ export default function HomePage() {
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.4em] text-amber-500">Pro timer</p>
                 <h2 className="text-3xl font-black text-slate-900">Chế độ giải chuyên nghiệp cho cuber.</h2>
-                <p className="mt-3 text-base text-slate-600">Giao diện tập trung, hỗ trợ StackMat, nhập thời gian thủ công, chế độ inspection, đổi loại Rubik, hiển thị 3 số thập phân, phím tắt, khoá/copy/reset scramble.</p>
+                <p className="mt-3 text-base text-slate-600">Giao diện tập trung, hỗ trợ StackMat, nhập thời gian thủ công, chế độ inspection, đổi loại Rubik, khoá/copy/reset scramble.</p>
               </div>
               <ul className="grid gap-3 text-sm text-slate-700 sm:grid-cols-2 mt-4">
                 <li className="flex items-start gap-2"><span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-600">✓</span>Xen lịch sử giải</li>

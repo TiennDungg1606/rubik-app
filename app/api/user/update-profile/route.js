@@ -13,13 +13,14 @@ export async function PATCH(req) {
   try {
     const payload = jwt.verify(match[1], JWT_SECRET);
     await dbConnect();
-    const { bio, md33, goal33, main33, Feevent } = await req.json();
+    const { bio, md33, goal33, main33, Feevent, avatar } = await req.json();
     const update = {};
     if (bio !== undefined) update.bio = bio;
     if (md33 !== undefined) update.md33 = md33;
     if (goal33 !== undefined) update.goal33 = goal33;
     if (main33 !== undefined) update.main33 = main33;
     if (Feevent !== undefined) update.Feevent = Feevent;
+    if (avatar !== undefined) update.avatar = avatar;
     const user = await User.findByIdAndUpdate(payload.userId, update, { new: true }).select('-password');
     if (!user) return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
     return new Response(JSON.stringify({ user }), { status: 200 });

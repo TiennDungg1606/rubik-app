@@ -44,14 +44,29 @@ export default function PublicProfilePage() {
     fetchMe();
   }, []);
 
-  // Redirect if userId matches myId
-  useEffect(() => {
-    if (myId && userId === myId) {
+
+  // Move redirect logic to line 54 (before render)
+  if (myId && userId === myId) {
+    if (typeof window !== "undefined") {
       router.replace("/profile");
     }
-  }, [myId, userId, router]);
+    return null;
+  }
 
-  if (!user) return <div className="text-center text-white py-20">Loading...</div>;
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
+        <div className="text-2xl font-bold mb-4">Không tìm thấy người dùng</div>
+        <div className="text-base text-white/70 mb-8">UserId không tồn tại hoặc đã bị xóa khỏi hệ thống.</div>
+        <button
+          className="px-5 py-2 rounded-full bg-neutral-900/80 text-white font-semibold shadow hover:bg-neutral-800/90 transition"
+          onClick={() => router.back()}
+        >
+          Quay lại
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-black flex flex-col py-10 px-10">

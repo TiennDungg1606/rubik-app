@@ -7,6 +7,7 @@ interface ProfileTabProps {
     firstName?: string;
     lastName?: string;
     birthday?: string;
+    avatar?: string;
   } | null;
   onLogout: () => void;
   onThemeSwitch?: () => void;
@@ -66,18 +67,57 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
   const buttonTextSize = effectiveMobileShrink ? "text-sm" : "text-base";
   const logoutIconClass = effectiveMobileShrink ? "w-5 h-5" : "w-6 h-6";
 
+  // Avatar upload logic
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      // PATCH to update avatar
+      await fetch("/api/user/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ avatar: base64 })
+      });
+      window.location.reload(); // reload to show new avatar
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className={containerClassName}>
       {/* Avatar lớn */}
-      <div className={`w-full flex flex-col items-center ${headerPadding} border-b border-gray-700`}>
-        <div className={avatarClassName}>
-          {user && (user.firstName || user.lastName)
-            ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase()
-            : <span>👤</span>}
-        </div>
-        <div className={emailClassName}>{user?.email || ""}</div>
-        <div className={greetingClassName}>
-          {greeting}{userName ? `, ${userName}` : ""} !
+      <div className={`w-full flex flex-col items-center justify-center ${headerPadding} border-b border-gray-700`}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+          <label htmlFor="avatar-upload" style={{ cursor: "pointer", display: "block", margin: "0 auto" }}>
+            <div className={avatarClassName}>
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt="avatar"
+                  className="w-full h-full object-cover rounded-full"
+                  style={{ display: "block" }}
+                />
+              ) : (
+                user && (user.firstName || user.lastName)
+                  ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase()
+                  : <span>👤</span>
+              )}
+            </div>
+            <input
+              id="avatar-upload"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleAvatarChange}
+            />
+          </label>
+          <div className={emailClassName} style={{ textAlign: "center", width: "100%" }}>{user?.email || ""}</div>
+          <div className={greetingClassName} style={{ textAlign: "center", width: "100%" }}>
+            {greeting}{userName ? `, ${userName}` : ""} !
+          </div>
         </div>
       </div>
       {/* Profile, Account Setting và Logout */}
