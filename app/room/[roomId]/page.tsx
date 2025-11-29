@@ -231,21 +231,25 @@ useEffect(() => {
 // State lưu thông tin đối thủ (bao gồm avatar)
 const [opponentUser, setOpponentUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
 
-// Lấy avatar đối thủ từ socket room-users
+// Lấy avatar đối thủ khi opponentId thay đổi
 useEffect(() => {
-  const socket = getSocket();
-  function handleRoomUsers(data: { users: Array<{ userId: string; avatar?: string }> }) {
-    if (!data || !Array.isArray(data.users)) return;
-    const opp = data.users.find((u: { userId: string; avatar?: string }) => u.userId === opponentId);
-    console.log('[room-users] Opponent:', opp);
-    if (opp) setOpponentUser(opp);
-    else setOpponentUser(null);
+  if (!opponentId) {
+    setOpponentUser(null);
+    return;
   }
-  socket.on('room-users', handleRoomUsers);
-  return () => {
-    socket.off('room-users', handleRoomUsers);
-  };
-}, [opponentId]);
+  fetch(`/api/user/${opponentId}`, { credentials: "include" })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      let userObj = null;
+      if (!data) userObj = null;
+      else if (Array.isArray(data.user)) userObj = data.user[0];
+      else if (data.user) userObj = data.user;
+      else if (Array.isArray(data)) userObj = data[0];
+      else userObj = data;
+      console.log('[OpponentUser API]', userObj);
+      setOpponentUser(userObj);
+    });
+}, [opponentId, opponentResults]);
 
 useEffect(() => {
   if (user && user.customBg) {
@@ -2257,7 +2261,7 @@ useEffect(() => {
         sessionStorage.removeItem(`roomPassword_${roomId}`);
       }
     }
-      socket.emit("join-room", { roomId, userId, userName, avatar: user?.avatar, event, displayName, password, gameMode: '1vs1' });
+    socket.emit("join-room", { roomId, userId, userName, event, displayName, password, gameMode: '1vs1' });
     // Lắng nghe xác nhận đã join phòng
     const handleRoomJoined = () => {
       setJoinedRoom(true);
