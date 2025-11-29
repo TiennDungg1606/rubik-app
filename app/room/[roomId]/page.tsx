@@ -231,22 +231,20 @@ useEffect(() => {
 // State lưu thông tin đối thủ (bao gồm avatar)
 const [opponentUser, setOpponentUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
 
-// Lấy avatar đối thủ khi opponentId thay đổi
+// Lấy avatar đối thủ từ socket room-users
 useEffect(() => {
-  if (!opponentId) {
-    setOpponentUser(null);
-    return;
+  const socket = getSocket();
+  function handleRoomUsers(data: { users: Array<{ userId: string; avatar?: string }> }) {
+    if (!data || !Array.isArray(data.users)) return;
+    const opp = data.users.find((u: { userId: string; avatar?: string }) => u.userId === opponentId);
+    if (opp) setOpponentUser(opp);
+    else setOpponentUser(null);
   }
-  fetch(`/api/user/${opponentId}`, { credentials: "include" })
-    .then(res => res.ok ? res.json() : null)
-    .then(data => {
-      if (!data) setOpponentUser(null);
-      else if (Array.isArray(data.user)) setOpponentUser(data.user[0]);
-      else if (data.user) setOpponentUser(data.user);
-      else if (Array.isArray(data)) setOpponentUser(data[0]);
-      else setOpponentUser(data);
-    });
-}, [opponentId, opponentResults]);
+  socket.on('room-users', handleRoomUsers);
+  return () => {
+    socket.off('room-users', handleRoomUsers);
+  };
+}, [opponentId]);
 
 useEffect(() => {
   if (user && user.customBg) {
