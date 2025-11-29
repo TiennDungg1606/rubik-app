@@ -237,6 +237,7 @@ useEffect(() => {
   function handleRoomUsers(data: { users: Array<{ userId: string; avatar?: string }> }) {
     if (!data || !Array.isArray(data.users)) return;
     const opp = data.users.find((u: { userId: string; avatar?: string }) => u.userId === opponentId);
+    console.log('[room-users] Opponent:', opp);
     if (opp) setOpponentUser(opp);
     else setOpponentUser(null);
   }
@@ -2256,7 +2257,7 @@ useEffect(() => {
         sessionStorage.removeItem(`roomPassword_${roomId}`);
       }
     }
-    socket.emit("join-room", { roomId, userId, userName, event, displayName, password, gameMode: '1vs1' });
+      socket.emit("join-room", { roomId, userId, userName, avatar: user?.avatar, event, displayName, password, gameMode: '1vs1' });
     // Lắng nghe xác nhận đã join phòng
     const handleRoomJoined = () => {
       setJoinedRoom(true);
