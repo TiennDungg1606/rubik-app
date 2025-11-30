@@ -239,18 +239,24 @@ useEffect(() => {
     setOpponentAvatar(null);
     return;
   }
-  fetch(`/api/user/${opponentId}`, { credentials: "include" })
-    .then(res => res.ok ? res.json() : null)
-    .then(data => {
-      let userObj = null;
-      if (!data) userObj = null;
-      else if (Array.isArray(data.user)) userObj = data.user[0];
-      else if (data.user) userObj = data.user;
-      else if (Array.isArray(data)) userObj = data[0];
-      else userObj = data;
+  async function fetchOpponent() {
+    try {
+      const res = await fetch(`/api/user/public-profile?userId=${opponentId}`);
+      if (!res.ok) {
+        setOpponentUser(null);
+        setOpponentAvatar(null);
+        return;
+      }
+      const data = await res.json();
+      const userObj = data && data.user ? data.user : null;
       setOpponentUser(userObj);
       setOpponentAvatar(userObj && userObj.avatar ? userObj.avatar : null);
-    });
+    } catch (err) {
+      setOpponentUser(null);
+      setOpponentAvatar(null);
+    }
+  }
+  fetchOpponent();
 }, [opponentId, opponentResults]);
 
 useEffect(() => {
