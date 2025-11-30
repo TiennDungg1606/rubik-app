@@ -230,6 +230,7 @@ useEffect(() => {
 
 // State lưu thông tin đối thủ (bao gồm avatar)
 const [opponentUser, setOpponentUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
+const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
 
 // Lấy avatar đối thủ khi opponentId thay đổi
 useEffect(() => {
@@ -246,8 +247,8 @@ useEffect(() => {
       else if (data.user) userObj = data.user;
       else if (Array.isArray(data)) userObj = data[0];
       else userObj = data;
-      console.log('[OpponentUser API]', userObj);
       setOpponentUser(userObj);
+      setOpponentAvatar(userObj && userObj.avatar ? userObj.avatar : null);
     });
 }, [opponentId, opponentResults]);
 
@@ -3878,7 +3879,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             width: '100%'
           }}>
             {/* Avatar nhỏ hình tròn bên trái ô Avg */}
-            {user && user.avatar && (
+            {user && user.avatar ? (
               <img
                 src={user.avatar}
                 alt="avatar"
@@ -3891,6 +3892,28 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                 }}
               />
+            ) : (
+              user && (user.firstName || user.lastName) ? (
+                <div
+                  className="avatar"
+                  style={{
+                    width: mobileShrink ? 30 : 50,
+                    height: mobileShrink ? 30 : 50,
+                    marginRight: mobileShrink ? 4 : 5,
+                    border: '2px solid #555',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    background: 'linear-gradient(135deg, #60a5fa 0%, #f472b6 100%)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: mobileShrink ? 14 : 22,
+                  }}
+                >
+                  {`${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()}
+                </div>
+              ) : null
             )}
             {/* Median */}
             <div style={{
@@ -4587,9 +4610,9 @@ function formatStat(val: number|null, showDNF: boolean = false) {
             width: '100%'
           }}>
             {/* Avatar nhỏ hình tròn bên trái ô Avg của đối thủ */}
-            {opponentUser && opponentUser.avatar && (
+            {opponentAvatar ? (
               <img
-                src={opponentUser.avatar}
+                src={opponentAvatar}
                 alt="avatar"
                 className="avatar"
                 style={{
@@ -4600,6 +4623,28 @@ function formatStat(val: number|null, showDNF: boolean = false) {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                 }}
               />
+            ) : (
+              opponentUser && (opponentUser.firstName || opponentUser.lastName) ? (
+                <div
+                  className="avatar"
+                  style={{
+                    width: mobileShrink ? 30 : 50,
+                    height: mobileShrink ? 30 : 50,
+                    marginRight: mobileShrink ? 4 : 5,
+                    border: '2px solid #555',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    background: 'linear-gradient(135deg, #f472b6 0%, #60a5fa 100%)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: mobileShrink ? 14 : 22,
+                  }}
+                >
+                  {`${opponentUser.firstName?.[0] || ''}${opponentUser.lastName?.[0] || ''}`.toUpperCase()}
+                </div>
+              ) : null
             )}
             {/* Median */}
             <div style={{
