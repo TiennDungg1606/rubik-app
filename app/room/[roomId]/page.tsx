@@ -234,8 +234,9 @@ const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
 
 // Lấy avatar đối thủ khi opponentId thay đổi
 useEffect(() => {
-  if (!opponentId) {
+  if (!opponentId || users.length !== 2) {
     setOpponentUser(null);
+    setOpponentAvatar(null);
     return;
   }
   fetch(`/api/user/${opponentId}`, { credentials: "include" })
