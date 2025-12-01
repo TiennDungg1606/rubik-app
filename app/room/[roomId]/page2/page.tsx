@@ -537,8 +537,8 @@ type RematchDialogState = {
   status: 'waiting' | 'confirmed';
 };
 
-const [user, setUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
-const [customBg, setCustomBg] = typeof window !== 'undefined' ? useState<string | null>(null) : [null, () => {}];
+const [user, setUser] = useState<User | null>(null);
+const [customBg, setCustomBg] = useState<string | null>(null);
 
 const mergeRoomUsers = (users: RoomUser[]): RoomUser[] => {
   const merged = new Map<string, RoomUser>();
