@@ -3787,6 +3787,39 @@ const clampPlayerIndex = (idx: number) => {
   const hasCompleted2v2Match = !!myTeam && teamACompletedAll && teamBCompletedAll;
   const canExportResults = hasCompleted1v1Match || hasCompleted2v2Match;
 
+
+    // State lưu avatar của đồng đội
+    // State lưu thông tin đồng đội: avatar, firstName, lastName
+    const [teammateInfo, setTeammateInfo] = useState<{ avatar: string | null, firstName: string, lastName: string } | null>(null);
+
+    // Fetch avatar của đồng đội
+    useEffect(() => {
+      if (!teammateUserId) {
+        setTeammateInfo(null);
+        return;
+      }
+      async function fetchTeammateInfo() {
+        try {
+          const res = await fetch(`/api/user/public-profile?userId=${teammateUserId}`);
+          if (!res.ok) {
+            setTeammateInfo(null);
+            return;
+          }
+          const data = await res.json();
+          setTeammateInfo({
+            avatar: data?.user?.avatar ?? null,
+            firstName: data?.user?.firstName ?? '',
+            lastName: data?.user?.lastName ?? ''
+          });
+        } catch {
+          setTeammateInfo(null);
+        }
+      }
+      fetchTeammateInfo();
+    }, [teammateUserId]);
+
+
+
   if (isPortrait) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-black text-white py-4">
@@ -5561,6 +5594,41 @@ const clampPlayerIndex = (idx: number) => {
               })()}
             </div>
             {/* Tên người khác 1 */}
+            {/* Avatar nhỏ hình tròn bên trái teammateLabel */}
+            {teammateInfo && teammateInfo.avatar ? (
+              <img
+                src={teammateInfo.avatar}
+                alt="avatar"
+                className="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}
+              />
+            ) : teammateInfo && (teammateInfo.firstName || teammateInfo.lastName) ? (
+              <div
+                className="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  background: 'linear-gradient(135deg, #f472b6 0%, #60a5fa 100%)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: mobileShrink ? 14 : 22,
+                }}
+              >
+                {`${teammateInfo.firstName?.[0] || ''}${teammateInfo.lastName?.[0] || ''}`.toUpperCase()}
+              </div>
+            ) : null}
             <div
               style={{
                 background: '#fff',
