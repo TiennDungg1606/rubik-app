@@ -407,6 +407,28 @@ export default function RoomPage() {
   const teamAMaxDnf = React.useMemo(() => teamADnfCounts.reduce((max, count) => Math.max(max, count), 0), [teamADnfCounts]);
   const teamBMaxDnf = React.useMemo(() => teamBDnfCounts.reduce((max, count) => Math.max(max, count), 0), [teamBDnfCounts]);
 
+      // State lưu avatar của bản thân
+      const [myAvatar, setMyAvatar] = useState<string | null>(null);
+
+      // Fetch avatar từ API public-profile
+      useEffect(() => {
+        if (!userId) return;
+        async function fetchAvatar() {
+          try {
+            const res = await fetch(`/api/user/public-profile?userId=${userId}`);
+            if (!res.ok) {
+              setMyAvatar(null);
+              return;
+            }
+            const data = await res.json();
+            setMyAvatar(data?.user?.avatar ?? null);
+          } catch {
+            setMyAvatar(null);
+          }
+        }
+        fetchAvatar();
+      }, [userId]);
+
   // Hàm tính điểm theo thứ hạng trong một vòng, chỉ cập nhật khi đủ 4 kết quả
   const calculateRoundScores = React.useCallback((roundIndex: number) => {
     if (roundIndex < 0 || roundIndex >= 5) return;
@@ -484,6 +506,7 @@ type User = {
   lastName?: string;
   birthday?: string;
   customBg?: string;
+  avatar?: string;
 };
 
 type RoomUser = {
@@ -4714,6 +4737,43 @@ const clampPlayerIndex = (idx: number) => {
             justifyContent: 'center',
             width: '100%'
           }}>
+            {/* Avatar nhỏ hình tròn bên trái ô AO5 của bản thân */}
+            {user && user.avatar ? (
+              <img
+                src={user.avatar}
+                alt="avatar"
+                className="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}
+              />
+            ) : (
+              user && (user.firstName || user.lastName) ? (
+                <div
+                  className="avatar"
+                  style={{
+                    width: mobileShrink ? 30 : 50,
+                    height: mobileShrink ? 30 : 50,
+                    marginRight: mobileShrink ? 4 : 5,
+                    border: '2px solid #555',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    background: 'linear-gradient(135deg, #f472b6 0%, #60a5fa 100%)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: mobileShrink ? 14 : 22,
+                  }}
+                >
+                  {`${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()}
+                </div>
+              ) : null
+            )}
             {/* Median */}
             <div style={{
               background: '#23272b',
@@ -5901,7 +5961,12 @@ const clampPlayerIndex = (idx: number) => {
         .overflow-y-auto::-webkit-scrollbar-track {
           background: transparent;
         }
-        
+        .avatar {
+          border-radius: 50%;
+          object-fit: cover;
+          aspect-ratio: 1/1;
+          display: inline-block;
+        }          
         .overflow-y-auto::-webkit-scrollbar-thumb {
           background: rgba(59, 130, 246, 0.5);
           border-radius: 3px;
