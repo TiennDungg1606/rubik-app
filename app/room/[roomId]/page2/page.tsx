@@ -91,6 +91,43 @@ const AURORA_TONE_MAP: Record<AuroraTone, {
   },
 };
 
+type User = {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  birthday?: string;
+  customBg?: string;
+  avatar?: string;
+};
+
+type RoomUser = {
+  userId: string;
+  userName: string;
+  team?: 'team1' | 'team2' | null;
+  position?: number | null;
+  role?: 'creator' | 'player';
+  isObserver?: boolean;
+  isReady?: boolean;
+};
+
+type TeamPlayer = {
+  userId: string;
+  userName: string;
+  position?: number | null;
+};
+
+type RematchParticipant = {
+  userId: string;
+  userName: string;
+};
+
+type RematchDialogState = {
+  show: boolean;
+  initiatorId: string | null;
+  participants: RematchParticipant[];
+  status: 'waiting' | 'confirmed';
+};
+
 const useModalTransition = (open: boolean, duration = MODAL_TRANSITION_MS, disableAnimation = false) => {
   const [isMounted, setIsMounted] = useState(open);
   const [stage, setStage] = useState<ModalTransitionStage>(open ? "enter" : "idle");
@@ -498,47 +535,8 @@ export default function RoomPage() {
   // Current player info
   const [currentPlayerId, setCurrentPlayerId] = useState<string>("");
   const [currentPlayerName, setCurrentPlayerName] = useState<string>("");
-
-  // --- Thêm logic lấy customBg và set background giống lobby ---
-type User = {
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  birthday?: string;
-  customBg?: string;
-  avatar?: string;
-};
-
-type RoomUser = {
-  userId: string;
-  userName: string;
-  team?: 'team1' | 'team2' | null;
-  position?: number | null;
-  role?: 'creator' | 'player';
-  isObserver?: boolean;
-  isReady?: boolean;
-};
-
-type TeamPlayer = {
-  userId: string;
-  userName: string;
-  position?: number | null;
-};
-
-type RematchParticipant = {
-  userId: string;
-  userName: string;
-};
-
-type RematchDialogState = {
-  show: boolean;
-  initiatorId: string | null;
-  participants: RematchParticipant[];
-  status: 'waiting' | 'confirmed';
-};
-
-const [user, setUser] = useState<User | null>(null);
-const [customBg, setCustomBg] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [customBg, setCustomBg] = useState<string | null>(null);
 
 const mergeRoomUsers = (users: RoomUser[]): RoomUser[] => {
   const merged = new Map<string, RoomUser>();
