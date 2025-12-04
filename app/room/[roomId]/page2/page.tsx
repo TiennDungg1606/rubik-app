@@ -470,13 +470,21 @@ export default function RoomPage() {
 
       // Fetch thông tin đồng đội
       useEffect(() => {
-        if (!teammateUserId) {
+        const displayTeamId: 'A' | 'B' = myTeam ?? 'A';
+        const teamData = displayTeamId === 'A' ? teamA : teamB;
+        const normalizedIndex = myTeam !== null && myTeamIndex >= 0
+          ? Math.min(Math.max(myTeamIndex, 0), 1)
+          : 0;
+        const derivedTeammateIndex = normalizedIndex === 0 ? 1 : 0;
+        const computedTeammateUserId = teamData?.players?.[derivedTeammateIndex]?.userId;
+        
+        if (!computedTeammateUserId) {
           setTeammateInfo(null);
           return;
         }
         async function fetchTeammateInfo() {
           try {
-            const res = await fetch(`/api/user/public-profile?userId=${teammateUserId}`);
+            const res = await fetch(`/api/user/public-profile?userId=${computedTeammateUserId}`);
             if (!res.ok) {
               setTeammateInfo(null);
               return;
@@ -492,7 +500,7 @@ export default function RoomPage() {
           }
         }
         fetchTeammateInfo();
-      }, [teammateUserId]);
+      }, [myTeam, myTeamIndex, teamA, teamB]);
 
   // Hàm tính điểm theo thứ hạng trong một vòng, chỉ cập nhật khi đủ 4 kết quả
   const calculateRoundScores = React.useCallback((roundIndex: number) => {
