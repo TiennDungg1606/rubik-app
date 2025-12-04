@@ -446,6 +446,8 @@ export default function RoomPage() {
 
       // State lưu avatar của bản thân
       const [myAvatar, setMyAvatar] = useState<string | null>(null);
+      // State lưu thông tin đồng đội: avatar, firstName, lastName
+      const [teammateInfo, setTeammateInfo] = useState<{ avatar: string | null, firstName: string, lastName: string } | null>(null);
 
       // Fetch avatar từ API public-profile
       useEffect(() => {
@@ -465,6 +467,32 @@ export default function RoomPage() {
         }
         fetchAvatar();
       }, [userId]);
+
+      // Fetch thông tin đồng đội
+      useEffect(() => {
+        if (!teammateUserId) {
+          setTeammateInfo(null);
+          return;
+        }
+        async function fetchTeammateInfo() {
+          try {
+            const res = await fetch(`/api/user/public-profile?userId=${teammateUserId}`);
+            if (!res.ok) {
+              setTeammateInfo(null);
+              return;
+            }
+            const data = await res.json();
+            setTeammateInfo({
+              avatar: data?.user?.avatar ?? null,
+              firstName: data?.user?.firstName ?? '',
+              lastName: data?.user?.lastName ?? ''
+            });
+          } catch {
+            setTeammateInfo(null);
+          }
+        }
+        fetchTeammateInfo();
+      }, [teammateUserId]);
 
   // Hàm tính điểm theo thứ hạng trong một vòng, chỉ cập nhật khi đủ 4 kết quả
   const calculateRoundScores = React.useCallback((roundIndex: number) => {
@@ -3784,39 +3812,6 @@ const clampPlayerIndex = (idx: number) => {
   const hasCompleted1v1Match = !myTeam && myResults.length >= 5 && opponentResults.length >= 5;
   const hasCompleted2v2Match = !!myTeam && teamACompletedAll && teamBCompletedAll;
   const canExportResults = hasCompleted1v1Match || hasCompleted2v2Match;
-
-
-    // State lưu avatar của đồng đội
-    // State lưu thông tin đồng đội: avatar, firstName, lastName
-    const [teammateInfo, setTeammateInfo] = useState<{ avatar: string | null, firstName: string, lastName: string } | null>(null);
-
-    // Fetch avatar của đồng đội
-    useEffect(() => {
-      if (!teammateUserId) {
-        setTeammateInfo(null);
-        return;
-      }
-      async function fetchTeammateInfo() {
-        try {
-          const res = await fetch(`/api/user/public-profile?userId=${teammateUserId}`);
-          if (!res.ok) {
-            setTeammateInfo(null);
-            return;
-          }
-          const data = await res.json();
-          setTeammateInfo({
-            avatar: data?.user?.avatar ?? null,
-            firstName: data?.user?.firstName ?? '',
-            lastName: data?.user?.lastName ?? ''
-          });
-        } catch {
-          setTeammateInfo(null);
-        }
-      }
-      fetchTeammateInfo();
-    }, [teammateUserId]);
-
-
 
   if (isPortrait) {
     return (
