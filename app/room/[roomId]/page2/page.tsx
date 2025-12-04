@@ -5527,6 +5527,41 @@ const clampPlayerIndex = (idx: number) => {
           </div>
           {/* Thông tin người khác 1 */}
           <div className="flex flex-row items-center gap-1 mb-1">
+            {/* Avatar nhỏ hình tròn bên trái ô AO5 */}
+            {teammateInfo && teammateInfo.avatar ? (
+              <img
+                src={teammateInfo.avatar}
+                alt="avatar"
+                className="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}
+              />
+            ) : teammateInfo && (teammateInfo.firstName || teammateInfo.lastName) ? (
+              <div
+                className="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  background: 'linear-gradient(135deg, #f472b6 0%, #60a5fa 100%)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: mobileShrink ? 14 : 22,
+                }}
+              >
+                {`${teammateInfo.firstName?.[0] || ''}${teammateInfo.lastName?.[0] || ''}`.toUpperCase()}
+              </div>
+            ) : null}
             {/* Median */}
             <div style={{
               background: '#23272b',
@@ -5595,41 +5630,6 @@ const clampPlayerIndex = (idx: number) => {
               })()}
             </div>
             {/* Tên người khác 1 */}
-            {/* Avatar nhỏ hình tròn bên trái teammateLabel */}
-            {teammateInfo && teammateInfo.avatar ? (
-              <img
-                src={teammateInfo.avatar}
-                alt="avatar"
-                className="avatar"
-                style={{
-                  width: mobileShrink ? 30 : 50,
-                  height: mobileShrink ? 30 : 50,
-                  marginRight: mobileShrink ? 4 : 5,
-                  border: '2px solid #555',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                }}
-              />
-            ) : teammateInfo && (teammateInfo.firstName || teammateInfo.lastName) ? (
-              <div
-                className="avatar"
-                style={{
-                  width: mobileShrink ? 30 : 50,
-                  height: mobileShrink ? 30 : 50,
-                  marginRight: mobileShrink ? 4 : 5,
-                  border: '2px solid #555',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  background: 'linear-gradient(135deg, #f472b6 0%, #60a5fa 100%)',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                  fontSize: mobileShrink ? 14 : 22,
-                }}
-              >
-                {`${teammateInfo.firstName?.[0] || ''}${teammateInfo.lastName?.[0] || ''}`.toUpperCase()}
-              </div>
-            ) : null}
             <div
               style={{
                 background: '#fff',
