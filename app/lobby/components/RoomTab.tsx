@@ -22,6 +22,8 @@ type PublicUser = {
   firstName?: string;
   lastName?: string;
   username?: string;
+  avatar?: string | null;
+  goal33?: string | null;
 };
 
 
@@ -672,17 +674,33 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 ) : (
                   players.map((player, idx) => {
                     const displayName = [player.firstName, player.lastName].filter(Boolean).join(" ") || player.username || "Người chơi";
+                    const avatarUrl = typeof player?.avatar === "string" && player.avatar.trim().length > 0 ? player.avatar : null;
+                    const initialsSource = [player.firstName, player.lastName].filter(Boolean).map(name => name?.trim()?.charAt(0) || "").join("") || (player.username?.trim()?.charAt(0) || "N");
+                    const initials = initialsSource.slice(0, 2).toUpperCase();
+                    const goal = typeof player?.goal33 === "string" && player.goal33.trim().length > 0 ? player.goal33.trim() : null;
                     return (
                       <div
                         key={player.id || idx}
                         className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-center gap-3"
                       >
-                        <span className="grid grid-cols-3 grid-rows-3 gap-[2px] w-8 h-8">
-                          {Array.from({ length: 9 }).map((_, cubeIdx) => (
-                            <span key={cubeIdx} className="bg-white/70 rounded-sm"></span>
-                          ))}
-                        </span>
-                        <span className="font-semibold text-white tracking-wide">{displayName}</span>
+                        {avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt={displayName}
+                            className="h-10 w-10 rounded-full object-cover border border-white/15"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-white/15 border border-white/10 text-white font-semibold uppercase flex items-center justify-center">
+                            {initials}
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-white tracking-wide">{displayName}</span>
+                          {goal && (
+                            <span className="text-xs text-white/70">{goal}</span>
+                          )}
+                        </div>
                       </div>
                     );
                   })
