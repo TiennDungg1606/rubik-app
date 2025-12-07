@@ -17,6 +17,13 @@ type RoomTabProps = {
   mobileShrink?: boolean;
 };
 
+type PublicUser = {
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+};
+
 
 export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink }: RoomTabProps) {
 
@@ -40,14 +47,19 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [passwordModalRoomId, setPasswordModalRoomId] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordModalError, setPasswordModalError] = useState("");
+  const [showPlayersModal, setShowPlayersModal] = useState(false);
+  const [playersModalVisible, setPlayersModalVisible] = useState(false);
+  const [players, setPlayers] = useState<PublicUser[]>([]);
+  const [playersLoading, setPlayersLoading] = useState(false);
+  const [playersError, setPlayersError] = useState("");
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
-    if (showCreateModal || showPasswordModal) {
+    if (showCreateModal || showPasswordModal || showPlayersModal) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = originalOverflow; };
     }
-  }, [showCreateModal, showPasswordModal]);
+  }, [showCreateModal, showPasswordModal, showPlayersModal]);
   useEffect(() => {
     return () => {
       if (roomFullTimerRef.current) {
@@ -262,6 +274,34 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }, 200);
   }
 
+  function openPlayersModal() {
+    setPlayersError("");
+    setPlayersLoading(true);
+    setShowPlayersModal(true);
+    setTimeout(() => setPlayersModalVisible(true), 10);
+    fetch("/api/users")
+      .then(res => {
+        if (!res.ok) {
+          throw new Error("Failed to load players");
+        }
+        return res.json();
+      })
+      .then(data => {
+        const list: PublicUser[] = Array.isArray(data?.users) ? data.users : [];
+        setPlayers(list);
+      })
+      .catch(() => {
+        setPlayersError("Không thể tải danh sách người chơi.");
+        setPlayers([]);
+      })
+      .finally(() => setPlayersLoading(false));
+  }
+
+  function closePlayersModal() {
+    setPlayersModalVisible(false);
+    setTimeout(() => setShowPlayersModal(false), 200);
+  }
+
   function handlePasswordConfirm() {
     if (!passwordModalRoomId) return;
     
@@ -333,7 +373,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   // Ẩn thanh tab khi modal mở
   React.useEffect(() => {
     const tabBar = document.querySelector('.tab-navbar');
-    if ((showCreateModal || showPasswordModal) && tabBar) {
+    if ((showCreateModal || showPasswordModal || showPlayersModal) && tabBar) {
       tabBar.classList.add('hidden');
     } else if (tabBar) {
       tabBar.classList.remove('hidden');
@@ -341,7 +381,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     return () => {
       if (tabBar) tabBar.classList.remove('hidden');
     };
-  }, [showCreateModal, showPasswordModal]);
+  }, [showCreateModal, showPasswordModal, showPlayersModal]);
 
   const closeRoomFullModal = React.useCallback(() => {
     if (roomFullTimerRef.current) {
@@ -578,6 +618,63 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         document.body
       )}
 
+      {showPlayersModal && typeof window !== 'undefined' && ReactDOM.createPortal(
+        <div
+          className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center transition-opacity duration-200 ${playersModalVisible ? 'opacity-100' : 'opacity-0'}`}
+          style={{ minHeight: '100dvh', minWidth: '100vw', padding: 0 }}
+        >
+          <div
+            className={`w-full max-w-3xl mx-4 rounded-2xl border border-white/10 bg-slate-900/95 p-6 text-white shadow-2xl transition-all duration-200 ${playersModalVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-semibold">Danh sách người chơi</h3>
+                <p className="text-sm text-white/60">Danh sách được đồng bộ trực tiếp từ server.</p>
+              </div>
+              <button
+                onClick={closePlayersModal}
+                className="rounded-full bg-white/10 p-2 hover:bg-white/20 transition"
+                aria-label="Đóng"
+              >
+                ✕
+              </button>
+            </div>
+            {playersError && (
+              <div className="mb-3 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
+                {playersError}
+              </div>
+            )}
+            {playersLoading ? (
+              <div className="py-8 text-center text-white/80">Đang tải danh sách...</div>
+            ) : (
+              <div className="max-h-[60vh] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3 pr-1">
+                {players.length === 0 ? (
+                  <div className="col-span-full text-center text-white/70 py-6">Chưa có người chơi nào.</div>
+                ) : (
+                  players.map((player, idx) => {
+                    const displayName = [player.firstName, player.lastName].filter(Boolean).join(" ") || player.username || "Người chơi";
+                    return (
+                      <div
+                        key={player.id || idx}
+                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-center gap-3"
+                      >
+                        <span className="grid grid-cols-3 grid-rows-3 gap-[2px] w-8 h-8">
+                          {Array.from({ length: 9 }).map((_, cubeIdx) => (
+                            <span key={cubeIdx} className="bg-white/70 rounded-sm"></span>
+                          ))}
+                        </span>
+                        <span className="font-semibold text-white tracking-wide">{displayName}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
       {showRoomFullModal && typeof window !== 'undefined' && ReactDOM.createPortal(
         <div
           className={`fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${roomFullModalVisible ? 'opacity-100' : 'opacity-0'}`}
@@ -615,7 +712,20 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         document.body
       )}
 
-      <h2 className="text-2xl font-bold mb-6">Phòng giải Rubik Online</h2>
+      <div className="w-full mb-6 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center">
+        <h2 className="text-2xl font-bold">Phòng giải Rubik Online</h2>
+        <button
+          onClick={openPlayersModal}
+          className="flex items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-white text-sm font-semibold tracking-wide hover:bg-white/10 transition"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
+            <circle cx="10.5" cy="9" r="3.5" />
+            <circle cx="17.5" cy="10.2" r="3" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.2 21v-1.7a5.8 5.8 0 0 1 11.6 0V21" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11.7 21v-1.7a5.8 5.8 0 0 1 11.6 0V21" />
+          </svg>
+        </button>
+      </div>
       {/*
       <div className="flex flex-col gap-4 w-full max-w-md bg-gray-800 rounded-xl p-8 shadow-lg mb-8">
         <div className="text-lg font-semibold text-center mb-2 text-white-300">
