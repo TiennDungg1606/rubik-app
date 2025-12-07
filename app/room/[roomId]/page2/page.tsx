@@ -4773,7 +4773,7 @@ const clampPlayerIndex = (idx: number) => {
           <div
             className={mobileShrink ? `rounded flex items-center justify-center mb-0.5 relative shadow border ${myTeam === 'A' ? 'border-blue-400' : 'border-green-400'}` : `rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 ${myTeam === 'A' ? 'border-blue-400' : 'border-green-400'}`}
             style={mobileShrink
-              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
+              ? { width: 180, height: 140, minWidth: 120, minHeight: 100, maxWidth: 200, maxHeight: 160 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 360, height: 270 }}
@@ -5438,7 +5438,7 @@ const clampPlayerIndex = (idx: number) => {
           <div
             className={mobileShrink ? `rounded flex items-center justify-center mb-0.5 relative shadow border ${myTeam === 'A' ? 'border-green-400' : 'border-blue-400'}` : `rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 ${myTeam === 'A' ? 'border-green-400' : 'border-blue-400'}`}
             style={mobileShrink
-              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
+              ? { width: 180, height: 140, minWidth: 120, minHeight: 100, maxWidth: 200, maxHeight: 160 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 360, height: 270 }}
@@ -5607,7 +5607,7 @@ const clampPlayerIndex = (idx: number) => {
           <div
             className={mobileShrink ? `rounded flex items-center justify-center mb-0.5 relative shadow border ${myTeam === 'A' ? 'border-blue-400' : 'border-green-400'}` : `rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 ${myTeam === 'A' ? 'border-blue-400' : 'border-green-400'}`}
             style={mobileShrink
-              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
+              ? { width: 180, height: 140, minWidth: 120, minHeight: 100, maxWidth: 200, maxHeight: 160 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 360, height: 270 }}
@@ -5769,7 +5769,7 @@ const clampPlayerIndex = (idx: number) => {
           <div
             className={mobileShrink ? `rounded flex items-center justify-center mb-0.5 relative shadow border ${myTeam === 'A' ? 'border-green-400' : 'border-blue-400'}` : `rounded-2xl flex items-center justify-center mb-2 relative shadow-2xl border-4 ${myTeam === 'A' ? 'border-green-400' : 'border-blue-400'}`}
             style={mobileShrink
-              ? { width: 160, height: 120, minWidth: 100, minHeight: 80, maxWidth: 180, maxHeight: 140 }
+              ? { width: 180, height: 140, minWidth: 120, minHeight: 100, maxWidth: 200, maxHeight: 160 }
               : isMobile && !isPortrait
                 ? { width: '28vw', height: '20vw', minWidth: 0, minHeight: 0, maxWidth: 180, maxHeight: 120 }
                 : isMobile ? { width: '95vw', maxWidth: 420, height: '38vw', maxHeight: 240, minHeight: 120 } : { width: 360, height: 270 }}
