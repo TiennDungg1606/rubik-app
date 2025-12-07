@@ -49,9 +49,10 @@ export default function NewTab() {
       </h2>
       <div className="mb-6">
         <h3 className="text-lg font-bold text-blue-300 drop-shadow mb-2">Cập nhật website</h3>
-        <ul className="list-disc list-inside text-white text-base ml-4">  
+        <ul className="list-disc list-inside text-white text-base ml-4"> 
+          <li>Hãy cập nhật profile của mình ở mục hồ sơ.</li> 
           <li>Hoàn thiện các công thức cho tab Paractice (đang thực hiện).</li>
-          <li>Tạo profile, thêm tính năng kết bạn trên server của Rubik App, thêm tin nhắn, thông báo (đang thực hiện).</li>   
+          <li>Thêm tính năng kết bạn trên server của Rubik App, thêm tin nhắn, thông báo (đang thực hiện).</li>   
           <li>Giao diện tối ưu cho cả desktop và mobile, trải nghiệm tốt hơn.</li>
         </ul>
       </div>

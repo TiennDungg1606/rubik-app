@@ -128,6 +128,12 @@ type RematchDialogState = {
   status: 'waiting' | 'confirmed';
 };
 
+type PublicProfileInfo = {
+  avatar: string | null;
+  firstName: string;
+  lastName: string;
+};
+
 const useModalTransition = (open: boolean, duration = MODAL_TRANSITION_MS, disableAnimation = false) => {
   const [isMounted, setIsMounted] = useState(open);
   const [stage, setStage] = useState<ModalTransitionStage>(open ? "enter" : "idle");
@@ -446,8 +452,10 @@ export default function RoomPage() {
 
       // State lưu avatar của bản thân
       const [myAvatar, setMyAvatar] = useState<string | null>(null);
-      // State lưu thông tin đồng đội: avatar, firstName, lastName
-      const [teammateInfo, setTeammateInfo] = useState<{ avatar: string | null, firstName: string, lastName: string } | null>(null);
+      // State lưu thông tin đồng đội và đối thủ cho avatar nhỏ
+      const [teammateInfo, setTeammateInfo] = useState<PublicProfileInfo | null>(null);
+      const [opponentPrimaryInfo, setOpponentPrimaryInfo] = useState<PublicProfileInfo | null>(null);
+      const [opponentSecondaryInfo, setOpponentSecondaryInfo] = useState<PublicProfileInfo | null>(null);
 
       // Fetch avatar từ API public-profile
       useEffect(() => {
@@ -484,7 +492,7 @@ export default function RoomPage() {
         }
         async function fetchTeammateInfo() {
           try {
-            const res = await fetch(`/api/user/public-profile?userId=${computedTeammateUserId}`);
+            const res = await fetch(`/api/user/public-profile?userId=${encodeURIComponent(computedTeammateUserId)}`);
             if (!res.ok) {
               setTeammateInfo(null);
               return;
@@ -500,6 +508,60 @@ export default function RoomPage() {
           }
         }
         fetchTeammateInfo();
+      }, [myTeam, myTeamIndex, teamA, teamB]);
+
+      // Fetch thông tin avatar của hai đối thủ
+      useEffect(() => {
+        const myTeamId: 'A' | 'B' = myTeam ?? 'A';
+        const opponentTeamId: 'A' | 'B' = myTeamId === 'A' ? 'B' : 'A';
+        const opponentTeamData = opponentTeamId === 'A' ? teamA : teamB;
+        const normalizedMyIndex = myTeam !== null && myTeamIndex >= 0
+          ? Math.min(Math.max(myTeamIndex, 0), 1)
+          : 0;
+        const normalizedTeammateIndex = normalizedMyIndex === 0 ? 1 : 0;
+        const primaryOpponentUserId = opponentTeamData?.players?.[normalizedMyIndex]?.userId;
+        const secondaryOpponentUserId = opponentTeamData?.players?.[normalizedTeammateIndex]?.userId;
+
+        let cancelled = false;
+
+        const loadProfile = async (
+          userId: string,
+          setter: React.Dispatch<React.SetStateAction<PublicProfileInfo | null>>
+        ) => {
+          try {
+            const res = await fetch(`/api/user/public-profile?userId=${encodeURIComponent(userId)}`);
+            if (!res.ok) {
+              if (!cancelled) setter(null);
+              return;
+            }
+            const data = await res.json();
+            if (!cancelled) {
+              setter({
+                avatar: data?.user?.avatar ?? null,
+                firstName: data?.user?.firstName ?? '',
+                lastName: data?.user?.lastName ?? ''
+              });
+            }
+          } catch {
+            if (!cancelled) setter(null);
+          }
+        };
+
+        if (primaryOpponentUserId) {
+          loadProfile(primaryOpponentUserId, setOpponentPrimaryInfo);
+        } else {
+          setOpponentPrimaryInfo(null);
+        }
+
+        if (secondaryOpponentUserId) {
+          loadProfile(secondaryOpponentUserId, setOpponentSecondaryInfo);
+        } else {
+          setOpponentSecondaryInfo(null);
+        }
+
+        return () => {
+          cancelled = true;
+        };
       }, [myTeam, myTeamIndex, teamA, teamB]);
 
   // Hàm tính điểm theo thứ hạng trong một vòng, chỉ cập nhật khi đủ 4 kết quả
@@ -5400,6 +5462,41 @@ const clampPlayerIndex = (idx: number) => {
             justifyContent: 'center',
             width: '100%'
           }}>
+            {/* Avatar nhỏ hình tròn bên trái ô AO5 của đối thủ chính */}
+            {opponentPrimaryInfo && opponentPrimaryInfo.avatar ? (
+              <img
+                src={opponentPrimaryInfo.avatar}
+                alt="avatar"
+                className="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}
+              />
+            ) : opponentPrimaryInfo && (opponentPrimaryInfo.firstName || opponentPrimaryInfo.lastName) ? (
+              <div
+                className="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  background: 'linear-gradient(135deg, #34d399 0%, #38bdf8 100%)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: mobileShrink ? 14 : 22,
+                }}
+              >
+                {`${opponentPrimaryInfo.firstName?.[0] || ''}${opponentPrimaryInfo.lastName?.[0] || ''}`.toUpperCase()}
+              </div>
+            ) : null}
             {/* Median */}
             <div style={{
               background: '#23272b',
@@ -5689,6 +5786,41 @@ const clampPlayerIndex = (idx: number) => {
           </div>
           {/* Thông tin người khác 2 */}
           <div className="flex flex-row items-center gap-1 mb-1">
+            {/* Avatar nhỏ hình tròn bên trái ô AO5 của đối thủ phụ */}
+            {opponentSecondaryInfo && opponentSecondaryInfo.avatar ? (
+              <img
+                src={opponentSecondaryInfo.avatar}
+                alt="avatar"
+                className="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}
+              />
+            ) : opponentSecondaryInfo && (opponentSecondaryInfo.firstName || opponentSecondaryInfo.lastName) ? (
+              <div
+                className="avatar"
+                style={{
+                  width: mobileShrink ? 30 : 50,
+                  height: mobileShrink ? 30 : 50,
+                  marginRight: mobileShrink ? 4 : 5,
+                  border: '2px solid #555',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  background: 'linear-gradient(135deg, #38bdf8 0%, #a855f7 100%)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: mobileShrink ? 14 : 22,
+                }}
+              >
+                {`${opponentSecondaryInfo.firstName?.[0] || ''}${opponentSecondaryInfo.lastName?.[0] || ''}`.toUpperCase()}
+              </div>
+            ) : null}
             {/* Median */}
             <div style={{
               background: '#23272b',
