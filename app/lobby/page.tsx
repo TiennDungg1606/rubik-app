@@ -5,7 +5,7 @@ declare global {
 }
 
 
-import { useState, useEffect, Suspense, type ReactNode } from "react";
+import { useState, useEffect, Suspense, type ReactNode, useCallback } from "react";
 import TimerTab from "./components/TimerTab";
 import RoomTab from "./components/RoomTab";
 import ProfileTab from "./components/ProfileTab";
@@ -36,6 +36,7 @@ type User = {
 type TabKey = "new" | "timer" | "room" | "practice" | "shop" | "about";
 
 const ALL_TABS: TabKey[] = ["new", "timer", "room", "practice", "shop", "about"];
+const PLAYER_BUTTON_HIDDEN_TABS: TabKey[] = ["timer", "practice", "shop", "about"];
 
 // Component that uses useSearchParams
 function LobbyContent() {
@@ -227,6 +228,7 @@ function LobbyContent() {
   const [customBg, setCustomBg] = useState<string | null>(null);
   const [bgError, setBgError] = useState<string>("");
   const [loadingBg, setLoadingBg] = useState(false);
+  const [playersModalTrigger, setPlayersModalTrigger] = useState<(() => void) | null>(null);
   // Lấy customBg từ user profile (MongoDB)
 
   const handleTabSelect = (nextTab: TabKey) => {
@@ -272,6 +274,11 @@ function LobbyContent() {
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
     : "";
   const userName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Tài khoản";
+
+  const handleRegisterPlayersModal = useCallback((fn: (() => void) | null) => {
+    setPlayersModalTrigger(() => fn);
+  }, []);
+  const showPlayersButton = Boolean(playersModalTrigger) && !PLAYER_BUTTON_HIDDEN_TABS.includes(tab);
 
   const renderNavButtons = (className?: string, collapsed = false) => (
     <div className={`flex flex-col gap-1 ${className ?? ""}`}>
@@ -923,6 +930,22 @@ function LobbyContent() {
 
           <div className="flex-1 overflow-y-auto min-h-0">
             <div className="w-full px-3 pb-10 pt-6 sm:px-6 lg:px-8 xl:px-10">
+              {showPlayersButton && (
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={() => playersModalTrigger?.()}
+                    className="flex items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-white text-sm font-semibold tracking-wide hover:bg-white/10 transition"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
+                      <circle cx="10.5" cy="9" r="3.5" />
+                      <circle cx="17.5" cy="10.2" r="3" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.2 21v-1.7a5.8 5.8 0 0 1 11.6 0V21" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.7 21v-1.7a5.8 5.8 0 0 1 11.6 0V21" />
+                    </svg>
+                    <span>Danh sách người chơi</span>
+                  </button>
+                </div>
+              )}
               <div className={`transition-all duration-300 ${tabTransitioning ? 'pointer-events-none translate-y-2 opacity-0' : 'translate-y-0 opacity-100'}`}>
                 {displayedTab === "timer" && (
                   <TimerTab />
@@ -935,6 +958,7 @@ function LobbyContent() {
                       handleCreateRoom={handleCreateRoom}
                       handleJoinRoom={handleJoinRoom}
                       mobileShrink={mobileShrink}
+                      registerPlayersModalTrigger={handleRegisterPlayersModal}
                     />
                     {joinError && <div className="mt-3 text-center text-sm text-red-400">{joinError}</div>}
                   </>

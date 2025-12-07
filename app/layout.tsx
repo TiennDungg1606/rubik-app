@@ -93,6 +93,7 @@ export default function RootLayout({
         <meta name="geo.region" content="VN" />
         <meta name="geo.placename" content="Vietnam" />
         <meta name="theme-color" content="#000000" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#000000" />
         
         {/* Social Media Meta Tags */}

@@ -5,7 +5,7 @@ declare global {
     _roomDisplayName?: string;
   }
 }
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import ReactDOM from "react-dom";
 import { io } from "socket.io-client";
 
@@ -15,6 +15,7 @@ type RoomTabProps = {
   handleCreateRoom: (event: '2x2' | '3x3' | '4x4' | 'pyraminx' | 'relay2-4', displayName: string, password: string, gameMode: '1vs1' | '2vs2') => void;
   handleJoinRoom: (roomId: string) => void;
   mobileShrink?: boolean;
+  registerPlayersModalTrigger?: (open: (() => void) | null) => void;
 };
 
 type PublicUser = {
@@ -27,7 +28,7 @@ type PublicUser = {
 };
 
 
-export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink }: RoomTabProps) {
+export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink, registerPlayersModalTrigger }: RoomTabProps) {
 
   // Skeleton loading state
   const [loadingRooms, setLoadingRooms] = useState(true);
@@ -57,6 +58,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [playersError, setPlayersError] = useState("");
   const [playersCursor, setPlayersCursor] = useState<string | null>(null);
   const [playersHasMore, setPlayersHasMore] = useState(true);
+  const [playerActionTarget, setPlayerActionTarget] = useState<PublicUser | null>(null);
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
     if (showCreateModal || showPasswordModal || showPlayersModal) {
@@ -281,7 +283,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   const PLAYERS_LIMIT = 120;
 
-  async function fetchPlayers(cursor: string | null, append = false) {
+  const fetchPlayers = useCallback(async (cursor: string | null, append = false) => {
     const query = new URLSearchParams({ limit: PLAYERS_LIMIT.toString() });
     if (cursor) query.set("cursor", cursor);
     const setLoadingState = append ? setPlayersAppending : setPlayersLoading;
@@ -306,9 +308,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     } finally {
       setLoadingState(false);
     }
-  }
+  }, []);
 
-  function openPlayersModal() {
+  const openPlayersModal = useCallback(() => {
     setPlayersError("");
     setPlayersHasMore(true);
     setPlayersCursor(null);
@@ -316,7 +318,15 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     setShowPlayersModal(true);
     setTimeout(() => setPlayersModalVisible(true), 10);
     fetchPlayers(null, false);
-  }
+  }, [fetchPlayers]);
+
+  useEffect(() => {
+    if (!registerPlayersModalTrigger) return;
+    registerPlayersModalTrigger(openPlayersModal);
+    return () => {
+      registerPlayersModalTrigger(null);
+    };
+  }, [registerPlayersModalTrigger, openPlayersModal]);
 
   function closePlayersModal() {
     setPlayersModalVisible(false);
@@ -681,7 +691,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     return (
                       <div
                         key={player.id || idx}
-                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-center gap-3"
+                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/10 transition"
+                        onClick={() => setPlayerActionTarget(player)}
                       >
                         {avatarUrl ? (
                           <img
@@ -714,6 +725,50 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     {playersAppending ? "Đang tải thêm..." : "Tải thêm"}
                   </button>
                 )}
+              </div>
+            )}
+            {playerActionTarget && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4" onClick={() => setPlayerActionTarget(null)}>
+                <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900/95 p-5 text-white shadow-2xl" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-3 mb-4">
+                    {playerActionTarget.avatar ? (
+                      <img src={playerActionTarget.avatar} alt="Avatar" className="h-12 w-12 rounded-full object-cover border border-white/15" />
+                    ) : (
+                      <div className="h-12 w-12 rounded-full bg-white/15 border border-white/10 text-white font-semibold uppercase flex items-center justify-center">
+                        {([playerActionTarget.firstName, playerActionTarget.lastName].filter(Boolean).map(name => name?.trim()?.charAt(0) || "").join("") || playerActionTarget.username?.charAt(0) || 'N').slice(0,2).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-lg font-semibold">{[playerActionTarget.firstName, playerActionTarget.lastName].filter(Boolean).join(" ") || playerActionTarget.username || "Người chơi"}</div>
+                      {playerActionTarget.goal33 && <div className="text-xs text-white/70">{playerActionTarget.goal33}</div>}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <button
+                      className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/20 transition"
+                      onClick={() => {
+                        if (playerActionTarget?.username) {
+                          window.open(`/profile/${playerActionTarget.username}`, '_blank');
+                        } else {
+                          window.location.href = '/account';
+                        }
+                      }}
+                    >
+                      Xem hồ sơ
+                    </button>
+                    <button
+                      className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:from-blue-400 hover:to-indigo-400 transition"
+                      onClick={() => {
+                        alert('Tính năng kết bạn đang được phát triển.');
+                      }}
+                    >
+                      Kết bạn
+                    </button>
+                  </div>
+                  <button className="mt-4 w-full text-sm text-white/70 hover:text-white" onClick={() => setPlayerActionTarget(null)}>
+                    Đóng
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -760,17 +815,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
       <div className="w-full mb-6 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center">
         <h2 className="text-2xl font-bold">Phòng giải Rubik Online</h2>
-        <button
-          onClick={openPlayersModal}
-          className="flex items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-white text-sm font-semibold tracking-wide hover:bg-white/10 transition"
-        >
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6}>
-            <circle cx="10.5" cy="9" r="3.5" />
-            <circle cx="17.5" cy="10.2" r="3" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.2 21v-1.7a5.8 5.8 0 0 1 11.6 0V21" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M11.7 21v-1.7a5.8 5.8 0 0 1 11.6 0V21" />
-          </svg>
-        </button>
       </div>
       {/*
       <div className="flex flex-col gap-4 w-full max-w-md bg-gray-800 rounded-xl p-8 shadow-lg mb-8">

@@ -82,84 +82,66 @@ export default function PublicProfilePage() {
     return null;
   }
 
-  // Xóa dòng khai báo lặp này
   useEffect(() => {
-    if (!user) {
-      const timer = setTimeout(() => setLoadTimeout(true), 10000);
-      return () => clearTimeout(timer);
+    if (typeof window === 'undefined' || !isMobile) return;
+
+    const requestFullscreen = () => {
+      try {
+        const el: any = document.documentElement;
+        const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+        if (typeof fn === 'function') {
+          fn.call(el);
+        }
+      } catch (error) {
+        console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
+      }
+    };
+
+    const fullscreenEvents = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+    const gestureEvents: Array<keyof DocumentEventMap> = ['click', 'touchstart'];
+    let gestureAttached = false;
+
+    const removeGestureListeners = () => {
+      if (!gestureAttached) return;
+      gestureEvents.forEach(event => document.removeEventListener(event, handleGesture));
+      gestureAttached = false;
+    };
+
+    const addGestureListeners = () => {
+      if (gestureAttached) return;
+      gestureEvents.forEach(event => document.addEventListener(event, handleGesture, { passive: true }));
+      gestureAttached = true;
+    };
+
+    function handleGesture() {
+      removeGestureListeners();
+      requestFullscreen();
     }
-  }, [user]);
 
-   
-   
+    const updateFullscreenState = () => {
+      const fullscreenElement =
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement;
+      const active = Boolean(fullscreenElement);
+      setIsFullscreen(active);
+      if (!active) {
+        addGestureListeners();
+      } else {
+        removeGestureListeners();
+      }
+    };
 
-    // Tự động yêu cầu chế độ toàn màn hình khi sử dụng điện thoại
-    useEffect(() => {
-      if (typeof window !== 'undefined' && isMobile) {
-        let interval: ReturnType<typeof setInterval> | undefined;
-        // Hàm yêu cầu chế độ toàn màn hình
-        const requestFullscreen = () => {
-          try {
-            if (document.documentElement.requestFullscreen) {
-              document.documentElement.requestFullscreen();
-            } else if ((document.documentElement as any).webkitRequestFullscreen) {
-              (document.documentElement as any).webkitRequestFullscreen();
-            } else if ((document.documentElement as any).mozRequestFullScreen) {
-              (document.documentElement as any).mozRequestFullScreen();
-            } else if ((document.documentElement as any).msRequestFullscreen) {
-              (document.documentElement as any).msRequestFullscreen();
-            }
-          } catch (error) {
-            // Không thể chuyển sang chế độ toàn màn hình
-            console.log('Không thể chuyển sang chế độ toàn màn hình:', error);
-          }
-        };
+    addGestureListeners();
+    fullscreenEvents.forEach(event => document.addEventListener(event, updateFullscreenState));
+    updateFullscreenState();
 
-        const startInterval = () => {
-          if (!isFullscreen && !interval) {
-            interval = setInterval(() => {
-              if (isMobile && !isFullscreen) {
-                requestFullscreen();
-              } else {
-                if (interval) {
-                  clearInterval(interval);
-                  interval = undefined;
-                }
-              }
-            }, 3000);
-          }
-        };
-
-        const checkFullscreenStatus = () => {
-          const fullscreenElement = 
-            document.fullscreenElement ||
-            (document as any).webkitFullscreenElement ||
-            (document as any).mozFullScreenElement ||
-            (document as any).msFullscreenElement;
-          const wasFullscreen = isFullscreen;
-          setIsFullscreen(!!fullscreenElement);
-          if (fullscreenElement && !wasFullscreen) {
-            if (interval) {
-              clearInterval(interval);
-              interval = undefined;
-            }
-          } else if (!fullscreenElement && wasFullscreen && isMobile) {
-            startInterval();
-            requestFullscreen();
-          } else if (!fullscreenElement && isMobile) {
-            requestFullscreen();
-          }
-        };
-
-        checkFullscreenStatus();
-        const fullscreenChangeEvents = [
-          'fullscreenchange',
-          'webkitfullscreenchange',
-          'mozfullscreenchange',
-          'MSFullscreenChange'
-        ];
-        fullscreenChangeEvents.forEach(event => {
-          document.addEventListener(event, checkFullscreenStatus);
+    return () => {
+      removeGestureListeners();
+      fullscreenEvents.forEach(event => document.removeEventListener(event, updateFullscreenState));
+    };
+  }, [isMobile]);
         });
         const initialTimeout = setTimeout(requestFullscreen, 1000);
         startInterval();
