@@ -51,7 +51,10 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [playersModalVisible, setPlayersModalVisible] = useState(false);
   const [players, setPlayers] = useState<PublicUser[]>([]);
   const [playersLoading, setPlayersLoading] = useState(false);
+  const [playersAppending, setPlayersAppending] = useState(false);
   const [playersError, setPlayersError] = useState("");
+  const [playersPage, setPlayersPage] = useState(1);
+  const [playersHasMore, setPlayersHasMore] = useState(true);
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
     if (showCreateModal || showPasswordModal || showPlayersModal) {
@@ -274,27 +277,41 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }, 200);
   }
 
+  const PLAYERS_LIMIT = 120;
+
+  async function fetchPlayers(page: number, append = false) {
+    const query = new URLSearchParams({ limit: PLAYERS_LIMIT.toString(), page: page.toString() });
+    const setLoadingState = append ? setPlayersAppending : setPlayersLoading;
+    setLoadingState(true);
+    try {
+      const res = await fetch(`/api/users?${query.toString()}`);
+      if (!res.ok) throw new Error("Failed to load players");
+      const data = await res.json();
+      const list: PublicUser[] = Array.isArray(data?.users) ? data.users : [];
+      setPlayers(prev => (append ? [...prev, ...list] : list));
+      setPlayersHasMore(list.length === PLAYERS_LIMIT);
+      setPlayersPage(page);
+      setPlayersError("");
+    } catch (err) {
+      if (!append) {
+        setPlayers([]);
+        setPlayersError("Không thể tải danh sách người chơi.");
+      } else {
+        setPlayersError("Không thể tải thêm người chơi. Vui lòng thử lại.");
+      }
+    } finally {
+      setLoadingState(false);
+    }
+  }
+
   function openPlayersModal() {
     setPlayersError("");
-    setPlayersLoading(true);
+    setPlayersHasMore(true);
+    setPlayersPage(1);
+    setPlayers([]);
     setShowPlayersModal(true);
     setTimeout(() => setPlayersModalVisible(true), 10);
-    fetch("/api/users")
-      .then(res => {
-        if (!res.ok) {
-          throw new Error("Failed to load players");
-        }
-        return res.json();
-      })
-      .then(data => {
-        const list: PublicUser[] = Array.isArray(data?.users) ? data.users : [];
-        setPlayers(list);
-      })
-      .catch(() => {
-        setPlayersError("Không thể tải danh sách người chơi.");
-        setPlayers([]);
-      })
-      .finally(() => setPlayersLoading(false));
+    fetchPlayers(1, false);
   }
 
   function closePlayersModal() {
@@ -667,6 +684,15 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                       </div>
                     );
                   })
+                )}
+                {playersHasMore && !playersLoading && (
+                  <button
+                    className="col-span-full mt-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition disabled:opacity-60"
+                    onClick={() => fetchPlayers(playersPage + 1, true)}
+                    disabled={playersAppending}
+                  >
+                    {playersAppending ? "Đang tải thêm..." : "Tải thêm"}
+                  </button>
                 )}
               </div>
             )}

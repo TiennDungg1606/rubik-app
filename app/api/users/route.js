@@ -1,18 +1,26 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/lib/userModel";
 
+const DEFAULT_LIMIT = 200;
+const MAX_LIMIT = 500;
+
 export async function GET(req) {
   try {
     await dbConnect();
     const { searchParams } = new URL(req.url);
-    const limit = Number(searchParams.get("limit")) || 0;
-    const page = Number(searchParams.get("page")) || 1;
-    const skip = limit > 0 ? (page - 1) * limit : 0;
+    const requestedLimit = Number(searchParams.get("limit"));
+    const page = Math.max(Number(searchParams.get("page")) || 1, 1);
 
-    const query = User.find({}, { email: 0, password: 0 }).sort({ createdAt: -1 });
-    if (limit > 0) {
-      query.limit(limit).skip(skip);
-    }
+    const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, MAX_LIMIT)
+      : DEFAULT_LIMIT;
+    const skip = (page - 1) * limit;
+
+    const query = User.find({}, { email: 0, password: 0 })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(skip)
+      .setOptions({ allowDiskUse: true });
 
     const users = await query.lean();
     const sanitized = users.map(user => ({
@@ -35,7 +43,7 @@ export async function GET(req) {
     return new Response(
       JSON.stringify({
         users: sanitized,
-        page: limit > 0 ? page : 1,
+        page,
         total: sanitized.length
       }),
       { status: 200 }
