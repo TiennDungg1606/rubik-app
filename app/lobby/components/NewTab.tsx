@@ -46,7 +46,7 @@ export default function NewTab() {
         </ul>
       </div>
       <div>
-        <h3 className="text-lg font-bold text-green-300 drop-shadow mb-2">Tin tức giải đấu Relay 2x2-4x4 tháng 1/2026</h3>
+        <h3 className="text-lg font-bold text-green-300 drop-shadow mb-2">Tin tức giải đấu trên Rubik App</h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <h4 className="text-base font-semibold text-emerald-300 mb-2">1. Các giải đấu sắp tới</h4>
@@ -64,7 +64,7 @@ export default function NewTab() {
             </ul>
           </div>
           <div>
-            <h4 className="text-base font-semibold text-rose-300 mb-2">2. Các giải đấu đã xong</h4>
+            <h4 className="text-base font-semibold text-rose-300 mb-2">2. Các giải đấu đã qua</h4>
             <ul className="space-y-3 text-white text-base">
               {finishedNews.map((item, idx) => (
                 <li key={`finished-${idx}`} className="flex gap-3">
