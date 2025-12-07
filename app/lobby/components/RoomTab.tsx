@@ -747,10 +747,13 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     <button
                       className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/20 transition"
                       onClick={() => {
-                        if (playerActionTarget?.username) {
-                          window.open(`/profile/${playerActionTarget.username}`, '_blank');
-                        } else {
-                          window.location.href = '/account';
+                        if (playerActionTarget?.id) {
+                          const profileUrl = `https://rubik-app-buhb.vercel.app/profile/${playerActionTarget.id}`;
+                          window.location.href = profileUrl;
+                        } else if (playerActionTarget?.username) {
+                          // Fallback for legacy entries missing id
+                          const fallbackUrl = `https://rubik-app-buhb.vercel.app/profile/${playerActionTarget.username}`;
+                          window.location.href = fallbackUrl;
                         }
                       }}
                     >
