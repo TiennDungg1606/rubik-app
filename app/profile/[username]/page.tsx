@@ -142,20 +142,6 @@ export default function PublicProfilePage() {
       fullscreenEvents.forEach(event => document.removeEventListener(event, updateFullscreenState));
     };
   }, [isMobile]);
-        });
-        const initialTimeout = setTimeout(requestFullscreen, 1000);
-        startInterval();
-        return () => {
-          clearTimeout(initialTimeout);
-          if (interval) {
-            clearInterval(interval);
-          }
-          fullscreenChangeEvents.forEach(event => {
-            document.removeEventListener(event, checkFullscreenStatus);
-          });
-        };
-      }
-    }, [isMobile, isFullscreen]);
 
   if (!user && !loadTimeout) {
     return (
