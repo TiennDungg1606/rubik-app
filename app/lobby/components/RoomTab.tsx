@@ -53,7 +53,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [playersLoading, setPlayersLoading] = useState(false);
   const [playersAppending, setPlayersAppending] = useState(false);
   const [playersError, setPlayersError] = useState("");
-  const [playersPage, setPlayersPage] = useState(1);
+  const [playersCursor, setPlayersCursor] = useState<string | null>(null);
   const [playersHasMore, setPlayersHasMore] = useState(true);
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
@@ -279,8 +279,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   const PLAYERS_LIMIT = 120;
 
-  async function fetchPlayers(page: number, append = false) {
-    const query = new URLSearchParams({ limit: PLAYERS_LIMIT.toString(), page: page.toString() });
+  async function fetchPlayers(cursor: string | null, append = false) {
+    const query = new URLSearchParams({ limit: PLAYERS_LIMIT.toString() });
+    if (cursor) query.set("cursor", cursor);
     const setLoadingState = append ? setPlayersAppending : setPlayersLoading;
     setLoadingState(true);
     try {
@@ -289,8 +290,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       const data = await res.json();
       const list: PublicUser[] = Array.isArray(data?.users) ? data.users : [];
       setPlayers(prev => (append ? [...prev, ...list] : list));
-      setPlayersHasMore(list.length === PLAYERS_LIMIT);
-      setPlayersPage(page);
+      const nextCursor = typeof data?.nextCursor === "string" ? data.nextCursor : null;
+      setPlayersCursor(nextCursor);
+      setPlayersHasMore(Boolean(nextCursor));
       setPlayersError("");
     } catch (err) {
       if (!append) {
@@ -307,11 +309,11 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   function openPlayersModal() {
     setPlayersError("");
     setPlayersHasMore(true);
-    setPlayersPage(1);
+    setPlayersCursor(null);
     setPlayers([]);
     setShowPlayersModal(true);
     setTimeout(() => setPlayersModalVisible(true), 10);
-    fetchPlayers(1, false);
+    fetchPlayers(null, false);
   }
 
   function closePlayersModal() {
@@ -688,7 +690,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 {playersHasMore && !playersLoading && (
                   <button
                     className="col-span-full mt-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition disabled:opacity-60"
-                    onClick={() => fetchPlayers(playersPage + 1, true)}
+                    onClick={() => fetchPlayers(playersCursor, true)}
                     disabled={playersAppending}
                   >
                     {playersAppending ? "Đang tải thêm..." : "Tải thêm"}

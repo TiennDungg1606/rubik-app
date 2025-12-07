@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/lib/userModel";
+import mongoose from "mongoose";
 
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 500;
@@ -9,20 +10,26 @@ export async function GET(req) {
     await dbConnect();
     const { searchParams } = new URL(req.url);
     const requestedLimit = Number(searchParams.get("limit"));
-    const page = Math.max(Number(searchParams.get("page")) || 1, 1);
+    const cursor = searchParams.get("cursor");
 
     const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
       ? Math.min(requestedLimit, MAX_LIMIT)
       : DEFAULT_LIMIT;
-    const skip = (page - 1) * limit;
 
-    const query = User.find({}, { email: 0, password: 0 })
-      .sort({ createdAt: -1 })
+    const filters = {};
+    if (cursor) {
+      try {
+        filters._id = { $lt: new mongoose.Types.ObjectId(cursor) };
+      } catch {
+        // Ignore malformed cursor and fall back to newest users
+      }
+    }
+
+    const users = await User.find(filters, { email: 0, password: 0 })
+      .sort({ _id: -1 })
       .limit(limit)
-      .skip(skip)
-      .setOptions({ allowDiskUse: true });
+      .lean();
 
-    const users = await query.lean();
     const sanitized = users.map(user => ({
       id: user._id?.toString(),
       firstName: user.firstName || "",
@@ -40,11 +47,13 @@ export async function GET(req) {
       updatedAt: user.updatedAt || null
     }));
 
+    const nextCursor = sanitized.length === limit ? sanitized[sanitized.length - 1].id : null;
+
     return new Response(
       JSON.stringify({
         users: sanitized,
-        page,
-        total: sanitized.length
+        limit,
+        nextCursor
       }),
       { status: 200 }
     );
