@@ -942,7 +942,6 @@ function LobbyContent() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.2 21v-1.7a5.8 5.8 0 0 1 11.6 0V21" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11.7 21v-1.7a5.8 5.8 0 0 1 11.6 0V21" />
                     </svg>
-                    <span>Danh sách người chơi</span>
                   </button>
                 </div>
               )}
@@ -950,19 +949,20 @@ function LobbyContent() {
                 {displayedTab === "timer" && (
                   <TimerTab />
                 )}
-                {displayedTab === "room" && (
-                  <>
-                    <RoomTab
-                      roomInput={roomInput}
-                      setRoomInput={setRoomInput}
-                      handleCreateRoom={handleCreateRoom}
-                      handleJoinRoom={handleJoinRoom}
-                      mobileShrink={mobileShrink}
-                      registerPlayersModalTrigger={handleRegisterPlayersModal}
-                    />
-                    {joinError && <div className="mt-3 text-center text-sm text-red-400">{joinError}</div>}
-                  </>
-                )}
+                <div
+                  style={{ display: displayedTab === "room" ? "block" : "none" }}
+                  aria-hidden={displayedTab !== "room"}
+                >
+                  <RoomTab
+                    roomInput={roomInput}
+                    setRoomInput={setRoomInput}
+                    handleCreateRoom={handleCreateRoom}
+                    handleJoinRoom={handleJoinRoom}
+                    mobileShrink={mobileShrink}
+                    registerPlayersModalTrigger={handleRegisterPlayersModal}
+                  />
+                  {joinError && <div className="mt-3 text-center text-sm text-red-400">{joinError}</div>}
+                </div>
                 {displayedTab === "practice" && (
                   <PracticeTab />
                 )}
