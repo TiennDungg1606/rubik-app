@@ -59,6 +59,25 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [playersCursor, setPlayersCursor] = useState<string | null>(null);
   const [playersHasMore, setPlayersHasMore] = useState(true);
   const [playerActionTarget, setPlayerActionTarget] = useState<PublicUser | null>(null);
+  const [directoryTab, setDirectoryTab] = useState<'friends' | 'players'>('players');
+  const playersCacheRef = useRef<{ list: PublicUser[]; cursor: string | null; hasMore: boolean } | null>(null);
+
+  useEffect(() => {
+    const clearCache = () => {
+      playersCacheRef.current = null;
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') clearCache();
+    };
+    window.addEventListener('beforeunload', clearCache);
+    window.addEventListener('pagehide', clearCache);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('beforeunload', clearCache);
+      window.removeEventListener('pagehide', clearCache);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
     if (showCreateModal || showPasswordModal || showPlayersModal) {
@@ -125,6 +144,31 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const roomNameClass = `${effectiveMobileShrink ? 'text-sm' : 'text-base'} text-gray-200 text-center`;
   const roomModeLabelClass = `${effectiveMobileShrink ? 'text-[10px]' : 'text-xs'} text-gray-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
   const waitingBadgeTextClass = `${effectiveMobileShrink ? 'text-[10px]' : 'text-xs'} text-yellow-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
+  const playersModalContainerClass = effectiveMobileShrink
+    ? 'w-full max-w-xl mx-3 rounded-2xl border border-white/10 bg-slate-900/95 p-4 text-white shadow-2xl transition-all duration-200 flex flex-col'
+    : 'w-full max-w-3xl sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-4 rounded-2xl border border-white/10 bg-slate-900/95 p-6 sm:p-8 text-white shadow-2xl transition-all duration-200 overflow-hidden flex flex-col';
+  const playersModalStyle = effectiveMobileShrink
+    ? { maxHeight: '92vh' }
+    : { minHeight: '50vh', maxHeight: '90vh' };
+  const playersModalLayoutClass = effectiveMobileShrink
+    ? 'flex flex-row gap-3 flex-1 w-full overflow-hidden'
+    : 'flex flex-row gap-4 flex-1 overflow-hidden';
+  const playersModalSidebarWrapperClass = effectiveMobileShrink
+    ? 'w-30 min-w-[140px] flex-shrink-0'
+    : 'w-40 flex-shrink-0';
+  const playersModalSidebarInnerClass = effectiveMobileShrink
+    ? 'flex flex-col gap-2'
+    : ' flex flex-col gap-2 sticky top-0';
+  const playersModalContentClass = effectiveMobileShrink
+    ? 'flex-1 rounded-2xl border border-white/10 bg-white/5 p-3 flex flex-col overflow-hidden'
+    : 'flex-1 rounded-2xl border border-white/10 bg-white/5 p-4 flex flex-col overflow-hidden';
+  const basePlayersGridClass = 'grid grid-cols-1 sm:grid-cols-2 gap-3 pr-1';
+  const playersGridWrapperClass = effectiveMobileShrink
+    ? `max-h-[55vh] min-h-[55vh] overflow-y-auto ${basePlayersGridClass}`
+    : `max-h-[60vh] min-h-[60vh] overflow-y-auto ${basePlayersGridClass}`;
+  const friendsViewWrapperClass = effectiveMobileShrink
+    ? 'max-h-[55vh] min-h-[55vh] flex flex-col items-center justify-center text-center text-white/70 px-4'
+    : 'max-h-[60vh] min-h-[60vh] flex flex-col items-center justify-center text-center text-white/70 px-6';
   // Đã loại bỏ logic spectator
   // Sử dụng localhost khi development, production server khi production
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -293,14 +337,21 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       if (!res.ok) throw new Error("Failed to load players");
       const data = await res.json();
       const list: PublicUser[] = Array.isArray(data?.users) ? data.users : [];
-      setPlayers(prev => (append ? [...prev, ...list] : list));
       const nextCursor = typeof data?.nextCursor === "string" ? data.nextCursor : null;
+      setPlayers(prev => {
+        const nextList = append ? [...prev, ...list] : list;
+        playersCacheRef.current = { list: nextList, cursor: nextCursor, hasMore: Boolean(nextCursor) };
+        return nextList;
+      });
       setPlayersCursor(nextCursor);
       setPlayersHasMore(Boolean(nextCursor));
       setPlayersError("");
     } catch (err) {
       if (!append) {
         setPlayers([]);
+        setPlayersCursor(null);
+        setPlayersHasMore(false);
+        playersCacheRef.current = null;
         setPlayersError("Không thể tải danh sách người chơi.");
       } else {
         setPlayersError("Không thể tải thêm người chơi. Vui lòng thử lại.");
@@ -312,12 +363,21 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   const openPlayersModal = useCallback(() => {
     setPlayersError("");
-    setPlayersHasMore(true);
-    setPlayersCursor(null);
-    setPlayers([]);
     setShowPlayersModal(true);
     setTimeout(() => setPlayersModalVisible(true), 10);
-    fetchPlayers(null, false);
+    const cached = playersCacheRef.current;
+    if (cached) {
+      setPlayers(cached.list);
+      setPlayersCursor(cached.cursor);
+      setPlayersHasMore(cached.hasMore);
+      setPlayersLoading(false);
+      setPlayersAppending(false);
+    } else {
+      setPlayersHasMore(true);
+      setPlayersCursor(null);
+      setPlayers([]);
+      fetchPlayers(null, false);
+    }
   }, [fetchPlayers]);
 
   useEffect(() => {
@@ -655,12 +715,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           style={{ minHeight: '100dvh', minWidth: '100vw', padding: 0 }}
         >
           <div
-            className={`w-full max-w-3xl mx-4 rounded-2xl border border-white/10 bg-slate-900/95 p-6 text-white shadow-2xl transition-all duration-200 ${playersModalVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+            className={`${playersModalContainerClass} ${playersModalVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+            style={playersModalStyle}
           >
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-semibold">Danh sách người chơi</h3>
-                <p className="text-sm text-white/60">Danh sách được đồng bộ trực tiếp từ server.</p>
               </div>
               <button
                 onClick={closePlayersModal}
@@ -675,58 +735,93 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                 {playersError}
               </div>
             )}
-            {playersLoading ? (
-              <div className="py-8 text-center text-white/80">Đang tải danh sách...</div>
-            ) : (
-              <div className="max-h-[60vh] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3 pr-1">
-                {players.length === 0 ? (
-                  <div className="col-span-full text-center text-white/70 py-6">Chưa có người chơi nào.</div>
+            <div className={playersModalLayoutClass}>
+              <div className={playersModalSidebarWrapperClass}>
+                <div className={playersModalSidebarInnerClass}>
+                  {[
+                    { id: 'friends' as const, label: 'Bạn bè' },
+                    { id: 'players' as const, label: 'Người chơi' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setDirectoryTab(tab.id)}
+                      className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 flex flex-col gap-1 ${
+                        directoryTab === tab.id
+                          ? 'border-blue-400/60 bg-blue-500/20 text-white shadow-lg shadow-blue-500/20'
+                          : 'border-white/10 bg-transparent text-white/70 hover:bg-white/10'
+                      }`}
+                    >
+                      <span className="text-base font-semibold">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className={playersModalContentClass}>
+                {directoryTab === 'players' ? (
+                  playersLoading ? (
+                    <div className={playersGridWrapperClass}>
+                      <div className="col-span-full py-8 text-center text-white/80">Đang tải danh sách...</div>
+                    </div>
+                  ) : (
+                    <div className={playersGridWrapperClass}>
+                      {players.length === 0 ? (
+                        <div className="col-span-full text-center text-white/70 py-6">Chưa có người chơi nào.</div>
+                      ) : (
+                        players.map((player, idx) => {
+                          const displayName = [player.firstName, player.lastName].filter(Boolean).join(" ") || player.username || "Người chơi";
+                          const avatarUrl = typeof player?.avatar === "string" && player.avatar.trim().length > 0 ? player.avatar : null;
+                          const initialsSource = [player.firstName, player.lastName].filter(Boolean).map(name => name?.trim()?.charAt(0) || "").join("") || (player.username?.trim()?.charAt(0) || "N");
+                          const initials = initialsSource.slice(0, 2).toUpperCase();
+                          const goal = typeof player?.goal33 === "string" && player.goal33.trim().length > 0 ? player.goal33.trim() : null;
+                          return (
+                            <div
+                              key={player.id || idx}
+                              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/10 transition"
+                              onClick={() => setPlayerActionTarget(player)}
+                            >
+                              {avatarUrl ? (
+                                <img
+                                  src={avatarUrl}
+                                  alt={displayName}
+                                  className="h-10 w-10 rounded-full object-cover border border-white/15"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-white/15 border border-white/10 text-white font-semibold uppercase flex items-center justify-center">
+                                  {initials}
+                                </div>
+                              )}
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-white tracking-wide">{displayName}</span>
+                                {goal && (
+                                  <span className="text-xs text-white/70">{goal}</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                      {playersHasMore && !playersLoading && (
+                        <button
+                          className="col-span-full mt-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition disabled:opacity-60"
+                          onClick={() => fetchPlayers(playersCursor, true)}
+                          disabled={playersAppending}
+                        >
+                          {playersAppending ? "Đang tải thêm..." : "Tải thêm"}
+                        </button>
+                      )}
+                    </div>
+                  )
                 ) : (
-                  players.map((player, idx) => {
-                    const displayName = [player.firstName, player.lastName].filter(Boolean).join(" ") || player.username || "Người chơi";
-                    const avatarUrl = typeof player?.avatar === "string" && player.avatar.trim().length > 0 ? player.avatar : null;
-                    const initialsSource = [player.firstName, player.lastName].filter(Boolean).map(name => name?.trim()?.charAt(0) || "").join("") || (player.username?.trim()?.charAt(0) || "N");
-                    const initials = initialsSource.slice(0, 2).toUpperCase();
-                    const goal = typeof player?.goal33 === "string" && player.goal33.trim().length > 0 ? player.goal33.trim() : null;
-                    return (
-                      <div
-                        key={player.id || idx}
-                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/10 transition"
-                        onClick={() => setPlayerActionTarget(player)}
-                      >
-                        {avatarUrl ? (
-                          <img
-                            src={avatarUrl}
-                            alt={displayName}
-                            className="h-10 w-10 rounded-full object-cover border border-white/15"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-full bg-white/15 border border-white/10 text-white font-semibold uppercase flex items-center justify-center">
-                            {initials}
-                          </div>
-                        )}
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-white tracking-wide">{displayName}</span>
-                          {goal && (
-                            <span className="text-xs text-white/70">{goal}</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                {playersHasMore && !playersLoading && (
-                  <button
-                    className="col-span-full mt-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition disabled:opacity-60"
-                    onClick={() => fetchPlayers(playersCursor, true)}
-                    disabled={playersAppending}
-                  >
-                    {playersAppending ? "Đang tải thêm..." : "Tải thêm"}
-                  </button>
+                  <div className={friendsViewWrapperClass}>
+                    <div className="text-lg font-semibold text-white mb-2">Danh sách bạn bè</div>
+                    <p className="text-sm text-white/60">
+                      Tính năng bạn bè sẽ sớm ra mắt. Hãy quay lại sau để kết nối và mời bạn vào phòng nhanh hơn.
+                    </p>
+                  </div>
                 )}
               </div>
-            )}
+            </div>
             {playerActionTarget && (
               <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4" onClick={() => setPlayerActionTarget(null)}>
                 <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900/95 p-5 text-white shadow-2xl" onClick={e => e.stopPropagation()}>
