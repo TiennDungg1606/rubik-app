@@ -18,6 +18,7 @@ export default function AuthForm({ onLogin, initialTab = "login" }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [tab, setTab] = useState(initialTab === "register" ? "register" : "login");
+  const [submitting, setSubmitting] = useState(false);
     useEffect(() => {
       if (initialTab && (initialTab === "login" || initialTab === "register")) {
         setTab(initialTab);
@@ -67,7 +68,9 @@ export default function AuthForm({ onLogin, initialTab = "login" }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
-    setError(""); setSuccess("");
+    setError("");
+    setSuccess("");
+
     let recaptchaToken = "";
     if (tab === "register") {
       const hasNumber = /\d/;
@@ -109,24 +112,25 @@ export default function AuthForm({ onLogin, initialTab = "login" }) {
         return;
       }
     }
+
+    setSubmitting(true);
     const url = tab === "register" ? "/api/user/register" : "/api/user/login";
     const body = tab === "register"
       ? { ...form, "g-recaptcha-response": recaptchaToken }
       : { email: form.email, password: form.password };
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || "Có lỗi xảy ra");
-    } else {
-      if (tab === "register") {
-  setSuccess("Registration successful! You can now log in.");
-  setForm({ email: "", password: "", firstName: "", lastName: "", birthday: "" });
-  setConfirmPassword("");
-        // Reset reCAPTCHA v2 nếu có
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Có lỗi xảy ra");
+      } else if (tab === "register") {
+        setSuccess("Registration successful! You can now log in.");
+        setForm({ email: "", password: "", firstName: "", lastName: "", birthday: "" });
+        setConfirmPassword("");
         if (window.grecaptcha && recaptchaRef.current) {
           window.grecaptcha.reset();
         }
@@ -136,8 +140,7 @@ export default function AuthForm({ onLogin, initialTab = "login" }) {
         }, 1500);
       } else {
         setSuccess("Login successful!");
-        // Nếu là login, lấy firstName và lastName từ API trả về
-        if (tab === "login" && data.user) {
+        if (data.user) {
           const userName = `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim();
           if (typeof window !== 'undefined') {
             window.userName = userName;
@@ -145,6 +148,10 @@ export default function AuthForm({ onLogin, initialTab = "login" }) {
         }
         if (onLogin) onLogin();
       }
+    } catch (err) {
+      setError("Không thể kết nối máy chủ. Vui lòng thử lại");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -237,8 +244,19 @@ export default function AuthForm({ onLogin, initialTab = "login" }) {
           )}
           {error && <div className="text-red-500 mb-2 text-center font-semibold">{error}</div>}
           {success && <div className="text-green-500 mb-2 text-center font-semibold">{success}</div>}
-          <button type="submit" className={`w-full bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold shadow transition-all duration-150 ${buttonSizingClasses}`}>
-            {tab === "register" ? "Sign up" : "Sign in"}
+          <button
+            type="submit"
+            disabled={submitting}
+            className={`w-full bg-green-500 hover:bg-green-600 disabled:opacity-70 disabled:cursor-not-allowed text-white rounded-lg font-bold shadow transition-all duration-150 ${buttonSizingClasses}`}
+          >
+            {submitting ? (
+              <span className="flex items-center justify-center gap-3">
+                <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                Loading
+              </span>
+            ) : (
+              tab === "register" ? "Sign up" : "Sign in"
+            )}
           </button>
         </form>
         <div className={`flex justify-between w-full mt-3 ${linkTextClasses}`}>

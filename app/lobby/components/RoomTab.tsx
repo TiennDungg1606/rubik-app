@@ -27,6 +27,15 @@ type PublicUser = {
   goal33?: string | null;
 };
 
+type PlayersCacheSnapshot = {
+  list: PublicUser[];
+  cursor: string | null;
+  hasMore: boolean;
+  timestamp: number;
+  prefetchedList: PublicUser[] | null;
+  prefetchedCursor: string | null;
+};
+
 
 export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink, registerPlayersModalTrigger }: RoomTabProps) {
 
@@ -60,24 +69,30 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [playersHasMore, setPlayersHasMore] = useState(true);
   const [playerActionTarget, setPlayerActionTarget] = useState<PublicUser | null>(null);
   const [directoryTab, setDirectoryTab] = useState<'friends' | 'players'>('players');
-  const playersCacheRef = useRef<{ list: PublicUser[]; cursor: string | null; hasMore: boolean } | null>(null);
+  const playersCacheRef = useRef<PlayersCacheSnapshot | null>(null);
+  const prefetchControllerRef = useRef<AbortController | null>(null);
+
+  const resetPlayersCache = useCallback(() => {
+    playersCacheRef.current = null;
+    if (prefetchControllerRef.current) {
+      prefetchControllerRef.current.abort();
+      prefetchControllerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
-    const clearCache = () => {
-      playersCacheRef.current = null;
-    };
     const handleVisibility = () => {
-      if (document.visibilityState === 'hidden') clearCache();
+      if (document.visibilityState === 'hidden') resetPlayersCache();
     };
-    window.addEventListener('beforeunload', clearCache);
-    window.addEventListener('pagehide', clearCache);
+    window.addEventListener('beforeunload', resetPlayersCache);
+    window.addEventListener('pagehide', resetPlayersCache);
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
-      window.removeEventListener('beforeunload', clearCache);
-      window.removeEventListener('pagehide', clearCache);
+      window.removeEventListener('beforeunload', resetPlayersCache);
+      window.removeEventListener('pagehide', resetPlayersCache);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, []);
+  }, [resetPlayersCache]);
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
     if (showCreateModal || showPasswordModal || showPlayersModal) {
@@ -145,10 +160,10 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const roomModeLabelClass = `${effectiveMobileShrink ? 'text-[10px]' : 'text-xs'} text-gray-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
   const waitingBadgeTextClass = `${effectiveMobileShrink ? 'text-[10px]' : 'text-xs'} text-yellow-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
   const playersModalContainerClass = effectiveMobileShrink
-    ? 'w-full max-w-xl mx-3 rounded-2xl border border-white/10 bg-slate-900/95 p-4 text-white shadow-2xl transition-all duration-200 flex flex-col'
-    : 'w-full max-w-3xl sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-4 rounded-2xl border border-white/10 bg-slate-900/95 p-6 sm:p-8 text-white shadow-2xl transition-all duration-200 overflow-hidden flex flex-col';
+    ? 'w-full max-w-[99vw] sm:max-w-[760px] mx-1 rounded-2xl border border-white/10 bg-slate-900/95 px-5 pt-4 pb-5 text-white shadow-2xl transition-all duration-200 flex flex-col'
+    : 'w-full max-w-3xl sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-4 rounded-2xl border border-white/10 bg-slate-900/95 px-6 sm:px-8 pt-5 pb-6 text-white shadow-2xl transition-all duration-200 overflow-hidden flex flex-col';
   const playersModalStyle = effectiveMobileShrink
-    ? { maxHeight: '92vh' }
+    ? { minHeight: '75vh', maxHeight: '98vh', width: 'min(99vw, 760px)' }
     : { minHeight: '50vh', maxHeight: '90vh' };
   const playersModalLayoutClass = effectiveMobileShrink
     ? 'flex flex-row gap-3 flex-1 w-full overflow-hidden'
@@ -162,13 +177,15 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const playersModalContentClass = effectiveMobileShrink
     ? 'flex-1 rounded-2xl border border-white/10 bg-white/5 p-3 flex flex-col overflow-hidden'
     : 'flex-1 rounded-2xl border border-white/10 bg-white/5 p-4 flex flex-col overflow-hidden';
-  const basePlayersGridClass = 'grid grid-cols-1 sm:grid-cols-2 gap-3 pr-1';
+  const basePlayersGridClass = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 pr-1';
   const playersGridWrapperClass = effectiveMobileShrink
-    ? `max-h-[55vh] min-h-[55vh] overflow-y-auto ${basePlayersGridClass}`
-    : `max-h-[60vh] min-h-[60vh] overflow-y-auto ${basePlayersGridClass}`;
+    ? `max-h-[70vh] min-h-[60vh] overflow-y-auto ${basePlayersGridClass}`
+    : `max-h-[68vh] min-h-[68vh] overflow-y-auto ${basePlayersGridClass}`;
+  const playerCardSpacingClass = effectiveMobileShrink ? 'px-2 py-1.5 gap-1.5' : 'px-3 py-2 gap-2';
+  const playerAvatarSizeClass = effectiveMobileShrink ? 'h-6 w-6 text-[10px]' : 'h-8 w-8 text-xs';
   const friendsViewWrapperClass = effectiveMobileShrink
-    ? 'max-h-[55vh] min-h-[55vh] flex flex-col items-center justify-center text-center text-white/70 px-4'
-    : 'max-h-[60vh] min-h-[60vh] flex flex-col items-center justify-center text-center text-white/70 px-6';
+    ? 'max-h-[70vh] min-h-[70vh] flex flex-col items-center justify-center text-center text-white/70 px-4'
+    : 'max-h-[70vh] min-h-[70vh] flex flex-col items-center justify-center text-center text-white/70 px-6';
   // Đã loại bỏ logic spectator
   // Sử dụng localhost khi development, production server khi production
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -325,7 +342,54 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }, 200);
   }
 
-  const PLAYERS_LIMIT = 120;
+  const PLAYERS_LIMIT = 50;
+  const PLAYERS_CACHE_TTL = 60 * 1000;
+
+  const prefetchPlayersPage = useCallback((cursor: string | null) => {
+    if (!cursor) {
+      if (prefetchControllerRef.current) {
+        prefetchControllerRef.current.abort();
+        prefetchControllerRef.current = null;
+      }
+      if (playersCacheRef.current) {
+        playersCacheRef.current = {
+          ...playersCacheRef.current,
+          prefetchedList: null,
+          prefetchedCursor: null
+        };
+      }
+      return;
+    }
+    if (prefetchControllerRef.current) {
+      prefetchControllerRef.current.abort();
+      prefetchControllerRef.current = null;
+    }
+    const controller = new AbortController();
+    prefetchControllerRef.current = controller;
+    const params = new URLSearchParams({ limit: PLAYERS_LIMIT.toString(), cursor });
+    fetch(`/api/users?${params.toString()}`, { signal: controller.signal })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to prefetch players');
+        return res.json();
+      })
+      .then(data => {
+        if (!playersCacheRef.current) return;
+        const list: PublicUser[] = Array.isArray(data?.users) ? data.users : [];
+        const nextCursor = typeof data?.nextCursor === 'string' ? data.nextCursor : null;
+        playersCacheRef.current = {
+          ...playersCacheRef.current,
+          prefetchedList: list,
+          prefetchedCursor: nextCursor
+        };
+      })
+      .catch(err => {
+        if (err?.name === 'AbortError') return;
+        if (playersCacheRef.current) {
+          playersCacheRef.current.prefetchedList = null;
+          playersCacheRef.current.prefetchedCursor = cursor;
+        }
+      });
+  }, []);
 
   const fetchPlayers = useCallback(async (cursor: string | null, append = false) => {
     const query = new URLSearchParams({ limit: PLAYERS_LIMIT.toString() });
@@ -340,18 +404,26 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       const nextCursor = typeof data?.nextCursor === "string" ? data.nextCursor : null;
       setPlayers(prev => {
         const nextList = append ? [...prev, ...list] : list;
-        playersCacheRef.current = { list: nextList, cursor: nextCursor, hasMore: Boolean(nextCursor) };
+        playersCacheRef.current = {
+          list: nextList,
+          cursor: nextCursor,
+          hasMore: Boolean(nextCursor),
+          timestamp: Date.now(),
+          prefetchedList: null,
+          prefetchedCursor: null
+        };
         return nextList;
       });
       setPlayersCursor(nextCursor);
       setPlayersHasMore(Boolean(nextCursor));
       setPlayersError("");
+      prefetchPlayersPage(nextCursor);
     } catch (err) {
       if (!append) {
         setPlayers([]);
         setPlayersCursor(null);
         setPlayersHasMore(false);
-        playersCacheRef.current = null;
+        resetPlayersCache();
         setPlayersError("Không thể tải danh sách người chơi.");
       } else {
         setPlayersError("Không thể tải thêm người chơi. Vui lòng thử lại.");
@@ -359,26 +431,69 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     } finally {
       setLoadingState(false);
     }
-  }, []);
+  }, [prefetchPlayersPage, resetPlayersCache]);
+
+  const handlePlayersRefresh = useCallback(() => {
+    resetPlayersCache();
+    setPlayers([]);
+    setPlayersCursor(null);
+    setPlayersHasMore(true);
+    fetchPlayers(null, false);
+  }, [fetchPlayers, resetPlayersCache]);
+
+  const handleLoadMore = useCallback(() => {
+    if (playersAppending) return;
+    const cache = playersCacheRef.current;
+    if (cache?.prefetchedList && cache.prefetchedList.length > 0) {
+      const mergedList = [...cache.list, ...cache.prefetchedList];
+      const nextCursor = cache.prefetchedCursor;
+      setPlayers(mergedList);
+      setPlayersCursor(nextCursor);
+      setPlayersHasMore(Boolean(nextCursor));
+      playersCacheRef.current = {
+        ...cache,
+        list: mergedList,
+        cursor: nextCursor,
+        hasMore: Boolean(nextCursor),
+        prefetchedList: null,
+        prefetchedCursor: null,
+        timestamp: Date.now()
+      };
+      if (nextCursor) {
+        prefetchPlayersPage(nextCursor);
+      } else {
+        prefetchPlayersPage(null);
+      }
+      return;
+    }
+    if (playersCursor) {
+      fetchPlayers(playersCursor, true);
+    }
+  }, [fetchPlayers, playersAppending, playersCursor, prefetchPlayersPage]);
 
   const openPlayersModal = useCallback(() => {
     setPlayersError("");
     setShowPlayersModal(true);
     setTimeout(() => setPlayersModalVisible(true), 10);
     const cached = playersCacheRef.current;
-    if (cached) {
+    const now = Date.now();
+    if (cached && now - cached.timestamp < PLAYERS_CACHE_TTL) {
       setPlayers(cached.list);
       setPlayersCursor(cached.cursor);
       setPlayersHasMore(cached.hasMore);
       setPlayersLoading(false);
       setPlayersAppending(false);
+      if (!cached.prefetchedList && cached.cursor) {
+        prefetchPlayersPage(cached.cursor);
+      }
     } else {
+      resetPlayersCache();
       setPlayersHasMore(true);
       setPlayersCursor(null);
       setPlayers([]);
       fetchPlayers(null, false);
     }
-  }, [fetchPlayers]);
+  }, [PLAYERS_CACHE_TTL, fetchPlayers, prefetchPlayersPage, resetPlayersCache]);
 
   useEffect(() => {
     if (!registerPlayersModalTrigger) return;
@@ -715,16 +830,18 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           style={{ minHeight: '100dvh', minWidth: '100vw', padding: 0 }}
         >
           <div
-            className={`${playersModalContainerClass} ${playersModalVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+            className={`${playersModalContainerClass} ${playersModalVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-100'}`}
             style={playersModalStyle}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between -mt-1 mb-3">
               <div>
-                <h3 className="text-xl font-semibold">Danh sách người chơi</h3>
+                <h3 className={`${effectiveMobileShrink ? 'text-lg' : 'text-xl'} font-semibold`}>
+                  Danh sách người chơi
+                </h3>
               </div>
               <button
                 onClick={closePlayersModal}
-                className="rounded-full bg-white/10 p-2 hover:bg-white/20 transition"
+                className="rounded-full bg-white/10 w-10 h-10 flex items-center justify-center hover:bg-white/20 transition"
                 aria-label="Đóng"
               >
                 ✕
@@ -758,16 +875,23 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
               </div>
               <div className={playersModalContentClass}>
                 {directoryTab === 'players' ? (
-                  playersLoading ? (
-                    <div className={playersGridWrapperClass}>
-                      <div className="col-span-full py-8 text-center text-white/80">Đang tải danh sách...</div>
+                  <div className="flex flex-col flex-1 overflow-hidden">
+                    <div className="mb-3 flex items-center justify-between text-xs sm:text-sm text-white/70">
+                      <span>Đang hiển thị {players.length} người chơi</span>
                     </div>
-                  ) : (
-                    <div className={playersGridWrapperClass}>
-                      {players.length === 0 ? (
-                        <div className="col-span-full text-center text-white/70 py-6">Chưa có người chơi nào.</div>
-                      ) : (
-                        players.map((player, idx) => {
+                    {playersLoading ? (
+                      <div className={playersGridWrapperClass}>
+                        <div className="col-span-full flex flex-col items-center justify-center py-8 text-white/80 gap-3">
+                          <div className="w-10 h-10 border-4 border-white/20 border-t-white/80 rounded-full animate-spin" aria-label="Đang tải" />
+                          <span>Đang tải danh sách</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={playersGridWrapperClass}>
+                        {players.length === 0 ? (
+                          <div className="col-span-full text-center text-white/70 py-6">Chưa có người chơi nào.</div>
+                        ) : (
+                          players.map((player, idx) => {
                           const displayName = [player.firstName, player.lastName].filter(Boolean).join(" ") || player.username || "Người chơi";
                           const avatarUrl = typeof player?.avatar === "string" && player.avatar.trim().length > 0 ? player.avatar : null;
                           const initialsSource = [player.firstName, player.lastName].filter(Boolean).map(name => name?.trim()?.charAt(0) || "").join("") || (player.username?.trim()?.charAt(0) || "N");
@@ -792,26 +916,27 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                                 </div>
                               )}
                               <div className="flex flex-col">
-                                <span className="font-semibold text-white tracking-wide">{displayName}</span>
+                                <span className="font-semibold text-white tracking-wide text-sm sm:text-base">{displayName}</span>
                                 {goal && (
-                                  <span className="text-xs text-white/70">{goal}</span>
+                                  <span className="text-[11px] sm:text-xs text-white/70">{goal}</span>
                                 )}
                               </div>
                             </div>
                           );
-                        })
-                      )}
-                      {playersHasMore && !playersLoading && (
-                        <button
-                          className="col-span-full mt-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition disabled:opacity-60"
-                          onClick={() => fetchPlayers(playersCursor, true)}
-                          disabled={playersAppending}
-                        >
-                          {playersAppending ? "Đang tải thêm..." : "Tải thêm"}
-                        </button>
-                      )}
-                    </div>
-                  )
+                          })
+                        )}
+                        {playersHasMore && !playersLoading && (
+                          <button
+                            className="col-span-full mt-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition disabled:opacity-60"
+                            onClick={handleLoadMore}
+                            disabled={playersAppending}
+                          >
+                            {playersAppending ? "Đang tải thêm..." : "Tải thêm"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className={friendsViewWrapperClass}>
                     <div className="text-lg font-semibold text-white mb-2">Danh sách bạn bè</div>

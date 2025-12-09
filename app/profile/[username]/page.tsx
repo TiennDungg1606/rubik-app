@@ -145,8 +145,15 @@ export default function PublicProfilePage() {
 
   if (!user && !loadTimeout) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black text-white text-xl font-bold">
-        Đang tải...
+      <div className="flex items-center justify-center min-h-screen bg-blue-800/20 text-white">
+        <button
+          type="button"
+          disabled
+          className="flex items-center gap-3 px-6 py-3 rounded-full bg-emerald-400/30 border border-emerald-300/60 text-lg font-semibold shadow-lg shadow-emerald-500/20"
+        >
+          <span className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" aria-hidden="true" />
+          Đang tải
+        </button>
       </div>
     );
   }
