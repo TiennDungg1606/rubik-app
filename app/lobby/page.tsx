@@ -23,6 +23,8 @@ function generateRoomId() {
 }
 
 type User = {
+  _id?: string;
+  id?: string;
   email?: string;
   firstName?: string;
   lastName?: string;
@@ -37,6 +39,7 @@ type TabKey = "new" | "timer" | "room" | "practice" | "shop" | "about";
 
 const ALL_TABS: TabKey[] = ["new", "timer", "room", "practice", "shop", "about"];
 const PLAYER_BUTTON_HIDDEN_TABS: TabKey[] = ["timer", "practice", "shop", "about"];
+const PRESENCE_HEARTBEAT_INTERVAL = 45_000;
 
 // Component that uses useSearchParams
 function LobbyContent() {
@@ -591,6 +594,65 @@ function LobbyContent() {
         setUser(data.user);
       });
   }, [router]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const userId = user?._id || user?.id;
+    if (!userId) return;
+
+    const sendHeartbeat = async () => {
+      try {
+        await fetch("/api/presence/heartbeat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId }),
+          keepalive: true
+        });
+      } catch {
+        /* Ignore network errors; a later heartbeat will retry */
+      }
+    };
+
+    const notifyOffline = () => {
+      const payload = JSON.stringify({ userId });
+      try {
+        if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+          navigator.sendBeacon(
+            "/api/presence/offline",
+            new Blob([payload], { type: "application/json" })
+          );
+        } else {
+          fetch("/api/presence/offline", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true
+          }).catch(() => {});
+        }
+      } catch {
+        /* Failing to notify offline is non-critical because TTL will expire */
+      }
+    };
+
+    sendHeartbeat();
+    const intervalId = window.setInterval(sendHeartbeat, PRESENCE_HEARTBEAT_INTERVAL);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        sendHeartbeat();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("beforeunload", notifyOffline);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("beforeunload", notifyOffline);
+      notifyOffline();
+    };
+  }, [user?._id, user?.id]);
 
   // Kiểm tra tham số tab từ URL và tự động chuyển tab
   useEffect(() => {
