@@ -12,13 +12,15 @@ function normalizeAction(raw: string | null): InviteAction | null {
   return null;
 }
 
-export async function PATCH(request: Request, { params }: { params: { inviteId: string } }) {
+export async function PATCH(request: Request) {
   const userId = extractUserId(request);
   if (!userId) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const inviteId = params?.inviteId;
+  const pathname = new URL(request.url).pathname.replace(/\/$/, "");
+  const pathSegments = pathname.split("/");
+  const inviteId = pathSegments[pathSegments.length - 1];
   if (!inviteId) {
     return NextResponse.json({ error: "Invite ID required" }, { status: 400 });
   }
