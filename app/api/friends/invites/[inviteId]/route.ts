@@ -12,13 +12,13 @@ function normalizeAction(raw: string | null): InviteAction | null {
   return null;
 }
 
-export async function PATCH(request: Request, context: { params: { inviteId: string } }) {
+export async function PATCH(request: Request, { params }: { params: { inviteId: string } }) {
   const userId = extractUserId(request);
   if (!userId) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const inviteId = context.params?.inviteId;
+  const inviteId = params?.inviteId;
   if (!inviteId) {
     return NextResponse.json({ error: "Invite ID required" }, { status: 400 });
   }
