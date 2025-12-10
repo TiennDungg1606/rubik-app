@@ -66,6 +66,28 @@ type FriendInviteEntry = {
   };
 };
 
+type FriendStatus = 'online' | 'away' | 'busy' | 'offline';
+
+type FriendEntry = {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+  avatar?: string | null;
+  goal33?: string | null;
+  customBg?: string | null;
+  status: FriendStatus;
+  lastSeen: number | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+const FRIEND_STATUS_STYLES: Record<FriendStatus, { label: string; dotClass: string; textClass: string }> = {
+  online: { label: 'Đang online', dotClass: 'bg-emerald-400', textClass: 'text-emerald-300' },
+  away: { label: 'Tạm vắng', dotClass: 'bg-amber-400', textClass: 'text-amber-300' },
+  busy: { label: 'Đang bận', dotClass: 'bg-rose-400', textClass: 'text-rose-300' },
+  offline: { label: 'Offline', dotClass: 'bg-gray-500', textClass: 'text-white/50' }
+};
+
 
 export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink, registerPlayersModalTrigger, currentUser }: RoomTabProps) {
 
@@ -100,9 +122,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [playersCursor, setPlayersCursor] = useState<string | null>(null);
   const [playersHasMore, setPlayersHasMore] = useState(true);
   const [playerActionTarget, setPlayerActionTarget] = useState<PublicUser | null>(null);
-  const [directoryTab, setDirectoryTab] = useState<'friends' | 'players'>('players');
+  const [directoryTab, setDirectoryTab] = useState<'friends' | 'players'>('friends');
   const [friendsActiveCount, setFriendsActiveCount] = useState(0);
   const [friendsTotalCount, setFriendsTotalCount] = useState(0);
+  const [friends, setFriends] = useState<FriendEntry[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friendsError, setFriendsError] = useState("");
   const [incomingInvites, setIncomingInvites] = useState<FriendInviteEntry[]>([]);
   const [invitesLoading, setInvitesLoading] = useState(false);
   const [invitesError, setInvitesError] = useState("");
@@ -110,6 +135,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [inviteActionId, setInviteActionId] = useState<string | null>(null);
   const [inviteToast, setInviteToast] = useState("");
   const playersCacheRef = useRef<PlayersCacheSnapshot | null>(null);
+  const friendsCacheRef = useRef<{ list: FriendEntry[]; timestamp: number } | null>(null);
   const prefetchControllerRef = useRef<AbortController | null>(null);
   const inviteToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -191,6 +217,18 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       return '';
     }
   }, [inviteDateFormatter]);
+  const formatFriendLastSeen = useCallback((timestamp: number | null): string | null => {
+    if (!timestamp) return null;
+    const diffMs = Date.now() - timestamp;
+    if (diffMs < 0) return 'vừa xong';
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return 'vừa xong';
+    if (minutes < 60) return `${minutes} phút trước`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} giờ trước`;
+    const days = Math.floor(hours / 24);
+    return `${days} ngày trước`;
+  }, []);
   const effectiveMobileShrink = Boolean(mobileShrink || isMobileLandscape || isCompactWidth);
   const modalInputClasses = `w-full rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 ${effectiveMobileShrink ? 'px-3 py-1.5 text-sm' : 'px-3 py-2'}`;
   const modalHeadingClass = `${effectiveMobileShrink ? 'text-base' : 'text-lg'} font-semibold text-white mb-4`;
@@ -414,6 +452,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   const PLAYERS_LIMIT = 50;
   const PLAYERS_CACHE_TTL = 60 * 1000;
+  const FRIENDS_CACHE_TTL = 45 * 1000;
 
   const prefetchPlayersPage = useCallback((cursor: string | null) => {
     if (!cursor) {
@@ -541,6 +580,68 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }
   }, [fetchPlayers, playersAppending, playersCursor, prefetchPlayersPage]);
 
+  const applyFriendsDataset = useCallback((list: FriendEntry[]) => {
+    setFriends(list);
+    setFriendsTotalCount(list.length);
+    setFriendsActiveCount(list.filter(friend => friend.status !== 'offline').length);
+    friendsCacheRef.current = { list, timestamp: Date.now() };
+  }, []);
+
+  const fetchFriends = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
+    if (!currentUserId) {
+      friendsCacheRef.current = null;
+      setFriends([]);
+      setFriendsActiveCount(0);
+      setFriendsTotalCount(0);
+      setFriendsError('Bạn cần đăng nhập để xem danh sách bạn bè.');
+      return;
+    }
+
+    const cache = friendsCacheRef.current;
+    if (!force && cache && Date.now() - cache.timestamp < FRIENDS_CACHE_TTL) {
+      applyFriendsDataset(cache.list);
+      setFriendsError('');
+      return;
+    }
+
+    setFriendsLoading(true);
+    setFriendsError('');
+    try {
+      const response = await fetch('/api/friends', { cache: 'no-store' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Không thể tải danh sách bạn bè.');
+      }
+      const incoming = Array.isArray(payload?.friends) ? payload.friends : [];
+      const normalizedList: FriendEntry[] = (incoming as Array<Record<string, unknown>>)
+        .map(friend => {
+          const id = typeof friend.id === 'string' ? friend.id : '';
+          const status = typeof friend.status === 'string' &&
+            (friend.status === 'online' || friend.status === 'away' || friend.status === 'busy')
+            ? (friend.status as FriendStatus)
+            : 'offline';
+          return {
+            id,
+            firstName: typeof friend.firstName === 'string' ? friend.firstName : '',
+            lastName: typeof friend.lastName === 'string' ? friend.lastName : '',
+            username: typeof friend.username === 'string' ? friend.username : '',
+            avatar: typeof friend.avatar === 'string' && friend.avatar.trim().length > 0 ? friend.avatar : null,
+            goal33: typeof friend.goal33 === 'string' ? friend.goal33 : '',
+            customBg: typeof friend.customBg === 'string' ? friend.customBg : '',
+            status,
+            lastSeen: typeof friend.lastSeen === 'number' ? friend.lastSeen : null,
+            metadata: typeof friend.metadata === 'object' && friend.metadata !== null ? friend.metadata as Record<string, unknown> : null
+          } satisfies FriendEntry;
+        })
+        .filter(entry => entry.id);
+      applyFriendsDataset(normalizedList);
+    } catch (error) {
+      setFriendsError(error instanceof Error ? error.message : 'Không thể tải danh sách bạn bè.');
+    } finally {
+      setFriendsLoading(false);
+    }
+  }, [FRIENDS_CACHE_TTL, applyFriendsDataset, currentUserId]);
+
   const fetchIncomingInvites = useCallback(async () => {
     if (!currentUserId) {
       setInvitesError("Bạn cần đăng nhập để xem lời mời.");
@@ -569,6 +670,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   const openPlayersModal = useCallback(() => {
     setPlayersError("");
+    setDirectoryTab('friends');
     setShowPlayersModal(true);
     setTimeout(() => setPlayersModalVisible(true), 10);
     const cached = playersCacheRef.current;
@@ -598,6 +700,26 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       registerPlayersModalTrigger(null);
     };
   }, [registerPlayersModalTrigger, openPlayersModal]);
+
+  useEffect(() => {
+    friendsCacheRef.current = null;
+    if (!currentUserId) {
+      setFriends([]);
+      setFriendsActiveCount(0);
+      setFriendsTotalCount(0);
+    }
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!showPlayersModal || directoryTab !== 'friends') return;
+    fetchFriends();
+    fetchIncomingInvites();
+    const interval = setInterval(() => {
+      fetchFriends({ force: true });
+      fetchIncomingInvites();
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [directoryTab, fetchFriends, fetchIncomingInvites, showPlayersModal]);
 
   useEffect(() => {
     if (!playerActionTarget && inviteToastTimerRef.current) {
@@ -697,12 +819,15 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       const list = Array.isArray(payload?.invites) ? payload.invites : [];
       setIncomingInvites(list as FriendInviteEntry[]);
       setInvitesError('');
+      if (action === 'accept') {
+        fetchFriends({ force: true });
+      }
     } catch (error) {
       setInvitesError(error instanceof Error ? error.message : 'Không thể cập nhật lời mời.');
     } finally {
       setInviteActionId(null);
     }
-  }, [currentUserId]);
+  }, [currentUserId, fetchFriends]);
 
   function handlePasswordConfirm() {
     if (!passwordModalRoomId) return;
@@ -1135,16 +1260,92 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   </div>
                 ) : (
                   <div className={friendsViewWrapperClass}>
-                    <div className="text-xs sm:text-sm text-white/70 flex items-center justify-between">
+                    <div className="flex items-center justify-between text-xs sm:text-sm text-white/70 gap-2 w-full">
                       <span>Bạn bè {friendsActiveCount}/{friendsTotalCount}</span>
+                      <button
+                        className="rounded-2xl border border-blue-400/40 bg-blue-500/10 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-500/20 transition"
+                        onClick={openInvitesModal}
+                      >
+                        Lời mời
+                      </button>
                     </div>
-                    <div className="flex-1" />
-                    <button
-                      className="mt-auto rounded-2xl border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white hover:bg-white/20 transition self-start"
-                      onClick={openInvitesModal}
-                    >
-                      Lời mời
-                    </button>
+                    {friendsError && (
+                      <div className="w-full rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
+                        {friendsError}
+                      </div>
+                    )}
+                    {!currentUserId ? (
+                      <div className="flex flex-1 items-center justify-center text-center text-white/70 text-sm w-full">
+                        Hãy đăng nhập để xem danh sách bạn bè.
+                      </div>
+                    ) : (
+                      <div className="flex-1 w-full">
+                        {friendsLoading && friends.length === 0 ? (
+                          <div className="flex h-full flex-col items-center justify-center gap-3 text-white/80">
+                            <div className="w-10 h-10 border-4 border-white/20 border-t-white/80 rounded-full animate-spin" aria-label="Đang tải bạn bè" />
+                            <span>Đang tải danh sách bạn bè...</span>
+                          </div>
+                        ) : friends.length === 0 ? (
+                          <div className="h-full flex items-center justify-center text-center text-white/70 text-sm">
+                            Bạn chưa có người bạn nào. Hãy gửi lời mời để kết nối!
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-3 max-h-full overflow-y-auto pr-1">
+                            {friends.map(friend => {
+                              const displayName = [friend.firstName, friend.lastName].filter(Boolean).join(' ').trim() || friend.username || 'Người chơi';
+                              const avatarUrl = typeof friend.avatar === 'string' && friend.avatar.trim().length > 0 ? friend.avatar : null;
+                              const initials = displayName
+                                .split(' ')
+                                .map(part => part.trim().charAt(0))
+                                .join('')
+                                .slice(0, 2)
+                                .toUpperCase() || 'NB';
+                              const statusVisual = FRIEND_STATUS_STYLES[friend.status] || FRIEND_STATUS_STYLES.offline;
+                              const lastSeenLabel = formatFriendLastSeen(friend.lastSeen);
+                              const activityLabel = friend.status === 'offline'
+                                ? (lastSeenLabel ? `Hoạt động ${lastSeenLabel}` : statusVisual.label)
+                                : statusVisual.label;
+                              return (
+                                <div key={friend.id} className="rounded-2xl border border-white/10 bg-white/10 px-3 py-3 flex items-center gap-3">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    {avatarUrl ? (
+                                      <img src={avatarUrl} alt={displayName} className="h-11 w-11 rounded-full object-cover border border-white/15" loading="lazy" />
+                                    ) : (
+                                      <div className="h-11 w-11 rounded-full bg-white/10 border border-white/15 text-white font-semibold uppercase flex items-center justify-center">
+                                        {initials}
+                                      </div>
+                                    )}
+                                    <div className="flex flex-col">
+                                      <span className="font-semibold text-white text-sm sm:text-base">{displayName}</span>
+                                      {friend.goal33 && (
+                                        <span className="text-xs text-white/70">{friend.goal33}</span>
+                                      )}
+                                      <span className="text-[11px] text-white/60">{activityLabel}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-2">
+                                    <span className={`flex items-center gap-1 text-xs font-semibold ${statusVisual.textClass}`}>
+                                      <span className={`h-2.5 w-2.5 rounded-full ${statusVisual.dotClass}`} />
+                                      {statusVisual.label}
+                                    </span>
+                                    <button
+                                      className="rounded-xl border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-white hover:bg-white/15 transition"
+                                      onClick={() => {
+                                        if (friend.id) {
+                                          window.location.href = `https://rubik-app-buhb.vercel.app/profile/${friend.id}`;
+                                        }
+                                      }}
+                                    >
+                                      Hồ sơ
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1233,13 +1434,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                     ? `Có ${incomingInvites.length} lời mời đang chờ`
                     : 'Đăng nhập để quản lý lời mời.'}
                 </span>
-                <button
-                  className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-white hover:bg-white/15 transition disabled:opacity-50"
-                  onClick={fetchIncomingInvites}
-                  disabled={invitesLoading || !currentUserId}
-                >
-                  Làm mới
-                </button>
               </div>
               {invitesError && (
                 <div className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
