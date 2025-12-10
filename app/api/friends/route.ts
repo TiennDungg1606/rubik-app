@@ -12,10 +12,8 @@ type FriendPayload = {
   username: string;
   avatar: string;
   goal33: string;
-  customBg: string;
   status: PresenceStatus | "offline";
   lastSeen: number | null;
-  metadata: Record<string, unknown> | null;
 };
 
 type PresenceRecord = {
@@ -62,20 +60,19 @@ export async function GET(request: Request) {
     }
 
     const friendDocs = await User.find(
-      { _id: { $in: friendIds } },
-      { email: 0, password: 0 }
+      { _id: { $in: friendIds } }
     )
+      .select("firstName lastName username avatar goal33")
       .lean()
       .exec();
 
-    let presenceMap = new Map<string, { status: PresenceStatus; lastSeen: number; metadata?: Record<string, unknown> | null }>();
+    let presenceMap = new Map<string, { status: PresenceStatus; lastSeen: number }>();
     try {
       const presenceRecords = await fetchPresenceBulk(friendIds);
       presenceMap = new Map(
         presenceRecords.map((record: PresenceRecord) => [record.userId, {
           status: record.status,
-          lastSeen: record.lastSeen,
-          metadata: record.metadata ?? null
+          lastSeen: record.lastSeen
         }])
       );
     } catch (error) {
@@ -96,10 +93,8 @@ export async function GET(request: Request) {
         username: doc.username || "",
         avatar: doc.avatar || "",
         goal33: doc.goal33 || "",
-        customBg: doc.customBg || "",
         status: presence?.status || "offline",
-        lastSeen: presence?.lastSeen ?? null,
-        metadata: presence?.metadata ?? null
+        lastSeen: presence?.lastSeen ?? null
       };
     });
 

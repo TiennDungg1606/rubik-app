@@ -45,6 +45,8 @@ type PlayersCacheSnapshot = {
   prefetchedCursor: string | null;
 };
 
+const PLAYER_CACHE_STORAGE_KEY = 'rubik-app.players.directory';
+
 type FriendInviteEntry = {
   id: string;
   direction: 'incoming' | 'outgoing';
@@ -75,10 +77,8 @@ type FriendEntry = {
   username?: string;
   avatar?: string | null;
   goal33?: string | null;
-  customBg?: string | null;
   status: FriendStatus;
   lastSeen: number | null;
-  metadata?: Record<string, unknown> | null;
 };
 
 const FRIEND_STATUS_STYLES: Record<FriendStatus, { label: string; dotClass: string; textClass: string }> = {
@@ -134,10 +134,23 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [inviteActionId, setInviteActionId] = useState<string | null>(null);
   const [inviteToast, setInviteToast] = useState("");
+  const [playerDirectoryRefreshToken, setPlayerDirectoryRefreshToken] = useState(0);
   const playersCacheRef = useRef<PlayersCacheSnapshot | null>(null);
   const friendsCacheRef = useRef<{ list: FriendEntry[]; timestamp: number } | null>(null);
+  const invitesCacheRef = useRef<{ list: FriendInviteEntry[]; timestamp: number } | null>(null);
   const prefetchControllerRef = useRef<AbortController | null>(null);
   const inviteToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showPlayersModalRef = useRef(showPlayersModal);
+  const directoryTabRef = useRef(directoryTab);
+  const appliedPlayerRefreshTokenRef = useRef(0);
+
+  useEffect(() => {
+    showPlayersModalRef.current = showPlayersModal;
+  }, [showPlayersModal]);
+
+  useEffect(() => {
+    directoryTabRef.current = directoryTab;
+  }, [directoryTab]);
 
   const resetPlayersCache = useCallback(() => {
     playersCacheRef.current = null;
@@ -145,21 +158,58 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       prefetchControllerRef.current.abort();
       prefetchControllerRef.current = null;
     }
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.removeItem(PLAYER_CACHE_STORAGE_KEY);
+      } catch {
+        // no-op
+      }
+    }
+  }, []);
+
+  const hydratePlayersCacheFromStorage = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = window.sessionStorage.getItem(PLAYER_CACHE_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed?.list)) return null;
+      const snapshot: PlayersCacheSnapshot = {
+        list: parsed.list,
+        cursor: typeof parsed.cursor === 'string' ? parsed.cursor : null,
+        hasMore: typeof parsed.hasMore === 'boolean' ? parsed.hasMore : Boolean(parsed.cursor),
+        timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : Date.now(),
+        prefetchedList: null,
+        prefetchedCursor: null
+      };
+      playersCacheRef.current = snapshot;
+      return snapshot;
+    } catch {
+      return null;
+    }
   }, []);
 
   useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'hidden') resetPlayersCache();
-    };
-    window.addEventListener('beforeunload', resetPlayersCache);
-    window.addEventListener('pagehide', resetPlayersCache);
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => {
-      window.removeEventListener('beforeunload', resetPlayersCache);
-      window.removeEventListener('pagehide', resetPlayersCache);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, [resetPlayersCache]);
+    hydratePlayersCacheFromStorage();
+  }, [hydratePlayersCacheFromStorage]);
+
+  const persistPlayersCache = useCallback((snapshot: PlayersCacheSnapshot) => {
+    playersCacheRef.current = snapshot;
+    if (typeof window === 'undefined') return;
+    try {
+      window.sessionStorage.setItem(
+        PLAYER_CACHE_STORAGE_KEY,
+        JSON.stringify({
+          list: snapshot.list,
+          cursor: snapshot.cursor,
+          hasMore: snapshot.hasMore,
+          timestamp: snapshot.timestamp
+        })
+      );
+    } catch {
+      // Ignore storage write failures
+    }
+  }, []);
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
     if (showCreateModal || showPasswordModal || showPlayersModal || showInvitesModal) {
@@ -389,15 +439,25 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     // Lắng nghe sự kiện update-active-rooms từ server để reload danh sách phòng ngay lập tức
     socket = io(API_BASE, { transports: ["websocket"] });
     socket.on("update-active-rooms", () => {
+      if (stopped) return;
       console.log('=== ROOMTAB RECEIVED UPDATE-ACTIVE-ROOMS ===');
       console.log('Refreshing rooms list...');
       fetchRooms();
+    });
+    socket.on(PLAYER_DIRECTORY_INVALIDATION_EVENT, () => {
+      if (stopped) return;
+      resetPlayersCache();
+      setPlayerDirectoryRefreshToken((token) => token + 1);
     });
 
     return () => {
       stopped = true;
       clearTimeout(loadingTimer);
-      if (socket) socket.disconnect();
+      if (socket) {
+        socket.off("update-active-rooms");
+        socket.off(PLAYER_DIRECTORY_INVALIDATION_EVENT);
+        socket.disconnect();
+      }
     };
   }, []);
 
@@ -450,9 +510,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }, 200);
   }
 
-  const PLAYERS_LIMIT = 50;
-  const PLAYERS_CACHE_TTL = 60 * 1000;
+  const PLAYERS_LIMIT = 100;
   const FRIENDS_CACHE_TTL = 45 * 1000;
+  const PLAYER_DIRECTORY_INVALIDATION_EVENT = 'players-directory-invalidated';
 
   const prefetchPlayersPage = useCallback((cursor: string | null) => {
     if (!cursor) {
@@ -513,14 +573,14 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       const nextCursor = typeof data?.nextCursor === "string" ? data.nextCursor : null;
       setPlayers(prev => {
         const nextList = append ? [...prev, ...list] : list;
-        playersCacheRef.current = {
+        persistPlayersCache({
           list: nextList,
           cursor: nextCursor,
           hasMore: Boolean(nextCursor),
           timestamp: Date.now(),
           prefetchedList: null,
           prefetchedCursor: null
-        };
+        });
         return nextList;
       });
       setPlayersCursor(nextCursor);
@@ -540,15 +600,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     } finally {
       setLoadingState(false);
     }
-  }, [prefetchPlayersPage, resetPlayersCache]);
-
-  const handlePlayersRefresh = useCallback(() => {
-    resetPlayersCache();
-    setPlayers([]);
-    setPlayersCursor(null);
-    setPlayersHasMore(true);
-    fetchPlayers(null, false);
-  }, [fetchPlayers, resetPlayersCache]);
+  }, [persistPlayersCache, prefetchPlayersPage, resetPlayersCache]);
 
   const handleLoadMore = useCallback(() => {
     if (playersAppending) return;
@@ -559,7 +611,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       setPlayers(mergedList);
       setPlayersCursor(nextCursor);
       setPlayersHasMore(Boolean(nextCursor));
-      playersCacheRef.current = {
+      const updatedSnapshot: PlayersCacheSnapshot = {
         ...cache,
         list: mergedList,
         cursor: nextCursor,
@@ -568,6 +620,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         prefetchedCursor: null,
         timestamp: Date.now()
       };
+      persistPlayersCache(updatedSnapshot);
       if (nextCursor) {
         prefetchPlayersPage(nextCursor);
       } else {
@@ -627,10 +680,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             username: typeof friend.username === 'string' ? friend.username : '',
             avatar: typeof friend.avatar === 'string' && friend.avatar.trim().length > 0 ? friend.avatar : null,
             goal33: typeof friend.goal33 === 'string' ? friend.goal33 : '',
-            customBg: typeof friend.customBg === 'string' ? friend.customBg : '',
             status,
-            lastSeen: typeof friend.lastSeen === 'number' ? friend.lastSeen : null,
-            metadata: typeof friend.metadata === 'object' && friend.metadata !== null ? friend.metadata as Record<string, unknown> : null
+            lastSeen: typeof friend.lastSeen === 'number' ? friend.lastSeen : null
           } satisfies FriendEntry;
         })
         .filter(entry => entry.id);
@@ -642,14 +693,23 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }
   }, [FRIENDS_CACHE_TTL, applyFriendsDataset, currentUserId]);
 
-  const fetchIncomingInvites = useCallback(async () => {
+  const fetchIncomingInvites = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
     if (!currentUserId) {
-      setInvitesError("Bạn cần đăng nhập để xem lời mời.");
+      invitesCacheRef.current = null;
+      setIncomingInvites([]);
+      setInvitesError('Bạn cần đăng nhập để xem lời mời.');
+      return;
+    }
+
+    const cache = invitesCacheRef.current;
+    if (!force && cache && Date.now() - cache.timestamp < FRIENDS_CACHE_TTL) {
+      setIncomingInvites(cache.list);
+      setInvitesError('');
       return;
     }
 
     setInvitesLoading(true);
-    setInvitesError("");
+    setInvitesError('');
     try {
       const response = await fetch(`/api/friends/invites?direction=incoming&status=pending`, {
         method: 'GET',
@@ -659,23 +719,23 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       if (!response.ok) {
         throw new Error(data?.error || 'Không thể tải danh sách lời mời.');
       }
-      const list = Array.isArray(data?.invites) ? data.invites : [];
-      setIncomingInvites(list as FriendInviteEntry[]);
+      const list = Array.isArray(data?.invites) ? (data.invites as FriendInviteEntry[]) : [];
+      invitesCacheRef.current = { list, timestamp: Date.now() };
+      setIncomingInvites(list);
     } catch (error) {
       setInvitesError(error instanceof Error ? error.message : 'Không thể tải danh sách lời mời.');
     } finally {
       setInvitesLoading(false);
     }
-  }, [currentUserId]);
+  }, [FRIENDS_CACHE_TTL, currentUserId]);
 
   const openPlayersModal = useCallback(() => {
     setPlayersError("");
     setDirectoryTab('friends');
     setShowPlayersModal(true);
     setTimeout(() => setPlayersModalVisible(true), 10);
-    const cached = playersCacheRef.current;
-    const now = Date.now();
-    if (cached && now - cached.timestamp < PLAYERS_CACHE_TTL) {
+    const cached = playersCacheRef.current ?? hydratePlayersCacheFromStorage();
+    if (cached && cached.list.length > 0) {
       setPlayers(cached.list);
       setPlayersCursor(cached.cursor);
       setPlayersHasMore(cached.hasMore);
@@ -684,14 +744,13 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       if (!cached.prefetchedList && cached.cursor) {
         prefetchPlayersPage(cached.cursor);
       }
-    } else {
-      resetPlayersCache();
-      setPlayersHasMore(true);
-      setPlayersCursor(null);
-      setPlayers([]);
-      fetchPlayers(null, false);
+      return;
     }
-  }, [PLAYERS_CACHE_TTL, fetchPlayers, prefetchPlayersPage, resetPlayersCache]);
+    setPlayers([]);
+    setPlayersCursor(null);
+    setPlayersHasMore(true);
+    fetchPlayers(null, false);
+  }, [fetchPlayers, hydratePlayersCacheFromStorage, prefetchPlayersPage]);
 
   useEffect(() => {
     if (!registerPlayersModalTrigger) return;
@@ -703,10 +762,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
   useEffect(() => {
     friendsCacheRef.current = null;
+    invitesCacheRef.current = null;
     if (!currentUserId) {
       setFriends([]);
       setFriendsActiveCount(0);
       setFriendsTotalCount(0);
+      setIncomingInvites([]);
     }
   }, [currentUserId]);
 
@@ -715,11 +776,19 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     fetchFriends();
     fetchIncomingInvites();
     const interval = setInterval(() => {
-      fetchFriends({ force: true });
+      fetchFriends();
       fetchIncomingInvites();
     }, 60_000);
     return () => clearInterval(interval);
   }, [directoryTab, fetchFriends, fetchIncomingInvites, showPlayersModal]);
+
+  useEffect(() => {
+    if (!showPlayersModal || directoryTab !== 'players') return;
+    if (playerDirectoryRefreshToken === 0) return;
+    if (appliedPlayerRefreshTokenRef.current === playerDirectoryRefreshToken) return;
+    appliedPlayerRefreshTokenRef.current = playerDirectoryRefreshToken;
+    fetchPlayers(null, false);
+  }, [directoryTab, fetchPlayers, playerDirectoryRefreshToken, showPlayersModal]);
 
   useEffect(() => {
     if (!playerActionTarget && inviteToastTimerRef.current) {
@@ -738,7 +807,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     setInvitesError("");
     setShowInvitesModal(true);
     setTimeout(() => setInvitesModalVisible(true), 10);
-    fetchIncomingInvites();
+    fetchIncomingInvites({ force: true });
   }
 
   function closeInvitesModal() {
@@ -818,6 +887,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       }
       const list = Array.isArray(payload?.invites) ? payload.invites : [];
       setIncomingInvites(list as FriendInviteEntry[]);
+      invitesCacheRef.current = { list: list as FriendInviteEntry[], timestamp: Date.now() };
       setInvitesError('');
       if (action === 'accept') {
         fetchFriends({ force: true });
