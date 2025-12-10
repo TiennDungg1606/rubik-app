@@ -1021,6 +1021,7 @@ function LobbyContent() {
                     handleCreateRoom={handleCreateRoom}
                     handleJoinRoom={handleJoinRoom}
                     mobileShrink={mobileShrink}
+                    currentUser={user}
                     registerPlayersModalTrigger={handleRegisterPlayersModal}
                   />
                   {joinError && <div className="mt-3 text-center text-sm text-red-400">{joinError}</div>}

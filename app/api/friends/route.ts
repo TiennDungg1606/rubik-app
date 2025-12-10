@@ -1,0 +1,129 @@
+import { NextResponse } from "next/server";
+
+import dbConnect from "@/lib/dbConnect";
+import User from "@/lib/userModel";
+import { fetchPresenceBulk, type PresenceStatus } from "@/lib/presenceService";
+import { extractUserId } from "./utils";
+
+type FriendPayload = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  avatar: string;
+  goal33: string;
+  customBg: string;
+  status: PresenceStatus | "offline";
+  lastSeen: number | null;
+  metadata: Record<string, unknown> | null;
+};
+
+type PresenceRecord = {
+  userId: string;
+  status: PresenceStatus | "offline";
+  lastSeen: number;
+  metadata: Record<string, unknown> | null;
+};
+
+export async function GET(request: Request) {
+  const userId = extractUserId(request);
+  if (!userId) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  try {
+    await dbConnect();
+    const userDoc = await User.findById(userId).select("friends");
+
+    if (!userDoc) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const friendsField: Array<{ toString: () => string } | string> = Array.isArray(userDoc.friends)
+      ? userDoc.friends
+      : [];
+
+    const friendIds = Array.from(
+      new Set(
+        friendsField
+          .map((entry) => {
+            try {
+              return typeof entry === "string" ? entry : entry.toString();
+            } catch {
+              return null;
+            }
+          })
+          .filter((value): value is string => Boolean(value))
+      )
+    );
+
+    if (friendIds.length === 0) {
+      return NextResponse.json({ friends: [] }, { status: 200 });
+    }
+
+    const friendDocs = await User.find(
+      { _id: { $in: friendIds } },
+      { email: 0, password: 0 }
+    )
+      .lean()
+      .exec();
+
+    let presenceMap = new Map<string, { status: PresenceStatus; lastSeen: number; metadata?: Record<string, unknown> | null }>();
+    try {
+      const presenceRecords = await fetchPresenceBulk(friendIds);
+      presenceMap = new Map(
+        presenceRecords.map((record: PresenceRecord) => [record.userId, {
+          status: record.status,
+          lastSeen: record.lastSeen,
+          metadata: record.metadata ?? null
+        }])
+      );
+    } catch (error) {
+      console.error("Failed to fetch presence for friends", error);
+    }
+
+    const orderedDocs = friendIds
+      .map((id) => friendDocs.find((doc) => doc?._id?.toString() === id))
+      .filter((doc): doc is typeof friendDocs[number] => Boolean(doc));
+
+    const payload: FriendPayload[] = orderedDocs.map((doc) => {
+      const id = doc._id?.toString() || "";
+      const presence = presenceMap.get(id);
+      return {
+        id,
+        firstName: doc.firstName || "",
+        lastName: doc.lastName || "",
+        username: doc.username || "",
+        avatar: doc.avatar || "",
+        goal33: doc.goal33 || "",
+        customBg: doc.customBg || "",
+        status: presence?.status || "offline",
+        lastSeen: presence?.lastSeen ?? null,
+        metadata: presence?.metadata ?? null
+      };
+    });
+
+    const sorted = payload.sort((a, b) => {
+      const statusRank = (status: FriendPayload["status"]) => {
+        switch (status) {
+          case "online":
+            return 0;
+          case "away":
+            return 1;
+          case "busy":
+            return 2;
+          default:
+            return 3;
+        }
+      };
+      const diff = statusRank(a.status) - statusRank(b.status);
+      if (diff !== 0) return diff;
+      return (b.lastSeen || 0) - (a.lastSeen || 0);
+    });
+
+    return NextResponse.json({ friends: sorted }, { status: 200 });
+  } catch (error) {
+    console.error("Failed to load friends", error);
+    return NextResponse.json({ error: "Failed to load friends" }, { status: 500 });
+  }
+}

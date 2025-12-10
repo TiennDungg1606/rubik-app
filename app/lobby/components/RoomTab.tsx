@@ -5,7 +5,7 @@ declare global {
     _roomDisplayName?: string;
   }
 }
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import ReactDOM from "react-dom";
 import { io } from "socket.io-client";
 
@@ -16,6 +16,15 @@ type RoomTabProps = {
   handleJoinRoom: (roomId: string) => void;
   mobileShrink?: boolean;
   registerPlayersModalTrigger?: (open: (() => void) | null) => void;
+  currentUser?: {
+    _id?: string;
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+    avatar?: string | null;
+    goal33?: string | null;
+  } | null;
 };
 
 type PublicUser = {
@@ -36,8 +45,29 @@ type PlayersCacheSnapshot = {
   prefetchedCursor: string | null;
 };
 
+type FriendInviteEntry = {
+  id: string;
+  direction: 'incoming' | 'outgoing';
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: number;
+  fromUserId: string;
+  fromDisplayName: string;
+  fromAvatar: string | null;
+  fromGoal33: string | null;
+  toUserId: string;
+  toDisplayName: string;
+  toAvatar: string | null;
+  toGoal33: string | null;
+  peer?: {
+    userId: string;
+    displayName: string;
+    avatar: string | null;
+    goal33: string | null;
+  };
+};
 
-export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink, registerPlayersModalTrigger }: RoomTabProps) {
+
+export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink, registerPlayersModalTrigger, currentUser }: RoomTabProps) {
 
   // Skeleton loading state
   const [loadingRooms, setLoadingRooms] = useState(true);
@@ -61,6 +91,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [passwordModalError, setPasswordModalError] = useState("");
   const [showPlayersModal, setShowPlayersModal] = useState(false);
   const [playersModalVisible, setPlayersModalVisible] = useState(false);
+  const [showInvitesModal, setShowInvitesModal] = useState(false);
+  const [invitesModalVisible, setInvitesModalVisible] = useState(false);
   const [players, setPlayers] = useState<PublicUser[]>([]);
   const [playersLoading, setPlayersLoading] = useState(false);
   const [playersAppending, setPlayersAppending] = useState(false);
@@ -69,8 +101,17 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [playersHasMore, setPlayersHasMore] = useState(true);
   const [playerActionTarget, setPlayerActionTarget] = useState<PublicUser | null>(null);
   const [directoryTab, setDirectoryTab] = useState<'friends' | 'players'>('players');
+  const [friendsActiveCount, setFriendsActiveCount] = useState(0);
+  const [friendsTotalCount, setFriendsTotalCount] = useState(0);
+  const [incomingInvites, setIncomingInvites] = useState<FriendInviteEntry[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
+  const [invitesError, setInvitesError] = useState("");
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [inviteActionId, setInviteActionId] = useState<string | null>(null);
+  const [inviteToast, setInviteToast] = useState("");
   const playersCacheRef = useRef<PlayersCacheSnapshot | null>(null);
   const prefetchControllerRef = useRef<AbortController | null>(null);
+  const inviteToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetPlayersCache = useCallback(() => {
     playersCacheRef.current = null;
@@ -95,12 +136,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   }, [resetPlayersCache]);
   // Ngăn cuộn nền khi mở modal
   useEffect(() => {
-    if (showCreateModal || showPasswordModal || showPlayersModal) {
+    if (showCreateModal || showPasswordModal || showPlayersModal || showInvitesModal) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = originalOverflow; };
     }
-  }, [showCreateModal, showPasswordModal, showPlayersModal]);
+  }, [showCreateModal, showPasswordModal, showPlayersModal, showInvitesModal]);
   useEffect(() => {
     return () => {
       if (roomFullTimerRef.current) {
@@ -108,6 +149,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       }
       if (roomFullHideTimerRef.current) {
         clearTimeout(roomFullHideTimerRef.current);
+      }
+      if (inviteToastTimerRef.current) {
+        clearTimeout(inviteToastTimerRef.current);
       }
     };
   }, []);
@@ -127,6 +171,26 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [roomFullMessage, setRoomFullMessage] = useState("");
   const roomFullTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const roomFullHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentUserId = currentUser?._id || currentUser?.id || "";
+  const currentUserDisplayName = [currentUser?.firstName, currentUser?.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim() || currentUser?.username || "Người chơi";
+  const currentUserAvatar = typeof currentUser?.avatar === 'string' ? currentUser.avatar : null;
+  const currentUserGoal33 = typeof currentUser?.goal33 === 'string' ? currentUser.goal33 : null;
+  const inviteDateFormatter = useMemo(() => new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }), []);
+  const formatInviteTimestamp = useCallback((timestamp: number) => {
+    try {
+      return inviteDateFormatter.format(new Date(timestamp));
+    } catch {
+      return '';
+    }
+  }, [inviteDateFormatter]);
   const effectiveMobileShrink = Boolean(mobileShrink || isMobileLandscape || isCompactWidth);
   const modalInputClasses = `w-full rounded border border-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 ${effectiveMobileShrink ? 'px-3 py-1.5 text-sm' : 'px-3 py-2'}`;
   const modalHeadingClass = `${effectiveMobileShrink ? 'text-base' : 'text-lg'} font-semibold text-white mb-4`;
@@ -179,13 +243,19 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     : 'flex-1 rounded-2xl border border-white/10 bg-white/5 p-4 flex flex-col overflow-hidden';
   const basePlayersGridClass = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 pr-1';
   const playersGridWrapperClass = effectiveMobileShrink
-    ? `max-h-[70vh] min-h-[60vh] overflow-y-auto ${basePlayersGridClass}`
+    ? `max-h-[70vh] min-h-70vh] overflow-y-auto ${basePlayersGridClass}`
     : `max-h-[68vh] min-h-[68vh] overflow-y-auto ${basePlayersGridClass}`;
   const playerCardSpacingClass = effectiveMobileShrink ? 'px-2 py-1.5 gap-1.5' : 'px-3 py-2 gap-2';
   const playerAvatarSizeClass = effectiveMobileShrink ? 'h-6 w-6 text-[10px]' : 'h-8 w-8 text-xs';
   const friendsViewWrapperClass = effectiveMobileShrink
-    ? 'max-h-[70vh] min-h-[70vh] flex flex-col items-center justify-center text-center text-white/70 px-4'
-    : 'max-h-[70vh] min-h-[70vh] flex flex-col items-center justify-center text-center text-white/70 px-6';
+    ? 'flex-1 min-h-[70vh] max-h-[70vh] flex flex-col justify-between items-stretch text-left text-white/70 gap-4 px-4 py-2'
+    : 'flex-1 max-h-[68vh] min-h-[68vh] flex flex-col justify-between items-stretch text-left text-white/70 gap-4 px-6 py-2';
+  const invitesModalContainerClass = effectiveMobileShrink
+    ? 'w-full max-w-[770px] min-w-[770px] min-h-[360px] mx-3 rounded-3xl border border-white/15 bg-slate-900/95 px-4 py-4 text-white shadow-2xl transition-all duration-200 flex flex-col'
+    : 'w-full max-w-[960px] min-w-[960px] min-h-[570px] mx-4 rounded-3xl border border-white/15 bg-slate-900/95 px-7 py-6 text-white shadow-2xl transition-all duration-200 flex flex-col';
+  const invitesModalStyle = effectiveMobileShrink
+    ? { maxHeight: '80vh', width: 'min(88vw, 520px)' }
+    : { maxHeight: '100vh' };
   // Đã loại bỏ logic spectator
   // Sử dụng localhost khi development, production server khi production
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -471,6 +541,32 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }
   }, [fetchPlayers, playersAppending, playersCursor, prefetchPlayersPage]);
 
+  const fetchIncomingInvites = useCallback(async () => {
+    if (!currentUserId) {
+      setInvitesError("Bạn cần đăng nhập để xem lời mời.");
+      return;
+    }
+
+    setInvitesLoading(true);
+    setInvitesError("");
+    try {
+      const response = await fetch(`/api/friends/invites?direction=incoming&status=pending`, {
+        method: 'GET',
+        cache: 'no-store'
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error || 'Không thể tải danh sách lời mời.');
+      }
+      const list = Array.isArray(data?.invites) ? data.invites : [];
+      setIncomingInvites(list as FriendInviteEntry[]);
+    } catch (error) {
+      setInvitesError(error instanceof Error ? error.message : 'Không thể tải danh sách lời mời.');
+    } finally {
+      setInvitesLoading(false);
+    }
+  }, [currentUserId]);
+
   const openPlayersModal = useCallback(() => {
     setPlayersError("");
     setShowPlayersModal(true);
@@ -503,10 +599,110 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     };
   }, [registerPlayersModalTrigger, openPlayersModal]);
 
+  useEffect(() => {
+    if (!playerActionTarget && inviteToastTimerRef.current) {
+      clearTimeout(inviteToastTimerRef.current);
+      inviteToastTimerRef.current = null;
+      setInviteToast('');
+    }
+  }, [playerActionTarget]);
+
   function closePlayersModal() {
     setPlayersModalVisible(false);
     setTimeout(() => setShowPlayersModal(false), 200);
   }
+
+  function openInvitesModal() {
+    setInvitesError("");
+    setShowInvitesModal(true);
+    setTimeout(() => setInvitesModalVisible(true), 10);
+    fetchIncomingInvites();
+  }
+
+  function closeInvitesModal() {
+    setInvitesModalVisible(false);
+    setTimeout(() => setShowInvitesModal(false), 200);
+  }
+
+  const handleSendFriendInvite = useCallback(async () => {
+    if (!playerActionTarget) {
+      setInvitesError('Không xác định người chơi để mời.');
+      return;
+    }
+    const targetUserId = playerActionTarget.id || playerActionTarget.username || '';
+    if (!targetUserId) {
+      setInvitesError('Không thể xác định người chơi để gửi lời mời.');
+      return;
+    }
+    if (!currentUserId) {
+      setInvitesError('Bạn cần đăng nhập để gửi lời mời.');
+      return;
+    }
+
+    const targetDisplayName = [playerActionTarget.firstName, playerActionTarget.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || playerActionTarget.username || 'Người chơi';
+
+    setInviteSubmitting(true);
+    try {
+      const response = await fetch('/api/friends/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUserId,
+          targetDisplayName,
+          targetAvatar: playerActionTarget.avatar ?? null,
+          targetGoal33: playerActionTarget.goal33 ?? null,
+          requesterDisplayName: currentUserDisplayName,
+          requesterAvatar: currentUserAvatar,
+          requesterGoal33: currentUserGoal33
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Không thể gửi lời mời.');
+      }
+
+      setInvitesError('');
+      if (inviteToastTimerRef.current) {
+        clearTimeout(inviteToastTimerRef.current);
+      }
+      setInviteToast('Đã gửi lời mời');
+      inviteToastTimerRef.current = setTimeout(() => setInviteToast(''), 2500);
+    } catch (error) {
+      setInvitesError(error instanceof Error ? error.message : 'Không thể gửi lời mời.');
+    } finally {
+      setInviteSubmitting(false);
+    }
+  }, [playerActionTarget, currentUserId, currentUserDisplayName, currentUserAvatar, currentUserGoal33]);
+
+  const handleInviteDecision = useCallback(async (inviteId: string, action: 'accept' | 'decline') => {
+    if (!currentUserId) {
+      setInvitesError('Bạn cần đăng nhập để thực hiện hành động này.');
+      return;
+    }
+    setInviteActionId(inviteId);
+    try {
+      const response = await fetch(`/api/friends/invites/${inviteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Không thể cập nhật lời mời.');
+      }
+      const list = Array.isArray(payload?.invites) ? payload.invites : [];
+      setIncomingInvites(list as FriendInviteEntry[]);
+      setInvitesError('');
+    } catch (error) {
+      setInvitesError(error instanceof Error ? error.message : 'Không thể cập nhật lời mời.');
+    } finally {
+      setInviteActionId(null);
+    }
+  }, [currentUserId]);
 
   function handlePasswordConfirm() {
     if (!passwordModalRoomId) return;
@@ -579,7 +775,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   // Ẩn thanh tab khi modal mở
   React.useEffect(() => {
     const tabBar = document.querySelector('.tab-navbar');
-    if ((showCreateModal || showPasswordModal || showPlayersModal) && tabBar) {
+    if ((showCreateModal || showPasswordModal || showPlayersModal || showInvitesModal) && tabBar) {
       tabBar.classList.add('hidden');
     } else if (tabBar) {
       tabBar.classList.remove('hidden');
@@ -587,7 +783,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     return () => {
       if (tabBar) tabBar.classList.remove('hidden');
     };
-  }, [showCreateModal, showPasswordModal, showPlayersModal]);
+  }, [showCreateModal, showPasswordModal, showPlayersModal, showInvitesModal]);
 
   const closeRoomFullModal = React.useCallback(() => {
     if (roomFullTimerRef.current) {
@@ -939,10 +1135,16 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   </div>
                 ) : (
                   <div className={friendsViewWrapperClass}>
-                    <div className="text-lg font-semibold text-white mb-2">Danh sách bạn bè</div>
-                    <p className="text-sm text-white/60">
-                      Tính năng bạn bè sẽ sớm ra mắt. Hãy quay lại sau để kết nối và mời bạn vào phòng nhanh hơn.
-                    </p>
+                    <div className="text-xs sm:text-sm text-white/70 flex items-center justify-between">
+                      <span>Bạn bè {friendsActiveCount}/{friendsTotalCount}</span>
+                    </div>
+                    <div className="flex-1" />
+                    <button
+                      className="mt-auto rounded-2xl border border-white/15 bg-white/10 px-5 py-2 text-sm font-semibold text-white hover:bg-white/20 transition self-start"
+                      onClick={openInvitesModal}
+                    >
+                      Lời mời
+                    </button>
                   </div>
                 )}
               </div>
@@ -980,20 +1182,128 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                       Xem hồ sơ
                     </button>
                     <button
-                      className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:from-blue-400 hover:to-indigo-400 transition"
-                      onClick={() => {
-                        alert('Tính năng kết bạn đang được phát triển.');
-                      }}
+                      className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 hover:from-blue-400 hover:to-indigo-400 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                      onClick={handleSendFriendInvite}
+                      disabled={inviteSubmitting}
                     >
-                      Kết bạn
+                      {inviteSubmitting ? 'Đang gửi...' : 'Kết bạn'}
                     </button>
                   </div>
+                  {inviteToast && (
+                    <div className="mt-2 text-center text-emerald-300 text-sm">{inviteToast}</div>
+                  )}
                   <button className="mt-4 w-full text-sm text-white/70 hover:text-white" onClick={() => setPlayerActionTarget(null)}>
                     Đóng
                   </button>
                 </div>
               </div>
             )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showInvitesModal && typeof window !== 'undefined' && ReactDOM.createPortal(
+        <div
+          className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center transition-opacity duration-200 ${invitesModalVisible ? 'opacity-100' : 'opacity-0'}`}
+          style={{ minHeight: '100dvh', minWidth: '100vw', padding: 0 }}
+          onClick={closeInvitesModal}
+        >
+          <div
+            className={`${invitesModalContainerClass} ${invitesModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+            style={invitesModalStyle}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">Lời mời kết bạn</h3>
+              </div>
+              <button
+                onClick={closeInvitesModal}
+                className="rounded-full bg-white/10 w-9 h-9 flex items-center justify-center hover:bg-white/20 transition"
+                aria-label="Đóng lời mời"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex flex-col gap-4 flex-1">
+              <div className="flex items-center justify-between text-xs sm:text-sm text-white/70">
+                <span>
+                  {currentUserId
+                    ? `Có ${incomingInvites.length} lời mời đang chờ`
+                    : 'Đăng nhập để quản lý lời mời.'}
+                </span>
+                <button
+                  className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-white hover:bg-white/15 transition disabled:opacity-50"
+                  onClick={fetchIncomingInvites}
+                  disabled={invitesLoading || !currentUserId}
+                >
+                  Làm mới
+                </button>
+              </div>
+              {invitesError && (
+                <div className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
+                  {invitesError}
+                </div>
+              )}
+              <div className="flex-1 overflow-y-auto flex flex-col gap-3 pr-1">
+                {invitesLoading ? (
+                  <div className="flex flex-col items-center justify-center text-white/70 gap-3 py-10">
+                    <div className="w-10 h-10 border-4 border-white/20 border-t-white/80 rounded-full animate-spin" aria-label="Đang tải" />
+                    <span>Đang tải lời mời...</span>
+                  </div>
+                ) : incomingInvites.length === 0 ? (
+                  <div className="text-center text-white/70 py-8 text-sm">
+                    {currentUserId ? 'Chưa có lời mời nào đang chờ.' : 'Hãy đăng nhập để bắt đầu kết bạn.'}
+                  </div>
+                ) : (
+                  incomingInvites.map(invite => {
+                    const peerName = invite.peer?.displayName || invite.fromDisplayName;
+                    const peerAvatar = invite.peer?.avatar ?? invite.fromAvatar;
+                    const peerGoal = invite.peer?.goal33 ?? invite.fromGoal33;
+                    const initialsSource = peerName?.split(' ').map(part => part?.charAt(0) || '').join('').slice(0, 2).toUpperCase() || 'NB';
+                    const timestampLabel = formatInviteTimestamp(invite.createdAt);
+
+                    return (
+                      <div key={invite.id} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          {peerAvatar ? (
+                            <img src={peerAvatar} alt={peerName} className="h-12 w-12 rounded-full object-cover border border-white/15" />
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-white/10 border border-white/15 text-white font-semibold uppercase flex items-center justify-center">
+                              {initialsSource}
+                            </div>
+                          )}
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-white text-base">{peerName}</span>
+                            {peerGoal && <span className="text-xs text-white/70">{peerGoal}</span>}
+                            {timestampLabel && <span className="text-[11px] text-white/50">Gửi lúc {timestampLabel}</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            className="h-10 w-10 rounded-full bg-emerald-500/80 text-white font-bold flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 transition disabled:opacity-60"
+                            onClick={() => handleInviteDecision(invite.id, 'accept')}
+                            disabled={inviteActionId === invite.id}
+                            aria-label="Chấp nhận lời mời"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            className="h-10 w-10 rounded-full bg-rose-500/80 text-white font-bold flex items-center justify-center shadow-lg shadow-rose-500/30 hover:bg-rose-400 transition disabled:opacity-60"
+                            onClick={() => handleInviteDecision(invite.id, 'decline')}
+                            disabled={inviteActionId === invite.id}
+                            aria-label="Từ chối lời mời"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
         </div>,
         document.body
