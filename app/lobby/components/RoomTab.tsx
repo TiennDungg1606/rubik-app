@@ -88,6 +88,24 @@ const FRIEND_STATUS_STYLES: Record<FriendStatus, { label: string; dotClass: stri
   offline: { label: 'Offline', dotClass: 'bg-gray-500', textClass: 'text-white/50' }
 };
 
+const FRIENDS_CACHE_TTL_MS = 600_000;
+const INVITES_CACHE_TTL_MS = 600_000;
+
+const buildFriendsFingerprint = (list: FriendEntry[]): string =>
+  list
+    .map(friend => [
+      friend.id,
+      friend.status,
+      friend.lastSeen ?? '',
+      friend.username ?? '',
+      friend.firstName ?? '',
+      friend.lastName ?? '',
+      friend.goal33 ?? '',
+      friend.avatar ?? ''
+    ].join(':'))
+    .sort()
+    .join('|');
+
 
 export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink, registerPlayersModalTrigger, currentUser }: RoomTabProps) {
 
@@ -136,13 +154,21 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const [inviteToast, setInviteToast] = useState("");
   const [playerDirectoryRefreshToken, setPlayerDirectoryRefreshToken] = useState(0);
   const playersCacheRef = useRef<PlayersCacheSnapshot | null>(null);
-  const friendsCacheRef = useRef<{ list: FriendEntry[]; timestamp: number } | null>(null);
+  const friendsCacheRef = useRef<{ list: FriendEntry[]; timestamp: number; fingerprint: string } | null>(null);
   const invitesCacheRef = useRef<{ list: FriendInviteEntry[]; timestamp: number } | null>(null);
   const prefetchControllerRef = useRef<AbortController | null>(null);
   const inviteToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showPlayersModalRef = useRef(showPlayersModal);
   const directoryTabRef = useRef(directoryTab);
   const appliedPlayerRefreshTokenRef = useRef(0);
+
+  const resetFriendsCache = useCallback(() => {
+    friendsCacheRef.current = null;
+  }, []);
+
+  const resetInvitesCache = useCallback(() => {
+    invitesCacheRef.current = null;
+  }, []);
 
   useEffect(() => {
     showPlayersModalRef.current = showPlayersModal;
@@ -511,7 +537,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   }
 
   const PLAYERS_LIMIT = 100;
-  const FRIENDS_CACHE_TTL = 45 * 1000;
   const PLAYER_DIRECTORY_INVALIDATION_EVENT = 'players-directory-invalidated';
 
   const prefetchPlayersPage = useCallback((cursor: string | null) => {
@@ -637,12 +662,16 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     setFriends(list);
     setFriendsTotalCount(list.length);
     setFriendsActiveCount(list.filter(friend => friend.status !== 'offline').length);
-    friendsCacheRef.current = { list, timestamp: Date.now() };
+    friendsCacheRef.current = {
+      list,
+      timestamp: Date.now(),
+      fingerprint: buildFriendsFingerprint(list)
+    };
   }, []);
 
   const fetchFriends = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
     if (!currentUserId) {
-      friendsCacheRef.current = null;
+      resetFriendsCache();
       setFriends([]);
       setFriendsActiveCount(0);
       setFriendsTotalCount(0);
@@ -651,7 +680,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }
 
     const cache = friendsCacheRef.current;
-    if (!force && cache && Date.now() - cache.timestamp < FRIENDS_CACHE_TTL) {
+    if (!force && cache && Date.now() - cache.timestamp < FRIENDS_CACHE_TTL_MS) {
       applyFriendsDataset(cache.list);
       setFriendsError('');
       return;
@@ -685,24 +714,33 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           } satisfies FriendEntry;
         })
         .filter(entry => entry.id);
-      applyFriendsDataset(normalizedList);
+      const nextFingerprint = buildFriendsFingerprint(normalizedList);
+      if (friendsCacheRef.current && friendsCacheRef.current.fingerprint === nextFingerprint) {
+        friendsCacheRef.current = {
+          list: friendsCacheRef.current.list,
+          fingerprint: nextFingerprint,
+          timestamp: Date.now()
+        };
+      } else {
+        applyFriendsDataset(normalizedList);
+      }
     } catch (error) {
       setFriendsError(error instanceof Error ? error.message : 'Không thể tải danh sách bạn bè.');
     } finally {
       setFriendsLoading(false);
     }
-  }, [FRIENDS_CACHE_TTL, applyFriendsDataset, currentUserId]);
+  }, [applyFriendsDataset, currentUserId, resetFriendsCache]);
 
   const fetchIncomingInvites = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
     if (!currentUserId) {
-      invitesCacheRef.current = null;
+      resetInvitesCache();
       setIncomingInvites([]);
       setInvitesError('Bạn cần đăng nhập để xem lời mời.');
       return;
     }
 
     const cache = invitesCacheRef.current;
-    if (!force && cache && Date.now() - cache.timestamp < FRIENDS_CACHE_TTL) {
+    if (!force && cache && Date.now() - cache.timestamp < INVITES_CACHE_TTL_MS) {
       setIncomingInvites(cache.list);
       setInvitesError('');
       return;
@@ -727,13 +765,21 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     } finally {
       setInvitesLoading(false);
     }
-  }, [FRIENDS_CACHE_TTL, currentUserId]);
+  }, [currentUserId, resetInvitesCache]);
 
   const openPlayersModal = useCallback(() => {
     setPlayersError("");
     setDirectoryTab('friends');
     setShowPlayersModal(true);
     setTimeout(() => setPlayersModalVisible(true), 10);
+    const friendsSnapshot = friendsCacheRef.current;
+    if (friendsSnapshot && friendsSnapshot.list.length > 0) {
+      applyFriendsDataset(friendsSnapshot.list);
+    }
+    const invitesSnapshot = invitesCacheRef.current;
+    if (invitesSnapshot && invitesSnapshot.list.length > 0) {
+      setIncomingInvites(invitesSnapshot.list);
+    }
     const cached = hydratePlayersCacheFromStorage() ?? playersCacheRef.current;
     if (cached && cached.list.length > 0) {
       setPlayers(cached.list);
@@ -746,11 +792,20 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       }
       return;
     }
-    setPlayers([]);
-    setPlayersCursor(null);
-    setPlayersHasMore(true);
-    fetchPlayers(null, false);
-  }, [fetchPlayers, hydratePlayersCacheFromStorage, prefetchPlayersPage]);
+    if (!playersLoading && !playersAppending) {
+      setPlayers([]);
+      setPlayersCursor(null);
+      setPlayersHasMore(true);
+      fetchPlayers(null, false);
+    }
+  }, [
+    applyFriendsDataset,
+    fetchPlayers,
+    hydratePlayersCacheFromStorage,
+    playersAppending,
+    playersLoading,
+    prefetchPlayersPage
+  ]);
 
   useEffect(() => {
     if (!registerPlayersModalTrigger) return;
@@ -761,15 +816,15 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   }, [registerPlayersModalTrigger, openPlayersModal]);
 
   useEffect(() => {
-    friendsCacheRef.current = null;
-    invitesCacheRef.current = null;
+    resetFriendsCache();
+    resetInvitesCache();
     if (!currentUserId) {
       setFriends([]);
       setFriendsActiveCount(0);
       setFriendsTotalCount(0);
       setIncomingInvites([]);
     }
-  }, [currentUserId]);
+  }, [currentUserId, resetFriendsCache, resetInvitesCache]);
 
   useEffect(() => {
     if (!showPlayersModal || directoryTab !== 'friends') return;
@@ -807,6 +862,10 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     setInvitesError("");
     setShowInvitesModal(true);
     setTimeout(() => setInvitesModalVisible(true), 10);
+    const cached = invitesCacheRef.current;
+    if (cached && cached.list.length > 0) {
+      setIncomingInvites(cached.list);
+    }
     fetchIncomingInvites({ force: true });
   }
 
@@ -862,12 +921,20 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       }
       setInviteToast('Đã gửi lời mời');
       inviteToastTimerRef.current = setTimeout(() => setInviteToast(''), 2500);
+      await fetchIncomingInvites({ force: true });
     } catch (error) {
       setInvitesError(error instanceof Error ? error.message : 'Không thể gửi lời mời.');
     } finally {
       setInviteSubmitting(false);
     }
-  }, [playerActionTarget, currentUserId, currentUserDisplayName, currentUserAvatar, currentUserGoal33]);
+  }, [
+    currentUserAvatar,
+    currentUserDisplayName,
+    currentUserGoal33,
+    currentUserId,
+    fetchIncomingInvites,
+    playerActionTarget
+  ]);
 
   const handleInviteDecision = useCallback(async (inviteId: string, action: 'accept' | 'decline') => {
     if (!currentUserId) {
@@ -885,9 +952,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       if (!response.ok) {
         throw new Error(payload?.error || 'Không thể cập nhật lời mời.');
       }
-      const list = Array.isArray(payload?.invites) ? payload.invites : [];
-      setIncomingInvites(list as FriendInviteEntry[]);
-      invitesCacheRef.current = { list: list as FriendInviteEntry[], timestamp: Date.now() };
+      const list = Array.isArray(payload?.invites) ? (payload.invites as FriendInviteEntry[]) : [];
+      invitesCacheRef.current = { list, timestamp: Date.now() };
+      setIncomingInvites(list);
       setInvitesError('');
       if (action === 'accept') {
         fetchFriends({ force: true });
