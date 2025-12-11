@@ -2,7 +2,7 @@ import React from "react";
 
 export default function ShopTab() {
   return (
-  <section className="w-full max-w-7xl p-5 mt-1 mb-1 rounded-xl bg-neutral-900/30 shadow-xl border border-neutral-700 mx-auto">
+  <section className="w-full mt-1 mb-1 rounded-xl">
   <h2 className="text-3xl font-extrabold text-white mb-6 flex items-center gap-2">
         🛒 Shop Rubik
       </h2>
@@ -11,7 +11,7 @@ export default function ShopTab() {
       </div>
   <div className="flex flex-col gap-6">
     {/* Mục Rubik */}
-  <div className="bg-neutral-800/10 backdrop-blur-sm rounded-lg p-4 shadow-sm border border-neutral-700 w-full">
+  <div className="bg-neutral-900/10 rounded-lg p-4 shadow-sm border border-neutral-700 w-full">
           <h3 className="text-lg font-bold text-blue-300 mb-2">I. Rubik</h3>
           <div className="flex flex-col gap-2">
             <ul className="list-disc list-inside text-base ml-4 mb-2">
@@ -109,7 +109,7 @@ export default function ShopTab() {
           </div>
         </div>
     {/* Mục Timer + Thảm */}
-  <div className="bg-neutral-800/10 backdrop-blur-sm rounded-lg p-4 shadow-sm border border-neutral-700 w-full">
+  <div className="bg-neutral-900/10 rounded-lg p-4 shadow-sm border border-neutral-700 w-full">
           <h3 className="text-lg font-bold text-blue-300 mb-2">II. Timer, thảm</h3>
           <ul className="list-disc list-inside text-white text-base ml-4 mb-2">
             <li>
@@ -155,7 +155,7 @@ export default function ShopTab() {
           </ul>
         </div>
     {/* Mục Phụ kiện */}
-  <div className="bg-neutral-800/10 backdrop-blur-sm rounded-lg p-4 shadow-sm border border-neutral-700 w-full">
+  <div className="bg-neutral-900/10 rounded-lg p-4 shadow-sm border border-neutral-700 w-full">
           <h3 className="text-lg font-bold text-blue-300 mb-2">III. Phụ kiện</h3>
           <ul className="list-disc list-inside text-white text-base ml-4 mb-2">
             <li>

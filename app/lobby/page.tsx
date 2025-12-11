@@ -951,7 +951,7 @@ function LobbyContent() {
           </div>
         </aside>
 
-        <section className="flex min-h-0 flex-1 flex-col">
+        <section className="flex min-h-0 flex-1">
           {mobileShrink && (
           <div className="sticky top-0 z-20 flex items-center justify-between bg-slate-950/95 px-4 py-4 shadow md:hidden">
             <div className="flex items-center gap-3">
@@ -990,10 +990,10 @@ function LobbyContent() {
           </div>
           )}
 
-          <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="w-full px-3 pb-10 pt-6 sm:px-6 lg:px-8 xl:px-10">
+          <section className="flex-1 overflow-y-auto min-h-0 bg-neutral-900/30 bg-neutral-900/50 shadow-xl border border-neutral-700 mx-auto">
+            <div className="w-full px-4 pt-4">
               {showPlayersButton && (
-                <div className="flex justify-end mb-4">
+                <div className="sticky top-4 flex justify-end">
                   <button
                     onClick={() => playersModalTrigger?.()}
                     className="flex items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-white text-sm font-semibold tracking-wide hover:bg-white/10 transition"
@@ -1040,7 +1040,7 @@ function LobbyContent() {
                 )}
               </div>
             </div>
-          </div>
+          </section>
         </section>
       </div>
 

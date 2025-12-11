@@ -1,4 +1,5 @@
 import React from "react";
+import { useState, useEffect } from "react";
 
 type StaticNewsItem = {
   title: string;
@@ -17,76 +18,179 @@ const upcomingNews: StaticNewsItem[] = [
 
 const finishedNews: StaticNewsItem[] = [
   {
-    title: "🏁 Battle Pairs Online 2v2",
+    title: "Battle Pairs Online 2v2",
     detail: "🥇 Trần Chấn Cơ & Võ Thế Châu | 🥈 Trần Trúc Vỹ & Phạm Thành Đạt | 🥉 Hoàng Đức Chính & Đào Ánh Dương",
-    date: "Kết thúc:23/11/2025",
+    date: "Kết thúc: 23/11/2025",
     link: "https://www.facebook.com/groups/779814041253620/permalink/856337240267966/?rdid=cDHqNRQKf1lUHHnR#"
   }
 ];
 
+const featureUpdates = [
+  "Cập nhật hồ sơ và avatar để mở khóa huy hiệu mới",
+  "Đang hoàn thiện công thức cho tab Practice",
+  "Đang phát triển kết bạn + nhắn tin + thông báo trên server Rubik App",
+  "Tối ưu hóa UI/UX cho desktop, tablet, mobile"
+];
+
+const nextUpdates = [
+  "T1/2026: làm mới hoàn toàn Tab Timer với chế độ Split + Graph",
+  "Cập nhật bảo mật tài khoản người dùng",
+];
+
+const infoChips = [
+  { label: "Máy chủ", value: "Online 24/7" },
+  { label: "Người chơi", value: "435" },
+  { label: "Bản build", value: "v0.8.5-beta" }
+];
+
+
+
 export default function NewTab() {
+
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
+  const [isCompactWidth, setIsCompactWidth] = useState(false);
+  useEffect(() => {
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      const portrait = window.innerHeight > window.innerWidth;
+      const viewportWidth = window.innerWidth;
+      setIsMobileLandscape(mobile && !portrait && viewportWidth < 1200);
+      setIsCompactWidth(viewportWidth <= 768);
+    }
+
+    if (typeof window !== "undefined") {
+      checkDevice();
+      window.addEventListener("resize", checkDevice);
+      window.addEventListener("orientationchange", checkDevice);
+      return () => {
+        window.removeEventListener("resize", checkDevice);
+        window.removeEventListener("orientationchange", checkDevice);
+      };
+    }
+  }, []);
+
+  const mobileShrink = isMobileLandscape || isCompactWidth;
+
   return (
-    <section className="w-full max-w-7xl p-5 mt-1 mb-1 rounded-xl bg-neutral-900/30 bg-neutral-900/50 shadow-xl border border-neutral-700 mx-auto">
-      <h2 className="text-3xl font-extrabold text-yellow-400 mb-6 flex items-center gap-2">
-       🔔 Tin tức & Cập nhật
-      </h2>
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-blue-300 drop-shadow mb-2">Cập nhật website</h3>
-        <ul className="list-disc list-inside text-white text-base ml-4"> 
-          <li>Hãy cập nhật profile của mình ở mục hồ sơ.</li> 
-          <li>Hoàn thiện các công thức cho tab Paractice (đang thực hiện).</li>
-          <li>Thêm tính năng kết bạn trên server của Rubik App, thêm tin nhắn, thông báo (đang thực hiện).</li>   
-          <li>Giao diện tối ưu cho cả desktop và mobile, trải nghiệm tốt hơn.</li>
-        </ul>
-      </div>
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-blue-400 drop-shadow mb-2">Dự kiến cập nhật tiếp theo (T1/2026)</h3>
-        <ul className="list-disc list-inside text-white text-base ml-4"> 
-          <li>Cập nhật Tab Timer</li>      
-        </ul>
-      </div>
-      <div>
-        <h3 className="text-lg font-bold text-green-300 drop-shadow mb-2">Tin tức giải đấu trên Rubik App</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <h4 className="text-base font-semibold text-emerald-300 mb-2">1. Các giải đấu sắp tới</h4>
-            <ul className="space-y-3 text-white text-base">
-              {upcomingNews.map((item, idx) => (
-                <li key={`upcoming-${idx}`} className="flex gap-3">
-                  <span className="mt-2 h-2.5 w-2.5 rounded-full bg-emerald-200/90 flex-shrink-0" />
-                  <div>
-                    <div className="text-blue-300 font-bold drop-shadow">{item.title}</div>
-                    <div className="text-sm text-gray-300 font-normal">{item.detail}</div>
-                    {item.date && <div className="text-xs text-gray-500 font-normal">{item.date}</div>}
-                  </div>
-                </li>
-              ))}
-            </ul>
+    <section className="relative w-full space-y-8">
+      <div className="px-2 sm:px-0 py-1">
+        <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden>
+          <div className="absolute inset-y-0 w-1/2 rounded-full bg-[radial-gradient(circle_at_top,_rgba(59,130,246,.35),_transparent_60%)] blur-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(236,72,153,.3),_transparent_55%)] blur-3xl" />
+        </div>
+
+        <div className="relative z-[1] flex flex-col gap-3">
+          <header className="flex flex-col gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.4em] text-cyan-200">Command Center</p>
+              <h2 className="mt-1 flex items-center gap-3 text-3xl font-black text-white">
+                <span className="rounded-full bg-cyan-500/10 p-2 text-cyan-300">⚡</span>
+                Tin tức & Cập nhật
+              </h2>
+            </div>
+          </header>
+
+          <div className="grid gap-3 text-sm sm:grid-cols-3">
+            {infoChips.map(chip => (
+              <div
+                key={chip.label}
+                className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent px-4 py-3 text-white"
+              >
+                <p className="text-xs uppercase tracking-widest text-white/60">{chip.label}</p>
+                <p className="text-lg font-semibold text-cyan-200">{chip.value}</p>
+              </div>
+            ))}
           </div>
-          <div>
-            <h4 className="text-base font-semibold text-rose-300 mb-2">2. Các giải đấu đã qua</h4>
-            <ul className="space-y-3 text-white text-base">
-              {finishedNews.map((item, idx) => (
-                <li key={`finished-${idx}`} className="flex gap-3">
-                  <span className="mt-2 h-2.5 w-2.5 rounded-full bg-rose-200/90 flex-shrink-0" />
-                  <div>
-                    <div className="text-blue-200 font-bold drop-shadow">{item.title}</div>
-                    <div className="text-sm text-gray-400 font-normal">{item.detail}</div>
-                    {item.date && <div className="text-xs text-gray-500 font-normal">{item.date}</div>}
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-cyan-500/30 bg-slate-900/60 p-5">
+              <div className="flex items-center gap-3">
+                <span className="h-10 w-10 rounded-full bg-cyan-500/20 text-center text-2xl leading-[40px]">🛠️</span>
+                <div>
+                  <p className="text-sm uppercase tracking-wider text-cyan-200">Nhật ký triển khai</p>
+                  <h3 className="text-xl font-semibold text-white">Cập nhật website</h3>
+                </div>
+              </div>
+              <ul className="mt-4 space-y-3 text-sm text-white/90">
+                {featureUpdates.map((item, idx) => (
+                  <li key={`feature-${idx}`} className="flex items-start gap-3">
+                    <span className="mt-1 h-2 w-2 rounded-full bg-cyan-300" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-violet-500/30 bg-slate-900/60 p-5">
+              <div className="flex items-center gap-3">
+                <span className="h-10 w-10 rounded-full bg-violet-500/20 text-center text-2xl leading-[40px]">🚀</span>
+                <div>
+                  <p className="text-sm uppercase tracking-wider text-violet-200">Roadmap</p>
+                  <h3 className="text-xl font-semibold text-white">Dự kiến bản cập nhật</h3>
+                </div>
+              </div>
+              <ul className="mt-4 space-y-3 text-sm text-white/90">
+                {nextUpdates.map((item, idx) => (
+                  <li key={`roadmap-${idx}`} className="flex items-start gap-3">
+                    <span className="mt-1 h-2 w-2 rounded-full bg-violet-300" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-900/40 to-slate-900/60 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-2xl">🎯</div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-emerald-200">Đấu trường</p>
+                  <h3 className="text-xl font-semibold text-white">Giải đấu sắp diễn ra</h3>
+                </div>
+              </div>
+              <ul className="mt-5 space-y-4">
+                {upcomingNews.map((item, idx) => (
+                  <li key={`upcoming-${idx}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-lg font-bold text-emerald-200">{item.title}</p>
+                    <p className="text-sm text-white/80">{item.detail}</p>
+                    {item.date && <p className="text-xs text-white/50">{item.date}</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-rose-400/30 bg-gradient-to-br from-rose-900/40 to-slate-900/60 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20 text-2xl">🏁</div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-rose-200">Replay Center</p>
+                  <h3 className="text-xl font-semibold text-white">Các giải đấu vừa kết thúc</h3>
+                </div>
+              </div>
+              <ul className="mt-5 space-y-4">
+                {finishedNews.map((item, idx) => (
+                  <li key={`finished-${idx}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-lg font-bold text-rose-200">{item.title}</p>
+                    <p className="text-sm text-white/80">{item.detail}</p>
+                    {item.date && <p className="text-xs text-white/50">{item.date}</p>}
                     {item.link && (
                       <a
                         href={item.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-rose-200 decoration-dashed hover:text-rose-100"
+                        className="mt-2 inline-flex items-center text-xs font-semibold text-rose-200 hover:text-rose-100"
                       >
-                        Xem tổng kết chi tiết
+                        Xem tổng kết chi tiết →
                       </a>
                     )}
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </div>

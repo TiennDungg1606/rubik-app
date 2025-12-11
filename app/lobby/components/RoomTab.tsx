@@ -1134,7 +1134,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   };
 
   return (
-  <div className="w-full flex flex-col items-center bg-neutral-900/50 justify-center rounded-2xl">
+  <div className="w-full flex flex-col items-center justify-center">
       {/* Modal tạo phòng */}
       {showCreateModal && typeof window !== 'undefined' && ReactDOM.createPortal(
         <div
