@@ -106,6 +106,12 @@ const buildFriendsFingerprint = (list: FriendEntry[]): string =>
     .sort()
     .join('|');
 
+const PUBLIC_PRESENCE_BASE_URL = (process.env.NEXT_PUBLIC_PRESENCE_URL || '').replace(/\/$/, '');
+const PLAYER_DIRECTORY_STATUS_ENDPOINT = PUBLIC_PRESENCE_BASE_URL
+  ? `${PUBLIC_PRESENCE_BASE_URL}/players/directory/status`
+  : null;
+let hasLoggedMissingPlayerDirectoryEndpoint = false;
+
 
 export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink, registerPlayersModalTrigger, currentUser }: RoomTabProps) {
 
@@ -156,6 +162,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const playersCacheRef = useRef<PlayersCacheSnapshot | null>(null);
   const friendsCacheRef = useRef<{ list: FriendEntry[]; timestamp: number; fingerprint: string } | null>(null);
   const invitesCacheRef = useRef<{ list: FriendInviteEntry[]; timestamp: number } | null>(null);
+  const playerDirectoryVersionRef = useRef<number>(0);
   const prefetchControllerRef = useRef<AbortController | null>(null);
   const inviteToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showPlayersModalRef = useRef(showPlayersModal);
@@ -585,7 +592,53 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       });
   }, []);
 
+  const shouldRefetchPlayersDirectory = useCallback(async () => {
+    if (!PLAYER_DIRECTORY_STATUS_ENDPOINT) {
+      if (!hasLoggedMissingPlayerDirectoryEndpoint && typeof window !== 'undefined') {
+        console.warn('NEXT_PUBLIC_PRESENCE_URL chưa được cấu hình; luôn tải lại danh bạ người chơi.');
+        hasLoggedMissingPlayerDirectoryEndpoint = true;
+      }
+      return true;
+    }
+
+    try {
+      const sinceParam = playerDirectoryVersionRef.current > 0
+        ? `?since=${playerDirectoryVersionRef.current}`
+        : '';
+      const response = await fetch(`${PLAYER_DIRECTORY_STATUS_ENDPOINT}${sinceParam}`, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`status ${response.status}`);
+      }
+      const payload = await response.json().catch(() => null) as { version?: number; changed?: boolean } | null;
+      if (!payload || typeof payload.version !== 'number') {
+        return true;
+      }
+      const hasChanges = payload.changed === true || playerDirectoryVersionRef.current === 0;
+      playerDirectoryVersionRef.current = payload.version;
+      return hasChanges;
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Không kiểm tra được trạng thái danh bạ người chơi:', error);
+      }
+      return true;
+    }
+  }, []);
+
   const fetchPlayers = useCallback(async (cursor: string | null, append = false) => {
+    if (!append && !cursor) {
+      const cachedSnapshot = playersCacheRef.current;
+      if (cachedSnapshot && cachedSnapshot.list.length > 0) {
+        const hasChanges = await shouldRefetchPlayersDirectory();
+        if (!hasChanges) {
+          setPlayers(cachedSnapshot.list);
+          setPlayersCursor(cachedSnapshot.cursor);
+          setPlayersHasMore(cachedSnapshot.hasMore);
+          setPlayersError('');
+          return;
+        }
+      }
+    }
+
     const query = new URLSearchParams({ limit: PLAYERS_LIMIT.toString() });
     if (cursor) query.set("cursor", cursor);
     const setLoadingState = append ? setPlayersAppending : setPlayersLoading;
@@ -625,7 +678,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     } finally {
       setLoadingState(false);
     }
-  }, [persistPlayersCache, prefetchPlayersPage, resetPlayersCache]);
+  }, [persistPlayersCache, prefetchPlayersPage, resetPlayersCache, shouldRefetchPlayersDirectory]);
 
   const handleLoadMore = useCallback(() => {
     if (playersAppending) return;
@@ -790,12 +843,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       if (!cached.prefetchedList && cached.cursor) {
         prefetchPlayersPage(cached.cursor);
       }
-      return;
-    }
-    if (!playersLoading && !playersAppending) {
+    } else if (!playersLoading && !playersAppending) {
       setPlayers([]);
       setPlayersCursor(null);
       setPlayersHasMore(true);
+    }
+    if (!playersLoading && !playersAppending) {
       fetchPlayers(null, false);
     }
   }, [
