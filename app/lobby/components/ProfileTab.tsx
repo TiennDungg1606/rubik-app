@@ -57,11 +57,11 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
   else greeting = "Chào buổi tối👋";
   const userName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "";
 
-  const containerClassName = `mt-4 ${effectiveMobileShrink ? "mr-2 w-[90vw] max-w-xs rounded-xl shadow-xl" : "mr-4 w-[340px] rounded-2xl shadow-2xl"} max-w-full bg-[#181926] border border-blue-700 flex flex-col items-center p-0 relative`;
+  const containerClassName = `mt-4 ${effectiveMobileShrink ? "mr-2 w-[90vw] max-w-xs rounded-xl shadow-xl" : "mr-4 w-[340px] rounded-2xl shadow-2xl"} max-w-full bg-[#13111c] border-2 border-[#34333f] flex flex-col items-center p-0 relative`;
   const headerPadding = effectiveMobileShrink ? "pt-5 pb-2" : "pt-6 pb-2";
-  const avatarClassName = `${effectiveMobileShrink ? "w-16 h-16 text-3xl" : "w-20 h-20 text-4xl"} rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-bold border-4 border-white shadow mb-2`;
+  const avatarClassName = `${effectiveMobileShrink ? "w-16 h-16 text-3xl" : "w-20 h-20 text-4xl"} rounded-full bg-gradient-to-br from-blue-500 to-pink-500 flex items-center justify-center text-white font-bold border-1 border-white shadow mb-2`;
   const emailClassName = effectiveMobileShrink ? "text-base font-semibold text-white mb-1" : "text-lg font-semibold text-white mb-1";
-  const greetingClassName = effectiveMobileShrink ? "text-sm text-white-300 font-medium mb-1" : "text-base text-white-300 font-medium mb-1";
+  const greetingClassName = effectiveMobileShrink ? "text-sm text-white-300 font-medium mb-1" : "text-base text-white-300 font-light mb-1";
   const actionWrapperClass = `${effectiveMobileShrink ? "w-full flex flex-col gap-1.5 px-4 py-3" : "w-full flex flex-col gap-2 px-6 py-4"} border-t border-gray-700 mt-auto`;
   const buttonSpacing = effectiveMobileShrink ? "gap-1" : "gap-2";
   const buttonTextSize = effectiveMobileShrink ? "text-sm" : "text-base";
@@ -123,14 +123,14 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
       {/* Profile, Account Setting và Logout */}
       <div className={actionWrapperClass}>
         <button
-          className={`flex items-center ${buttonSpacing} text-blue-400 hover:text-blue-600 font-bold transition ${buttonTextSize} justify-start`}
+          className={`flex items-center ${buttonSpacing} text-white-400 hover:text-blue-600 font-light transition ${buttonTextSize} justify-start`}
           onClick={() => window.location.href = '/profile'}
         >
           <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2"/><path stroke="currentColor" strokeWidth="2" d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6"/></svg>
           Profile
         </button>
         <button
-          className={`flex items-center ${buttonSpacing} text-blue-400 hover:text-blue-600 font-bold transition ${buttonTextSize} justify-start mt-1`}
+          className={`flex items-center ${buttonSpacing} font-light text-white-100 hover:text-blue-600 transition ${buttonTextSize} justify-start mt-1`}
           onClick={() => window.location.href = '/account'}
         >
           <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
@@ -141,7 +141,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
         </button>
         {/* Chỉ còn 1 nút Change background, gọi callback mở modal ở page.tsx */}
         <button
-          className={`flex items-center ${buttonSpacing} text-blue-400 hover:text-blue-600 font-bold transition ${buttonTextSize} justify-start mt-1`}
+          className={`flex items-center ${buttonSpacing} text-white-400 hover:text-blue-600 font-light transition ${buttonTextSize} justify-start mt-1`}
           onClick={() => {
             if (typeof window !== 'undefined' && typeof (window as any).openBgModal === 'function') {
               (window as any).openBgModal();
@@ -156,7 +156,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           Change background
         </button>
         <button
-          className={`flex items-center ${buttonSpacing} text-red-400 hover:text-red-600 font-bold transition ${buttonTextSize} mt-2 px-0 py-0`}
+          className={`flex items-center ${buttonSpacing} text-red-400 hover:text-red-600 font-base transition ${buttonTextSize} mt-2 px-0 py-0`}
           style={{ alignSelf: 'flex-start' }}
           onClick={onLogout}
         >

@@ -1809,7 +1809,7 @@ export default function TimerTab() {
         {/* Main Content - 3 Columns */}
         <div className="grid grid-cols-12 gap-1 sm:gap-6 h-[calc(100vh-120px)]">
           {/* Left Column - Solves List */}
-          <div className="col-span-3 bg-neutral-900/30 rounded-lg p-1 sm:p-4 border border-neutral-700 shadow-xl">
+          <div className="col-span-3 rounded-lg p-1 sm:p-4 border border-neutral-700 shadow-xl">
             <div className="flex items-center justify-between mb-1 sm:mb-4">
               <h3 className="text-xs sm:text-lg font-semibold text-white">Solves</h3>
               <button
@@ -1861,7 +1861,7 @@ export default function TimerTab() {
           </div>
 
           {/* Middle Column - Timer & Scramble */}
-          <div className="col-span-6 bg-neutral-900/30 rounded-lg p-1 border border-neutral-700 shadow-xl">
+          <div className="col-span-6 rounded-lg p-1 border border-neutral-700 shadow-xl">
             <div className="flex flex-col items-center justify-start pt-0">
               {/* Scramble */}
               <div className="text-center mb-1 w-full">
@@ -1986,7 +1986,7 @@ export default function TimerTab() {
           </div>
 
           {/* Right Column - Statistics Grid */}
-          <div className="col-span-3 bg-neutral-900/30 rounded-lg p-1 sm:p-4 border border-neutral-700 shadow-xl stats-container" style={{ overflow: 'hidden' }}>
+          <div className="col-span-3 rounded-lg p-1 sm:p-4 border border-neutral-700 shadow-xl stats-container" style={{ overflow: 'hidden' }}>
             <h3 className="text-xs sm:text-lg font-semibold text-white mb-1 sm:mb-4">Statistics</h3>
             <div className={`${mobileShrink ? "grid gap-1" : "flex flex-col gap-1 sm:gap-3"} h-[200px] sm:h-[calc(100vh-200px)]`}
                  style={mobileShrink ? {

@@ -326,18 +326,12 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const formColumnClass = effectiveMobileShrink
     ? 'flex-1 min-w-[200px] px-2 flex flex-col justify-between'
     : 'flex-1 px-4 flex flex-col justify-between';
-  const listSectionWrapperClass = effectiveMobileShrink ? 'w-full max-w-lg' : 'w-full max-w-3xl';
-  const listSectionSpacingClass = effectiveMobileShrink ? 'mb-2' : 'mb-5';
-  const listHeadingClass = `${effectiveMobileShrink ? 'text-base' : 'text-lg'} font-semibold mb-4 text-center text-white`;
-  const listContainerClass = effectiveMobileShrink
-    ? 'h-62 overflow-y-auto border border-gray-700 rounded-xl p-1'
-    : 'h-74 overflow-y-auto border border-gray-700 rounded-lg p-2';
   const listGridClass = effectiveMobileShrink
     ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center'
     : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center';
   const roomCardWrapperClass = `flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-xl ${effectiveMobileShrink ? 'gap-1 text-sm' : ''}`;
-  const roomTileBaseClass = `${effectiveMobileShrink ? 'w-20 h-20 text-2xl' : 'w-24 h-24 text-3xl'} rounded-xl flex items-center justify-center text-gray-100 mb-2 relative`;
-  const createTileClass = `${effectiveMobileShrink ? 'w-20 h-20 text-4xl' : 'w-24 h-24 text-5xl'} bg-gray-700 rounded-xl flex items-center justify-center text-gray-300 mb-2 hover:bg-gray-600 transition-all`;
+  const roomTileBaseClass = `${effectiveMobileShrink ? 'w-20 h-20 text-2xl' : 'w-24 h-24 text-3xl'} rounded-2xl flex items-center justify-center text-gray-100 mb-2 relative border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.35)]`;
+  const createTileClass = `${effectiveMobileShrink ? 'w-20 h-20 text-3xl' : 'w-24 h-24 text-4xl'} rounded-2xl flex items-center justify-center text-white font-semibold mb-2 border border-white/15 bg-gradient-to-br from-blue-500/70 to-indigo-600/70 shadow-[0_15px_40px_rgba(37,99,235,0.35)] transition-all duration-200 hover:scale-105`;
   const skeletonTileClass = `${effectiveMobileShrink ? 'w-20 h-20' : 'w-24 h-24'} rounded-xl mb-2 flex items-center justify-center`;
   const skeletonInnerTileClass = `${effectiveMobileShrink ? 'w-14 h-14' : 'w-16 h-16'} rounded grid place-items-center`;
   const skeletonLabelClass = `${effectiveMobileShrink ? 'h-3 w-16' : 'h-4 w-20'} rounded`;
@@ -1133,6 +1127,28 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }, 3000);
   };
 
+  const waitingRoomCount = activeRooms.reduce((total, roomId) => {
+    return roomMetas[roomId]?.isWaitingRoom ? total + 1 : total;
+  }, 0);
+  const privateRoomCount = activeRooms.reduce((total, roomId) => {
+    return roomMetas[roomId]?.password ? total + 1 : total;
+  }, 0);
+  const statusChips = [
+    { label: 'Phòng hoạt động', value: activeRooms.length, accent: 'text-emerald-300 border-emerald-400/30 bg-emerald-500/5' },
+    { label: 'Đang thi đấu', value: competingRooms.length, accent: 'text-rose-300 border-rose-400/30 bg-rose-500/5' },
+    { label: 'Phòng chờ', value: waitingRoomCount, accent: 'text-amber-200 border-amber-400/30 bg-amber-500/5' },
+    { label: 'Phòng khóa', value: privateRoomCount, accent: 'text-sky-200 border-sky-400/30 bg-sky-500/5' }
+  ];
+  const heroPaddingClass = effectiveMobileShrink ? 'p-1' : 'p-2';
+  const heroHeadingClass = effectiveMobileShrink ? 'text-xl' : 'text-4xl';
+  const statusChipPaddingClass = effectiveMobileShrink ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-3';
+  const statusChipValueClass = effectiveMobileShrink ? 'text-lg' : 'text-2xl';
+  const statusChipGridWidthClass = effectiveMobileShrink ? 'min-w-[520px]' : 'min-w-[640px]';
+  const statusChipGapClass = effectiveMobileShrink ? 'gap-2' : 'gap-3';
+  const sectionHeadingClass = effectiveMobileShrink ? 'text-lg' : 'text-2xl';
+  const heroButtonPaddingClass = effectiveMobileShrink ? 'px-3.5 py-2 text-xs' : 'px-5 py-3 text-sm';
+  const sectionPaddingClass = effectiveMobileShrink ? 'p-3' : 'p-6';
+
   return (
   <div className="w-full flex flex-col items-center justify-center">
       {/* Modal tạo phòng */}
@@ -1730,381 +1746,382 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
         document.body
       )}
 
-      <div className="w-full mb-6 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center">
-        <h2 className="text-2xl font-bold">Phòng giải Rubik Online</h2>
-      </div>
-      {/*
-      <div className="flex flex-col gap-4 w-full max-w-md bg-gray-800 rounded-xl p-8 shadow-lg mb-8">
-        <div className="text-lg font-semibold text-center mb-2 text-white-300">
-          Nếu có mã phòng từ bạn bè gửi, hãy nhập vào bên dưới để tham gia phòng!
-        </div>
-        <div className="flex flex-row items-center gap-2">
-          <input
-            className="flex-1 px-3 py-2 rounded border border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-900 text-white"
-            placeholder="Nhập mã phòng để tham gia"
-            value={roomInput}
-            onChange={handleInputChange}
-            onKeyDown={e => { if (e.key === "Enter") handleJoin(); }}
-            maxLength={6}
-          />
-          <button
-            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors"
-            onClick={handleJoin}
-          >
-            Vào phòng
-          </button>
-        </div>
-        {error && <div className="text-red-400 text-sm mt-1">{error}</div>}
-      </div>
-      */}
-      {/* Danh sách phòng đang thi đấu */}
-      <div className={`${listSectionWrapperClass} ${listSectionSpacingClass}`}>
-        <div className={listHeadingClass}>
-          🔴 Phòng đang thi đấu ({competingRooms.length} phòng)
-        </div>
-        <div className={listContainerClass}>
-          <div className={listGridClass}>
-            {loadingRooms ? (
-              Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className={`${roomCardWrapperClass} animate-pulse`}>
-                  <div className={`${skeletonTileClass} bg-red-900/40`}>
-                    <div className={`${skeletonInnerTileClass} bg-red-300/30`} />
-                  </div>
-                  <div className={`${skeletonLabelClass} bg-red-300/30 mb-1`} />
-                </div>
-              ))
-            ) : (
-              competingRooms.map((room: string) => (
-                <div
-                  key={room}
-                  className={roomCardWrapperClass}
-                >
-                  <div className={`${roomTileBaseClass} bg-red-800`}>
-                    {/* Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx */}
-                    {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
-                      roomMetas[room].event.includes('2x2') ? (
-                        <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
-                          {Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                          ))}
-                        </div>
-                      ) : roomMetas[room].event.includes('4x4') ? (
-                        <div className="grid grid-cols-4 grid-rows-4 gap-0.5 w-16 h-16">
-                          {Array.from({ length: 16 }).map((_, i) => (
-                            <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                          ))}
-                        </div>
-                      ) : roomMetas[room].event.includes('pyraminx') ? (
-                        <div className="w-16 h-16 flex items-center justify-center">
-                          <div className="w-14 h-14 relative" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#ef4444' }}>
-                            {/* Vẽ các đường chia tam giác thành 9 phần */}
-                            <div style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              height: '100%',
-                              background: 'transparent'
-                            }}>
-                              {/* Đường ngang */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '33.33%',
-                                left: '0%',
-                                width: '100%',
-                                height: '1px',
-                                background: '#333',
-                                transform: 'translateY(-0.5px)'
-                              }}></div>
-                              <div style={{
-                                position: 'absolute',
-                                top: '66.66%',
-                                left: '0%',
-                                width: '100%',
-                                height: '1px',
-                                background: '#333',
-                                transform: 'translateY(-0.5px)'
-                              }}></div>
-                              {/* Đường chéo từ trái */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '0%',
-                                left: '33.33%',
-                                width: '1px',
-                                height: '100%',
-                                background: '#333',
-                                transform: 'translateX(-0.5px) rotate(30deg)',
-                                transformOrigin: 'bottom center'
-                              }}></div>
-                              <div style={{
-                                position: 'absolute',
-                                top: '0%',
-                                left: '66.66%',
-                                width: '1px',
-                                height: '100%',
-                                background: '#333',
-                                transform: 'translateX(-0.5px) rotate(30deg)',
-                                transformOrigin: 'bottom center'
-                              }}></div>
-                              {/* Đường chéo từ phải */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '0%',
-                                right: '33.33%',
-                                width: '1px',
-                                height: '100%',
-                                background: '#333',
-                                transform: 'translateX(0.5px) rotate(-30deg)',
-                                transformOrigin: 'bottom center'
-                              }}></div>
-                              <div style={{
-                                position: 'absolute',
-                                top: '0%',
-                                right: '66.66%',
-                                width: '1px',
-                                height: '100%',
-                                background: '#333',
-                                transform: 'translateX(0.5px) rotate(-30deg)',
-                                transformOrigin: 'bottom center'
-                              }}></div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                          {Array.from({ length: 9 }).map((_, i) => (
-                            <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                          ))}
-                        </div>
-                      )
-                    ) : (
-                      <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                        {Array.from({ length: 9 }).map((_, i) => (
-                          <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                        ))}
-                      </div>
-                    )}
-                    {/* Icon indicator */}
-                    {roomMetas[room]?.isWaitingRoom ? (
-                      <span className="absolute top-1 right-1 text-yellow-300">⏳</span>
-                    ) : (
-                      <span className="absolute top-1 right-1 text-yellow-300"></span>
-                    )}
-                  </div>
-                  <div className={roomNameClass}>
-                    {roomMetas[room]?.isWaitingRoom ? `Phòng chờ ${room}` : (roomMetas[room]?.displayName || room)}
-                  </div>
-                  {roomMetas[room]?.gameMode && (
-                    <div className={roomModeLabelClass}>
-                      {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
-                    </div>
-                  )}
-                  {roomMetas[room]?.isWaitingRoom && (
-                    <div className={waitingBadgeTextClass}>
-                      Đang chờ
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-            {competingRooms.length === 0 && (
-              <div className="col-span-full text-center text-white py-1">
-                Chưa có phòng nào đang thi đấu
-              </div>
-            )}
+      <section className="relative w-full">
+        <div className={`relative w-full ${heroPaddingClass}`}>
+          <div className="pointer-events-none absolute inset-0 opacity-60">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.15),_transparent_55%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(236,72,153,0.12),_transparent_45%)]" />
           </div>
-        </div>
-      </div>
-
-      {/* Danh sách phòng đang hoạt động */}
-      <div className={listSectionWrapperClass}>
-        <div className={listHeadingClass}>
-          🟢 Phòng đang hoạt động ({activeRooms.length} phòng)
-        </div>
-        <div className={listContainerClass}>
-          <div className={listGridClass}>
-            {/* Nút tạo phòng */}
-            <div onClick={openCreateModal} className={`${roomCardWrapperClass} cursor-pointer`}>
-              <div className={createTileClass}>+</div>
-              <div className={roomNameClass}>Tạo phòng</div>
+          <div className="relative z-10 flex flex-col gap-6 text-white">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.45em] text-white/60">
+                <span>Lobby Command</span>
+                <span className="hidden flex-1 border-t border-white/10 sm:block" />
+                <span className="px-3 py-1 rounded-full border border-white/10 text-[10px] tracking-[0.3em] text-white/70">Realtime</span>
+              </div>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex flex-col gap-2 max-w-3xl">
+                  <h1 className={`${heroHeadingClass} font-semibold leading-tight`}>Room Command Center</h1>
+                </div>
+                <button
+                  className={`rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-400 ${heroButtonPaddingClass} font-semibold uppercase tracking-wide text-slate-950 shadow-[0_15px_45px_rgba(16,185,129,0.45)] hover:brightness-110 transition`}
+                  onClick={openCreateModal}
+                >
+                  + Tạo phòng
+                </button>
+              </div>
             </div>
-            {/* Hiển thị các phòng đang hoạt động */}
-            {loadingRooms ? (
-              Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className={`${roomCardWrapperClass} animate-pulse`}>
-                  <div className={`${skeletonTileClass} bg-blue-900/40`}>
-                    <div className={`${skeletonInnerTileClass} bg-blue-300/30`} />
+
+            <div className="w-full overflow-x-auto">
+              <div className={`grid ${statusChipGridWidthClass} grid-cols-4 ${statusChipGapClass}`}>
+                {statusChips.map(chip => (
+                  <div key={chip.label} className={`rounded-2xl border ${statusChipPaddingClass} ${chip.accent}`}>
+                    <div className="text-[11px] uppercase tracking-[0.35em] text-white/55">{chip.label}</div>
+                    <div className={`${statusChipValueClass} font-semibold leading-tight`}>{chip.value}</div>
                   </div>
-                  <div className={`${skeletonLabelClass} bg-blue-300/30 mb-1`} />
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-5">
+              <section className={`rounded-3xl border border-rose-500/20 bg-gradient-to-br from-rose-900/40 via-slate-900/40 to-slate-950/65 ${sectionPaddingClass}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className={`${sectionHeadingClass} font-semibold`}>Phòng đang thi đấu ({competingRooms.length})</h3>
+                  </div>
                 </div>
-              ))
-            ) : (
-              activeRooms.map((room: string) => (
-                <div
-                  key={room}
-                  onClick={() => {
-                    const meta = roomMetas[room] || {};
-                    if (meta.isWaitingRoom && meta.gameMode === '2vs2' && (meta.usersCount ?? 0) >= 4) {
-                      const displayName = meta.displayName || room;
-                      triggerRoomFullModal(displayName);
-                      return;
-                    }
-                    if (meta.isWaitingRoom) {
-                      // Kiểm tra mật khẩu cho waiting room
-                      if (meta.password) {
-                        openPasswordModal(room);
-                      } else {
-                        // Chuyển hướng đến waiting room
-                        window._roomDisplayName = meta.displayName || room;
-                        window.location.href = `/room/${room}/waiting?roomId=${room}`;
-                      }
-                    } else if (meta.password) {
-                      openPasswordModal(room);
-                    } else {
-                      window._roomPassword = "";
-                      handleJoinRoom(room);
-                    }
-                  }}
-                  className={`${roomCardWrapperClass} cursor-pointer`}
-                >
-                  <div className={`${roomTileBaseClass} ${
-                    roomMetas[room]?.isWaitingRoom ? 'bg-yellow-800' : 'bg-blue-800'
-                  }`}>
-                    {/* Icon dạng lưới: 2x2, 3x3, 4x4, hoặc Pyraminx - áp dụng cho cả waiting room và phòng thường */}
-                    {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
-                      roomMetas[room].event.includes('2x2') ? (
-                        <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
-                          {Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
-                          ))}
-                        </div>
-                      ) : roomMetas[room].event.includes('4x4') ? (
-                        <div className="grid grid-cols-4 grid-rows-4 gap-0.5 w-16 h-16">
-                          {Array.from({ length: 16 }).map((_, i) => (
-                            <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
-                          ))}
-                        </div>
-                      ) : roomMetas[room].event.includes('pyraminx') ? (
-                        <div className="w-16 h-16 flex items-center justify-center">
-                          <div className="w-14 h-14 relative" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#d1d5db' }}>
-                            {/* Vẽ các đường chia tam giác thành 9 phần */}
-                            <div style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              height: '100%',
-                              background: 'transparent'
-                            }}>
-                              {/* Đường ngang */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '33.33%',
-                                left: '0%',
-                                width: '100%',
-                                height: '1px',
-                                background: '#333',
-                                transform: 'translateY(-0.5px)'
-                              }}></div>
-                              <div style={{
-                                position: 'absolute',
-                                top: '66.66%',
-                                left: '0%',
-                                width: '100%',
-                                height: '1px',
-                                background: '#333',
-                                transform: 'translateY(-0.5px)'
-                              }}></div>
-                              {/* Đường chéo từ trái */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '0%',
-                                left: '33.33%',
-                                width: '1px',
-                                height: '100%',
-                                background: '#333',
-                                transform: 'translateX(-0.5px) rotate(30deg)',
-                                transformOrigin: 'bottom center'
-                              }}></div>
-                              <div style={{
-                                position: 'absolute',
-                                top: '0%',
-                                left: '66.66%',
-                                width: '1px',
-                                height: '100%',
-                                background: '#333',
-                                transform: 'translateX(-0.5px) rotate(30deg)',
-                                transformOrigin: 'bottom center'
-                              }}></div>
-                              {/* Đường chéo từ phải */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '0%',
-                                right: '33.33%',
-                                width: '1px',
-                                height: '100%',
-                                background: '#333',
-                                transform: 'translateX(0.5px) rotate(-30deg)',
-                                transformOrigin: 'bottom center'
-                              }}></div>
-                              <div style={{
-                                position: 'absolute',
-                                top: '0%',
-                                right: '66.66%',
-                                width: '1px',
-                                height: '100%',
-                                background: '#333',
-                                transform: 'translateX(0.5px) rotate(-30deg)',
-                                transformOrigin: 'bottom center'
-                              }}></div>
-                            </div>
+                <div className="mt-4">
+                  <div className={`${listGridClass} w-full`}>
+                    {loadingRooms ? (
+                      Array.from({ length: 3 }).map((_, idx) => (
+                        <div key={idx} className={`${roomCardWrapperClass} animate-pulse`}>
+                          <div className={`${skeletonTileClass} bg-red-900/40`}>
+                            <div className={`${skeletonInnerTileClass} bg-red-300/30`} />
                           </div>
+                          <div className={`${skeletonLabelClass} bg-red-300/30 mb-1`} />
                         </div>
-                      ) : (
-                        <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                          {Array.from({ length: 9 }).map((_, i) => (
-                            <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
-                          ))}
-                        </div>
-                      )
+                      ))
                     ) : (
-                      <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                        {Array.from({ length: 9 }).map((_, i) => (
-                          <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
-                        ))}
+                      competingRooms.map((room: string) => (
+                        <div
+                          key={room}
+                          className={roomCardWrapperClass}
+                        >
+                          <div className={`${roomTileBaseClass} bg-red-800`}>
+                            {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
+                              roomMetas[room].event.includes('2x2') ? (
+                                <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                                  {Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                                  ))}
+                                </div>
+                              ) : roomMetas[room].event.includes('4x4') ? (
+                                <div className="grid grid-cols-4 grid-rows-4 gap-0.5 w-16 h-16">
+                                  {Array.from({ length: 16 }).map((_, i) => (
+                                    <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                                  ))}
+                                </div>
+                              ) : roomMetas[room].event.includes('pyraminx') ? (
+                                <div className="w-16 h-16 flex items-center justify-center">
+                                  <div className="w-14 h-14 relative" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#ef4444' }}>
+                                    <div style={{
+                                      position: 'absolute',
+                                      top: 0,
+                                      left: 0,
+                                      width: '100%',
+                                      height: '100%',
+                                      background: 'transparent'
+                                    }}>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '33.33%',
+                                        left: '0%',
+                                        width: '100%',
+                                        height: '1px',
+                                        background: '#333',
+                                        transform: 'translateY(-0.5px)'
+                                      }}></div>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '66.66%',
+                                        left: '0%',
+                                        width: '100%',
+                                        height: '1px',
+                                        background: '#333',
+                                        transform: 'translateY(-0.5px)'
+                                      }}></div>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '0%',
+                                        left: '33.33%',
+                                        width: '1px',
+                                        height: '100%',
+                                        background: '#333',
+                                        transform: 'translateX(-0.5px) rotate(30deg)',
+                                        transformOrigin: 'bottom center'
+                                      }}></div>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '0%',
+                                        left: '66.66%',
+                                        width: '1px',
+                                        height: '100%',
+                                        background: '#333',
+                                        transform: 'translateX(-0.5px) rotate(30deg)',
+                                        transformOrigin: 'bottom center'
+                                      }}></div>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '0%',
+                                        right: '33.33%',
+                                        width: '1px',
+                                        height: '100%',
+                                        background: '#333',
+                                        transform: 'translateX(0.5px) rotate(-30deg)',
+                                        transformOrigin: 'bottom center'
+                                      }}></div>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '0%',
+                                        right: '66.66%',
+                                        width: '1px',
+                                        height: '100%',
+                                        background: '#333',
+                                        transform: 'translateX(0.5px) rotate(-30deg)',
+                                        transformOrigin: 'bottom center'
+                                      }}></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                                  {Array.from({ length: 9 }).map((_, i) => (
+                                    <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                                  ))}
+                                </div>
+                              )
+                            ) : (
+                              <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                                {Array.from({ length: 9 }).map((_, i) => (
+                                  <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                                ))}
+                              </div>
+                            )}
+                            {roomMetas[room]?.isWaitingRoom ? (
+                              <span className="absolute top-1 right-1 text-yellow-300">⏳</span>
+                            ) : (
+                              <span className="absolute top-1 right-1 text-yellow-300"></span>
+                            )}
+                          </div>
+                          <div className={roomNameClass}>
+                            {roomMetas[room]?.isWaitingRoom ? `Phòng chờ ${room}` : (roomMetas[room]?.displayName || room)}
+                          </div>
+                          {roomMetas[room]?.gameMode && (
+                            <div className={roomModeLabelClass}>
+                              {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
+                            </div>
+                          )}
+                          {roomMetas[room]?.isWaitingRoom && (
+                            <div className={waitingBadgeTextClass}>
+                              Đang chờ
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                    {competingRooms.length === 0 && !loadingRooms && (
+                      <div className="col-span-full text-center text-white/70 py-4">
+                        Chưa có phòng nào đang thi đấu
                       </div>
                     )}
-                    {/* Icon indicator */}
-                    {roomMetas[room]?.isWaitingRoom ? (
-                      <span className="absolute top-1 right-1 text-yellow-300">⏳</span>
+                  </div>
+                </div>
+              </section>
+
+              <section className={`rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-900/40 via-slate-900/50 to-slate-900/60 ${sectionPaddingClass}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className={`${sectionHeadingClass} font-semibold`}>Phòng đang hoạt động ({activeRooms.length})</h3>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className={`${listGridClass} w-full`}>
+                    <div onClick={openCreateModal} className={`${roomCardWrapperClass} cursor-pointer`}>
+                      <div className={createTileClass}>+</div>
+                      <div className={roomNameClass}>Tạo phòng</div>
+                    </div>
+                    {loadingRooms ? (
+                      Array.from({ length: 3 }).map((_, idx) => (
+                        <div key={idx} className={`${roomCardWrapperClass} animate-pulse`}>
+                          <div className={`${skeletonTileClass} bg-blue-900/40`}>
+                            <div className={`${skeletonInnerTileClass} bg-blue-300/30`} />
+                          </div>
+                          <div className={`${skeletonLabelClass} bg-blue-300/30 mb-1`} />
+                        </div>
+                      ))
                     ) : (
-                      <span className="absolute top-1 right-1 text-green-300"></span>
+                      activeRooms.map((room: string) => (
+                        <div
+                          key={room}
+                          onClick={() => {
+                            const meta = roomMetas[room] || {};
+                            if (meta.isWaitingRoom && meta.gameMode === '2vs2' && (meta.usersCount ?? 0) >= 4) {
+                              const displayName = meta.displayName || room;
+                              triggerRoomFullModal(displayName);
+                              return;
+                            }
+                            if (meta.isWaitingRoom) {
+                              if (meta.password) {
+                                openPasswordModal(room);
+                              } else {
+                                window._roomDisplayName = meta.displayName || room;
+                                window.location.href = `/room/${room}/waiting?roomId=${room}`;
+                              }
+                            } else if (meta.password) {
+                              openPasswordModal(room);
+                            } else {
+                              window._roomPassword = "";
+                              handleJoinRoom(room);
+                            }
+                          }}
+                          className={`${roomCardWrapperClass} cursor-pointer`}
+                        >
+                          <div className={`${roomTileBaseClass} ${
+                            roomMetas[room]?.isWaitingRoom ? 'bg-yellow-800' : 'bg-blue-800'
+                          }`}>
+                            {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
+                              roomMetas[room].event.includes('2x2') ? (
+                                <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                                  {Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                                  ))}
+                                </div>
+                              ) : roomMetas[room].event.includes('4x4') ? (
+                                <div className="grid grid-cols-4 grid-rows-4 gap-0.5 w-16 h-16">
+                                  {Array.from({ length: 16 }).map((_, i) => (
+                                    <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                                  ))}
+                                </div>
+                              ) : roomMetas[room].event.includes('pyraminx') ? (
+                                <div className="w-16 h-16 flex items-center justify-center">
+                                  <div className="w-14 h-14 relative" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#d1d5db' }}>
+                                    <div style={{
+                                      position: 'absolute',
+                                      top: 0,
+                                      left: 0,
+                                      width: '100%',
+                                      height: '100%',
+                                      background: 'transparent'
+                                    }}>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '33.33%',
+                                        left: '0%',
+                                        width: '100%',
+                                        height: '1px',
+                                        background: '#333',
+                                        transform: 'translateY(-0.5px)'
+                                      }}></div>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '66.66%',
+                                        left: '0%',
+                                        width: '100%',
+                                        height: '1px',
+                                        background: '#333',
+                                        transform: 'translateY(-0.5px)'
+                                      }}></div>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '0%',
+                                        left: '33.33%',
+                                        width: '1px',
+                                        height: '100%',
+                                        background: '#333',
+                                        transform: 'translateX(-0.5px) rotate(30deg)',
+                                        transformOrigin: 'bottom center'
+                                      }}></div>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '0%',
+                                        left: '66.66%',
+                                        width: '1px',
+                                        height: '100%',
+                                        background: '#333',
+                                        transform: 'translateX(-0.5px) rotate(30deg)',
+                                        transformOrigin: 'bottom center'
+                                      }}></div>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '0%',
+                                        right: '33.33%',
+                                        width: '1px',
+                                        height: '100%',
+                                        background: '#333',
+                                        transform: 'translateX(0.5px) rotate(-30deg)',
+                                        transformOrigin: 'bottom center'
+                                      }}></div>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '0%',
+                                        right: '66.66%',
+                                        width: '1px',
+                                        height: '100%',
+                                        background: '#333',
+                                        transform: 'translateX(0.5px) rotate(-30deg)',
+                                        transformOrigin: 'bottom center'
+                                      }}></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                                  {Array.from({ length: 9 }).map((_, i) => (
+                                    <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                                  ))}
+                                </div>
+                              )
+                            ) : (
+                              <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                                {Array.from({ length: 9 }).map((_, i) => (
+                                  <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
+                                ))}
+                              </div>
+                            )}
+                            {roomMetas[room]?.isWaitingRoom ? (
+                              <span className="absolute top-1 right-1 text-yellow-300">⏳</span>
+                            ) : (
+                              <span className="absolute top-1 right-1 text-green-300"></span>
+                            )}
+                          </div>
+                          <div className={roomNameClass}>
+                            {roomMetas[room]?.displayName || room}
+                          </div>
+                          {roomMetas[room]?.gameMode && (
+                            <div className={roomModeLabelClass}>
+                              {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
+                            </div>
+                          )}
+                          {roomMetas[room]?.isWaitingRoom && (
+                            <div className={waitingBadgeTextClass}>
+                              Đang chờ
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                    {activeRooms.length === 0 && !loadingRooms && (
+                      <div className="col-span-full text-center text-white/70 py-5">
+                        Chưa có phòng nào đang hoạt động
+                      </div>
                     )}
                   </div>
-                  <div className={roomNameClass}>
-                    {roomMetas[room]?.displayName || room}
-                  </div>
-                  {roomMetas[room]?.gameMode && (
-                    <div className={roomModeLabelClass}>
-                      {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
-                    </div>
-                  )}
-                  {roomMetas[room]?.isWaitingRoom && (
-                    <div className={waitingBadgeTextClass}>
-                      Đang chờ
-                    </div>
-                  )}
                 </div>
-              ))
-            )}
-            {activeRooms.length === 0 && (
-              <div className="col-span-full text-center text-white py-5">
-                Chưa có phòng nào đang hoạt động
-              </div>
-            )}
+              </section>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
