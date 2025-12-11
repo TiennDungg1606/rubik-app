@@ -160,7 +160,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }
     if (typeof window !== 'undefined') {
       try {
-        window.sessionStorage.removeItem(PLAYER_CACHE_STORAGE_KEY);
+        window.localStorage.removeItem(PLAYER_CACHE_STORAGE_KEY);
       } catch {
         // no-op
       }
@@ -170,7 +170,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const hydratePlayersCacheFromStorage = useCallback(() => {
     if (typeof window === 'undefined') return null;
     try {
-      const raw = window.sessionStorage.getItem(PLAYER_CACHE_STORAGE_KEY);
+      const raw = window.localStorage.getItem(PLAYER_CACHE_STORAGE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed?.list)) return null;
@@ -197,7 +197,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     playersCacheRef.current = snapshot;
     if (typeof window === 'undefined') return;
     try {
-      window.sessionStorage.setItem(
+      window.localStorage.setItem(
         PLAYER_CACHE_STORAGE_KEY,
         JSON.stringify({
           list: snapshot.list,
@@ -734,7 +734,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     setDirectoryTab('friends');
     setShowPlayersModal(true);
     setTimeout(() => setPlayersModalVisible(true), 10);
-    const cached = playersCacheRef.current ?? hydratePlayersCacheFromStorage();
+    const cached = hydratePlayersCacheFromStorage() ?? playersCacheRef.current;
     if (cached && cached.list.length > 0) {
       setPlayers(cached.list);
       setPlayersCursor(cached.cursor);
