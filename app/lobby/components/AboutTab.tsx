@@ -107,9 +107,8 @@ export default function AboutTab() {
   }, []);
 
   const mobileShrink = isMobileLandscape || isCompactWidth;
-  const containerPadding = mobileShrink ? "p-4" : "p-6";
-  const metricsGrid = mobileShrink ? "grid-cols-2" : "sm:grid-cols-4";
-  const featureGrid = mobileShrink ? "grid-cols-1" : "md:grid-cols-2";
+  const metricsGrid = "grid-cols-4";
+  const featureGrid = "grid-cols-2";
   const headlineSize = mobileShrink ? "text-2xl" : "text-3xl";
   const subtextSize = mobileShrink ? "text-sm" : "text-base";
 
@@ -123,7 +122,6 @@ export default function AboutTab() {
 
         <div className="relative z-[1] flex flex-col gap-6">
           <header className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.4em] text-cyan-200">About Control Room</p>
             <h2 className={`flex items-center gap-3 ${headlineSize} font-black text-white`}>
               <span className={`rounded-full bg-cyan-500/10 ${mobileShrink ? "p-2 text-xl" : "p-3 text-2xl"} text-cyan-300`}>
                 📚
@@ -132,16 +130,18 @@ export default function AboutTab() {
             </h2>
           </header>
 
-          <div className={`grid gap-3 ${metricsGrid}`}>
-            {metrics.map(metric => (
-              <div
-                key={metric.label}
-                className={`rounded-2xl border-2 border-white/10 ${mobileShrink ? "px-3 py-2" : "px-4 py-3"} text-white`}
-              >
-                <p className="text-[11px] uppercase tracking-[0.35em] text-white/50">{metric.label}</p>
-                <p className={`${mobileShrink ? "text-lg" : "text-2xl"} font-semibold text-cyan-100`}>{metric.value}</p>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <div className={`grid min-w-[720px] gap-3 ${metricsGrid}`}>
+              {metrics.map(metric => (
+                <div
+                  key={metric.label}
+                  className={`rounded-2xl border-2 border-white/10 ${mobileShrink ? "px-3 py-2" : "px-4 py-3"} text-white`}
+                >
+                  <p className="text-[11px] uppercase tracking-[0.35em] text-white/50">{metric.label}</p>
+                  <p className={`${mobileShrink ? "text-lg" : "text-2xl"} font-semibold text-cyan-100`}>{metric.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className={`grid gap-4 ${featureGrid}`}>
@@ -171,7 +171,7 @@ export default function AboutTab() {
                   <h3 className={`${mobileShrink ? "text-lg" : "text-xl"} font-semibold`}>4 trụ cột phát triển</h3>
                 </div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3">
                 {pillars.map(pillar => (
                   <div key={pillar.label} className="rounded-2xl border-2 border-white/10 bg-black/20 p-3">
                     <p className="text-sm font-semibold text-white">{pillar.label}</p>
@@ -182,7 +182,7 @@ export default function AboutTab() {
             </div>
           </div>
 
-          <div className={`grid gap-4 ${mobileShrink ? "grid-cols-1" : "md:grid-cols-2"}`}>
+          <div className="grid grid-cols-2 gap-4">
             <div className="rounded-3xl border-2 border-white/10 p-5 text-white">
               <p className="text-xs uppercase tracking-[0.35em] text-white/50">Liên hệ</p>
               <h4 className="text-lg font-semibold">Chu Tiến Dũng</h4>

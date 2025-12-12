@@ -926,7 +926,7 @@ export default function WaitingRoom() {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 relative"
+      className="min-h-screen flex items-center justify-center bg-neutral-900/30 shadow-xl border border-neutral-700 p-4 relative"
       onClick={handleScreenTap}
     >
       
@@ -991,7 +991,7 @@ export default function WaitingRoom() {
         )}
 
       {/* Overlay để text dễ đọc hơn */}
-      <div className="w-full max-w-7xl p-15 mt-2 mb-4 rounded-xl bg-neutral-900/30 shadow-xl border border-neutral-700 mx-auto relative z-10">
+      <div className="w-full max-w-7xl p-15 mt-2 mb-4 rounded-xl mx-auto relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Phòng chờ 2vs2</h1>

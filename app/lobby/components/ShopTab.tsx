@@ -218,7 +218,6 @@ export default function ShopTab() {
 
       <div className="relative z-10 flex flex-col gap-6">
         <header className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.4em] text-cyan-200">Store Matrix</p>
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <h2 className={`flex items-center gap-3 ${headingSize} font-black text-white`}>
               <span className={`rounded-full bg-cyan-500/10 ${headingBadge} text-cyan-300`}>🛒</span>

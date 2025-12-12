@@ -16,6 +16,7 @@ type RoomTabProps = {
   handleJoinRoom: (roomId: string) => void;
   mobileShrink?: boolean;
   registerPlayersModalTrigger?: (open: (() => void) | null) => void;
+  onPlayersModalVisibilityChange?: (isOpen: boolean) => void;
   currentUser?: {
     _id?: string;
     id?: string;
@@ -113,7 +114,7 @@ const PLAYER_DIRECTORY_STATUS_ENDPOINT = PUBLIC_PRESENCE_BASE_URL
 let hasLoggedMissingPlayerDirectoryEndpoint = false;
 
 
-export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink, registerPlayersModalTrigger, currentUser }: RoomTabProps) {
+export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, handleJoinRoom, mobileShrink, registerPlayersModalTrigger, onPlayersModalVisibilityChange, currentUser }: RoomTabProps) {
 
   // Skeleton loading state
   const [loadingRooms, setLoadingRooms] = useState(true);
@@ -180,6 +181,17 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   useEffect(() => {
     showPlayersModalRef.current = showPlayersModal;
   }, [showPlayersModal]);
+
+  useEffect(() => {
+    onPlayersModalVisibilityChange?.(showPlayersModal);
+  }, [showPlayersModal, onPlayersModalVisibilityChange]);
+
+  useEffect(() => {
+    if (!onPlayersModalVisibilityChange) return;
+    return () => {
+      onPlayersModalVisibilityChange(false);
+    };
+  }, [onPlayersModalVisibilityChange]);
 
   useEffect(() => {
     directoryTabRef.current = directoryTab;
@@ -327,17 +339,21 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     ? 'flex-1 min-w-[200px] px-2 flex flex-col justify-between'
     : 'flex-1 px-4 flex flex-col justify-between';
   const listGridClass = effectiveMobileShrink
-    ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center'
+    ? 'grid grid-cols-4 gap-3 justify-items-center'
     : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center';
-  const roomCardWrapperClass = `flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-xl ${effectiveMobileShrink ? 'gap-1 text-sm' : ''}`;
-  const roomTileBaseClass = `${effectiveMobileShrink ? 'w-20 h-20 text-2xl' : 'w-24 h-24 text-3xl'} rounded-2xl flex items-center justify-center text-gray-100 mb-2 relative border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.35)]`;
-  const createTileClass = `${effectiveMobileShrink ? 'w-20 h-20 text-3xl' : 'w-24 h-24 text-4xl'} rounded-2xl flex items-center justify-center text-white font-semibold mb-2 border border-white/15 bg-gradient-to-br from-blue-500/70 to-indigo-600/70 shadow-[0_15px_40px_rgba(37,99,235,0.35)] transition-all duration-200 hover:scale-105`;
-  const skeletonTileClass = `${effectiveMobileShrink ? 'w-20 h-20' : 'w-24 h-24'} rounded-xl mb-2 flex items-center justify-center`;
-  const skeletonInnerTileClass = `${effectiveMobileShrink ? 'w-14 h-14' : 'w-16 h-16'} rounded grid place-items-center`;
-  const skeletonLabelClass = `${effectiveMobileShrink ? 'h-3 w-16' : 'h-4 w-20'} rounded`;
-  const roomNameClass = `${effectiveMobileShrink ? 'text-sm' : 'text-base'} text-gray-200 text-center`;
-  const roomModeLabelClass = `${effectiveMobileShrink ? 'text-[10px]' : 'text-xs'} text-gray-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
-  const waitingBadgeTextClass = `${effectiveMobileShrink ? 'text-[10px]' : 'text-xs'} text-yellow-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
+  const roomCardWrapperClass = `flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-xl ${effectiveMobileShrink ? 'gap-0.5 text-[11px]' : ''}`;
+  const roomTileBaseClass = `${effectiveMobileShrink ? 'w-16 h-16 text-xl' : 'w-24 h-24 text-3xl'} rounded-2xl flex items-center justify-center text-gray-100 mb-2 relative border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.35)]`;
+  const createTileClass = `${effectiveMobileShrink ? 'w-16 h-16 text-2xl' : 'w-24 h-24 text-4xl'} rounded-2xl flex items-center justify-center text-white font-semibold mb-2 border border-white/15 bg-gradient-to-br from-blue-500/70 to-indigo-600/70 shadow-[0_15px_40px_rgba(37,99,235,0.35)] transition-all duration-200 hover:scale-105`;
+  const skeletonTileClass = `${effectiveMobileShrink ? 'w-16 h-16' : 'w-24 h-24'} rounded-xl mb-2 flex items-center justify-center`;
+  const skeletonInnerTileClass = `${effectiveMobileShrink ? 'w-12 h-12' : 'w-16 h-16'} rounded grid place-items-center`;
+  const skeletonLabelClass = `${effectiveMobileShrink ? 'h-2.5 w-14' : 'h-4 w-20'} rounded`;
+  const roomNameClass = `${effectiveMobileShrink ? 'text-[11px]' : 'text-base'} text-gray-200 text-center`;
+  const roomModeLabelClass = `${effectiveMobileShrink ? 'text-[9px]' : 'text-xs'} text-gray-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
+  const waitingBadgeTextClass = `${effectiveMobileShrink ? 'text-[9px]' : 'text-xs'} text-yellow-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
+  const competingBadgeTextClass = `${effectiveMobileShrink ? 'text-[9px]' : 'text-xs'} text-rose-300 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
+  const roomListContainerClass = effectiveMobileShrink
+    ? 'mt-1 max-h-[65vh] overflow-y-auto pr-1'
+    : 'mt-4 min-h-[520px] max-h-[70vh] overflow-y-auto pr-2';
   const playersModalContainerClass = effectiveMobileShrink
     ? 'w-full max-w-[99vw] sm:max-w-[760px] mx-1 rounded-2xl border border-white/10 bg-slate-900/95 px-5 pt-4 pb-5 text-white shadow-2xl transition-all duration-200 flex flex-col'
     : 'w-full max-w-3xl sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-4 rounded-2xl border border-white/10 bg-slate-900/95 px-6 sm:px-8 pt-5 pb-6 text-white shadow-2xl transition-all duration-200 overflow-hidden flex flex-col';
@@ -1133,6 +1149,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const privateRoomCount = activeRooms.reduce((total, roomId) => {
     return roomMetas[roomId]?.password ? total + 1 : total;
   }, 0);
+  const totalRoomCount = activeRooms.length + competingRooms.length;
   const statusChips = [
     { label: 'Phòng hoạt động', value: activeRooms.length, accent: 'text-emerald-300 border-emerald-400/30 bg-emerald-500/5' },
     { label: 'Đang thi đấu', value: competingRooms.length, accent: 'text-rose-300 border-rose-400/30 bg-rose-500/5' },
@@ -1754,21 +1771,10 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           </div>
           <div className="relative z-10 flex flex-col gap-6 text-white">
             <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.45em] text-white/60">
-                <span>Lobby Command</span>
+              <div className="flex flex-wrap items-center gap-3 text-[20px] uppercase tracking-[0.45em] text-white/60">
+                <span>Room Command Center</span>
                 <span className="hidden flex-1 border-t border-white/10 sm:block" />
-                <span className="px-3 py-1 rounded-full border border-white/10 text-[10px] tracking-[0.3em] text-white/70">Realtime</span>
-              </div>
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex flex-col gap-2 max-w-3xl">
-                  <h1 className={`${heroHeadingClass} font-semibold leading-tight`}>Room Command Center</h1>
-                </div>
-                <button
-                  className={`rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-400 ${heroButtonPaddingClass} font-semibold uppercase tracking-wide text-slate-950 shadow-[0_15px_45px_rgba(16,185,129,0.45)] hover:brightness-110 transition`}
-                  onClick={openCreateModal}
-                >
-                  + Tạo phòng
-                </button>
+                <span className="px-3 py-1 rounded-full border border-white/10 text-[12px] tracking-[0.3em] text-white/70">Realtime</span>
               </div>
             </div>
 
@@ -1784,167 +1790,13 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             </div>
 
             <div className="grid gap-5">
-              <section className={`rounded-3xl border border-rose-500/20 bg-gradient-to-br from-rose-900/40 via-slate-900/40 to-slate-950/65 ${sectionPaddingClass}`}>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className={`${sectionHeadingClass} font-semibold`}>Phòng đang thi đấu ({competingRooms.length})</h3>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <div className={`${listGridClass} w-full`}>
-                    {loadingRooms ? (
-                      Array.from({ length: 3 }).map((_, idx) => (
-                        <div key={idx} className={`${roomCardWrapperClass} animate-pulse`}>
-                          <div className={`${skeletonTileClass} bg-red-900/40`}>
-                            <div className={`${skeletonInnerTileClass} bg-red-300/30`} />
-                          </div>
-                          <div className={`${skeletonLabelClass} bg-red-300/30 mb-1`} />
-                        </div>
-                      ))
-                    ) : (
-                      competingRooms.map((room: string) => (
-                        <div
-                          key={room}
-                          className={roomCardWrapperClass}
-                        >
-                          <div className={`${roomTileBaseClass} bg-red-800`}>
-                            {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
-                              roomMetas[room].event.includes('2x2') ? (
-                                <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
-                                  {Array.from({ length: 4 }).map((_, i) => (
-                                    <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                                  ))}
-                                </div>
-                              ) : roomMetas[room].event.includes('4x4') ? (
-                                <div className="grid grid-cols-4 grid-rows-4 gap-0.5 w-16 h-16">
-                                  {Array.from({ length: 16 }).map((_, i) => (
-                                    <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                                  ))}
-                                </div>
-                              ) : roomMetas[room].event.includes('pyraminx') ? (
-                                <div className="w-16 h-16 flex items-center justify-center">
-                                  <div className="w-14 h-14 relative" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#ef4444' }}>
-                                    <div style={{
-                                      position: 'absolute',
-                                      top: 0,
-                                      left: 0,
-                                      width: '100%',
-                                      height: '100%',
-                                      background: 'transparent'
-                                    }}>
-                                      <div style={{
-                                        position: 'absolute',
-                                        top: '33.33%',
-                                        left: '0%',
-                                        width: '100%',
-                                        height: '1px',
-                                        background: '#333',
-                                        transform: 'translateY(-0.5px)'
-                                      }}></div>
-                                      <div style={{
-                                        position: 'absolute',
-                                        top: '66.66%',
-                                        left: '0%',
-                                        width: '100%',
-                                        height: '1px',
-                                        background: '#333',
-                                        transform: 'translateY(-0.5px)'
-                                      }}></div>
-                                      <div style={{
-                                        position: 'absolute',
-                                        top: '0%',
-                                        left: '33.33%',
-                                        width: '1px',
-                                        height: '100%',
-                                        background: '#333',
-                                        transform: 'translateX(-0.5px) rotate(30deg)',
-                                        transformOrigin: 'bottom center'
-                                      }}></div>
-                                      <div style={{
-                                        position: 'absolute',
-                                        top: '0%',
-                                        left: '66.66%',
-                                        width: '1px',
-                                        height: '100%',
-                                        background: '#333',
-                                        transform: 'translateX(-0.5px) rotate(30deg)',
-                                        transformOrigin: 'bottom center'
-                                      }}></div>
-                                      <div style={{
-                                        position: 'absolute',
-                                        top: '0%',
-                                        right: '33.33%',
-                                        width: '1px',
-                                        height: '100%',
-                                        background: '#333',
-                                        transform: 'translateX(0.5px) rotate(-30deg)',
-                                        transformOrigin: 'bottom center'
-                                      }}></div>
-                                      <div style={{
-                                        position: 'absolute',
-                                        top: '0%',
-                                        right: '66.66%',
-                                        width: '1px',
-                                        height: '100%',
-                                        background: '#333',
-                                        transform: 'translateX(0.5px) rotate(-30deg)',
-                                        transformOrigin: 'bottom center'
-                                      }}></div>
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                                  {Array.from({ length: 9 }).map((_, i) => (
-                                    <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                                  ))}
-                                </div>
-                              )
-                            ) : (
-                              <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                                {Array.from({ length: 9 }).map((_, i) => (
-                                  <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                                ))}
-                              </div>
-                            )}
-                            {roomMetas[room]?.isWaitingRoom ? (
-                              <span className="absolute top-1 right-1 text-yellow-300">⏳</span>
-                            ) : (
-                              <span className="absolute top-1 right-1 text-yellow-300"></span>
-                            )}
-                          </div>
-                          <div className={roomNameClass}>
-                            {roomMetas[room]?.isWaitingRoom ? `Phòng chờ ${room}` : (roomMetas[room]?.displayName || room)}
-                          </div>
-                          {roomMetas[room]?.gameMode && (
-                            <div className={roomModeLabelClass}>
-                              {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
-                            </div>
-                          )}
-                          {roomMetas[room]?.isWaitingRoom && (
-                            <div className={waitingBadgeTextClass}>
-                              Đang chờ
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                    {competingRooms.length === 0 && !loadingRooms && (
-                      <div className="col-span-full text-center text-white/70 py-4">
-                        Chưa có phòng nào đang thi đấu
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-
               <section className={`rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-900/40 via-slate-900/50 to-slate-900/60 ${sectionPaddingClass}`}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h3 className={`${sectionHeadingClass} font-semibold`}>Phòng đang hoạt động ({activeRooms.length})</h3>
+                    <h3 className={`${sectionHeadingClass} font-semibold`}>Danh sách phòng ({totalRoomCount})</h3>
                   </div>
                 </div>
-                <div className="mt-4">
+                <div className={roomListContainerClass}>
                   <div className={`${listGridClass} w-full`}>
                     <div onClick={openCreateModal} className={`${roomCardWrapperClass} cursor-pointer`}>
                       <div className={createTileClass}>+</div>
@@ -1960,7 +1812,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                         </div>
                       ))
                     ) : (
-                      activeRooms.map((room: string) => (
+                      <>
+                        {activeRooms.map((room: string) => (
                         <div
                           key={room}
                           onClick={() => {
@@ -2102,17 +1955,142 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                               {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
                             </div>
                           )}
-                          {roomMetas[room]?.isWaitingRoom && (
-                            <div className={waitingBadgeTextClass}>
-                              Đang chờ
+                            {roomMetas[room]?.isWaitingRoom && (
+                              <div className={waitingBadgeTextClass}>
+                                Đang chờ
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {competingRooms.map((room: string) => (
+                          <div
+                            key={`competing-${room}`}
+                            className={roomCardWrapperClass}
+                          >
+                            <div className={`${roomTileBaseClass} bg-red-800`}>
+                              {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
+                                roomMetas[room].event.includes('2x2') ? (
+                                  <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                                    {Array.from({ length: 4 }).map((_, i) => (
+                                      <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                                    ))}
+                                  </div>
+                                ) : roomMetas[room].event.includes('4x4') ? (
+                                  <div className="grid grid-cols-4 grid-rows-4 gap-0.5 w-16 h-16">
+                                    {Array.from({ length: 16 }).map((_, i) => (
+                                      <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                                    ))}
+                                  </div>
+                                ) : roomMetas[room].event.includes('pyraminx') ? (
+                                  <div className="w-16 h-16 flex items-center justify-center">
+                                    <div className="w-14 h-14 relative" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#ef4444' }}>
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        background: 'transparent'
+                                      }}>
+                                        <div style={{
+                                          position: 'absolute',
+                                          top: '33.33%',
+                                          left: '0%',
+                                          width: '100%',
+                                          height: '1px',
+                                          background: '#333',
+                                          transform: 'translateY(-0.5px)'
+                                        }}></div>
+                                        <div style={{
+                                          position: 'absolute',
+                                          top: '66.66%',
+                                          left: '0%',
+                                          width: '100%',
+                                          height: '1px',
+                                          background: '#333',
+                                          transform: 'translateY(-0.5px)'
+                                        }}></div>
+                                        <div style={{
+                                          position: 'absolute',
+                                          top: '0%',
+                                          left: '33.33%',
+                                          width: '1px',
+                                          height: '100%',
+                                          background: '#333',
+                                          transform: 'translateX(-0.5px) rotate(30deg)',
+                                          transformOrigin: 'bottom center'
+                                        }}></div>
+                                        <div style={{
+                                          position: 'absolute',
+                                          top: '0%',
+                                          left: '66.66%',
+                                          width: '1px',
+                                          height: '100%',
+                                          background: '#333',
+                                          transform: 'translateX(-0.5px) rotate(30deg)',
+                                          transformOrigin: 'bottom center'
+                                        }}></div>
+                                        <div style={{
+                                          position: 'absolute',
+                                          top: '0%',
+                                          right: '33.33%',
+                                          width: '1px',
+                                          height: '100%',
+                                          background: '#333',
+                                          transform: 'translateX(0.5px) rotate(-30deg)',
+                                          transformOrigin: 'bottom center'
+                                        }}></div>
+                                        <div style={{
+                                          position: 'absolute',
+                                          top: '0%',
+                                          right: '66.66%',
+                                          width: '1px',
+                                          height: '100%',
+                                          background: '#333',
+                                          transform: 'translateX(0.5px) rotate(-30deg)',
+                                          transformOrigin: 'bottom center'
+                                        }}></div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                                    {Array.from({ length: 9 }).map((_, i) => (
+                                      <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                                    ))}
+                                  </div>
+                                )
+                              ) : (
+                                <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                                  {Array.from({ length: 9 }).map((_, i) => (
+                                    <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                                  ))}
+                                </div>
+                              )}
+                              {roomMetas[room]?.isWaitingRoom ? (
+                                <span className="absolute top-1 right-1 text-yellow-300">⏳</span>
+                              ) : (
+                                <span className="absolute top-1 right-1 text-yellow-300"></span>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      ))
+                            <div className={roomNameClass}>
+                              {roomMetas[room]?.isWaitingRoom ? `Phòng chờ ${room}` : (roomMetas[room]?.displayName || room)}
+                            </div>
+                            {roomMetas[room]?.gameMode && (
+                              <div className={roomModeLabelClass}>
+                                {roomMetas[room].gameMode === '2vs2' ? '2vs2' : '1vs1'}
+                              </div>
+                            )}
+                            <div className={competingBadgeTextClass}>
+                              Đang thi đấu
+                            </div>
+                          </div>
+                        ))}
+                      </>
                     )}
-                    {activeRooms.length === 0 && !loadingRooms && (
+                    {totalRoomCount === 0 && !loadingRooms && (
                       <div className="col-span-full text-center text-white/70 py-5">
-                        Chưa có phòng nào đang hoạt động
+                        Chưa có phòng nào 
                       </div>
                     )}
                   </div>

@@ -138,6 +138,8 @@ function LobbyContent() {
     return match ? decodeURIComponent(match[1]) : null;
   };
 
+
+  
   const setCookie = (name: string, value: string, days = 365) => {
     if (typeof document === "undefined") return;
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
@@ -223,17 +225,50 @@ function LobbyContent() {
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
-  const [isPortrait, setIsPortrait] = useState(false);
-  const [mobileShrink, setMobileShrink] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [customBg, setCustomBg] = useState<string | null>(null);
   const [bgError, setBgError] = useState<string>("");
   const [loadingBg, setLoadingBg] = useState(false);
   const [playersModalTrigger, setPlayersModalTrigger] = useState<(() => void) | null>(null);
+  const [isPlayersModalOpen, setIsPlayersModalOpen] = useState(false);
   // Lấy customBg từ user profile (MongoDB)
 
+
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
+  const [isCompactWidth, setIsCompactWidth] = useState(false);
+  const [mobileShrink, setMobileShrink] = useState(false);
+  useEffect(() => {
+    function checkDevice() {
+      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+      const viewportWidth = window.innerWidth;
+  const enableMobileLayout = mobile && viewportWidth >= 768;
+  setIsMobileDevice(mobile);
+  setIsMobile(enableMobileLayout);
+      const portrait = window.innerHeight > window.innerWidth;
+  setIsPortrait(mobile ? portrait : false);
+      setMobileShrink(false);
+      setIsMobileLandscape(mobile && !portrait);
+    }
+    if (typeof window !== 'undefined') {
+      checkDevice();
+      window.addEventListener('resize', checkDevice);
+      window.addEventListener('orientationchange', checkDevice);
+      return () => {
+        window.removeEventListener('resize', checkDevice);
+        window.removeEventListener('orientationchange', checkDevice);
+      };
+    }
+  }, []);
+
+  const mobileShrink1 = isMobileLandscape || isCompactWidth;
+  useEffect(() => {
+    if (!isMobile) {
+      setIsNavOpen(false);
+    }
+  }, [isMobile]);
   const handleTabSelect = (nextTab: TabKey) => {
     setTab(nextTab);
     if (isMobile) {
@@ -281,16 +316,25 @@ function LobbyContent() {
   const handleRegisterPlayersModal = useCallback((fn: (() => void) | null) => {
     setPlayersModalTrigger(() => fn);
   }, []);
-  const showPlayersButton = Boolean(playersModalTrigger) && !PLAYER_BUTTON_HIDDEN_TABS.includes(tab);
+  const handlePlayersModalVisibilityChange = useCallback((isOpen: boolean) => {
+    setIsPlayersModalOpen(isOpen);
+  }, []);
+  const showPlayersButton = Boolean(playersModalTrigger) && !PLAYER_BUTTON_HIDDEN_TABS.includes(tab) && !isPlayersModalOpen;
 
   const renderNavButtons = (className?: string, collapsed = false) => (
     <div className={`flex flex-col gap-1 ${className ?? ""}`}>
       {navItems.map(item => {
         const isActive = tab === item.id;
         const baseClasses = collapsed
-          ? "flex items-center justify-center rounded-xl px-2 py-2.5 text-sm font-medium transition-colors"
-          : "flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition-colors md:gap-3 md:px-4 md:py-2.5 md:text-sm";
-        const iconSizing = collapsed ? "h-10 w-10" : "h-8 w-8 md:h-9 md:w-9";
+          ? "flex items-center justify-center rounded-xl px-2 py-2 text-sm font-medium transition-colors"
+          : mobileShrink1
+            ? "flex items-center gap-1 rounded-xl px-2.5 py-1.75 text-[11px] font-medium transition-colors"
+            : "flex items-center gap-2.5 rounded-2xl px-4.5 py-3 text-base font-semibold transition-colors";
+        const iconSizing = collapsed
+          ? (mobileShrink1 ? "h-7.5 w-7.5" : "h-13 w-13")
+          : (mobileShrink1
+            ? "h-7.5 w-7.5"
+            : "h-12 w-12");
         return (
           <button
             key={item.id}
@@ -448,33 +492,7 @@ function LobbyContent() {
     setLoadingBg(false);
   };
 
-  useEffect(() => {
-    function checkDevice() {
-      const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-      const viewportWidth = window.innerWidth;
-  const enableMobileLayout = mobile && viewportWidth >= 768;
-  setIsMobileDevice(mobile);
-  setIsMobile(enableMobileLayout);
-      const portrait = window.innerHeight > window.innerWidth;
-  setIsPortrait(mobile ? portrait : false);
-      setMobileShrink(false);
-    }
-    if (typeof window !== 'undefined') {
-      checkDevice();
-      window.addEventListener('resize', checkDevice);
-      window.addEventListener('orientationchange', checkDevice);
-      return () => {
-        window.removeEventListener('resize', checkDevice);
-        window.removeEventListener('orientationchange', checkDevice);
-      };
-    }
-  }, []);
 
-  useEffect(() => {
-    if (!isMobile) {
-      setIsNavOpen(false);
-    }
-  }, [isMobile]);
 
   // State theo dõi trạng thái toàn màn hình
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -830,7 +848,7 @@ function LobbyContent() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto pr-1">
-              {renderNavButtons()}
+                {renderNavButtons()}
             </div>
             <div className="mt-4 flex flex-col gap-3 border-t border-white/5 pt-4">
               <button
@@ -1023,6 +1041,7 @@ function LobbyContent() {
                     mobileShrink={mobileShrink}
                     currentUser={user}
                     registerPlayersModalTrigger={handleRegisterPlayersModal}
+                    onPlayersModalVisibilityChange={handlePlayersModalVisibilityChange}
                   />
                   {joinError && <div className="mt-3 text-center text-sm text-red-400">{joinError}</div>}
                 </div>
