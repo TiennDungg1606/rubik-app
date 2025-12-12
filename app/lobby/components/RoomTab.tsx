@@ -343,6 +343,51 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center';
   const roomCardWrapperClass = `flex flex-col items-center transition-transform duration-200 hover:scale-105 hover:shadow-xl ${effectiveMobileShrink ? 'gap-0.5 text-[11px]' : ''}`;
   const roomTileBaseClass = `${effectiveMobileShrink ? 'w-16 h-16 text-xl' : 'w-24 h-24 text-3xl'} rounded-2xl flex items-center justify-center text-gray-100 mb-2 relative border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.35)]`;
+  const eventGridSizeClass = effectiveMobileShrink ? 'w-12 h-12' : 'w-16 h-16';
+  const eventGridGapClass = effectiveMobileShrink ? 'gap-0.5' : 'gap-1';
+  const denseEventGridGapClass = effectiveMobileShrink ? 'gap-[2px]' : 'gap-0.5';
+  const pyraminxSizeClass = effectiveMobileShrink ? 'w-10 h-10' : 'w-14 h-14';
+  const relayMiniSizes = effectiveMobileShrink
+    ? { top: 18, left: 20, right: 22 }
+    : { top: 26, left: 30, right: 34 };
+  const relayMiniGap = effectiveMobileShrink ? 0.6 : 1.1;
+  const renderRelayPreview = (squareColorClass: string) => {
+    const buildMiniGrid = (dimension: number, size: number, keyPrefix: string) => (
+      <div
+        key={keyPrefix}
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          display: 'grid',
+          gridTemplateColumns: `repeat(${dimension}, 1fr)`,
+          gridTemplateRows: `repeat(${dimension}, 1fr)`,
+          gap: `${relayMiniGap}px`
+        }}
+      >
+        {Array.from({ length: dimension * dimension }).map((_, idx) => (
+          <div
+            key={`${keyPrefix}-${idx}`}
+            className={`${squareColorClass} rounded-sm opacity-80`}
+            style={{ width: '100%', height: '100%' }}
+          />
+        ))}
+      </div>
+    );
+
+    return (
+      <div className={`${eventGridSizeClass} relative`}>
+        <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translate(-50%, 0)' }}>
+          {buildMiniGrid(2, relayMiniSizes.top, 'relay-top')}
+        </div>
+        <div style={{ position: 'absolute', bottom: 0, left: 0 }}>
+          {buildMiniGrid(3, relayMiniSizes.left, 'relay-left')}
+        </div>
+        <div style={{ position: 'absolute', bottom: 0, right: 0 }}>
+          {buildMiniGrid(4, relayMiniSizes.right, 'relay-right')}
+        </div>
+      </div>
+    );
+  };
   const createTileClass = `${effectiveMobileShrink ? 'w-16 h-16 text-2xl' : 'w-24 h-24 text-4xl'} rounded-2xl flex items-center justify-center text-white font-semibold mb-2 border border-white/15 bg-gradient-to-br from-blue-500/70 to-indigo-600/70 shadow-[0_15px_40px_rgba(37,99,235,0.35)] transition-all duration-200 hover:scale-105`;
   const skeletonTileClass = `${effectiveMobileShrink ? 'w-16 h-16' : 'w-24 h-24'} rounded-xl mb-2 flex items-center justify-center`;
   const skeletonInnerTileClass = `${effectiveMobileShrink ? 'w-12 h-12' : 'w-16 h-16'} rounded grid place-items-center`;
@@ -1842,22 +1887,24 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                           <div className={`${roomTileBaseClass} ${
                             roomMetas[room]?.isWaitingRoom ? 'bg-yellow-800' : 'bg-blue-800'
                           }`}>
-                            {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
-                              roomMetas[room].event.includes('2x2') ? (
-                                <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                            {roomMetas[room] && typeof roomMetas[room].event === 'string' ? (
+                              roomMetas[room].event.includes('relay') ? (
+                                renderRelayPreview('bg-gray-300')
+                              ) : roomMetas[room].event.includes('2x2') ? (
+                                <div className={`grid grid-cols-2 grid-rows-2 ${eventGridGapClass} ${eventGridSizeClass}`}>
                                   {Array.from({ length: 4 }).map((_, i) => (
                                     <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
                                   ))}
                                 </div>
                               ) : roomMetas[room].event.includes('4x4') ? (
-                                <div className="grid grid-cols-4 grid-rows-4 gap-0.5 w-16 h-16">
+                                <div className={`grid grid-cols-4 grid-rows-4 ${denseEventGridGapClass} ${eventGridSizeClass}`}>
                                   {Array.from({ length: 16 }).map((_, i) => (
                                     <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
                                   ))}
                                 </div>
                               ) : roomMetas[room].event.includes('pyraminx') ? (
-                                <div className="w-16 h-16 flex items-center justify-center">
-                                  <div className="w-14 h-14 relative" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#d1d5db' }}>
+                                <div className={`${eventGridSizeClass} flex items-center justify-center`}>
+                                  <div className={`${pyraminxSizeClass} relative`} style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#d1d5db' }}>
                                     <div style={{
                                       position: 'absolute',
                                       top: 0,
@@ -1928,14 +1975,14 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                                   </div>
                                 </div>
                               ) : (
-                                <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                                <div className={`grid grid-cols-3 grid-rows-3 ${eventGridGapClass} ${eventGridSizeClass}`}>
                                   {Array.from({ length: 9 }).map((_, i) => (
                                     <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
                                   ))}
                                 </div>
                               )
                             ) : (
-                              <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                              <div className={`grid grid-cols-3 grid-rows-3 ${eventGridGapClass} ${eventGridSizeClass}`}>
                                 {Array.from({ length: 9 }).map((_, i) => (
                                   <div key={i} className="bg-gray-300 rounded-sm w-full h-full opacity-80"></div>
                                 ))}
@@ -1946,6 +1993,11 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                             ) : (
                               <span className="absolute top-1 right-1 text-green-300"></span>
                             )}
+                              {roomMetas[room]?.password && (
+                                <span className="absolute top-1 left-1 text-white text-opacity-80">
+                                  🔒
+                                </span>
+                              )}
                           </div>
                           <div className={roomNameClass}>
                             {roomMetas[room]?.displayName || room}
@@ -1968,22 +2020,24 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                             className={roomCardWrapperClass}
                           >
                             <div className={`${roomTileBaseClass} bg-red-800`}>
-                              {roomMetas[room] && roomMetas[room].event && typeof roomMetas[room].event === 'string' ? (
-                                roomMetas[room].event.includes('2x2') ? (
-                                  <div className="grid grid-cols-2 grid-rows-2 gap-1 w-16 h-16">
+                              {roomMetas[room] && typeof roomMetas[room].event === 'string' ? (
+                                roomMetas[room].event.includes('relay') ? (
+                                  renderRelayPreview('bg-red-300')
+                                ) : roomMetas[room].event.includes('2x2') ? (
+                                  <div className={`grid grid-cols-2 grid-rows-2 ${eventGridGapClass} ${eventGridSizeClass}`}>
                                     {Array.from({ length: 4 }).map((_, i) => (
                                       <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
                                     ))}
                                   </div>
                                 ) : roomMetas[room].event.includes('4x4') ? (
-                                  <div className="grid grid-cols-4 grid-rows-4 gap-0.5 w-16 h-16">
+                                  <div className={`grid grid-cols-4 grid-rows-4 ${denseEventGridGapClass} ${eventGridSizeClass}`}>
                                     {Array.from({ length: 16 }).map((_, i) => (
                                       <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
                                     ))}
                                   </div>
                                 ) : roomMetas[room].event.includes('pyraminx') ? (
-                                  <div className="w-16 h-16 flex items-center justify-center">
-                                    <div className="w-14 h-14 relative" style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#ef4444' }}>
+                                  <div className={`${eventGridSizeClass} flex items-center justify-center`}>
+                                    <div className={`${pyraminxSizeClass} relative`} style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)', background: '#ef4444' }}>
                                       <div style={{
                                         position: 'absolute',
                                         top: 0,
@@ -2054,23 +2108,28 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
+                                  <div className={`grid grid-cols-3 grid-rows-3 ${eventGridGapClass} ${eventGridSizeClass}`}>
                                     {Array.from({ length: 9 }).map((_, i) => (
                                       <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
                                     ))}
                                   </div>
-                                )
-                              ) : (
-                                <div className="grid grid-cols-3 grid-rows-3 gap-1 w-16 h-16">
-                                  {Array.from({ length: 9 }).map((_, i) => (
-                                    <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
-                                  ))}
-                                </div>
+                                ) : (
+                                  <div className={`grid grid-cols-3 grid-rows-3 ${eventGridGapClass} ${eventGridSizeClass}`}>
+                                    {Array.from({ length: 9 }).map((_, i) => (
+                                      <div key={i} className="bg-red-300 rounded-sm w-full h-full opacity-80"></div>
+                                    ))}
+                                  </div>
+                                )}
                               )}
                               {roomMetas[room]?.isWaitingRoom ? (
                                 <span className="absolute top-1 right-1 text-yellow-300">⏳</span>
                               ) : (
                                 <span className="absolute top-1 right-1 text-yellow-300"></span>
+                              )}
+                              {roomMetas[room]?.password && (
+                                <span className="absolute top-1 left-1 text-white text-opacity-80">
+                                  🔒
+                                </span>
                               )}
                             </div>
                             <div className={roomNameClass}>
