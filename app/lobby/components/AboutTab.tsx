@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 const metrics = [
   { label: "Ra mắt", value: "07/2025" },
   { label: "Phiên bản", value: "v0.8.5" },
-  { label: "Người dùng", value: "436" },
   { label: "Số lượt giải", value: "2K+" }
 ];
 
@@ -113,7 +112,7 @@ export default function AboutTab() {
   const subtextSize = mobileShrink ? "text-sm" : "text-base";
 
   return (
-    <section className="relative w-full">
+    <section className="relative w-full py-4">
       <div className={`relative rounded-3xl`}>
         <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden>
           <div className="absolute -top-20 right-8 h-64 w-64 rounded-full bg-[radial-gradient(circle,_rgba(59,130,246,0.35),_transparent_60%)] blur-3xl" />

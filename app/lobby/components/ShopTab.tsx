@@ -210,7 +210,7 @@ export default function ShopTab() {
   const proTipPadding = mobileShrink ? "p-3" : "p-4";
 
   return (
-    <section className="relative w-full space-y-8">
+    <section className="relative w-full py-4">
       <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden>
         <div className="absolute -top-40 right-10 h-72 w-72 rounded-full bg-[radial-gradient(circle,_rgba(59,130,246,0.35),_transparent_60%)] blur-3xl" />
         <div className="absolute bottom-0 left-0 h-80 w-80 rounded-full bg-[radial-gradient(circle,_rgba(236,72,153,0.25),_transparent_60%)] blur-3xl" />

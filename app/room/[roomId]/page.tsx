@@ -1998,9 +1998,10 @@ useEffect(() => {
     if (roomId && userId) {
       socket.emit('leave-room', { roomId, userId });
     }
-    setShowLeaveModal(false);
-    router.replace('/lobby');
-    router.refresh();
+    window.location.href = '/lobby';
+    setTimeout(() => {
+      window.location.reload();
+    }, 3000);
   }
 
   // Hàm xử lý chế độ typing

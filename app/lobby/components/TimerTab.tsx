@@ -1616,11 +1616,8 @@ export default function TimerTab() {
 
   return (
     <>
-      <style>{digitalFontStyle}</style>
-      
-
-      
-      <div className="w-full h-full bg-transparent">
+      <style>{digitalFontStyle}</style>  
+      <div className="w-full h-full bg-transparent py-4">
         {/* Top Bar */}
         <div className="flex items-center justify-between p-1 sm:p-2 bg-gray-800/80 backdrop-blur-sm rounded-lg mb-2 sm:mb-2">
                       <div className="flex items-center gap-1 sm:gap-4">

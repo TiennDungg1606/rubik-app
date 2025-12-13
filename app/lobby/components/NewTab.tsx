@@ -77,7 +77,7 @@ export default function NewTab() {
   const dualPanelGridCols = mobileShrink ? "grid-cols-2" : "lg:grid-cols-2";
 
   return (
-    <section className="relative w-full space-y-8">
+    <section className="relative w-full">
       <div className={`${mobileShrink ? "px-2" : "px-1"} `}>
         <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden>
           <div className="absolute inset-y-0 w-1/2 rounded-full bg-[radial-gradient(circle_at_top,_rgba(59,130,246,.35),_transparent_60%)] blur-3xl" />

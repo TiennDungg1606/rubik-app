@@ -360,8 +360,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const waitingBadgeTextClass = `${effectiveMobileShrink ? 'text-[9px]' : 'text-xs'} text-yellow-400 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
   const competingBadgeTextClass = `${effectiveMobileShrink ? 'text-[9px]' : 'text-xs'} text-rose-300 ${effectiveMobileShrink ? 'mt-0.5' : 'mt-1'}`;
   const roomListContainerClass = effectiveMobileShrink
-    ? 'mt-1 max-h-[65vh] overflow-y-auto pr-1'
-    : 'mt-4 min-h-[520px] max-h-[70vh] overflow-y-auto pr-2';
+    ? 'mt-1 min-h-[200px] max-h-[200px] overflow-y-auto pr-1'
+    : 'mt-4 min-h-[500px] max-h-[500px] overflow-y-auto pr-2';
   const playersModalContainerClass = effectiveMobileShrink
     ? 'w-full max-w-[99vw] sm:max-w-[760px] mx-1 rounded-2xl border border-white/10 bg-slate-900/95 px-5 pt-4 pb-5 text-white shadow-2xl transition-all duration-200 flex flex-col'
     : 'w-full max-w-3xl sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-4 rounded-2xl border border-white/10 bg-slate-900/95 px-6 sm:px-8 pt-5 pb-6 text-white shadow-2xl transition-all duration-200 overflow-hidden flex flex-col';
@@ -1164,7 +1164,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     { label: 'Đang chờ', value: waitingRoomCount, accent: 'text-amber-200 border-amber-400/30 bg-amber-500/5' },
     { label: 'Phòng khóa', value: privateRoomCount, accent: 'text-sky-200 border-sky-400/30 bg-sky-500/5' }
   ];
-  const heroPaddingClass = effectiveMobileShrink ? 'p-1' : 'p-2';
+  const heroPaddingClass = effectiveMobileShrink ? 'p-1' : 'p-1';
   const heroHeadingClass = effectiveMobileShrink ? 'text-xl' : 'text-4xl';
   const statusChipPaddingClass = effectiveMobileShrink ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-3';
   const statusChipValueClass = effectiveMobileShrink ? 'text-lg' : 'text-2xl';
@@ -1172,7 +1172,8 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const statusChipGapClass = effectiveMobileShrink ? 'gap-2' : 'gap-3';
   const sectionHeadingClass = effectiveMobileShrink ? 'text-lg' : 'text-2xl';
   const heroButtonPaddingClass = effectiveMobileShrink ? 'px-3.5 py-2 text-xs' : 'px-5 py-3 text-sm';
-  const sectionPaddingClass = effectiveMobileShrink ? 'p-3' : 'p-6';
+  const sectionPaddingClass = effectiveMobileShrink ? 'p-3' : 'p-5';
+  const sectionPaddingClass1 = effectiveMobileShrink ? 'p-2 text-[13px]' : 'p-3 text-sm';
 
   return (
   <div className="w-full flex flex-col items-center justify-center">
@@ -1183,7 +1184,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           style={{ minHeight: '100dvh', minWidth: '100vw', padding: 0 }}
         >
           <div
-            className={`rounded-[28px] border border-white/10 bg-gradient-to-br from-slate-950/95 via-slate-900/80 to-slate-950/95 shadow-[0_40px_120px_rgba(0,0,0,0.5)] backdrop-blur-2xl box-border transform transition-all duration-200 ${modalContainerClasses} ${modalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+            className={`rounded-[28px] border border-white/10 bg-gradient-to-br from-slate-950/95 via-slate-900/80 to-slate-950/95 shadow-[0_40px_120px_rgba(0,0,0,0.5)] backdrop-blur-2xl box-border transform transition-all duration-200 ${modalContainerClasses} ${modalVisible ? 'scale-100 opacity-100' : 'scale-100 opacity-0'}`}
             style={{
               overflowY: 'auto',
               borderRadius: 16,
@@ -1773,11 +1774,11 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
 
       <section className="relative w-full">
         <div className={`relative w-full ${heroPaddingClass}`}>
-          <div className="pointer-events-none absolute inset-0 opacity-60">
+          <div className="pointer-events-none absolute inset-0 opacity-90">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.15),_transparent_55%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(236,72,153,0.12),_transparent_45%)]" />
           </div>
-          <div className="relative z-10 flex flex-col gap-6 text-white">
+          <div className="relative z-10 flex flex-col gap-4 text-white">
             <div className="flex flex-col gap-4">
               <div className={`flex flex-wrap items-center gap-3 ${effectiveMobileShrink ? 'text-[16px]' : 'text-[20px]'} uppercase tracking-[0.45em] text-white/60`}>
                 <span>Room Command Center</span>
@@ -1803,13 +1804,14 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
                   <div>
                     <h3 className={`${sectionHeadingClass} font-semibold`}>Danh sách phòng ({totalRoomCount})</h3>
                   </div>
+                    <button>
+                      <span className={`rounded-3xl border-emerald-200/80 text-white bg-gradient-to-br from-emerald-500/80 to-teal-500/70 shadow-[0_12px_24px_rgba(16,185,129,0.35)] ${sectionPaddingClass1}`} onClick={openCreateModal}>
+                       + Tạo phòng
+                      </span>
+                    </button>
                 </div>
                 <div className={roomListContainerClass}>
                   <div className={`${listGridClass} w-full`}>
-                    <div onClick={openCreateModal} className={`${roomCardWrapperClass} cursor-pointer`}>
-                      <div className={createTileClass}>+</div>
-                      <div className={roomNameClass}>Tạo phòng</div>
-                    </div>
                     {loadingRooms ? (
                       Array.from({ length: 3 }).map((_, idx) => (
                         <div key={idx} className={`${roomCardWrapperClass} animate-pulse`}>

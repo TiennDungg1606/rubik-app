@@ -73,7 +73,7 @@ export default function PracticeTab() {
   // Các trường hợp khác sẽ cập nhật sau
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-4">
+    <div className="w-full mx-auto py-5">
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <select
