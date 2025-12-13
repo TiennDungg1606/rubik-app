@@ -2001,7 +2001,7 @@ useEffect(() => {
     window.location.href = '/lobby';
     setTimeout(() => {
       window.location.reload();
-    }, 3000);
+    }, 4000);
   }
 
   // Hàm xử lý chế độ typing
@@ -2868,7 +2868,7 @@ function formatStat(val: number|null, showDNF: boolean = false) {
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black">
         <video
           ref={loadingVideoRef}
-          src="/loadingroom.mp4"
+          src="https://pub-834d63fa93de4ad29ea9054c46a9677f.r2.dev/loadingroom.mp4"
           autoPlay
           loop
           muted

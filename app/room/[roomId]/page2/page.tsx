@@ -2744,7 +2744,7 @@ useEffect(() => {
     window.location.href = '/lobby';
     setTimeout(() => {
       window.location.reload();
-    }, 3000);
+    }, 4000);
   }
 
   function handleRematch2v2Request() {
@@ -3732,7 +3732,7 @@ const clampPlayerIndex = (idx: number) => {
         {/* Video loading đã được bật lại và luôn muted */}
         <video
           ref={loadingVideoRef}
-          src="/loadingroom.mp4"
+          src="https://pub-834d63fa93de4ad29ea9054c46a9677f.r2.dev/loadingroom.mp4"
           autoPlay
           loop
           muted

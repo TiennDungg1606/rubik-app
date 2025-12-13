@@ -4,9 +4,14 @@ declare global {
 "use client"
 
 
+import Image from "next/image";
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react";
 import AuthForm from "@/components/AuthForm";
+import avatarImage from "@/public/myavatar.jpg";
+import timerPreviewImage from "@/public/anhtimer.png";
+import roomPreviewImage from "@/public/anhphong.png";
+import algPreviewImage from "@/public/anhalg.png";
 
 import { useSessionUser } from "./SessionProviderWrapper";
 
@@ -168,7 +173,7 @@ export default function HomePage() {
       <div className="fixed inset-0 z-[9999] flex items-center justify-center">
         {/* Video loading đã được comment lại - 1 tuần sau sẽ gỡ comment */}
         <video
-          src="/rubik-bg.mp4"
+          src="https://pub-834d63fa93de4ad29ea9054c46a9677f.r2.dev/rubik-bg.mp4"
           autoPlay
           loop
           muted
@@ -316,10 +321,12 @@ export default function HomePage() {
             <div className="flex flex-col gap-6 md:flex-row md:items-center">
               <div className="flex items-center gap-4">
                 <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-lg md:h-24 md:w-24">
-                  <img
-                    src="/myavatar.jpg"
+                  <Image
+                    src={avatarImage}
                     alt="Chu Tiến Dũng"
                     className="h-full w-full object-cover"
+                    sizes="(max-width: 768px) 80px, 96px"
+                    priority
                   />
                 </div>
                 <div>
@@ -353,11 +360,18 @@ export default function HomePage() {
                 
           <div className={`grid mt-12 ${effectiveMobileShrink ? 'grid-cols-1 gap-8' : 'gap-30 lg:grid-cols-[0.9fr_minmax(0,0.9fr)]'}`}> 
               <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
-                <img
-                  src="/anhtimer.png"
+                <Image
+                  src={timerPreviewImage}
                   alt="RubikApp timer preview"
                   className="rounded-[18px] border border-emerald-200 shadow-lg w-full object-cover"
-                  style={{ background: '#fff', minHeight: effectiveMobileShrink ? '280px' : '380px', minWidth: effectiveMobileShrink ? '500px' : '700px' }}/>
+                  sizes="(max-width: 768px) 90vw, (max-width: 1280px) 60vw, 50vw"
+                  style={{
+                    background: '#fff',
+                    width: '100%',
+                    minHeight: effectiveMobileShrink ? '210px' : '380px',
+                    minWidth: effectiveMobileShrink ? 'auto' : '700px'
+                  }}
+                />
                 </div>
             <div className="space-y-5">
               <div>
@@ -391,11 +405,18 @@ export default function HomePage() {
               </ul>
             </div>
               <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
-                <img
-                  src="/anhphong.png"
+                <Image
+                  src={roomPreviewImage}
                   alt="Room tab preview"
                   className="rounded-[18px] border border-emerald-200 shadow-lg w-full object-cover"
-                  style={{ background: '#fff', minHeight: effectiveMobileShrink ? '280px' : '380px', minWidth: effectiveMobileShrink ? '700px' : '700px'}}
+                  sizes="(max-width: 768px) 90vw, (max-width: 1280px) 60vw, 50vw"
+                  style={{
+                    background: '#fff',
+                    width: '100%',
+                    minHeight: effectiveMobileShrink ? '210px' : '380px',
+                    minWidth: effectiveMobileShrink ? 'auto' : '700px'
+                  }}
+                  loading="lazy"
                 />
               </div>
           </div>
@@ -403,11 +424,18 @@ export default function HomePage() {
           {/* Practice Trainer (Việt hóa cho tab Practice) */}
           <div className={`grid items-center mt-12 ${effectiveMobileShrink ? 'grid-cols-1 gap-8' : 'gap-30 lg:grid-cols-[0.9fr_minmax(0,0.9fr)]'}`}> 
               <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
-              <img
-                src="/anhalg.png"
+              <Image
+                src={algPreviewImage}
                 alt="Preview luyện thuật toán"
                 className="rounded-[18px] border border-emerald-200 shadow-lg w-full object-cover"
-                style={{ background: '#fff', minHeight: effectiveMobileShrink ? '300px' : '380px', minWidth: effectiveMobileShrink ? '520px' : '700px'}}
+                sizes="(max-width: 768px) 90vw, (max-width: 1280px) 60vw, 50vw"
+                style={{
+                  background: '#fff',
+                  width: '100%',
+                  minHeight: effectiveMobileShrink ? '220px' : '380px',
+                  minWidth: effectiveMobileShrink ? 'auto' : '700px'
+                }}
+                loading="lazy"
               />
             </div>
             <div className={`${effectiveMobileShrink ? 'pt-4' : 'pl-10'}`}>
@@ -432,11 +460,18 @@ export default function HomePage() {
                 </div>
               </div>
               <div className={`${effectiveMobileShrink ? 'space-y-2' : 'space-y-3'}`}>
-                <img
-                  src="/giaodien.png"
+                <Image
+                  src={require('@/public/giaodien.png')}
                   alt="Preview giao diện ứng dụng"
                   className="rounded-[18px] border border-emerald-200 shadow-lg w-full object-cover"
-                  style={{ background: '#fff', minHeight: effectiveMobileShrink ? '300px' : '380px', minWidth: effectiveMobileShrink ? '520px' : '700px'}}
+                  sizes="(max-width: 768px) 90vw, (max-width: 1280px) 60vw, 50vw"
+                  style={{
+                    background: '#fff',
+                    width: '100%',
+                    minHeight: effectiveMobileShrink ? '220px' : '380px',
+                    minWidth: effectiveMobileShrink ? 'auto' : '700px'
+                  }}
+                  loading="lazy"
                 />
               </div>            
             </div>

@@ -592,58 +592,41 @@ function LobbyContent() {
     const userId = user?._id || user?.id;
     if (!userId) return;
 
-    const sendHeartbeat = async () => {
-      try {
-        await fetch("/api/presence/heartbeat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId }),
-          keepalive: true
-        });
-      } catch {
-        /* Ignore network errors; a later heartbeat will retry */
-      }
-    };
+    // use WebSocket presence client
+    import("@/lib/wsPresenceClient").then(({ default: wsClient }) => {
+      // ensure connection (will use NEXT_PUBLIC_PRESENCE_WS_URL if set)
+      wsClient.connect();
 
-    const notifyOffline = () => {
-      const payload = JSON.stringify({ userId });
-      try {
-        if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-          navigator.sendBeacon(
-            "/api/presence/offline",
-            new Blob([payload], { type: "application/json" })
-          );
-        } else {
-          fetch("/api/presence/offline", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: payload,
-            keepalive: true
-          }).catch(() => {});
-        }
-      } catch {
-        /* Failing to notify offline is non-critical because TTL will expire */
-      }
-    };
+      const sendHeartbeat = () => {
+        try {
+          wsClient.sendHeartbeat({ userId });
+        } catch (_) {}
+      };
 
-    sendHeartbeat();
-    const intervalId = window.setInterval(sendHeartbeat, PRESENCE_HEARTBEAT_INTERVAL);
+      const notifyOffline = () => {
+        try {
+          wsClient.sendOffline(userId);
+        } catch (_) {}
+      };
 
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        sendHeartbeat();
-      }
-    };
+      // initial heartbeat and interval
+      sendHeartbeat();
+      const intervalId = window.setInterval(sendHeartbeat, PRESENCE_HEARTBEAT_INTERVAL);
 
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("beforeunload", notifyOffline);
+      const handleVisibility = () => {
+        if (document.visibilityState === "visible") sendHeartbeat();
+      };
 
-    return () => {
-      clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("beforeunload", notifyOffline);
-      notifyOffline();
-    };
+      document.addEventListener("visibilitychange", handleVisibility);
+      window.addEventListener("beforeunload", notifyOffline);
+
+      return () => {
+        clearInterval(intervalId);
+        document.removeEventListener("visibilitychange", handleVisibility);
+        window.removeEventListener("beforeunload", notifyOffline);
+        notifyOffline();
+      };
+    }).catch(() => {});
   }, [user?._id, user?.id]);
 
   // Kiểm tra tham số tab từ URL và tự động chuyển tab
