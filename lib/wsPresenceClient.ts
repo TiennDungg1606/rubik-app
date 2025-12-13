@@ -33,6 +33,8 @@ class WSPresenceClient {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
       }
+      // Dispatch open event for consumers
+      window.dispatchEvent(new CustomEvent("presence:ws-open"));
     });
 
     this.ws.addEventListener("close", () => {
@@ -97,7 +99,102 @@ class WSPresenceClient {
     }
   }
 
+  queryPresence(userIds: string[]): Promise<Array<{ userId: string; status: "online" | "away" | "busy" | "offline"; lastSeen: number; metadata: Record<string, unknown> | null }>> {
+    return new Promise((resolve, reject) => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        // Try to connect first
+        this.connect();
+        // Wait for connection or reject after timeout
+        const checkReady = () => {
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.queryPresence(userIds).then(resolve).catch(reject);
+          } else {
+            setTimeout(checkReady, 100);
+          }
+        };
+        setTimeout(() => {
+          if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            reject(new Error("WebSocket not connected"));
+          }
+        }, 3000); // Optimized: reduced from 5s to 3s
+        checkReady();
+        return;
+      }
+
+      const requestId = `${Date.now()}-${Math.random()}`;
+      const timeout = setTimeout(() => {
+        window.removeEventListener("presence:message", handler);
+        reject(new Error("Presence query timeout"));
+      }, 5000); // Optimized: reduced from 10s to 5s
+
+      const handler = (event: Event) => {
+        const customEvent = event as CustomEvent;
+        const msg = customEvent.detail;
+        if (msg.type === "presence-response" && msg.requestId === requestId) {
+          clearTimeout(timeout);
+          window.removeEventListener("presence:message", handler);
+          resolve(msg.users || []);
+        } else if (msg.type === "error" && msg.requestId === requestId) {
+          clearTimeout(timeout);
+          window.removeEventListener("presence:message", handler);
+          reject(new Error(msg.error || "Presence query failed"));
+        }
+      };
+
+      window.addEventListener("presence:message", handler);
+
+      try {
+        this.ws.send(JSON.stringify({
+          type: "query-presence",
+          requestId,
+          userIds: userIds.filter(Boolean)
+        }));
+      } catch (err) {
+        clearTimeout(timeout);
+        window.removeEventListener("presence:message", handler);
+        reject(err);
+      }
+    });
+  }
+
+  subscribeFriends(friendIds: string[]): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.connect();
+      // Wait for connection then subscribe
+      const checkAndSubscribe = () => {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          try {
+            this.ws.send(JSON.stringify({
+              type: "subscribe-friends",
+              friendIds: friendIds.filter(Boolean)
+            }));
+          } catch (_) {}
+        } else {
+          setTimeout(checkAndSubscribe, 100);
+        }
+      };
+      setTimeout(checkAndSubscribe, 100);
+      return;
+    }
+
+    try {
+      this.ws.send(JSON.stringify({
+        type: "subscribe-friends",
+        friendIds: friendIds.filter(Boolean)
+      }));
+    } catch (_) {}
+  }
+
+  unsubscribeFriends(): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        this.ws.send(JSON.stringify({ type: "unsubscribe-friends" }));
+      } catch (_) {}
+    }
+  }
+
   close() {
+    this.unsubscribeFriends();
     if (this.ws) {
       try { this.ws.close(); } catch (_) {}
       this.ws = null;

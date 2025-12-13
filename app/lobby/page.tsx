@@ -32,7 +32,7 @@ type TabKey = "new" | "timer" | "room" | "practice" | "shop" | "about";
 
 const ALL_TABS: TabKey[] = ["new", "timer", "room", "practice", "shop", "about"];
 const PLAYER_BUTTON_HIDDEN_TABS: TabKey[] = ["timer", "practice", "shop", "about"];
-const PRESENCE_HEARTBEAT_INTERVAL = 45_000;
+// Heartbeat is now event-driven (on connect/visibility change) instead of periodic
 
 // Component that uses useSearchParams
 function LobbyContent() {
@@ -597,31 +597,38 @@ function LobbyContent() {
       // ensure connection (will use NEXT_PUBLIC_PRESENCE_WS_URL if set)
       wsClient.connect();
 
-      const sendHeartbeat = () => {
-        try {
-          wsClient.sendHeartbeat({ userId });
-        } catch (_) {}
-      };
-
       const notifyOffline = () => {
         try {
           wsClient.sendOffline(userId);
         } catch (_) {}
       };
 
-      // initial heartbeat and interval
-      sendHeartbeat();
-      const intervalId = window.setInterval(sendHeartbeat, PRESENCE_HEARTBEAT_INTERVAL);
-
-      const handleVisibility = () => {
-        if (document.visibilityState === "visible") sendHeartbeat();
+      // Send heartbeat when WebSocket opens (no periodic heartbeat needed)
+      // WebSocket connection itself indicates user is online, heartbeat just sets TTL
+      const handleWsOpen = () => {
+        try {
+          wsClient.sendHeartbeat({ userId, ttlMs: 300000 }); // 5 minutes TTL
+        } catch (_) {}
       };
+
+      // Send heartbeat when tab becomes visible again
+      const handleVisibility = () => {
+        if (document.visibilityState === "visible") {
+          try {
+            wsClient.sendHeartbeat({ userId, ttlMs: 300000 });
+          } catch (_) {}
+        }
+      };
+
+      // Listen for WebSocket open event
+      const handleOpen = () => handleWsOpen();
+      window.addEventListener("presence:ws-open", handleOpen);
 
       document.addEventListener("visibilitychange", handleVisibility);
       window.addEventListener("beforeunload", notifyOffline);
 
       return () => {
-        clearInterval(intervalId);
+        window.removeEventListener("presence:ws-open", handleOpen);
         document.removeEventListener("visibilitychange", handleVisibility);
         window.removeEventListener("beforeunload", notifyOffline);
         notifyOffline();

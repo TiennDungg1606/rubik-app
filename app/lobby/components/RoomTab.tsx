@@ -769,10 +769,6 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
       const normalizedList: FriendEntry[] = (incoming as Array<Record<string, unknown>>)
         .map(friend => {
           const id = typeof friend.id === 'string' ? friend.id : '';
-          const status = typeof friend.status === 'string' &&
-            (friend.status === 'online' || friend.status === 'away' || friend.status === 'busy')
-            ? (friend.status as FriendStatus)
-            : 'offline';
           return {
             id,
             firstName: typeof friend.firstName === 'string' ? friend.firstName : '',
@@ -780,11 +776,48 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
             username: typeof friend.username === 'string' ? friend.username : '',
             avatar: typeof friend.avatar === 'string' && friend.avatar.trim().length > 0 ? friend.avatar : null,
             goal33: typeof friend.goal33 === 'string' ? friend.goal33 : '',
-            status,
-            lastSeen: typeof friend.lastSeen === 'number' ? friend.lastSeen : null
+            status: 'offline' as FriendStatus, // Default, will be updated via WebSocket
+            lastSeen: null
           } satisfies FriendEntry;
         })
         .filter(entry => entry.id);
+
+      // Query presence via WebSocket to avoid FOT (optimized: parallel with subscription)
+      if (normalizedList.length > 0) {
+        try {
+          const wsClient = (await import("@/lib/wsPresenceClient")).default;
+          const friendIds = normalizedList.map(f => f.id);
+          
+          // Query initial presence data
+          const presenceRecords = await wsClient.queryPresence(friendIds);
+          const presenceMap = new Map(
+            presenceRecords.map(record => [record.userId, {
+              status: (record.status === 'online' || record.status === 'away' || record.status === 'busy' 
+                ? record.status 
+                : 'offline') as FriendStatus,
+              lastSeen: record.lastSeen
+            }])
+          );
+          
+          // Merge presence data
+          normalizedList.forEach(friend => {
+            const presence = presenceMap.get(friend.id);
+            if (presence) {
+              friend.status = presence.status;
+              friend.lastSeen = presence.lastSeen;
+            }
+          });
+          
+          // Subscribe for realtime updates (only if modal is open)
+          if (showPlayersModal && directoryTab === 'friends') {
+            wsClient.subscribeFriends(friendIds);
+          }
+        } catch (presenceError) {
+          console.warn('Failed to fetch presence via WebSocket, using offline status', presenceError);
+          // Continue with offline status if WebSocket query fails
+        }
+      }
+
       const nextFingerprint = buildFriendsFingerprint(normalizedList);
       if (friendsCacheRef.current && friendsCacheRef.current.fingerprint === nextFingerprint) {
         friendsCacheRef.current = {
@@ -897,16 +930,111 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
     }
   }, [currentUserId, resetFriendsCache, resetInvitesCache]);
 
+  // Only fetch friends when modal is opened (lazy loading)
   useEffect(() => {
-    if (!showPlayersModal || directoryTab !== 'friends') return;
-    fetchFriends();
-    fetchIncomingInvites();
-    const interval = setInterval(() => {
+    if (!currentUserId) {
+      resetFriendsCache();
+      resetInvitesCache();
+      setFriends([]);
+      setFriendsActiveCount(0);
+      setFriendsTotalCount(0);
+      setIncomingInvites([]);
+      return;
+    }
+    
+    // Only fetch when modal is open and on friends tab
+    if (showPlayersModal && directoryTab === 'friends') {
       fetchFriends();
       fetchIncomingInvites();
-    }, 60_000);
-    return () => clearInterval(interval);
-  }, [directoryTab, fetchFriends, fetchIncomingInvites, showPlayersModal]);
+    }
+  }, [currentUserId, fetchFriends, fetchIncomingInvites, showPlayersModal, directoryTab, resetFriendsCache, resetInvitesCache]);
+
+  // Subscribe/unsubscribe for realtime updates when friends list changes
+  useEffect(() => {
+    if (!showPlayersModal || directoryTab !== 'friends' || friends.length === 0) {
+      // Unsubscribe when modal closes or no friends
+      import("@/lib/wsPresenceClient").then(({ default: wsClient }) => {
+        wsClient.unsubscribeFriends();
+      }).catch(() => {});
+      return;
+    }
+
+    // Subscribe to realtime presence updates
+    import("@/lib/wsPresenceClient").then(({ default: wsClient }) => {
+      const friendIds = friends.map(f => f.id).filter(Boolean);
+      if (friendIds.length > 0) {
+        wsClient.subscribeFriends(friendIds);
+      }
+    }).catch(() => {});
+
+    return () => {
+      // Unsubscribe on cleanup
+      import("@/lib/wsPresenceClient").then(({ default: wsClient }) => {
+        wsClient.unsubscribeFriends();
+      }).catch(() => {});
+    };
+  }, [showPlayersModal, directoryTab, friends]);
+
+  // Listen for realtime presence updates
+  useEffect(() => {
+    if (!showPlayersModal || directoryTab !== 'friends') return;
+
+    const handlePresenceUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const msg = customEvent.detail;
+      
+      if (msg.type === "friends-presence-update" && Array.isArray(msg.users)) {
+        // Update friends list with realtime presence data
+        setFriends(prevFriends => {
+          const updated = [...prevFriends];
+          type PresenceData = { status: FriendStatus; lastSeen: number };
+          const presenceMap = new Map<string, PresenceData>(
+            msg.users.map((u: any) => [u.userId, {
+              status: (u.status === 'online' || u.status === 'away' || u.status === 'busy' 
+                ? u.status 
+                : 'offline') as FriendStatus,
+              lastSeen: typeof u.lastSeen === 'number' ? u.lastSeen : Date.now()
+            }])
+          );
+          
+          let changed = false;
+          updated.forEach(friend => {
+            const presence = presenceMap.get(friend.id);
+            if (presence) {
+              const newStatus = presence.status;
+              const newLastSeen = presence.lastSeen;
+              if (friend.status !== newStatus || friend.lastSeen !== newLastSeen) {
+                friend.status = newStatus;
+                friend.lastSeen = newLastSeen;
+                changed = true;
+              }
+            }
+          });
+          
+          if (changed) {
+            // Update cache with new data
+            const nextFingerprint = buildFriendsFingerprint(updated);
+            friendsCacheRef.current = {
+              list: updated,
+              fingerprint: nextFingerprint,
+              timestamp: Date.now()
+            };
+            // Recalculate active count
+            const activeCount = updated.filter(f => f.status === 'online' || f.status === 'away' || f.status === 'busy').length;
+            setFriendsActiveCount(activeCount);
+            setFriendsTotalCount(updated.length);
+          }
+          
+          return changed ? updated : prevFriends;
+        });
+      }
+    };
+
+    window.addEventListener("presence:message", handlePresenceUpdate);
+    return () => {
+      window.removeEventListener("presence:message", handlePresenceUpdate);
+    };
+  }, [showPlayersModal, directoryTab]);
 
   useEffect(() => {
     if (!showPlayersModal || directoryTab !== 'players') return;

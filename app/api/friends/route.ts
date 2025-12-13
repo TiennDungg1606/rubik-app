@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import dbConnect from "@/lib/dbConnect";
 import User from "@/lib/userModel";
-import { fetchPresenceBulk, type PresenceStatus } from "@/lib/presenceService";
+import { type PresenceStatus } from "@/lib/presenceService";
 import { extractUserId } from "./utils";
 
 type FriendPayload = {
@@ -66,18 +66,8 @@ export async function GET(request: Request) {
       .lean()
       .exec();
 
-    let presenceMap = new Map<string, { status: PresenceStatus; lastSeen: number }>();
-    try {
-      const presenceRecords = await fetchPresenceBulk(friendIds);
-      presenceMap = new Map(
-        presenceRecords.map((record: PresenceRecord) => [record.userId, {
-          status: record.status,
-          lastSeen: record.lastSeen
-        }])
-      );
-    } catch (error) {
-      console.error("Failed to fetch presence for friends", error);
-    }
+    // NOTE: Presence data is now fetched via WebSocket on client-side to avoid FOT
+    // Server only returns friend profile data, presence will be merged client-side
 
     const orderedDocs = friendIds
       .map((id) => friendDocs.find((doc) => doc?._id?.toString() === id))
@@ -85,7 +75,6 @@ export async function GET(request: Request) {
 
     const payload: FriendPayload[] = orderedDocs.map((doc) => {
       const id = doc._id?.toString() || "";
-      const presence = presenceMap.get(id);
       return {
         id,
         firstName: doc.firstName || "",
@@ -93,8 +82,8 @@ export async function GET(request: Request) {
         username: doc.username || "",
         avatar: doc.avatar || "",
         goal33: doc.goal33 || "",
-        status: presence?.status || "offline",
-        lastSeen: presence?.lastSeen ?? null
+        status: "offline" as const, // Default to offline, will be updated via WebSocket
+        lastSeen: null
       };
     });
 
