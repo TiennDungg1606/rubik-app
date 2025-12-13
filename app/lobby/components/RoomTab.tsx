@@ -1159,9 +1159,9 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   }, 0);
   const totalRoomCount = activeRooms.length + competingRooms.length;
   const statusChips = [
-    { label: 'Phòng hoạt động', value: activeRooms.length, accent: 'text-emerald-300 border-emerald-400/30 bg-emerald-500/5' },
+    { label: 'Đang hoạt động', value: activeRooms.length, accent: 'text-emerald-300 border-emerald-400/30 bg-emerald-500/5' },
     { label: 'Đang thi đấu', value: competingRooms.length, accent: 'text-rose-300 border-rose-400/30 bg-rose-500/5' },
-    { label: 'Phòng chờ', value: waitingRoomCount, accent: 'text-amber-200 border-amber-400/30 bg-amber-500/5' },
+    { label: 'Đang chờ', value: waitingRoomCount, accent: 'text-amber-200 border-amber-400/30 bg-amber-500/5' },
     { label: 'Phòng khóa', value: privateRoomCount, accent: 'text-sky-200 border-sky-400/30 bg-sky-500/5' }
   ];
   const heroPaddingClass = effectiveMobileShrink ? 'p-1' : 'p-2';
@@ -1779,10 +1779,10 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
           </div>
           <div className="relative z-10 flex flex-col gap-6 text-white">
             <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap items-center gap-3 text-[20px] uppercase tracking-[0.45em] text-white/60">
+              <div className={`flex flex-wrap items-center gap-3 ${effectiveMobileShrink ? 'text-[16px]' : 'text-[20px]'} uppercase tracking-[0.45em] text-white/60`}>
                 <span>Room Command Center</span>
                 <span className="hidden flex-1 border-t border-white/10 sm:block" />
-                <span className="px-3 py-1 rounded-full border border-white/10 text-[12px] tracking-[0.3em] text-white/70">Realtime</span>
+                <span className={`px-3 py-1 rounded-full border border-white/10 ${effectiveMobileShrink ? 'text-[10px]' : 'text-[12px]'} tracking-[0.3em] text-white/70`}>Realtime</span>
               </div>
             </div>
 
@@ -1790,7 +1790,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
               <div className={`grid ${statusChipGridWidthClass} grid-cols-4 ${statusChipGapClass}`}>
                 {statusChips.map(chip => (
                   <div key={chip.label} className={`rounded-2xl border ${statusChipPaddingClass} ${chip.accent}`}>
-                    <div className="text-[11px] uppercase tracking-[0.35em] text-white/55">{chip.label}</div>
+                    <div className={`${effectiveMobileShrink ? 'text-[9px]' : 'text-[12px]'} uppercase tracking-[0.35em] text-white/55`}>{chip.label}</div>
                     <div className={`${statusChipValueClass} font-semibold leading-tight`}>{chip.value}</div>
                   </div>
                 ))}

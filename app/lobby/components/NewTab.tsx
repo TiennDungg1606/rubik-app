@@ -26,10 +26,10 @@ const finishedNews: StaticNewsItem[] = [
 ];
 
 const featureUpdates = [
-  "Cập nhật hồ sơ và avatar để mở khóa huy hiệu mới",
+  "Hãy cập nhật hồ sơ và avatar để mở khóa huy hiệu mới",
   "Đang hoàn thiện công thức cho tab Practice",
   "Đang phát triển kết bạn + nhắn tin + thông báo trên server Rubik App",
-  "Tối ưu hóa UI/UX cho desktop, tablet, mobile"
+  "Tối ưu hóa UI/UX cho desktop, mobile, tối ưu hóa hiệu năng. Tăng tốc độ xử lý cho các thiết bị"
 ];
 
 const nextUpdates = [
