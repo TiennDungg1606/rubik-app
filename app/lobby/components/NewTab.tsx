@@ -39,7 +39,7 @@ const nextUpdates = [
 
 const infoChips = [
   { label: "Máy chủ", value: "Online 24/7" },
-  { label: "Người chơi", value: "436" },
+  { label: "Người chơi", value: "437" },
   { label: "Bản build", value: "v0.8.5" }
 ];
 

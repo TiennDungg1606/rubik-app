@@ -2741,10 +2741,8 @@ useEffect(() => {
       socket.emit('leave-room', { roomId, userId });
     }
     setInsufficientModal({ show: false, message: '', forceClose: false });
-    window.location.href = '/lobby';
-    setTimeout(() => {
-      window.location.reload();
-    }, 1300);
+    router.replace('/lobby');
+    router.refresh();
   }
 
   function handleRematch2v2Request() {
