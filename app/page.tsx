@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react";
 import AuthForm from "@/components/AuthForm";
 
+import { useSessionUser } from "./SessionProviderWrapper";
+
 const BrandCubeIcon = ({ size = 64, className = "" }: { size?: number; className?: string }) => (
   <svg
     width={size}
@@ -61,36 +63,25 @@ const InstagramIcon = () => (
 );
 
 export default function HomePage() {
-  // Tự động chuyển hướng nếu đã đăng nhập (còn cookie)
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
+  const { user } = useSessionUser();
+  const [checking, setChecking] = useState(() => Boolean(user));
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [mobileShrink, setMobileShrink] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   useEffect(() => {
-    async function checkLogin() {
-      try {
-        const res = await fetch("/api/user/me", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.firstName && data.lastName) {
-            window.userName = data.firstName + " " + data.lastName;
-          } else {
-            window.userName = undefined;
-          }
-          setTimeout(() => {
-            window.location.href = "/lobby";
-          }, 5000); // Độ trễ 5 giây
-        } else {
-          setChecking(false);
-        }
-      } catch {
-        setChecking(false);
-      }
+    if (user) {
+      window.userName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || undefined;
+      setChecking(true);
+      const timer = setTimeout(() => {
+        router.push("/lobby");
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-    checkLogin();
-  }, []);
+    window.userName = undefined;
+    setChecking(false);
+  }, [router, user]);
 
   useEffect(() => {
     function evaluateViewport() {

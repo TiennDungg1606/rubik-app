@@ -14,6 +14,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { io } from 'socket.io-client';
 import dynamic from 'next/dynamic';
 
+import { useSessionUser } from '../../../SessionProviderWrapper';
+
 // Dynamic import để tránh SSR issues
 const DailyVideoCall = dynamic(() => import('@/components/DailyVideoCall'), { ssr: false });
 
@@ -127,10 +129,11 @@ export default function WaitingRoom() {
   const [isConnected, setIsConnected] = useState(false);
   const [roomUrl, setRoomUrl] = useState('');
   const [customBg, setCustomBg] = useState<string>('');
-  const [user, setUser] = useState<any>(null);
+  const { user } = useSessionUser();
   const [isRoomFullModalVisible, setIsRoomFullModalVisible] = useState(false);
   const roomFullTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isUserLoaded, setIsUserLoaded] = useState(false);
+  const hasJoinedRef = useRef(false);
 
   // Video refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -182,25 +185,18 @@ export default function WaitingRoom() {
     currentUserIdRef.current = null;
   }, [currentUser, roomState.players, user?.firstName, user?.lastName]);
 
-  // Load user từ API giống như lobby
+  // Đồng bộ thông tin user từ session context
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
-        const data = await res.json();
-        if (data && data.user) {
-          setUser(data.user);
-          setCustomBg(data.user.customBg || '');
-        } else {
-        }
-      } catch (err) {
-        console.error("❌ Error fetching user:", err);
-      } finally {
-        setIsUserLoaded(true);
-      }
-    };
-    fetchUser();
-  }, []);
+    if (typeof user === "undefined") return;
+    if (user === null) {
+      router.replace("/");
+      setIsUserLoaded(true);
+      return;
+    }
+
+    setCustomBg(user.customBg || "");
+    setIsUserLoaded(true);
+  }, [user, router]);
 
   // Device detection và orientation check
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
@@ -323,40 +319,7 @@ export default function WaitingRoom() {
 
     newSocket.on('connect', () => {
       setIsConnected(true);
-      
-      // Lấy thông tin user từ API thay vì sessionStorage
-      const fetchUserAndJoin = async () => {
-        try {
-          const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
-          const data = await res.json();
-          
-          if (data && data.user) {
-            const user = data.user;
-            const userId = user._id || user.id || Date.now().toString();
-            const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
-            
-            // Cập nhật currentUser state
-            setCurrentUser({
-              id: userId,
-              name: userName,
-              isReady: false,
-              isObserver: false
-            });
-            
-            newSocket.emit('join-waiting-room', {
-              roomId,
-              userId,
-              userName,
-              displayName: window._roomDisplayName || roomId, // Sẽ được cập nhật từ server
-              password: window._roomPassword || null
-            });
-          }
-        } catch (error) {
-          console.error('=== DEBUG: Error fetching user data for socket join ===', error);
-        }
-      };
-      
-      fetchUserAndJoin();
+      hasJoinedRef.current = false;
     });
 
     newSocket.on('waiting-room-updated', (data: WaitingRoomState) => {
@@ -568,6 +531,30 @@ export default function WaitingRoom() {
       newSocket.disconnect();
     };
   }, [roomId, router]);
+
+  useEffect(() => {
+    if (!socket || !isConnected || !user || hasJoinedRef.current) return;
+    const resolvedId = user._id || user.id || Date.now().toString();
+    const displayName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    const userName = displayName || user.username || 'Player';
+
+    setCurrentUser({
+      id: resolvedId,
+      name: userName,
+      isReady: false,
+      isObserver: false,
+    });
+
+    socket.emit('join-waiting-room', {
+      roomId,
+      userId: resolvedId,
+      userName,
+      displayName: window._roomDisplayName || roomId,
+      password: window._roomPassword || null,
+    });
+
+    hasJoinedRef.current = true;
+  }, [socket, isConnected, user, roomId]);
 
   // Set background giống như lobby
   useEffect(() => {

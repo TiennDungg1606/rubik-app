@@ -2,7 +2,10 @@
 import React, { useRef } from "react";
 import { useState, useEffect } from "react";
 
+import { useSessionUser } from "../SessionProviderWrapper";
+
 export default function ProfilePage() {
+  const { user } = useSessionUser();
       const [showMenu, setShowMenu] = useState(false);
       const menuRef = useRef<HTMLDivElement>(null);
       const [isMobileLandscape, setIsMobileLandscape] = useState(false);
@@ -32,17 +35,6 @@ export default function ProfilePage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     };
-  const [user, setUser] = React.useState<any>(null);
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch("/api/user/me", { credentials: "include" });
-        const data = await res.json();
-        if (data && data.user) setUser(data.user);
-      } catch {}
-    }
-    fetchUser();
-  }, []);
     useEffect(() => {
       function evaluateViewport() {
         const mobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);

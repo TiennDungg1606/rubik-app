@@ -2,40 +2,23 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useSessionUser } from "../SessionProviderWrapper";
+
 // Tái sử dụng AccountTab từ components
 import AccountTab from "./AccountTab";
 
 export default function AccountPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    birthday?: string;
-    customBg?: string;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, refreshUser } = useSessionUser();
   const [customBg, setCustomBg] = useState<string | null>(null);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
   const [isPortrait, setIsPortrait] = useState(false);
 
   useEffect(() => {
-    fetch("/api/user/me", { credentials: "include" })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (!data) setUser(null);
-        else if (data.user) setUser(data.user);
-        else setUser(data);
-        setLoading(false);
-      });
-    // Nếu sau 5s vẫn loading, chuyển về trang đăng nhập
-    const timeout = setTimeout(() => {
-      if (loading) {
-        window.location.href = "/";
-      }
-    }, 3000);
-    return () => clearTimeout(timeout);
-  }, [loading]);
+    if (user === null) {
+      router.replace("/");
+    }
+  }, [user, router]);
 
   // Theo dõi customBg từ user
   useEffect(() => {
@@ -44,7 +27,7 @@ export default function AccountPage() {
     } else {
       setCustomBg(null);
     }
-  }, [user]);
+  }, [user?.customBg, user]);
 
   // Set background cho body khi customBg từ server
   useEffect(() => {
@@ -94,7 +77,7 @@ export default function AccountPage() {
     );
   }
 
-  if (loading) return (
+  if (!user) return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center"
       style={{
@@ -106,7 +89,6 @@ export default function AccountPage() {
       <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-400"></div>
     </div>
   );
-  if (!user) return <div className="text-red-400 p-8">Bạn chưa đăng nhập.</div>;
 
   return (
     <main
@@ -129,7 +111,12 @@ export default function AccountPage() {
         <h1 className="text-3xl font-bold">Account Settings</h1>
       </div>
       <div className="w-full max-w-7xl px-2 md:px-1">
-        <AccountTab user={user} onUserUpdated={(u) => setUser(u)} />
+        <AccountTab
+          user={user}
+          onUserUpdated={async () => {
+            await refreshUser();
+          }}
+        />
       </div>
     </main>
   );

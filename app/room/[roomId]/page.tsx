@@ -12,6 +12,7 @@ declare global {
 import { getSocket } from "@/lib/socket";
 import dynamic from 'next/dynamic';
 import { applyScrambleToCubeState, rotateFace, rotateFace2x2, getSolvedCubeState, Face, CubeState, PyraminxState } from '@/lib/rubikUtils';
+import { useSessionUser } from "../../SessionProviderWrapper";
 // Helper for stats (all in ms)
 // Tính toán thống kê chuẩn WCA, DNF là null, mọi kết quả đều 3 số thập phân
 function calcStats(times: (number|null)[]) {
@@ -107,6 +108,14 @@ export default function RoomPage() {
     lockedByUserId: string;
   } | null>(null);
   const router = useRouter();
+  const { user: sessionUser } = useSessionUser();
+  const user = sessionUser as User | null;
+
+  useEffect(() => {
+    if (user === null) {
+      router.replace("/");
+    }
+  }, [user, router]);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState<boolean>(false);
@@ -212,21 +221,12 @@ type User = {
   birthday?: string;
   customBg?: string;
   avatar?: string;
+  username?: string;
+  id?: string;
+  _id?: string;
 };
 
-const [user, setUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
-const [customBg, setCustomBg] = typeof window !== 'undefined' ? useState<string | null>(null) : [null, () => {}];
-
-useEffect(() => {
-  if (typeof window === 'undefined') return;
-  fetch("/api/user/me", { credentials: "include" })
-    .then(res => res.ok ? res.json() : null)
-    .then(data => {
-      if (!data) setUser(null);
-      else if (data.user) setUser(data.user);
-      else setUser(data);
-    });
-}, []);
+const [customBg, setCustomBg] = useState<string | null>(null);
 
 // State lưu thông tin đối thủ (bao gồm avatar)
 const [opponentUser, setOpponentUser] = typeof window !== 'undefined' ? useState<User | null>(null) : [null, () => {}];
@@ -2106,25 +2106,20 @@ useEffect(() => {
     };
   }, [roomId, userId]);
 
-  // Đảm bảo userName luôn đúng khi vào phòng (nếu window.userName chưa có)
-  // Lấy userId và userName từ DB, lưu vào state
+  // Đảm bảo userId/userName luôn đồng bộ với session
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      fetch('/api/user/me', { credentials: 'include' })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => {
-          if (data && data.user && data.user._id) {
-            const resolvedId = typeof data.user._id === 'string' ? data.user._id : String(data.user._id);
-            setUserId(resolvedId);
-            if (data.user.firstName && data.user.lastName) {
-              setUserName(data.user.firstName + ' ' + data.user.lastName);
-            } else {
-              setUserName('Không xác định');
-            }
-          }
-        });
+    if (!user) return;
+    const resolvedId = user.id || user._id;
+    if (resolvedId) {
+      setUserId(resolvedId);
     }
-  }, []);
+    const preferredName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+    const normalizedName = preferredName || user.username || "Không xác định";
+    setUserName(normalizedName);
+    if (typeof window !== "undefined") {
+      window.userName = normalizedName;
+    }
+  }, [user]);
 
   // Đã loại bỏ effect lấy media stream và gán vào video element cũ
 

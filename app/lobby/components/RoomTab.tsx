@@ -347,7 +347,7 @@ export default function RoomTab({ roomInput, setRoomInput, handleCreateRoom, han
   const eventGridGapClass = effectiveMobileShrink ? 'gap-0.5' : 'gap-1';
   const denseEventGridGapClass = effectiveMobileShrink ? 'gap-[2px]' : 'gap-0.5';
   const pyraminxSizeClass = effectiveMobileShrink ? 'w-10 h-10' : 'w-14 h-14';
-  const relayMiniGridGapClass = effectiveMobileShrink ? 'gap-[1px]' : 'gap-[1px]';
+  const relayMiniGridGapClass = effectiveMobileShrink ? 'gap-[2px]' : 'gap-[3px]';
   const relayMiniGridSizes = effectiveMobileShrink
     ? { top: 18, left: 22, right: 24 }
     : { top: 26, left: 30, right: 34 };

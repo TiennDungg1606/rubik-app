@@ -3,6 +3,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+
+import SessionProviderWrapper from "./SessionProviderWrapper";
+import { getServerUser } from "@/lib/getServerUser";
 import "./globals.css";
 
 
@@ -73,11 +76,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const serverUser = await getServerUser().catch(() => null);
   return (
     <html lang="en">
       <head>
@@ -151,8 +155,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {/* Bỏ SessionProviderWrapper, render children trực tiếp */}
-        {children}
+        <SessionProviderWrapper initialUser={serverUser}>{children}</SessionProviderWrapper>
       </body>
     </html>
   );

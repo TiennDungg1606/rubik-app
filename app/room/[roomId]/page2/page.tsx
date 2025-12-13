@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import React from "react";
 import type { DailyParticipant } from '@daily-co/daily-js';
+import { useSessionUser } from "../../../SessionProviderWrapper";
 // import Peer from "simple-peer"; // REMOVED
 // import DailyVideoCall from "@/components/DailyVideoCall"; // Sử dụng dynamic import thay thế
 import { useRouter } from "next/navigation";
@@ -327,6 +328,14 @@ export default function RoomPage() {
     lockedByUserId: string;
   } | null>(null);
   const router = useRouter();
+  const { user: sessionUser } = useSessionUser();
+  const user = sessionUser;
+
+  useEffect(() => {
+    if (user === null) {
+      router.replace("/");
+    }
+  }, [user, router]);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isPortrait, setIsPortrait] = useState<boolean>(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState<boolean>(false);
@@ -633,7 +642,6 @@ export default function RoomPage() {
   // Current player info
   const [currentPlayerId, setCurrentPlayerId] = useState<string>("");
   const [currentPlayerName, setCurrentPlayerName] = useState<string>("");
-  const [user, setUser] = useState<User | null>(null);
   const [customBg, setCustomBg] = useState<string | null>(null);
 
 const mergeRoomUsers = (users: RoomUser[]): RoomUser[] => {
@@ -688,16 +696,6 @@ const mergeRoomUsers = (users: RoomUser[]): RoomUser[] => {
   return Array.from(merged.values());
 };
 
-useEffect(() => {
-  if (typeof window === 'undefined') return;
-  fetch("/api/user/me", { credentials: "include" })
-    .then(res => res.ok ? res.json() : null)
-    .then(data => {
-      if (!data) setUser(null);
-      else if (data.user) setUser(data.user);
-      else setUser(data);
-    });
-}, []);
 
 useEffect(() => {
   if (user && user.customBg) {
@@ -2883,25 +2881,20 @@ useEffect(() => {
     };
   }, [roomId, userId]);
 
-  // Đảm bảo userName luôn đúng khi vào phòng (nếu window.userName chưa có)
-  // Lấy userId và userName từ DB, lưu vào state
+  // Đồng bộ userId/userName từ session
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      fetch('/api/user/me', { credentials: 'include' })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => {
-          if (data && data.user && data.user._id) {
-            const resolvedId = typeof data.user._id === 'string' ? data.user._id : String(data.user._id);
-            setUserId(resolvedId);
-            if (data.user.firstName && data.user.lastName) {
-              setUserName(data.user.firstName + ' ' + data.user.lastName);
-            } else {
-              setUserName('Không xác định');
-            }
-          }
-        });
+    if (!user) return;
+    const resolvedId = user.id || user._id;
+    if (resolvedId) {
+      setUserId(resolvedId);
     }
-  }, []);
+    const preferredName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+    const normalizedName = preferredName || user.username || "Không xác định";
+    setUserName(normalizedName);
+    if (typeof window !== "undefined") {
+      window.userName = normalizedName;
+    }
+  }, [user]);
 
   // Đã loại bỏ effect lấy media stream và gán vào video element cũ
 

@@ -14,6 +14,9 @@ import AboutTab from "./components/AboutTab";
 import ShopTab from "./components/ShopTab";
 import PracticeTab from "./components/PracticeTab";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { SessionUser } from "@/lib/getServerUser";
+
+import { useSessionUser } from "../SessionProviderWrapper";
 
 
 
@@ -22,17 +25,7 @@ function generateRoomId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-type User = {
-  _id?: string;
-  id?: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  birthday?: string;
-  customBg?: string;
-  avatar?: string;
-  // Thêm các trường khác nếu cần
-};
+type User = SessionUser;
 
 
 type TabKey = "new" | "timer" | "room" | "practice" | "shop" | "about";
@@ -204,7 +197,7 @@ function LobbyContent() {
         
         if (res.ok) {
           // Refetch user để cập nhật customBg từ server
-          await refetchUser();
+          await refreshUser();
         } else {
           // Failed to save background to server
         }
@@ -224,7 +217,7 @@ function LobbyContent() {
   const [tabTransitioning, setTabTransitioning] = useState(false);
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
+  const { user, refreshUser, setUser } = useSessionUser();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [customBg, setCustomBg] = useState<string | null>(null);
   const [bgError, setBgError] = useState<string>("");
@@ -291,7 +284,7 @@ function LobbyContent() {
     });
   };
 
-    // Avatar change logic for main lobby (must be inside LobbyContent to access refetchUser)
+    // Avatar change logic for main lobby (must be inside LobbyContent to access refreshUser)
     const handleAvatarChangeLobby = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -304,7 +297,7 @@ function LobbyContent() {
         credentials: "include",
         body: JSON.stringify({ avatar: base64 })
       });
-      await refetchUser();
+      await refreshUser();
     };
     reader.readAsDataURL(file);
   };
@@ -399,19 +392,6 @@ function LobbyContent() {
     }
   }, [customBg]);
 
-  // Xử lý upload ảnh nền cá nhân hóa lên API MongoDB và refetch user
-  const refetchUser = async () => {
-    try {
-        const res = await fetch("/api/user/me", { credentials: "include", cache: "no-store" });
-        const data = await res.json();
-      if (data && data.user) {
-        setUser(data.user);
-      }
-    } catch (err) {
-      // Error refetching user data
-    }
-  };
-
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -465,7 +445,7 @@ function LobbyContent() {
           });
           
           if (res.ok) {
-            await refetchUser();
+            await refreshUser();
           } else {
             setBgError(`Lưu ảnh thất bại! Status: ${res.status}`);
           }
@@ -484,7 +464,7 @@ function LobbyContent() {
     setLoadingBg(true);
     try {
       const res = await fetch('/api/user/custom-bg', { method: 'DELETE' });
-      if (res.ok) await refetchUser();
+      if (res.ok) await refreshUser();
       else setBgError('Xóa ảnh thất bại!');
     } catch (err) {
       setBgError('Lỗi mạng khi xóa ảnh!');
@@ -600,18 +580,12 @@ function LobbyContent() {
   // Đã chuyển khai báo tab lên trên để dùng cho hiệu ứng chuyển tab
   // Đã chuyển lên trên để tránh lỗi khai báo trước khi dùng
 
-  // Luôn fetch user khi vào trang
+  // Redirect guests back to home
   useEffect(() => {
-    fetch("/api/user/me", { credentials: "include", cache: "no-store" })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (!data || !data.user) {
-          router.replace("/");
-          return;
-        }
-        setUser(data.user);
-      });
-  }, [router]);
+    if (user === null) {
+      router.replace("/");
+    }
+  }, [user, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -885,10 +859,20 @@ function LobbyContent() {
           >
             <ProfileTab
               user={user}
-              onLogout={() => {
-                fetch('/api/user/logout', { method: 'POST' }).then(() => {
-                  router.push('/');
-                });
+              onLogout={async () => {
+                try {
+                  await fetch('/api/user/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                  });
+                } catch {
+                  // Ignore network errors; next refresh will fully log out.
+                } finally {
+                  setUser(null);
+                  setShowProfileMenu(false);
+                  router.replace('/');
+                  router.refresh();
+                }
               }}
               onThemeSwitch={() => {}}
               onBgUpload={handleBgUpload}

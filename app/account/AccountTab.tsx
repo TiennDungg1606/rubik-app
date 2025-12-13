@@ -1,15 +1,11 @@
 // ...existing code...
 import React, { useEffect, useState } from "react";
+import type { SessionUser } from "@/lib/getServerUser";
 
 type AccountTabProps = {
-	user: {
-		email?: string;
-		firstName?: string;
-		lastName?: string;
-		birthday?: string;
-	} | null;
+	user: SessionUser | null;
 	loading?: boolean;
-	onUserUpdated?: (user: { email?: string; firstName?: string; lastName?: string; birthday?: string }) => void;
+	onUserUpdated?: (user: SessionUser | null) => void;
 };
 
 export default function AccountTab({ user, loading, onUserUpdated }: AccountTabProps) {

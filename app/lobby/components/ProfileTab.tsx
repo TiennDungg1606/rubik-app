@@ -1,14 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import type { SessionUser } from "@/lib/getServerUser";
 
 interface ProfileTabProps {
-  user: {
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    birthday?: string;
-    avatar?: string;
-  } | null;
+  user: SessionUser | null;
   onLogout: () => void;
   onThemeSwitch?: () => void;
   onBgUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
